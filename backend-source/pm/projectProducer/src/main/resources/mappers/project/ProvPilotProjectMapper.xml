@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProvPilotProjectMapper">
+
+    <sql id="listFilter">
+        <if test="params.teId != null and params.teId != ''">
+            and mn.te_id = #{params.teId}
+        </if>
+        <if test="params.annualYearStart != null">
+            and mn.annual_year &gt;= #{params.annualYearStart}
+        </if>
+        <if test="params.annualYearEnd != null">
+            and mn.annual_year &lt;= #{params.annualYearEnd}
+        </if>
+        <if test="params.projectName != null and params.projectName != ''">
+            and mn.project_name like concat('%',#{params.projectName},'%')
+        </if>
+        <if test="params.projectTypeList != null and params.projectTypeList.size() > 0">
+            and mn.project_type in
+            <foreach collection="params.projectTypeList" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.hasRelatedCityProject == '01'">
+            and mn.related_city_project_id is not null and mn.related_city_project_id != ''
+        </if>
+        <if test="params.hasRelatedCityProject == '00'">
+            and (mn.related_city_project_id is null or mn.related_city_project_id = '')
+        </if>
+        <if test="params.districtList != null and params.districtList.size() > 0">
+            and mn.district in
+            <foreach collection="params.districtList" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.batch != null and params.batch != ''">
+            and mn.batch like concat('%',#{params.batch},'%')
+        </if>
+        <if test="params.declareUnit != null and params.declareUnit != ''">
+            and mn.declare_unit like concat('%',#{params.declareUnit},'%')
+        </if>
+        <if test="params.relatedCityProjectName != null and params.relatedCityProjectName != ''">
+            and mn.related_city_project_name like concat('%',#{params.relatedCityProjectName},'%')
+        </if>
+    </sql>
+
+    <select id="getList" resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProvPilotProjectModel">
+        select mn.*
+        from prov_pilot_project mn
+        <where>
+            <include refid="listFilter"/>
+        </where>
+        <choose>
+            <when test="params.sortType != null and params.sortFiled != null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.create_time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getById" resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProvPilotProjectModel">
+        select mn.*
+        from prov_pilot_project mn
+        where mn.id = #{id}
+    </select>
+
+    <select id="selectMaxProjectCode" resultType="java.lang.String">
+        select max(project_code)
+        from prov_pilot_project
+        where project_code like concat(#{prefix}, '%')
+    </select>
+</mapper>

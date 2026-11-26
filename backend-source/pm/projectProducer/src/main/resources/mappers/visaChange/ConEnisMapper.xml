@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.visaChange.ConEnisMapper">
+
+    <select id="getConEnisById" resultType="com.jpmsoft.common.model.response.DesignChange.ConEnisResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        d.D_Name as enisDepName,
+        c1.C_Name as enisProposedName,
+        c1.C_Abbreviation as enisProposedAbbName,
+        f.file_relation_id as fileRelationId,
+        (select enb.Enb_Estimate_Amt from Con_En_Budget enb where enb.Enis_Id=mn.Enis_Id and enb.Enb_State=7 limit 1) as  enbEstimateAmt,
+        mn.*
+        from  Con_Enis mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Department d on d.D_Id=mn.Enis_Dep
+        left join  SYS_Company c1 on mn.Enis_Proposed_Id=c1.C_Id
+        left join  Sys_File f on f.FileID=mn.Enis_Id
+        where mn.Enis_Id=#{enisId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.p_Id= #{params.pId}
+        </if>
+        <if test="params.enisProposedId!=null">
+            and mn.Enis_Proposed_Id=#{params.enisProposedId}
+        </if>
+        <if test="params.enisType!=null">
+            and mn.Enis_Type=#{params.enisType}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id=#{params.conId}
+        </if>
+        <if test="params.enisState!=null">
+            and mn.Enis_State=#{params.enisState}
+        </if>
+        <if test="params.enisDep!=null">
+            and mn.Enis_Dep=#{params.enisDep}
+        </if>
+        <if test="params.enisCategory!=null">
+            and mn.Enis_Category=#{params.enisCategory}
+        </if>
+        <if test="params.enisMainCode!=null">
+            and mn.Enis_Main_Code=#{params.enisMainCode}
+        </if>
+        <if test="params.enisSubCode!=null">
+            and mn.Enis_Sub_Code=#{params.enisSubCode}
+        </if>
+        <if test="params.enisCode!=null">
+            and mn.Enis_Code like concat('%',#{params.enisCode},'%')
+        </if>
+        <if test="params.enisName!=null">
+            and mn.Enis_Name like concat('%',#{params.enisName},'%')
+        </if>
+        <if test="params.enisProjectName!=null">
+            and mn.Enis_Project_Name like concat('%',#{params.enisProjectName},'%')
+        </if>
+        <if test="params.enisMajor!=null">
+            and mn.Enis_Major like concat('%',#{params.enisMajor},'%')
+        </if>
+        <if test="params.enisDrawingNo!=null">
+            and mn.Enis_Drawing_No like concat('%',#{params.enisDrawingNo},'%')
+        </if>
+        <if test="params.enisCreateUname!=null">
+            and mn.Enis_Create_Uname like concat('%',#{params.enisCreateUname},'%')
+        </if>
+        <if test="params.enisLocation!=null">
+            and mn.Enis_Location like concat('%',#{params.enisLocation},'%')
+        </if>
+        <if test="params.enisContentSummary!=null">
+            and mn.Enis_Content_Summary like concat('%',#{params.enisContentSummary},'%')
+        </if>
+        <if test="params.enisContent!=null">
+            and mn.Enis_Content like concat('%',#{params.enisContent},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.enisDepName!=null">
+            and d.D_Name like concat('%',#{params.enisDepName},'%')
+        </if>
+        <if test="params.enisProposedName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.enisProposedName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and  c1.C_Name like concat('%',#{params.enisProposedName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.enisCreateTimeStart!=null">
+            and mn.Enis_Create_Time >= #{params.enisCreateTimeStart}
+        </if>
+        <if test="params.enisCreateTimeEnd!=null">
+            and mn.Enis_Create_Time &lt;=#{params.enisCreateTimeEnd}
+        </if>
+        <if test="params.enisDateStart!=null">
+            and mn.Enis_Date > #{params.enisDateStart}
+        </if>
+        <if test="params.enisDateEnd!=null">
+            and mn.Enis_Date &lt; #{params.enisDateEnd}
+        </if>
+        <if test="params.enisFinishDateStart!=null">
+            and mn.Enis_Finish_Date > #{params.enisFinishDateStart}
+        </if>
+        <if test="params.enisFinishDateEnd!=null">
+            and mn.Enis_Finish_Date &lt; #{params.enisFinishDateEnd}
+        </if>
+        <if test="params.filterEnBudget==true">
+            and  (select count(*) from Con_En_Budget sceb where sceb.Enis_Id=mn.Enis_Id and sceb.Enb_State!=3) &lt; 1
+        </if>
+        <if test="params.filterEnChangeApply==true">
+            and  (select count(*) from Con_Ec_Fee cefe where cefe.p_Id=mn.p_Id and cefe.Ecf_State!=3) &lt; 1
+        </if>
+        <if test="params.filterConDco != null and params.filterConDco == '01'">
+            and not exists(select 1 from Con_Dco dco where dco.Enis_Id = mn.Enis_Id and dco.Dco_State != 3 and dco.Dco_State != 0)
+        </if>
+    </sql>
+
+    <select id="getConEnisList" resultType="com.jpmsoft.common.model.response.DesignChange.ConEnisResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        d.D_Name as enisDepName,
+        c1.C_Name_History as enisProposedNameHistory,
+        c1.C_Name as enisProposedName,
+        c1.C_Abbreviation as enisProposedAbbName,
+        (select enb.Enb_Estimate_Amt from Con_En_Budget enb where enb.Enis_Id=mn.Enis_Id and enb.Enb_State=7 limit 1) as  enbEstimateAmt,
+        mn.*
+        from  Con_Enis mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department d on d.D_Id=mn.Enis_Dep
+        left join  SYS_Company c1 on mn.Enis_Proposed_Id=c1.C_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.filterEnisAuth != null and params.filterEnisAuth == '01'">
+            <if test="params.currentCompanyId != null and params.currentCompanyId != ''">
+                AND EXISTS (
+                select 1
+                from sys_user su
+                where su.u_Id = mn.enis_Create_Uid
+                and su.c_Id = #{params.currentCompanyId}
+                )
+            </if>
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Enis_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

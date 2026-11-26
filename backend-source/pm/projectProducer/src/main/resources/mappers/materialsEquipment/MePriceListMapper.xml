@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MePriceListMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MePriceListVo" id="getMePriceList">
+        <id column="id" property="id"/>
+        <collection property="mePriceListDtls"
+                    ofType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MePriceListDtlVo"
+                    column="id" select="getMePriceListDtl">
+        </collection>
+    </resultMap>
+
+    <select id="getMePriceListDtl" resultType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MePriceListDtlVo">
+        select mn.*
+        from Me_Price_List_Dtl mn
+        where mn.pl_Id = #{id}
+        order by mn.Pld_Sort asc
+    </select>
+
+    <select id="getMePriceListById" resultMap="getMePriceList">
+        select pro.P_Name         as pName,
+               pro.P_Code         as pCode,
+               con.Con_Name       as conName,
+               c1.C_Name          as plApplicantName,
+               c1.C_Abbreviation  as plApplicantAbbName,
+               c2.C_Name          as conPartyBName,
+               c2.C_Abbreviation  as conPartyBAbbName,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Me_Price_List mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company c1 on c1.C_Id = mn.Pl_Applicant
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company c2 on c2.C_Id = con.Con_Party_B_Id
+                 left join SYS_File f on f.FileId = mn.Id
+        where mn.id = #{id}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.plCode!=null">
+            and INSTR(mn.Pl_Code,#{params.plCode})
+        </if>
+        <if test="params.plPm!=null">
+            and INSTR(mn.Pl_Pm,#{params.plPm})
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+    </sql>
+
+
+    <select id="getMePriceListList" resultType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MePriceListVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        c1.C_Name as plApplicantName,
+        c1.C_Abbreviation as plApplicantAbbName,
+        c2.C_Name as conPartyBName,
+        c2.C_Abbreviation as conPartyBAbbName,
+        mn.*
+        from Me_Price_List mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on c1.C_Id = mn.Pl_Applicant
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c2 on c2.C_Id = con.Con_Party_B_Id
+        ${params.authSql}
+        <include refid="listFilter"></include>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

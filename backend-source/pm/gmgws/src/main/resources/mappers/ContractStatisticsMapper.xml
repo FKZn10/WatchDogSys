@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.gmgws.mapper.ContractStatisticsMapper">
+
+    <select id="getContractStatisticsList" resultType="com.jpmsoft.gmgws.pojo.vo.ContractStatisticsVo">
+        select
+        cs.id as id,
+        cs.Create_Uid as createUid,
+        cs.Create_Uname as createUname,
+        cs.Create_Time as createTime,
+        cs.State as state,
+        cs.State_Time as stateTime,
+        cs.Con_Id as conId,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        pany.C_Name as conPartyBName,
+        pp.P_Name as pName,
+        cs.Cs_Money as csMoney,
+        cs.Cs_Settlemen_Downgrading as csSettlemenDowngrading,
+        cs.Cs_Payment_Method as csPaymentMethod
+        from Contract_Statistics cs
+        left join Con_Contract con on cs.Con_Id = con.Con_Id
+        left join Sys_Company pany on con.Con_Party_B_Id = pany.C_Id
+        left join Pre_Project pp on con.Con_Project_Id = pp.P_Id
+        <where>
+            con.Con_Approval_State = 7
+            and con.Con_Type NOT IN ('07','0701','0702','0703')
+            <if test="params.conId!=null and params.conId!=''">
+                and cs.Con_Id = #{params.conId}
+            </if>
+            <if test="params.pId!=null and params.pId!=''">
+                and con.Con_Project_Id = #{params.pId}
+            </if>
+            <if test="params.conProjectId!=null and params.conProjectId!=''">
+                and con.Con_Project_Id = #{params.conProjectId}
+            </if>
+            <if test="params.conName!=null and params.conName!=''">
+                and con.Con_Name like concat('%', #{params.conName}, '%')
+            </if>
+            <if test="params.conCode!=null and params.conCode!=''">
+                and con.con_Code like concat('%', #{params.conCode}, '%')
+            </if>
+            <if test="params.conPartyBId!=null and params.conPartyBId!=''">
+                and con.Con_Party_B_Id = #{params.conPartyBId}
+            </if>
+            <if test="params.conPartyBName!=null and params.conPartyBName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.gmgws.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.conPartyBName}, pany.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and pany.C_Name like concat('%', #{params.conPartyBName}, '%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conProjectName!=null and params.conProjectName!=''">
+                and pp.P_Name like concat('%', #{params.conProjectName}, '%')
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by cs.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by cs.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

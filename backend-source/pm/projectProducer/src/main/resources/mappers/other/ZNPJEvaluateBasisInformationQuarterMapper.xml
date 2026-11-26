@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.evaluate.ZNPJEvaluateBasisInformationQuarterMapper">
+    <select id="selectBySourceId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.evaluate.ZNPJEvaluateBasisInformationQuarter">
+        select * from znpj_basis_information_quarter where source_id = #{sourceId}
+        and del_flag = 1 and status = 1 and source_code = 'badBehaviorRecord' and flow_status =7
+        limit 1
+    </select>
+</mapper>

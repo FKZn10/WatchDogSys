@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecInfoBudgetMapper">
+    <select id="getSecInfoBudgetById" resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.InvBudgetConSecModel">
+        select
+        mn.Bdd_Id as budgetId,
+        mn.select_Amount as selectAmount,
+        ibdd.Bdd_Parent_Id as budgetParentId,
+        sec.Sec_Id as secId,
+        con.Con_Id as conId,
+        con.Con_Name as conName,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Reserve_Money as conReserveMoney,
+        ibdd.Bdd_Total as bddTotal,
+        con.Con_Bid_Document as conBidDocument
+        from Sec_Info_Budget_Declare_Dtl mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join Inv_Budget_Declare_Dtl ibdd on mn.Bdd_Id = ibdd.Bdd_Id
+        left join Con_Contract con on con.Con_Section_Id = sec.Sec_Id
+        where mn.Bdd_Id=#{sibCost} and sec.Sec_Flow_State=7 and con.Con_Approval_State=7
+    </select>
+
+
+
+</mapper>

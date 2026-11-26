@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.projectOutline.OutlineProjectLibMapper">
+    <sql id="AllColumnList">
+            mn.id,
+            mn.Opm_Id,
+            mn.Opl_Parent_Id,
+            mn.Opl_Name,
+            mn.Opl_Code,
+            mn.Opl_Remark,
+            mn.Opl_Status,
+            mn.Opl_Sort,
+            mn.Opl_Content,
+            mn.Opl_Bussnis,
+            mn.Opn_Content,
+            mn.Create_Time,
+            mn.Create_Uid,
+            mn.Create_Uname,
+            mn.Opl_Score
+    </sql>
+
+    <sql id="BaseColumnList">
+            mn.id,
+            mn.Opm_Id,
+            mn.Opl_Parent_Id,
+            mn.Opl_Name,
+            mn.Opl_Code,
+            mn.Opl_Remark,
+            mn.Opl_Status,
+            mn.Opl_Sort,
+            mn.Opl_Bussnis,
+            mn.Create_Time,
+            mn.Create_Uid,
+            mn.Create_Uname,
+            mn.Opl_Score
+    </sql>
+
+    <select id="getOutlineProjectLibTree"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectLibResponse">
+        select
+        <choose>
+            <when test="params.noContent == true">
+                <include refid="BaseColumnList"/>,
+            </when>
+            <otherwise>
+                <include refid="AllColumnList"/>,
+            </otherwise>
+        </choose>
+        ifnull(opt_count.tempcount, 0) as tempcount,
+        ifnull(opr_count.riskcount, 0) as riskcount,
+        ifnull(opd_count.datasourcecount, 0) as datasourcecount,
+        if(mn.Opl_Content is null or length(mn.Opl_Content) = 0, 1, 0) as isEmpty
+        from Outline_Project_Lib mn
+        left join Outline_Project_Manage opm on mn.Opm_Id = opm.id
+        left join (select mn.id as Opl_Id, count(*) as tempcount
+        from Outline_Project_Lib mn
+        join Outline_Project_Manage opm on mn.Opm_Id = opm.id
+        join Outline_Project_Temp opt on opt.Opl_Id = mn.id
+        join SYS_File sf on sf.FileProject = opm.P_Id and sf.T_Code = opt.T_Code
+        where sf.FileFlowStatus != 3
+        group by mn.id) opt_count on opt_count.Opl_Id = mn.id
+        left join (select mn.id as Opl_Id, count(*) as riskcount
+        from Outline_Project_Lib mn
+        join Outline_Project_Manage opm on mn.Opm_Id = opm.id
+        join Outline_Project_Risk opr on opr.Opl_Id = mn.id
+        join Risk_Warn rw on rw.Rwi_Id = opr.Risk_Id and rw.P_Id = opm.P_Id
+        group by mn.id) opr_count on opr_count.Opl_Id = mn.id
+        left join (select Opl_Id, count(1) as datasourcecount
+        from outline_projec_datasource
+        group by Opl_Id) opd_count on opd_count.Opl_Id = mn.id
+        <where>
+            <if test="params.opmId != null and params.opmId != ''">
+                and mn.Opm_Id = #{params.opmId}
+            </if>
+            <if test="params.oplContent != null and params.oplContent != '' and params.oplName == null and params.oplName == ''">
+                AND mn.Opl_Content LIKE '%' || #{params.oplContent} || '%'
+            </if>
+            <if test="params.oplName != null and params.oplName != '' and params.oplContent == null and params.oplContent == ''">
+                AND mn.Opl_Name LIKE '%' || #{params.oplName} || '%'
+            </if>
+            <if test="params.oplName != null and params.oplName != '' and params.oplContent != null and params.oplContent != ''">
+                AND ((mn.Opl_Content LIKE '%' || #{params.oplContent} || '%') OR (mn.Opl_Name LIKE '%' || #{params.oplName} || '%'))
+            </if>
+            <if test="params.oplNameExact != null and params.oplNameExact != ''">
+                AND mn.Opl_Name = #{params.oplNameExact}
+            </if>
+            <if test="params.opmCode != null and params.opmCode != ''">
+                AND opm.Opm_Code = #{params.opmCode}
+            </if>
+        </where>
+        order by mn.Opl_Sort
+    </select>
+
+    <select id="getOutlineProjectLibListByOpmId"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectLibResponse">
+        select
+        <include refid="AllColumnList"/>,
+        ifnull(opt_count.tempcount, 0) as tempcount,
+        ifnull(opr_count.riskcount, 0) as riskcount,
+        ifnull(opd_count.datasourcecount, 0) as datasourcecount,
+        if(mn.Opl_Content is null or length(mn.Opl_Content) = 0, 1, 0) as isEmpty
+        from outline_project_lib mn
+        left join (select mn.id as Opl_Id, count(1) as tempcount
+        from Outline_Project_Lib mn
+        join Outline_Project_Manage opm on mn.Opm_Id = opm.id
+        join Outline_Project_Temp opt on opt.Opl_Id = mn.id
+        join SYS_File sf on sf.FileProject = opm.P_Id and sf.T_Code = opt.T_Code
+        where sf.FileFlowStatus != 3
+        group by mn.id) opt_count on opt_count.Opl_Id = mn.id
+        left join (select mn.id as Opl_Id, count(1) as riskcount
+        from Outline_Project_Lib mn
+        join Outline_Project_Manage opm on mn.Opm_Id = opm.id
+        join Outline_Project_Risk opr on opr.Opl_Id = mn.id
+        join Risk_Warn rw on rw.Rwi_Id = opr.Risk_Id and rw.P_Id = opm.P_Id
+        group by mn.id) opr_count on opr_count.Opl_Id = mn.id
+        left join (select Opl_Id, count(1) as datasourcecount from outline_projec_datasource group by Opl_Id) opd_count
+        on opd_count.Opl_Id = mn.id
+        where mn.Opm_Id = #{opmId}
+    </select>
+
+    <select id="getAllProjectName" resultType="java.lang.String">
+        select P_Name
+        from Pre_Project
+        where P_ID != #{pId}
+    </select>
+
+    <select id="getFileIdByTCodes" resultType="com.jpmsoft.projectProducer.pojo.entity.other.SysFile">
+        select *
+        from SYS_File
+        where FileProject = #{pId}
+        and FileFlowStatus != 3
+        and T_Code in
+        <foreach item="item" collection="tCodes" index="index" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="checkEmptyOutlineProjectLib"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectLibResponse">
+        select
+        mn.id
+        from outline_project_lib mn
+        where mn.Opm_Id = #{opmId}
+        and (mn.Opl_Content is null or length(mn.Opl_Content) = 0)
+        and not EXISTS(
+        SELECT 1 FROM outline_project_lib child
+        WHERE child.Opl_Parent_Id = mn.id)
+    </select>
+
+    <select id="getOplIdByPidAndTCode"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectLibResponse">
+        select
+        <include refid="AllColumnList"/>,
+        opt.T_Code,
+        ifnull(opr_count.riskcount, 0) as riskcount
+        from outline_project_lib mn
+        left join Outline_Project_Temp opt on opt.Opl_Id = mn.id
+        left join Outline_Project_Manage opm on mn.Opm_Id = opm.id
+        left join (select mn.id as Opl_Id, count(1) as riskcount
+        from Outline_Project_Lib mn
+        join Outline_Project_Manage opm on mn.Opm_Id = opm.id
+        join Outline_Project_Risk opr on opr.Opl_Id = mn.id
+        join Risk_Warn rw on rw.Rwi_Id = opr.Risk_Id and rw.P_Id = opm.P_Id
+        group by mn.id) opr_count on opr_count.Opl_Id = mn.id
+        where opm.id in
+        <foreach item="item" collection="opmIds" index="index" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

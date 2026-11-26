@@ -1,0 +1,694 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.SysFileAnnexMapper">
+
+    <select id="getFileCountByRelationIds" resultType="java.lang.String">
+        select
+        fa.File_Relation_Id
+        from SYS_FileAnnex fa
+        where fa.upload_status=1
+        and fa.File_Replace=#{fileReplace}
+        and fa.File_Location=#{fileLoation}
+        and fa.File_Relation_Id in
+        <foreach collection="fileRelationIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <update id="updateFileAnnexArchiveByApId">
+        update SYS_FileAnnex
+        set archive=#{archive},
+            upload_status=1
+        where file_Id in (select fa.file_Id
+                          from SYS_FileAnnex fa
+                                   left join Archive_File af on af.Af_Annex_Id = fa.file_id
+                          where af.Ap_Id = #{apId})
+    </update>
+
+    <update id="updateFileAnnexArchiveByUnArchiveIds">
+        update SYS_FileAnnex set archive=#{archive} where file_Id in
+        (select File_Unarchive_Id from SYS_FileAnnex where File_Unarchive_Id is not null and
+        File_Id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        )
+    </update>
+
+    <update id="updateFileAnnexArchiveByIds">
+        update SYS_FileAnnex set archive=#{archive},upload_status=1
+        where file_id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </update>
+
+
+    <select id="selectFileAnnexByIds" resultType="com.jpmsoft.fileUpload.pojo.entity.SysFileAnnex">
+        select * from SYS_FileAnnex where file_id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+
+    <select id="getArchiveFileByApId" resultType="com.jpmsoft.fileUpload.pojo.entity.SysFileAnnex">
+        select fa.*
+        from SYS_FileAnnex fa
+                 left join Archive_File af on af.Af_Annex_Id = fa.file_id
+        where af.Ap_Id = #{apId}
+    </select>
+
+    <select id="getUnArchiveFileRecordBypIdAndTcode" resultType="com.jpmsoft.fileUpload.pojo.vo.ArchiveFileRecordVo">
+        select
+        fa.file_id as fileId,
+        fa.file_name as fileName,
+        fa.file_size as fileSize,
+        fa.file_suffix as fileSuffix
+        from SYS_FileAnnex fa
+        where fa.archive=0 and fa.upload_status=1
+        and fa.File_Replace=#{fileReplace}
+        and fa.File_Location=0 and fa.File_Source_Type='01'
+        <if test="filter.fileName!=null">
+            and fa.file_name like concat('%',#{filter.fileName},'%')
+        </if>
+        and (fa.File_Relation_Id in (select File_Relation_Id from SYS_File where
+        <if test="secIds==null">
+            FileProject=#{pId}
+        </if>
+        <if test="secIds!=null">
+            ( FileProject=#{pId} or FileSectionID in
+            <foreach collection="secIds" item="secId" open="(" close=")" separator=",">
+                #{secId}
+            </foreach>)
+        </if>
+        and
+        FileFlowStatus=7
+        <if test="tCodes != null and tCodes.size() > 0">
+            and T_Code in
+            <foreach collection="tCodes" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>)
+        or fa.File_Entity_Id  in (select FileID from SYS_File where
+        <if test="secIds==null">
+            FileProject=#{pId}
+        </if>
+        <if test="secIds!=null">
+            ( FileProject=#{pId} or FileSectionID in
+            <foreach collection="secIds" item="secId" open="(" close=")" separator=",">
+                #{secId}
+            </foreach>)
+        </if>
+        and
+        FileFlowStatus=7
+        <if test="tCodes != null and tCodes.size() > 0">
+            and T_Code in
+            <foreach collection="tCodes" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>))
+        limit #{filter.start},#{filter.size}
+    </select>
+
+
+    <select id="getUnArchiveFileRecordBypIdAndTcodeCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from SYS_FileAnnex fa
+        where fa.archive=0 and fa.upload_status=1
+        and fa.File_Replace=#{fileReplace}
+        and fa.File_Location=0 and fa.File_Source_Type='01'
+        <if test="filter.fileName!=null">
+            and fa.file_name like concat('%',#{filter.fileName},'%')
+        </if>
+        and ( fa.File_Relation_Id in(select File_Relation_Id from SYS_File where
+        <if test="secIds==null">
+            FileProject=#{pId}
+        </if>
+        <if test="secIds!=null">
+            ( FileProject=#{pId} or FileSectionID in
+            <foreach collection="secIds" item="secId" open="(" close=")" separator=",">
+                #{secId}
+            </foreach>
+            )
+        </if>
+        and
+        FileFlowStatus=7
+        <if test="tCodes != null and tCodes.size() > 0">
+            and T_Code in
+            <foreach collection="tCodes" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>)
+        or fa.File_Entity_Id  in (select FileID from SYS_File where
+        <if test="secIds==null">
+            FileProject=#{pId}
+        </if>
+        <if test="secIds!=null">
+            ( FileProject=#{pId} or FileSectionID in
+            <foreach collection="secIds" item="secId" open="(" close=")" separator=",">
+                #{secId}
+            </foreach>)
+        </if>
+        and
+        FileFlowStatus=7
+        <if test="tCodes != null and tCodes.size() > 0">
+            and T_Code in
+            <foreach collection="tCodes" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>))
+    </select>
+
+    <select id="getUnArchiveFileRecordBypId" resultType="com.jpmsoft.fileUpload.pojo.vo.ArchiveFileRecordVo">
+        select
+        fa.file_id as fileId,
+        fa.file_name as fileName,
+        fa.file_size as fileSize,
+        fa.file_suffix as fileSuffix
+        from SYS_FileAnnex fa
+        where
+        fa.archive=0 and fa.upload_status=1
+        and fa.File_Replace=#{fileReplace}
+        and fa.File_Location=0 and fa.File_Source_Type='01'
+        <if test="filter.fileName!=null">
+            and fa.file_name like concat('%',#{filter.fileName},'%')
+        </if>
+        and (fa.File_Relation_Id in
+        <foreach collection="params" open="(" close=")" item="item" separator="union">
+            select ${item.fileColumnName} from ${item.tableName}
+            where ${item.primaryKey} in (select FileId from SYS_File where
+            <if test="secIds==null">
+                FileProject=#{pId}
+            </if>
+            <if test="secIds!=null">
+                ( FileProject=#{pId} or FileSectionID in
+                <foreach collection="secIds" item="secId" open="(" close=")" separator=",">
+                    #{secId}
+                </foreach>)
+            </if>
+            and
+            FileFlowStatus=7 and T_Code in
+            <foreach collection="tCodes" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>)
+        </foreach>
+        or fa.File_Relation_Id in(select File_Relation_Id from SYS_File where
+        <if test="secIds==null">
+            FileProject=#{pId}
+        </if>
+        <if test="secIds!=null">
+            ( FileProject=#{pId} or FileSectionID in
+            <foreach collection="secIds" item="secId" open="(" close=")" separator=",">
+                #{secId}
+            </foreach>)
+        </if>
+        and
+        FileFlowStatus=7
+        <if test="tCodes != null and tCodes.size() > 0">
+            and T_Code in
+            <foreach collection="tCodes" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>
+        )
+        )
+        limit #{filter.start},#{filter.size}
+    </select>
+
+    <select id="getUnArchiveFileRecordBypIdCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from SYS_FileAnnex fa
+        where
+        fa.archive=0 and fa.upload_status=1
+        and fa.File_Replace=#{fileReplace}
+        and fa.File_Location=0 and fa.File_Source_Type='01'
+        <if test="filter.fileName!=null">
+            and fa.file_name like concat('%',#{filter.fileName},'%')
+        </if>
+        and (fa.File_Relation_Id in
+        <foreach collection="params" open="(" close=")" item="item" separator="union">
+            select ${item.fileColumnName} from ${item.tableName}
+            where ${item.primaryKey} in (select FileId from SYS_File where
+            <if test="secIds==null">
+                FileProject=#{pId}
+            </if>
+            <if test="secIds!=null">
+                ( FileProject=#{pId} or FileSectionID in
+                <foreach collection="secIds" item="secId" open="(" close=")" separator=",">
+                    #{secId}
+                </foreach>)
+            </if>
+            and
+            FileFlowStatus=7 and T_Code in
+            <foreach collection="tCodes" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>)
+        </foreach>
+        or fa.File_Relation_Id in(select File_Relation_Id from SYS_File where
+        <if test="secIds==null">
+            FileProject=#{pId}
+        </if>
+        <if test="secIds!=null">
+            ( FileProject=#{pId} or FileSectionID in
+            <foreach collection="secIds" item="secId" open="(" close=")" separator=",">
+                #{secId}
+            </foreach>)
+        </if>
+        and
+        FileFlowStatus=7
+        <if test="tCodes != null and tCodes.size() > 0">
+            and T_Code in
+            <foreach collection="tCodes" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>
+        )
+        )
+    </select>
+
+    <select id="getFileAnnexTableAndColumnByTableCodes"
+            resultType="com.jpmsoft.fileUpload.pojo.dto.FileAnnexTableAndColumnDto">
+        select distinct Table_Code,column_Code from SYS_FileAnnex where
+        column_Code is not null and column_Code!='undefined' and column_Code!=''
+        and Table_Code in
+        <foreach collection="tableCodes" item="tableCode" open="(" close=")" separator=",">
+            #{tableCode}
+        </foreach>
+    </select>
+
+    <update id="updateUploadStatusByIds" parameterType="java.util.List">
+        update
+        SYS_FileAnnex
+        set upload_status = 1,File_Entity_Id=#{entityId}
+        where file_id in
+        <foreach item="item" index="index" collection="ids" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+
+
+    <update id="updateUploadStatusByRelationIds" parameterType="java.util.List">
+        update
+        SYS_FileAnnex
+        set upload_status = 1,File_Entity_Id=#{entityId}
+        where file_relation_id in
+        <foreach item="item" index="index" collection="ids" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+
+
+    <select id="getAchievementsList" resultType="com.jpmsoft.fileUpload.pojo.vo.ArchievementsVo">
+        select
+        f.file_id as fileId,
+        pro.P_Name as pName,
+        cpd.Cpd_Name as cpdName,
+        f.file_name as fileName,
+        f.file_create_u_name as fileCreateUName,
+        f.file_upload_time as fileUploadTime,
+        pro.P_Id as pId,
+        cpd.Cpd_File_Code as cpdFileCode,
+        cpd.Cpd_Reply_Time as cpdReplyTime,
+        cpd.Cpd_Administration as cpdAdministration
+        from SYS_FileAnnex f
+        inner join Project_Cp_Dtl cpd on cpd.Cpd_Doc=f.file_relation_id
+        left join Project_Cp cp on cp.Cp_Id=cpd.Cp_Id
+        left join Pre_Project pro on pro.P_Id=cp.P_Id
+        <where>
+            1=1
+            and f.File_Replace=#{params.fileReplace}
+            <if test="params.teId!=null">
+                and f.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.fileUpload.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.cpdName!=null">
+                and cpd.Cpd_Name like concat('%',#{params.cpdName},'%')
+            </if>
+            <if test="params.fileCreateUName!=null">
+                and f.file_create_u_name like concat('%',#{params.fileCreateUName},'%')
+            </if>
+            <if test="params.fileName!=null">
+                and f.file_name like concat('%',#{params.fileName},'%')
+            </if>
+            <if test="params.cplIds!=null and params.cplIds.size()>0">
+                and cpd.Cpd_Cpl_Id in
+                <foreach collection="params.cplIds" separator="," item="id" open="(" close=")" >
+                    #{id}
+                </foreach>
+            </if>
+            <if test="params.pId != null and params.pId != ''">
+                and pro.P_Id = #{params.pId}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by f.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by f.file_upload_time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getAchievementsListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from SYS_FileAnnex f
+        inner join Project_Cp_Dtl cpd on cpd.Cpd_Doc=f.file_relation_id
+        left join Project_Cp cp on cp.Cp_Id=cpd.Cp_Id
+        left join Pre_Project pro on pro.P_Id=cp.P_Id
+        <where>
+            1=1
+            and f.File_Replace=#{params.fileReplace}
+            <if test="params.teId!=null">
+                and f.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.fileUpload.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.cpdName!=null">
+                and cpd.Cpd_Name like concat('%',#{params.cpdName},'%')
+            </if>
+            <if test="params.fileCreateUName!=null">
+                and f.file_create_u_name like concat('%',#{params.fileCreateUName},'%')
+            </if>
+            <if test="params.fileName!=null">
+                and f.file_name like concat('%',#{params.fileName},'%')
+            </if>
+            <if test="params.cplIds!=null and params.cplIds.size()>0">
+                and cpd.Cpd_Cpl_Id in
+                <foreach collection="params.cplIds" separator="," item="id" open="(" close=")" >
+                    #{id}
+                </foreach>
+            </if>
+            <if test="params.pId != null and params.pId != ''">
+                and pro.P_Id = #{params.pId}
+            </if>
+        </where>
+    </select>
+    <select id="getUnXzArchiveFiles" resultType="com.jpmsoft.fileUpload.pojo.vo.AutoArchiveFileVo">
+        select sf.fileid        as sysFileId,
+               sf.T_Code        as tCode,
+               sf.FileProject   as pId,
+               sf.FileSectionID as secId,
+               sf.FileContract  as conId,
+               sfn.*
+        from sys_fileannex sfn
+                 left join sys_file sf on sf.fileid = sfn.file_entity_id
+        where upload_status = 1
+          and archive = 0
+          and File_Location = 0
+          and File_Source_Type = '01'
+          and sf.FileFlowStatus = 7
+          and sf.FileProject is  null and sf.FileSectionID is null and sf.FileContract is null
+          and ( sf.T_Code is not null
+              or sfn.Ad_Id in
+                <foreach collection="adIds" open="(" close=")" separator="," item="adId">
+                    #{adId}
+                </foreach>
+              )
+        order by sfn.file_upload_time desc
+    </select>
+
+
+    <select id="getUnArchiveFiles" resultType="com.jpmsoft.fileUpload.pojo.vo.AutoArchiveFileVo">
+        select sf.fileid        as sysFileId,
+               sf.T_Code        as tCode,
+               sf.FileProject   as pId,
+               sf.FileSectionID as secId,
+               sf.FileContract  as conId,
+               sfn.*
+        from sys_fileannex sfn
+                 left join sys_file sf on sf.fileid = sfn.file_entity_id
+        where upload_status = 1
+          and archive = 0
+          and File_Location = 0
+          and file_entity_id is not null
+          and File_Source_Type = '01'
+          and (sf.FileProject is not null or sf.FileSectionID is not null or sf.FileContract is not null)
+          and sf.T_Code is not null
+          and sf.FileFlowStatus = 7
+        order by sfn.file_upload_time desc
+    </select>
+
+    <select id="getProProposalUnArchiveFiles" resultType="com.jpmsoft.fileUpload.pojo.vo.AutoArchiveFileVo">
+        select *
+        from (select sf.fileid                             as sysFileId,
+                     sf.T_Code                             as tCode,
+                     (select pro.P_Id
+                      from Pre_Project pro
+                               left join Pre_Pro_Proposal pp on pp.Pp_Code = pro.P_Code
+                      where pp.PP_Id = sfn.file_entity_id) as pId,
+                     sf.FileSectionID                      as secId,
+                     sf.FileContract                       as conId,
+                     sfn.*
+              from sys_fileannex sfn
+                       left join sys_file sf on sf.fileid = sfn.file_entity_id
+              where upload_status = 1
+                and archive = 0
+                and File_Location = 0
+                and file_entity_id in (select Pp_Id from Pre_Pro_Proposal where Pp_State = 7)
+                and File_Source_Type = '01'
+                and sf.T_Code is not null
+                and sf.FileFlowStatus = 7
+              order by sfn.file_entity_id asc) f
+        where f.pId is not null
+    </select>
+
+
+    <select id="getSystemFileList" resultType="com.jpmsoft.fileUpload.pojo.dto.ProFileAnnex">
+        select
+        coalesce(rp.p_name, ep.p_name) as pName,
+        mn.*
+        from sys_fileannex mn
+        left join (
+        select
+        sf.File_Relation_Id,
+        min(pp.P_Name) as p_name
+        from SYS_File sf
+        join Pre_Project pp on pp.P_Id = sf.FileProject
+        where sf.FileProject is not null
+        group by sf.File_Relation_Id
+        ) rp on rp.File_Relation_Id = mn.file_relation_id
+        left join (
+        select
+        sf.FileID,
+        min(pp.P_Name) AS p_name
+        from SYS_File sf
+        join Pre_Project pp ON pp.P_Id = sf.FileProject
+        group by sf.FileID
+        ) ep on ep.FileID = mn.File_Entity_Id
+        left join Archive_Directory ad on ad.Ad_Id=mn.Ad_Id
+        left join (
+        select
+        sfa2.File_MD5_Code as file_md5,
+        min(sfa2.file_upload_time) as min_upload_time
+        from sys_fileannex sfa2
+        where sfa2.File_MD5_Code is not null
+        group by sfa2.File_MD5_Code
+        ) oldest_md5 on mn.File_MD5_Code = oldest_md5.file_md5
+        and mn.file_upload_time = oldest_md5.min_upload_time
+        and mn.file_id = (
+        select min(file_id)
+        from sys_fileannex sfa3
+        where sfa3.File_MD5_Code = mn.File_MD5_Code
+        and sfa3.file_upload_time = mn.file_upload_time)
+        where mn.File_Source_Type='01' and mn.upload_status=1 and mn.archive=0
+        and mn.File_Location=0 and mn.table_code!='Sec_Expert' and mn.table_code!='Sec_JG_Expert'
+        and (mn.File_MD5_Code is null or mn.file_upload_time = oldest_md5.min_upload_time)
+        <if test="params.teId!=null">
+            and mn.Te_Id=#{params.teId}
+        </if>
+        <if test="params.uploadUid!=null">
+            and mn.file_create_u_id=#{params.uploadUid}
+        </if>
+        <if test="params.tableCode!=null">
+            and mn.table_code=#{params.tableCode}
+        </if>
+        <if test="params.fileCreateUName!=null">
+            and INSTR(mn.file_create_u_name,#{params.fileCreateUName})
+        </if>
+        <if test="params.fileName!=null">
+            and INSTR(mn.file_name,#{params.fileName})
+        </if>
+        <if test="params.fileSuffixes!=null and params.fileSuffixes.size()>0">
+            and upper(mn.file_suffix) in
+            <foreach collection="params.fileSuffixes" open="(" close=")" item="suffix" separator=",">
+                upper(#{suffix})
+            </foreach>
+        </if>
+        and (mn.File_Entity_Id in
+        (select sf.fileId from SYS_File sf
+        <if test="params.pName!=null">left join Pre_Project pp on pp.P_Id=sf.FileProject</if>
+        where sf.FileFlowStatus=7
+        <if test="params.pName!=null">and INSTR(pp.P_Name,#{params.pName})</if>
+        <trim prefix="and (" suffix=")" prefixOverrides="AND |OR ">
+            <if test="params.pId!=null">
+                sf.FileProject=#{params.pId}
+            </if>
+            <if test="params.conId!=null">
+                OR sf.FileContract=#{params.conId}
+            </if>
+            <if test="params.secId!=null">
+                OR sf.FileSectionID=#{params.secId}
+            </if>
+        </trim>
+        )
+        or mn.file_relation_id in
+        (select sf.file_relation_id from SYS_File sf
+        <if test="params.pName!=null">left join Pre_Project pp on pp.P_Id=sf.FileProject</if>
+        where sf.FileFlowStatus=7
+        <if test="params.pName!=null">and INSTR(pp.P_Name,#{params.pName})</if>
+        <trim prefix="and (" suffix=")" prefixOverrides="AND |OR ">
+            <if test="params.pId!=null">
+                sf.FileProject=#{params.pId}
+            </if>
+            <if test="params.conId!=null">
+                OR sf.FileContract=#{params.conId}
+            </if>
+            <if test="params.secId!=null">
+                OR sf.FileSectionID=#{params.secId}
+            </if>
+        </trim>
+        )
+        )
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.file_upload_time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getJimuFileCountByFileId" resultType="com.jpmsoft.fileUpload.pojo.dto.ProFileAnnex">
+        select
+        ad.Ad_Name as adName,
+        ad.Ad_Code as adCode,
+        ad.Ad_Link as adLink,
+        mn.*
+        from sys_fileannex mn
+        left join Archive_Directory ad on ad.Ad_Id=mn.Ad_Id
+        where mn.upload_status=1   and mn.file_jimu_report=1
+        and mn.File_Location=#{fileLocation}
+        <if test="showReplace==true">
+            and mn.File_Replace='1'
+        </if>
+        <if test="showReplace==false">
+            and mn.File_Replace!='1'
+        </if>
+        and mn.file_entity_id=#{entityId}
+    </select>
+
+
+    <select id="getFilesByRelationIds" resultType="com.jpmsoft.fileUpload.pojo.dto.ProFileAnnex">
+        select
+        ad.Ad_Name as adName,
+        ad.Ad_Code as adCode,
+        ad.Ad_Link as adLink,
+        mn.*
+        from sys_fileannex mn
+        left join Archive_Directory ad on ad.Ad_Id=mn.Ad_Id
+        where
+        mn.File_Location=#{fileLocation}
+        <if test="showAll==false">
+            and mn.upload_status=1
+        </if>
+        <if test="showReplace==true">
+            and mn.File_Replace='1'
+        </if>
+        <if test="showReplace==false">
+            and mn.File_Replace!='1'
+        </if>
+        and mn.file_relation_id in
+        <foreach collection="relationIds" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </select>
+
+
+    <select id="getFileAnnerxByFileId" resultType="com.jpmsoft.fileUpload.pojo.vo.FileAnnexInfoVo">
+        select sfa.* from sys_fileannex sfa where sfa.upload_status=1 and
+        sfa.file_relation_id in
+        <foreach collection="relationIds" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </select>
+
+    <update id="updateFileArchiveStatus">
+        update Sys_FileAnnex
+        set upload_status=1
+        where archive=1 and file_location=1
+        and file_id in
+        <foreach collection="fileIds" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </update>
+
+
+    <select id="getArchiveFile" resultType="com.jpmsoft.fileUpload.pojo.entity.SysFileAnnex">
+        select
+            mn.*
+        from Sys_FileAnnex mn
+        left join Archive_File af on af.Af_Annex_Id=mn.file_id
+        left join Archive ar on ar.Ap_Id=af.Ap_Id
+        where ar.Ad_Id=#{adId} and af.Af_State=1
+    </select>
+
+    <select id="md5GetArchiveFile" resultType="com.jpmsoft.fileUpload.pojo.entity.SysFileAnnex">
+        select
+            mn.*
+        from Sys_FileAnnex mn
+        where mn.upload_status=1 and File_Location=1 and File_MD5_Code=#{jmValue}
+        and (select count(*) from Archive_File af where af.Af_Annex_Id=mn.file_id)>0
+        order by mn.file_upload_time desc
+        limit 1
+    </select>
+    <select id="getFileWithoutFileAnnex" resultType="com.jpmsoft.fileUpload.pojo.vo.FileAnnexInfoWithFileVo">
+        select sfa.*,sf.FileCode as code
+        from sys_fileannex sfa
+        left join sys_file sf on sf.FileID=sfa.file_id
+        where sfa.upload_status = 1
+    </select>
+    <select id="getFileWithoutFileAnnexSafe"
+            resultType="com.jpmsoft.fileUpload.pojo.vo.FileAnnexInfoWithFileVo">
+        select sfa.*,qpt.pt_code as code
+        from sys_fileannex sfa
+                 left join qs_record qr on qr.Qsr_Id = sfa.File_Entity_Id
+                 left join Qs_Plan_Task qpt on qpt.id=qr.Pt_Id
+        where sfa.upload_status = 1 and qr.Qsr_Id IS NOT NULL
+    </select>
+
+    <select id="selectPageNoMd5" resultType="com.jpmsoft.fileUpload.pojo.entity.SysFileAnnex">
+        SELECT *
+        FROM sys_fileannex
+        WHERE File_MD5_Code IS NULL
+        AND upload_status = 1
+        ORDER BY file_upload_time desc
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+</mapper>

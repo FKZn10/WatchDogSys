@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecDeterminDocMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecDeterminDocResponse" id="getSecDeterminDoc">
+        <id column="Bd_Id" property="bdId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Bd_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Determin_Doc bd on bd.Sec_Id=sec.Sec_Id
+        where bd.Bd_Id=#{bdId}
+    </select>
+
+    <select id="getSecDeterminDocByBdId" resultMap="getSecDeterminDoc">
+        select
+        c3.C_Name as bdRecommendUnitName,
+        c4.C_Name as bdExcellentTeamUnitName,
+        c3.C_Abbreviation as bdRecomAbbName,
+        c4.C_Abbreviation as bdExcellTeamAbbName,
+        sec.Sec_Type as secType,
+        sec.Sec_Name as secName,
+        bd.*
+        from  Sec_Determin_Doc bd
+        left join  Sec_Info sec on sec.Sec_Id=bd.Sec_Id
+        left join  SYS_Company c3 on bd.Bd_Recommend_Unit=c3.C_Id
+        left join  SYS_Company c4 on bd.Bd_Excellent_Team_Unit=c4.C_Id
+        where bd.Bd_Id=#{bdId}
+    </select>
+</mapper>

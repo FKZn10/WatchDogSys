@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.visaChange.ConEnVerifyMapper">
+
+    <select id="getConEnVerifyById" resultType="com.jpmsoft.common.model.response.DesignChange.ConEnVerifyResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        c1.C_Name as envContractorName,
+        c2.C_Name as enbContractorName,
+        c1.C_Abbreviation as envContrAbbName,
+        c2.C_Abbreviation as enbContrAbbName,
+        enis.Enis_Project_Name as enisProjectName,
+        enis.Enis_Name as enisName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Con_En_Verify mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  SYS_Company c1 on mn.Env_Contractor_Id=c1.C_Id
+        left join  Con_En_Budget enb on mn.Enb_Id=enb.Enb_Id
+        left join  SYS_Company c2 on enb.Enb_Contractor_Id=c2.C_Id
+        left join  Con_Enis enis on enis.Enis_Id=mn.Enis_Id
+        left join  Sys_File f on f.FileID=mn.Env_Id
+        where mn.Env_Id=#{envId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.envContractorId!=null">
+            and mn.Env_Contractor_Id=#{params.envContractorId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.envState!=null">
+            and mn.Env_State=#{params.envState}
+        </if>
+        <if test="params.envCode!=null">
+            and mn.Env_Code like concat('%',#{params.envCode},'%')
+        </if>
+        <if test="params.envProjectName!=null">
+            and mn.Env_Project_Name like concat('%',#{params.envProjectName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+    </sql>
+
+    <select id="getConEnVerifyList" resultType="com.jpmsoft.common.model.response.DesignChange.ConEnVerifyResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name_History as envContractorNameHistory,
+        c1.C_Name as envContractorName,
+        c1.C_Abbreviation as envContrAbbName,
+        mn.*
+        from  Con_En_Verify mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  SYS_Company c1 on mn.Env_Contractor_Id=c1.C_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Env_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

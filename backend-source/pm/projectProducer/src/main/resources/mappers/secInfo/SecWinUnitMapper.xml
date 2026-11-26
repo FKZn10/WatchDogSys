@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecWinUnitMapper">
+
+    <select id="getWinUnitListByWnId" resultType="com.jpmsoft.common.model.response.SecInfo.SecWinUnitResponse">
+        select
+        c1.C_Name as wuCompanyName,
+        c1.C_Name as wuCompAbbName,
+        wu.*
+        from  Sec_Win_Unit wu
+        left join  SYS_Company c1 on wu.Wu_Company_Id=c1.C_Id
+        where wu.Wn_Id=#{wnId}
+    </select>
+
+</mapper>

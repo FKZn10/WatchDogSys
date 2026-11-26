@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvPlanYearYwMapper">
+
+
+    <resultMap type="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse" id="oneInvPlanYear">
+        <id column="Ipv_Id" property="ipvId"/>
+        <collection property="invMonthlySchedules"
+                    ofType="com.jpmsoft.common.model.response.InvestmentControl.InvMonthlyScheduleResponse"
+                    column="Ipv_Id" select="getInvMonthlyScheduleByIpvId">
+        </collection>
+    </resultMap>
+
+    <select id="getInvPlanYearYwByIpvId" resultMap="oneInvPlanYear">
+        select sd.D_Name           as ipvDName,
+               pro.P_Name          as pName,
+               pro.P_Code          as pCode,
+               pro.P_Name_History  as pNameHistory,
+               pro.P_Inv_Total     as pInvTotal,
+               pro.P_Competent_Department as pCompetentDepartment,
+               con.Con_Name as conName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               f.file_relation_id  as fileRelationId,
+               cany.c_name as ipvCName,
+               yea.Py_Investment_Amount as pyInvestmentAmount,
+               mn.*
+        from Inv_Plan_Year mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Department sd on mn.Ipv_D_Id = sd.D_ID
+                 left join Sys_File f on f.FileID = mn.Ipv_Id
+                 left join SYS_Company cany on mn.Ipv_C_id = cany.c_Id
+                 left join project_preset_year yea on yea.P_Id = mn.P_Id and yea.Py_Eclare_Year = mn.Ipv_Declare_Year
+        where mn.Ipv_Id = #{ipvId}
+    </select>
+
+
+    <select id="getInvPlanYearList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sd.D_Name as ipvDName, con.Con_Name as conName,yea.Py_Investment_Amount as pyInvestmentAmount,cany.c_name as ipvCName,
+        mn.*
+        from Inv_Plan_Year_Yw mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department sd on mn.Ipv_D_Id=sd.D_ID
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join project_preset_year yea on yea.P_Id = mn.P_Id and yea.Py_Eclare_Year = mn.Ipv_Declare_Year
+        left join SYS_Company cany on mn.Ipv_C_id = cany.c_Id
+
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ipvDId!=null">
+            and mn.Ipv_D_Id = #{params.ipvDId}
+        </if>
+        <if test="params.ipvDeclareYear!=null">
+            and mn.Ipv_Declare_Year = #{params.ipvDeclareYear}
+        </if>
+        <if test="params.ipvConstStatus!=null">
+            and mn.Ipv_Const_Status = #{params.ipvConstStatus}
+        </if>
+        <if test="params.ipvLibrary!=null">
+            and mn.Ipv_Library = #{params.ipvLibrary}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.ipvState!=null">
+            and mn.Ipv_State = #{params.ipvState}
+        </if>
+        <if test="params.ipvNewly!=null">
+            and mn.Ipv_Newly = #{params.ipvNewly}
+        </if>
+        <if test="params.ipvPType!=null">
+            and mn.Ipv_P_Type = #{params.ipvPType}
+        </if>
+        <if test="params.ipvCompleted!=null">
+            and mn.Ipv_Completed = #{params.ipvCompleted}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ipv_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getInvPlanYearYwListExcel"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sd.D_Name as ipvDName, con.Con_Name as conName,yea.Py_Investment_Amount as pyInvestmentAmount,cany.c_name as ipvCName,
+        prod.D_Name as pCompetentDepartmentName,
+        mn.*
+        from Inv_Plan_Year mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department sd on mn.Ipv_D_Id=sd.D_ID
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join project_preset_year yea on yea.P_Id = mn.P_Id and yea.Py_Eclare_Year = mn.Ipv_Declare_Year
+        left join SYS_Company cany on mn.Ipv_C_id = cany.c_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ipvDId!=null">
+            and mn.Ipv_D_Id = #{params.ipvDId}
+        </if>
+        <if test="params.ipvDeclareYear!=null">
+            and mn.Ipv_Declare_Year = #{params.ipvDeclareYear}
+        </if>
+        <if test="params.ipvConstStatus!=null">
+            and mn.Ipv_Const_Status = #{params.ipvConstStatus}
+        </if>
+        <if test="params.ipvLibrary!=null">
+            and mn.Ipv_Library = #{params.ipvLibrary}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+
+        <if test="params.ipvNewly!=null">
+            and mn.Ipv_Newly = #{params.ipvNewly}
+        </if>
+        <if test="params.ipvPType!=null">
+            and mn.Ipv_P_Type = #{params.ipvPType}
+        </if>
+        <if test="params.ipvCompleted!=null">
+            and mn.Ipv_Completed = #{params.ipvCompleted}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        and mn.Ipv_State = 7
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ipv_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+
+
+    <select id="getInvMonthlyScheduleByIpvId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvMonthlyScheduleResponse">
+        select ims.*
+        from Inv_Monthly_Schedule ims
+        where ims.Ipv_Id = #{ipvId}
+        order by ims.Ims_Month asc
+    </select>
+
+    <select id="getInvMonthlyScheduleByIpvList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvMonthlyScheduleResponse">
+        select ims.*
+        from Inv_Monthly_Schedule ims
+        where ims.Ipv_Id in
+        <foreach collection="ipvIds" open="(" close=")" item="id" separator=",">
+            #{id}
+        </foreach>
+        order by ims.Ims_Month asc
+    </select>
+
+
+    <select id="getInvPlanYearYwBypId" resultType="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse">
+        select sd.D_Name           as ipvDName,
+               pro.P_Name          as pName,
+               pro.P_Code          as pCode,
+               pro.P_Name_History  as pNameHistory,
+               pro.P_Inv_Total     as pInvTotal,
+               pro.P_Competent_Department as pCompetentDepartment,
+               con.Con_Name as conName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               f.file_relation_id  as fileRelationId,
+                yea.Py_Investment_Amount as pyInvestmentAmount,
+                cany.c_name as ipvCName,
+        mn.*
+        from Inv_Plan_Year_Yw mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Department sd on mn.Ipv_D_Id = sd.D_ID
+                 left join Sys_File f on f.FileID = mn.Ipv_Id
+                 left join project_preset_year yea on yea.P_Id = mn.P_Id and yea.Py_Eclare_Year = mn.Ipv_Declare_Year
+                 left join SYS_Company cany on mn.Ipv_C_id = cany.c_Id
+        <where>
+                mn.Ipv_State = 7
+            <if test="pId!=null and pId !=''">
+                and mn.P_Id = #{pId}
+            </if>
+            <if test="year!=null and year!=''">
+                and mn.Ipv_Declare_Year = #{year}
+            </if>
+        </where>
+    </select>
+
+
+
+    <select id="getInvPlanYearSummaryYwList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sd.D_Name as ipvDName, con.Con_Name as conName,
+        yea.Py_Investment_Amount as pyInvestmentAmount,cany.c_name as ipvCName,
+        mn.*,yw.ipv_Annual_Pay as ipvAnnualPay
+        from Inv_Plan_Year mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department sd on mn.Ipv_D_Id=sd.D_ID
+        left join project_preset_year yea on yea.P_Id = mn.P_Id and yea.Py_Eclare_Year = mn.Ipv_Declare_Year
+        left join SYS_Company cany on mn.Ipv_C_id = cany.c_Id
+        left join Inv_Plan_Year_yw yw on mn.p_id = yw.p_id
+        left join Con_Contract con on con.Con_Id = yw.Con_Id
+        ${params.authSql}
+        and mn.Ipv_State = 7
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ipvDId!=null">
+            and mn.Ipv_D_Id = #{params.ipvDId}
+        </if>
+        <if test="params.ipvDeclareYear!=null">
+            and mn.Ipv_Declare_Year = #{params.ipvDeclareYear}
+        </if>
+        <if test="params.ipvConstStatus!=null">
+            and mn.Ipv_Const_Status = #{params.ipvConstStatus}
+        </if>
+        <if test="params.ipvLibrary!=null">
+            and mn.Ipv_Library = #{params.ipvLibrary}
+        </if>
+        <if test="ids!=null and ids.size()>0">
+            and mn.P_Id in
+            <foreach collection="ids" open="(" close=")" item="id" separator=",">
+                #{id}
+            </foreach>
+        </if>
+
+        <if test="params.ipvCName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ipvCName},cany.C_Id)=true
+                </when>
+                <otherwise>
+                    and cany.c_name like concat('%',#{params.ipvCName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ipvState!=null">
+            and mn.Ipv_State = #{params.ipvState}
+        </if>
+        <if test="params.ipvNewly!=null">
+            and mn.Ipv_Newly = #{params.ipvNewly}
+        </if>
+        <if test="params.ipvPType!=null">
+            and mn.Ipv_P_Type = #{params.ipvPType}
+        </if>
+        <if test="params.ipvCompleted!=null">
+            and mn.Ipv_Completed = #{params.ipvCompleted}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ipv_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getInvPlanYearSummaryYwGroupById"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse">
+        select
+        mn.p_id,MAX(mn.Ipv_Create_Time)  as ipvCreateTime
+        from Inv_Plan_Year mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department sd on mn.Ipv_D_Id=sd.D_ID
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join project_preset_year yea on yea.P_Id = mn.P_Id and yea.Py_Eclare_Year = mn.Ipv_Declare_Year
+        left join SYS_Company cany on mn.Ipv_C_id = cany.c_Id
+        ${params.authSql}
+        and mn.Ipv_State = 7
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ipvDId!=null">
+            and mn.Ipv_D_Id = #{params.ipvDId}
+        </if>
+        <if test="params.ipvDeclareYear!=null">
+            and mn.Ipv_Declare_Year = #{params.ipvDeclareYear}
+        </if>
+        <if test="params.ipvConstStatus!=null">
+            and mn.Ipv_Const_Status = #{params.ipvConstStatus}
+        </if>
+        <if test="params.ipvLibrary!=null">
+            and mn.Ipv_Library = #{params.ipvLibrary}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.ipvCName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ipvCName},cany.C_Id)=true
+                </when>
+                <otherwise>
+                    and cany.c_name like concat('%',#{params.ipvCName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ipvState!=null">
+            and mn.Ipv_State = #{params.ipvState}
+        </if>
+        <if test="params.ipvNewly!=null">
+            and mn.Ipv_Newly = #{params.ipvNewly}
+        </if>
+        <if test="params.ipvPType!=null">
+            and mn.Ipv_P_Type = #{params.ipvPType}
+        </if>
+        <if test="params.ipvCompleted!=null">
+            and mn.Ipv_Completed = #{params.ipvCompleted}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        group by mn.p_id
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+
+                order by MAX(mn.Ipv_Create_Time) DESC
+            </otherwise>
+        </choose>
+    </select>
+    <select id="selectInvCompleteMonthList"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvPlanYearYw">
+        select
+               pro.P_Name          as pName,
+               pro.P_Code          as pCode,
+               pro.P_Name_History  as pNameHistory,
+               pro.P_Inv_Total     as pInvTotal,
+               pro.P_Competent_Department as pCompetentDepartment,
+               con.Con_Name as conName,
+               mn.*
+        from Inv_Plan_Year_Yw mn
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        <where>
+            mn.Ipv_State = 7
+            <if test="year!=null">
+                and mn.Ipv_Declare_Year = #{year}
+            </if>
+            <if test="projectId!=null">
+                and mn.P_Id = #{projectId}
+            </if>
+            <if test="contractID!=null">
+                and mn.Con_Id = #{contractID}
+            </if>
+        </where>
+    </select>
+
+</mapper>

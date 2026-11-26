@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProvPilotEnterpriseMapper">
+
+    <sql id="listFilter">
+        <if test="params.teId != null and params.teId != ''">
+            and mn.te_id = #{params.teId}
+        </if>
+        <if test="params.annualYearStart != null">
+            and mn.annual_year &gt;= #{params.annualYearStart}
+        </if>
+        <if test="params.annualYearEnd != null">
+            and mn.annual_year &lt;= #{params.annualYearEnd}
+        </if>
+        <if test="params.enterpriseName != null and params.enterpriseName != ''">
+            and mn.enterprise_name like concat('%',#{params.enterpriseName},'%')
+        </if>
+        <if test="params.enterpriseTypeList != null and params.enterpriseTypeList.size() > 0">
+            and mn.enterprise_type in
+            <foreach collection="params.enterpriseTypeList" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.districtList != null and params.districtList.size() > 0">
+            and mn.district in
+            <foreach collection="params.districtList" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="getList" resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProvPilotEnterpriseModel">
+        select mn.*
+        from prov_pilot_enterprise mn
+        <where>
+            <include refid="listFilter"/>
+        </where>
+        <choose>
+            <when test="params.sortType != null and params.sortFiled != null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.create_time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getById" resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProvPilotEnterpriseModel">
+        select mn.*
+        from prov_pilot_enterprise mn
+        where mn.id = #{id}
+    </select>
+
+    <select id="selectMaxEnterpriseCode" resultType="java.lang.String">
+        select max(enterprise_code)
+        from prov_pilot_enterprise
+        where enterprise_code like concat(#{prefix}, '%')
+    </select>
+    <!-- 企业表无版本、删除状态和评估/验收状态列；只统计实际企业记录。 -->
+    <select id="countEnterpriseStatistics" resultType="java.lang.Long">
+        select count(*)
+        from prov_pilot_enterprise
+        <where>
+            <if test="teId != null and teId != ''">
+                te_id = #{teId}
+            </if>
+        </where>
+    </select>
+</mapper>

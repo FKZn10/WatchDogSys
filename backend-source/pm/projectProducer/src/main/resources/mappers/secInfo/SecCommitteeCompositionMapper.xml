@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecCommitteeCompositionMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecCommitteeCompositionVO"
+               id="getSecCommitteeComposition">
+        <id column="Scc_Id" property="sccId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Scc_Id" select="getSecInfoProject">
+        </collection>
+        <collection property="secCalibrationCommittees" ofType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecCalibrationCommitteeVO"
+                    column="Scc_Id" select="getSecCalibrationCommittees">
+        </collection>
+        <collection property="secSupervisionCommittees" ofType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecSupervisionCommitteeVO"
+                    column="Scc_Id" select="gecSupervisionCommittees">
+        </collection>
+    </resultMap>
+
+    <select id="getSecCalibrationCommittees" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecCalibrationCommitteeVO">
+        select
+            c1.C_Name as scdCompanyName,
+            mn.*
+        from Sec_Calibration_Committee mn
+                 left join Sys_Company c1 on c1.C_Id=mn.Scd_Company
+        where mn.Scc_Id=#{sccId}
+        order by mn.Scd_Sort asc
+    </select>
+
+    <select id="gecSupervisionCommittees" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecSupervisionCommitteeVO">
+        select
+            c1.C_Name as ssdCompanyName,
+            mn.*
+        from Sec_Supervision_Committee mn
+                 left join Sys_Company c1 on c1.C_Id=mn.Ssd_Company
+        where mn.Scc_Id=#{sccId}
+        order by mn.Ssd_Sort asc
+    </select>
+
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Committee_Composition scc on scc.Sec_Id=sec.Sec_Id
+        where scc.Scc_Id=#{sccId}
+    </select>
+
+    <select id="getSecCommitteeCompositionById" resultMap="getSecCommitteeComposition">
+        select
+            c1.C_Name as tendereeName,
+            sec.Sec_Name as secName,
+            mn.*
+        from Sec_Committee_Composition mn
+        left join Sys_Company c1 on c1.C_Id=mn.Scc_Tenderee
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where mn.Scc_Id=#{id}
+    </select>
+
+</mapper>

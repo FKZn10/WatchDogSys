@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.PaymentReceiptHistoryMapper">
+    <select id="getByPrId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.fund.PaymentReceiptHistoryDTO">
+        select mn.*,
+        cif.cif_Date as cifDate,
+        cif.Update_User_Id as updateUserId,
+        cif.Update_User_Name as updateUserName,
+        cif.Update_Time as updateTime
+        from Payment_Receipt_History mn
+        left join Claim_Incoming_Funds_Dtl cifd on mn.cifd_id = cifd.id
+        left join Claim_incoming_Funds cif on cifd.cif_id = cif.id
+        where mn.pr_id = #{prId}
+        order by mn.create_time desc
+    </select>
+</mapper>

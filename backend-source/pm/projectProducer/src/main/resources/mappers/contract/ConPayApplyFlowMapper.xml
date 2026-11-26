@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConPayApplyFlowMapper">
+
+    <select id="getConPayApplyFlowByConId" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ConPayApplyFlowDto">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Money_Total as conMoneyTotal,
+        com.C_Name as cpafConstructionUnitName,
+        mn.*
+        from Con_Pay_Apply_Flow mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Company com on mn.Cpaf_Construction_Unit=com.C_ID
+        where mn.Con_id=#{conId} and mn.State=7
+    </select>
+
+
+    <select id="getConPayApplyFlowList" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ConPayApplyFlowDto">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Money_Total as conMoneyTotal,
+        com.C_Name as cpafConstructionUnitName,
+        mn.*
+        from Con_Pay_Apply_Flow mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Company com on mn.Cpaf_Construction_Unit=com.C_ID where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.cpaId!=null">
+            and mn.Cpa_Id = #{params.cpaId}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Cpaf_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getConPayApplyFlowById"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ConPayApplyFlowDto">
+        select pro.P_Name          as pName,
+               con.Con_Name        as conName,
+               con.Con_Money_Total as conMoneyTotal,
+               com.C_Name          as cpafConstructionUnitName,
+               com1.C_Name         as cpafPayeeName,
+               mn.*
+        from Con_Pay_Apply_Flow mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_ID
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company com on mn.Cpaf_Construction_Unit = com.C_ID
+                 left join SYS_Company com1 on mn.Cpaf_Payee = com1.C_ID
+        where Cpaf_Id = #{cpafId}
+    </select>
+    <select id="getConPayApplyFlowSum"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.contract.ConPayApplyFlow">
+        select cpaf.* from Con_Pay_Apply_Flow cpaf  left join Con_Pay_Apply cpa on cpa.Cpa_Id=cpaf.Cpa_Id
+        where cpaf.State=7 and cpa.Cpa_Sources='01' and cpaf.Con_Id=#{conId}
+    </select>
+
+
+    <select id="getConPayApplyFlowDataList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConPayApplyFlowVo">
+        SELECT
+            pre.p_name as pName ,
+            con.con_name as conName,
+            con.con_code as conCode,
+            pre.p_id as pId,
+            con.con_id as conId,
+             flow.payljap as payLJAP ,
+            flow.Shipping_time as shippingTime,
+            con.con_type as conType,
+            sys.c_name AS conPartyAName ,
+            flow.cpaf_payee as cpafPayee,
+            pay.Pay_Id as payId,
+            flow.Cpaf_Create_Uname as cpafCreateUname,
+            pay.pay_Approval as payApproval,
+            flow.cpaf_Application as cpafApplication,
+            flow.cpaf_Apply_Proportion as cpafApplyProportion,
+            flow.cpaf_Remaining_Amount as cpafRemainingAmount,
+            flow.Cpaf_Id as cpafId,
+            flow.cpaf_Create_Uid as cpafCreateUid,
+            flow.cpaf_Create_Time as cpafCreateTime,
+            flow.State as state,
+            flow.State_Time as stateTime,
+            CASE
+                WHEN flow.cpaf_Create_Time = earliest_flow.earliest_create_time THEN pay.pay_Invoice
+                ELSE '-'
+                END AS payInvoice,
+            CASE
+                WHEN flow.cpaf_Create_Time = earliest_flow.earliest_create_time THEN pay.pay_Invoice_No
+                ELSE '-'
+                END AS payInvoiceNo
+                FROM con_pay_apply_flow flow
+                LEFT JOIN pre_project pre ON flow.p_id = pre.P_ID
+                LEFT JOIN con_contract con ON con.con_id = flow.con_id
+                LEFT JOIN sys_company sys ON sys.c_id = con.con_party_a_id
+                LEFT JOIN Con_Pay pay ON pay.pay_id = flow.pay_id
+                LEFT JOIN (
+                SELECT
+                    cpa_id,
+                    MIN(cpaf_Create_Time) AS earliest_create_time
+                FROM
+                    con_pay_apply_flow
+                group by cpa_id
+
+            ) earliest_flow ON pay.pay_id = earliest_flow.cpa_id AND flow.cpaf_Create_Time = earliest_flow.earliest_create_time
+            <include refid="querySql"></include>
+    </select>
+    <select id="statsPayApplyFlow" resultType="Map">
+        select
+            SUM(flow.cpaf_Application) as cpafApplicationSum,
+            SUM(flow.cpaf_Remaining_Amount) as cpafRemainingAmountSum
+        FROM con_pay_apply_flow flow
+        LEFT JOIN pre_project pre ON flow.p_id = pre.P_ID
+        LEFT JOIN con_contract con ON con.con_id = flow.con_id
+        LEFT JOIN sys_company sys ON sys.c_id = con.con_party_a_id
+        <include refid="querySql"></include>
+    </select>
+
+    <select id="statsConPayApproval" resultType="BigDecimal">
+        select sum(pay_Approval)
+        from con_pay pay where pay.pay_id in (
+            select
+            flow.pay_id
+            FROM con_pay_apply_flow flow
+            LEFT JOIN pre_project pre ON flow.p_id = pre.P_ID
+            LEFT JOIN con_contract con ON con.con_id = flow.con_id
+            LEFT JOIN sys_company sys ON sys.c_id = con.con_party_a_id
+            <include refid="querySql"></include>
+        )
+    </select>
+
+    <sql id="querySql">
+        <where>
+
+            <if test="vo.conId!=null and vo.conId!=''">
+                and   flow.con_id=#{vo.conId}
+            </if>
+            <if test="vo.payId!=null and vo.payId!=''">
+                and   flow.pay_id=#{vo.payId}
+            </if>
+            <if test="vo.pName!=null and vo.pName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and   likePname(#{vo.pName},pre.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and   pre.p_name like concat('%',#{vo.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="vo.conName!=null and vo.conName!=''">
+                and   con.con_name like concat('%',#{vo.conName},'%')
+            </if>
+            <if test="vo.conCode!=null and vo.conCode!=''">
+                and   con.con_code like concat('%',#{vo.conCode},'%')
+            </if>
+            <if test="vo.conPartyAName!=null and vo.conPartyAName!=''">
+                and   sys.c_name like concat('%',#{vo.conPartyAName},'%')
+            </if>
+            <if test="vo.cpafPayee!=null and vo.cpafPayee!=''">
+                and   flow.cpaf_payee like concat('%',#{vo.cpafPayee},'%')
+            </if>
+            <if test="vo.cpafCreateUname!=null and vo.cpafCreateUname!=''">
+                and   flow.Cpaf_Create_Uname like concat('%',#{vo.cpafCreateUname},'%')
+            </if>
+            <if test="vo.conType!=null and vo.conType!=''">
+                and   con.con_type like concat('%',#{vo.conType},'%')
+            </if>
+            <if test="vo.state!=null and vo.state!=''">
+                and   flow.State like concat('%',#{vo.state},'%')
+            </if>
+
+            <if test="vo.dateStr!=null and vo.dateStr!='' and  (vo.dateEnd==null or vo.dateEnd=='') ">
+                AND  flow.State_Time
+                &gt;= #{vo.dateStr}
+            </if>
+
+            <if test="(vo.dateStr==null or vo.dateStr=='') and  (vo.dateEnd!=null and vo.dateEnd!='') ">
+                AND flow.State_Time
+                &lt;= #{vo.dateEnd}
+            </if>
+            <if test="vo.dateStr!=null and vo.dateStr!='' and  vo.dateEnd!=null and vo.dateEnd!='' ">
+                AND  flow.State_Time
+                BETWEEN #{vo.dateStr} AND #{vo.dateEnd}
+            </if>
+        </where>
+    </sql>
+</mapper>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.constructionProcedure.ProjectCpExperienceMapper">
+
+    <select id="getProCpExperienceList" resultType="com.jpmsoft.common.model.response.proCp.ProCpExperienceResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        <include refid="entityFileds"/>
+        <include refid="projectCpDtlFileds"/>
+        from  Project_Cp_Experience cpe
+        left join Project_Cp_Dtl cpd on cpd.Cpd_Id=cpe.Cpd_Id
+        left join Project_Cp cp on cp.Cp_Id=cpd.Cp_Id
+        left join Pre_Project pro on pro.P_ID=cp.P_ID
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        <where>
+            <if test="params.teId!=null">
+                and cpe.Te_Id = #{params.teId}
+            </if>
+            <if test="params.cpdId!=null">
+               and cpe.Cpd_Id=#{params.cpdId}
+            </if>
+            <if test="params.pId!=null">
+                and cp.P_ID=#{params.pId}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_ID)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.cpeContent!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.cpeContent},pro.P_ID)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.cpeContent},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.cpdName!=null">
+                and  cpd.Cpd_Name like concat('%',#{params.cpdName},'%')
+            </if>
+            <if test="params.cpeCreateUname!=null">
+                and  cpe.Cpe_Create_Uname like concat('%',#{params.cpeCreateUname},'%')
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by cpe.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by cpe.Cpe_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="entityFileds">
+        cpe.Cpe_Id as cpeId,
+        cpe.Cpd_Id as cpdId,
+        cpe.Cpe_Content as cpeContent,
+        cpe.Cpe_Create_Uid as cpeCreateUid,
+        cpe.Cpe_Create_Uname as cpeCreateUname,
+        cpe.Cpe_Create_Time as cpeCreateTime,
+    </sql>
+    <sql id="projectCpDtlFileds">
+        cpd.Cp_Id as cpId,
+        cpd.Cpd_Name as cpdName,
+        cpd.Cpd_Code as cpdCode,
+        cpd.Cpd_Parent_Id as cpdParentId,
+        cpd.Cpd_Type as cpdType,
+        cpd.Cpd_Days as cpdDays,
+        cpd.Cpd_Pro_Id as cpdProId,
+        cpd.Cpd_Administration as cpdAdministration,
+        cpd.Cpd_Administration_Url as cpdAdministrationUrl,
+        cpd.Cpd_Remark as cpdRemark,
+        cpd.Cpd_Html as cpdHtml,
+        cpd.Cpd_Plan_Start_Time as cpdPlanStartTime,
+        cpd.Cpd_Plan_End_Time as cpdPlanEndTime,
+        cpd.Cpd_Person_Id as cpdPersonId,
+        cpd.Cpd_Person_Name as cpdPersonName,
+        cpd.Cpd_Start_Time as cpdStartTime,
+        cpd.Cpd_End_Time as cpdEndTime,
+        cpd.Cpd_State as cpdState,
+        cpd.Cpd_Doc as cpdDoc,
+        cpd.Cpd_Create_Uid as cpdCreateUid,
+        cpd.Cpd_Create_Uname as cpdCreateUname,
+        cpd.Cpd_Create_Time as cpdCreateTime
+    </sql>
+
+    <select id="getCpExperienceCountByCpId" resultType="java.lang.Integer">
+        select count(1)
+         from  Project_Cp_Experience cpe
+        left join  Project_Cp_Dtl cpd on cpd.Cpd_Id=cpe.Cpd_Id
+        left join  Project_Cp cp on cpd.Cp_Id=cp.Cp_Id
+        where cp.Cp_Id=#{cpId}
+    </select>
+</mapper>

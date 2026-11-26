@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectRegisterMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.Project.ProjectRegisterResponse"
+               id="getPreProjectRegisterAndFunds">
+        <id column="Pr_Id" property="prId"/>
+        <collection property="proSourcesFundsRegs"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Project.ProSourcesFundsRegModel"
+                    column="Pr_Id" select="getSourcesFundsRegs">
+        </collection>
+        <collection property="preProjectRegisterDtl"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectRegisterDtlModel"
+                    column="Pr_Id" select="getProjectRegisterDtl">
+        </collection>
+    </resultMap>
+
+    <select id="getSourcesFundsRegs"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProSourcesFundsRegModel">
+        select
+        psf.*
+        from   Pro_Sources_Funds_Reg psf
+        where psf.PR_ID=#{prId}
+        order by Fs_Sort asc
+    </select>
+
+    <select id="getProjectRegisterDtl"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectRegisterDtlModel">
+        select
+            psf.*
+        from   Pre_ProjectRegister_Dtl psf
+        where psf.Prd_Parenet_Id=#{prId}
+        order by Prd_Order asc
+    </select>
+
+    <select id="getPreProjectRegisterById" resultMap="getPreProjectRegisterAndFunds">
+        select
+        f.file_relation_id as fileRelationId,
+        c.C_Name as prConstructionUnitName,
+        c.C_Abbreviation as prConsAbbName,
+        c.C_Name_History as prConstructionUnitNameHistory,
+        sd.D_Name as prCompDepName,
+        cpl.P_Name as cplName,
+        pr.*
+        from  Pre_ProjectRegister pr
+        left join  Sys_Company c on c.C_ID=pr.PR_Construction_Unit_Id
+        left join  Sys_Department sd on sd.D_ID=pr.PR_Competent_Department
+        left join Pro_Construction_Plan_List cpl on cpl.Cpl_Id=pr.Cpl_Id
+        left join  Sys_File f on f.FileID=pr.PR_ID
+        where pr.Pr_Id=#{prId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and pr.Te_Id = #{params.teId}
+        </if>
+        <if test="params.prStatus!=null">
+            and pr.PR_Status = #{params.prStatus}
+        </if>
+        <if test="params.prType!=null">
+            and pr.PR_Type = #{params.prType}
+        </if>
+        <if test="params.prCampus!=null">
+            and pr.Pr_Campus = #{params.prCampus}
+        </if>
+        <if test="params.prApprovalStatus!=null">
+            and pr.PR_Approval_Status = #{params.prApprovalStatus}
+        </if>
+        <if test="params.prCreateUserName!=null">
+            and pr.PR_Create_User_Name like concat('%',#{params.prCreateUserName},'%')
+        </if>
+        <if test="params.prCode!=null">
+            and pr.PR_Code like concat('%',#{params.prCode},'%')
+        </if>
+        <if test="params.prSafetyFiling!=null">
+            and pr.PR_Safety_Filing like concat('%',#{params.prSafetyFiling},'%')
+        </if>
+        <if test="params.prName!=null">
+            and pr.PR_Name like concat('%',#{params.prName},'%')
+        </if>
+        <if test="params.prCategory!=null">
+            and pr.PR_Category like concat('%',#{params.prCategory},'%')
+        </if>
+        <if test="params.prProjectStatus!=null">
+            and pr.PR_Project_Status like concat('%',#{params.prProjectStatus},'%')
+
+        </if>
+        <if test="params.prSourcesOfBunds!=null">
+            and pr.PR_Sources_Of_Bunds like concat('%',#{params.prSourcesOfBunds},'%')
+        </if>
+        <if test="params.constUnitIds!=null">
+            and pr.PR_Construction_Unit_Id  in
+            <foreach collection="params.constUnitIds" separator="," open="(" close=")" item="unitId">
+                #{unitId}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="getEstimatedAmountSum" resultType="BigDecimal">
+        select
+        sum(pr.PR_Estimated_Amount) as prEstimatedAmountSum
+        from  Pre_ProjectRegister pr
+        left join  Sys_Company c on c.C_ID=pr.PR_Construction_Unit_Id
+        left join  Sys_Department sd on sd.D_ID=pr.PR_Competent_Department
+        <where>
+        <include refid="listFilter"/>
+        </where>
+    </select>
+
+    <select id="getPreProjectRegisterList" resultType="com.jpmsoft.common.model.response.Project.ProjectRegisterResponse">
+        select
+        f.file_relation_id as fileRelationId,
+        c.C_Name as prConstructionUnitName,
+        c.C_Abbreviation as prConsAbbName,
+        c.C_Name_History as prConstructionUnitNameHistory,
+        sd.D_Name as prCompDepName,
+        pr.*
+        from  Pre_ProjectRegister pr
+        left join  Sys_Company c on c.C_ID=pr.PR_Construction_Unit_Id
+        left join  Sys_Department sd on sd.D_ID=pr.PR_Competent_Department
+        left join  Sys_File f on f.FileID=pr.PR_ID
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by pr.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by pr.PR_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getPreProjectRegisterListWithoutFlowStop" resultType="com.jpmsoft.common.model.response.Project.ProjectRegisterResponse">
+        select
+        f.file_relation_id as fileRelationId,
+        c.C_Name as prConstructionUnitName,
+        c.C_Abbreviation as prConsAbbName,
+        c.C_Name_History as prConstructionUnitNameHistory,
+        sd.D_Name as prCompDepName,
+        pr.*
+        from  Pre_ProjectRegister pr
+        left join  Sys_Company c on c.C_ID=pr.PR_Construction_Unit_Id
+        left join  Sys_Department sd on sd.D_ID=pr.PR_Competent_Department
+        left join  Sys_File f on f.FileID=pr.PR_ID
+        where pr.PR_Approval_Status!=3
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by pr.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by pr.PR_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

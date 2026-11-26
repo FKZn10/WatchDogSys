@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.EngineeringFundApplicationMapper">
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.fund.EngineeringFundApplicationVo" id="selectEngineeringFundApplication">
+        <id column="id" property="id"/>
+        <collection property="detailDtos" ofType="com.jpmsoft.projectProducer.pojo.vo.fund.EngineeringFundApplicationFundNumberDetailVo"
+                    column="id" select="getEngineeringFundApplicationFundNumberDetailVoList">
+        </collection>
+        <collection property="bankDetailDtos" ofType="com.jpmsoft.projectProducer.pojo.vo.fund.EngineeringFundApplicationBankDetailVo"
+                    column="id" select="getEngineeringFundApplicationBankDetailVoList">
+        </collection>
+    </resultMap>
+    <select id="getEngineeringFundApplicationList"
+            resultMap="selectEngineeringFundApplication">
+        select efa.*, pp.P_Name as projectName,gfp.Gfp_Year AS efaGfpYear,gfp.Gfp_Month AS efaGfpMonth,
+        pp.P_Inv_Total as pInvTotal,
+        pp.P_Approve_Budget as pApproveBudget
+        from Engineering_Fund_Application efa
+        left join Group_Fund_Plan gfp on efa.Efa_Gfp_Id = gfp.id
+        left join Pre_Project pp on efa.P_ID = pp.P_ID
+        <where>
+            efa.state !=3
+            <if test="params.projectName != null and params.projectName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.projectName},pp.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pp.P_Name like concat('%',#{params.projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.projectId != null and params.projectId != ''">
+                and efa.P_ID = #{params.projectId}
+            </if>
+        </where>
+    </select>
+    <select id="getEngineeringFundApplicationFundNumberDetailVoList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.EngineeringFundApplicationFundNumberDetailVo">
+        select efafnd.*,
+        fn.Fn_Code as fnCode, fn.Fn_Name as fnName, fn.Pr_ID as prId,pr.Pr_Code as prCode,
+        fn.Fn_Amount as fnAmount,
+        fn.Fn_Receipt_Verification_Date as fnReceiptVerificationDate
+        from Engineering_Fund_Application_Fund_Number_Detail efafnd
+        left join Fund_Number_Info fn on efafnd.Fn_Id = fn.id
+        left join Payment_Receipt pr on fn.Pr_Id = pr.id
+        where efafnd.Efa_Id = #{id}
+    </select>
+    <select id="getEngineeringFundApplicationBankDetailVoList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.EngineeringFundApplicationBankDetailVo">
+        select efabd.*,
+               bai.Account_Type as accountType,
+               case bai.Account_Type
+                   when '01' then bai.Ba_Company_ID
+                   when '02' then bai.Ba_Digital_RMB_Company_ID
+                   end as companyID,
+               case bai.Account_Type
+                   when '01' then sd.D_Name
+                   when '02' then sc2.C_Name
+                   end as companyName,
+               case bai.Account_Type
+                   when '01' then bai.Ba_Bank_Name
+                   when '02' then bai.Ba_Digital_RMB_Bank_Name
+                   end as bankName,
+               case bai.Account_Type
+                   when '01' then bai.Ba_Bank_Account
+                   when '02' then bai.Ba_Digital_RMB_Account
+                   end as bankAccount
+        from Engineering_Fund_Application_Bank_Detail efabd
+                 left join Bank_Account_Info bai on efabd.Ba_Id = bai.id
+                 left join SYS_Department sd on bai.ba_company_id = sd.D_ID
+                 left join SYS_Company sc2 on bai.ba_digital_rmb_company_id = sc2.C_ID
+        where efabd.Efa_Id = #{id}
+    </select>
+    <select id="getEngineeringFundApplicationById"
+            resultMap="selectEngineeringFundApplication">
+        select efa.*, pp.P_Name as projectName,gfp.Gfp_Year AS efaGfpYear,gfp.Gfp_Month AS efaGfpMonth,
+        pp.P_Inv_Total as pInvTotal,
+        pp.P_Approve_Budget as pApproveBudget,
+        dh.Dh_Code as pDhCode,
+        dh2.Dh_Code as uDhAccount,
+        dh3.Dh_Code as dDhCode,
+        dh4.Dh_Code as dDhCodeLD
+        from Engineering_Fund_Application efa
+        left join Group_Fund_Plan gfp on efa.Efa_Gfp_Id = gfp.id
+        left join Pre_Project pp on efa.P_ID = pp.P_ID
+        left join Dh_Data dh on pp.P_ID = dh.P_Id and dh.State=7 and dh.Dh_Type='项目信息'
+        left join Dh_Data dh2 on efa.Efa_User_Id = dh2.U_Id and dh2.State=7 and dh2.Dh_Type='人员信息'
+        left join Dh_Data dh3 on efa.Efa_Department_Name = dh3.D_Name and dh3.State=7 and dh3.Dh_Type='部门信息'
+        left join Dh_Data dh4 on efa.Efa_Leader_Id = dh4.U_Id and dh4.State=7 and dh4.Dh_Type='人员信息'
+        where efa.id = #{id}
+    </select>
+
+    <select id="getEngineeringFundApplicationByIds" resultMap="selectEngineeringFundApplication">
+        select efa.*, pp.P_Name as projectName,gfp.Gfp_Year AS efaGfpYear,gfp.Gfp_Month AS efaGfpMonth,
+        pp.P_Inv_Total as pInvTotal,
+        pp.P_Approve_Budget as pApproveBudget,
+        dh.Dh_Code as pDhCode,
+        dh2.Dh_Code as uDhAccount,
+        dh3.Dh_Code as dDhCode,
+        dh4.Dh_Code as dDhCodeLD
+        from Engineering_Fund_Application efa
+        left join Group_Fund_Plan gfp on efa.Efa_Gfp_Id = gfp.id
+        left join Pre_Project pp on efa.P_ID = pp.P_ID
+        left join Dh_Data dh on pp.P_ID = dh.P_Id and dh.State=7 and dh.Dh_Type='项目信息'
+        left join Dh_Data dh2 on efa.Efa_User_Id = dh2.U_Id and dh2.State=7 and dh2.Dh_Type='人员信息'
+        left join Dh_Data dh3 on efa.Efa_Department_Name = dh3.D_Name and dh3.State=7 and dh3.Dh_Type='部门信息'
+        left join Dh_Data dh4 on efa.Efa_Leader_Id = dh4.U_Id and dh4.State=7 and dh4.Dh_Type='人员信息'
+        where efa.id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="getDhBankAccount" resultType="java.lang.String">
+        select dh.Dh_Code as DhCode
+        from Dh_Data dh
+        where dh.State=7 and  Dh_Type='银行账户信息' and dh.P_Id = #{pId} and dh.Bank_Account = #{account} and dh.Account_Type = #{type}
+        order by dh.State_Time desc
+        limit 1
+    </select>
+
+
+</mapper>

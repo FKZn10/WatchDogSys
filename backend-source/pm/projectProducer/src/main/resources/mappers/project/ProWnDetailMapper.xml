@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProWnDetailMapper">
+
+    <select id="getProWnDetailById" resultType="com.jpmsoft.projectProducer.pojo.dto.project.ProWnDetailDTO">
+        select
+        wn.*
+        from pro_wn_detail wn
+        where wn.pw_id=#{pwId}
+    </select>
+
+    <select id="getProWnDetailByPid" resultType="com.jpmsoft.projectProducer.pojo.dto.project.ProWnDetailDTO">
+        select
+        wn.*
+        from pro_wn_detail wn
+        where wn.pw_pid=#{pwPid}
+        order by wn.create_time desc
+    </select>
+
+
+</mapper>

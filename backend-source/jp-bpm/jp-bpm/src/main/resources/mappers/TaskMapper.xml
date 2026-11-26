@@ -1,0 +1,897 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.TaskMapper">
+    <insert id="insertTask">
+        insert into SYS_Task
+        (
+        TaskID, TaskFlow, TaskRule, TaskEntityID, TaskClient,
+        TaskProject, TaskCurrentActID, TaskPreActID, TaskUser, TaskSendTime,
+        TaskName, TaskSendUser, TaskParentTaskID, TaskParentFlowID, TaskParentActID,
+        TaskCoordination, TaskStartTime, TaskEndTime, TaskRB, TaskRead,
+        TaskReadTime, TaskSection, TaskContract, TaskGetFlagstr, Task_Return_Type,
+        Te_Id, Task_Type,project_Id,contract_Id,flow_Id,sec_Id,t_Code
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.taskid},
+            #{item.taskflow},
+            #{item.taskrule},
+            #{item.taskentityid},
+            #{item.taskclient},
+
+            #{item.taskproject},
+            #{item.taskcurrentactid},
+            #{item.taskpreactid},
+            #{item.taskuser},
+            #{item.tasksendtime},
+
+            #{item.taskname},
+            #{item.tasksenduser},
+            #{item.taskparenttaskid},
+            #{item.taskparentflowid},
+            #{item.taskparentactid},
+
+            #{item.taskcoordination},
+            #{item.taskstarttime},
+            #{item.taskendtime},
+            #{item.taskrb},
+            #{item.taskread},
+
+            #{item.taskreadtime},
+            #{item.tasksection},
+            #{item.taskcontract},
+            #{item.taskgetflagstr},
+            #{item.taskReturnType},
+
+            #{item.teId},
+            #{item.taskType},
+            #{item.projectId},
+            #{item.contractId},
+            #{item.flowId},
+
+            #{item.secId},
+            #{item.tCode}
+            )
+        </foreach>
+
+    </insert>
+
+
+    <select id="getUserTaskList" resultType="com.jpmsoft.common.model.response.TaskResponse">
+        select
+        u.U_Name as sendUserName,
+        du.C_ID as cId,
+        du.U_Name as taskUserName,
+        f.FileTitle as fileTitle,
+        f.FileCode as fileCode,
+        f.FileFlowStatus as fileflowstatus,
+        f.FileCreateDate as filecreatedate,
+        f.FileCreateUser as filecreateuser,
+        f.FileCreateUserName as filecreateusername,
+        flow.FlowName as flowName,
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        f.T_Code as tCode,
+        <include refid="TaskEntity"/>
+        from SYS_Task t
+        left join SYS_User u on u.U_ID=t.TaskSendUser
+        left join SYS_User du on du.U_ID=t.TaskUser
+        left join SYS_File f on f.FileID=t.TaskEntityID
+        left join SYS_Flow flow on flow.FlowID=t.TaskFlow
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        <if test="params.typeStr!=null">
+            left join Sys_Task_Massage stm on stm.task_Id=t.taskId
+        </if>
+        <where>1=1
+            <if test="params.userIds!=null">
+                and t.TaskUser in
+                <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                    #{userId}
+                </foreach>
+            </if>
+            <if test="params.tCodes!=null">
+                and f.T_Code in
+                <foreach collection="params.tCodes" open="(" close=")" separator="," item="code">
+                    #{code}
+                </foreach>
+            </if>
+            <if test="params.tCode!=null">
+                and f.T_Code=#{params.tCode}
+            </if>
+            <if test="params.taskname!=null">
+                and t.TaskName like concat('%',#{params.taskname},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.taskSendUser!=null">
+                and u.U_Name like concat('%',#{params.taskSendUser},'%')
+            </if>
+            <if test="params.taskUser!=null">
+                and du.U_Name like concat('%',#{params.taskUser},'%')
+            </if>
+            <if test="params.secName!=null">
+                and sec.Sec_Name like concat('%',#{params.secName},'%')
+            </if>
+            <if test="params.flowName!=null">
+                and flow.FlowName like concat('%',#{params.flowName},'%')
+            </if>
+            <if test="params.taskSendTimeStart!=null">
+                and t.TaskSendTime >= #{params.taskSendTimeStart}
+            </if>
+            <if test="params.taskSendTimeEnd!=null">
+                and #{params.taskSendTimeEnd} >= t.TaskSendTime
+            </if>
+            <if test="params.fileCode!=null">
+                and f.FileCode like concat('%',#{params.fileCode},'%')
+            </if>
+            <if test="params.taskUserName!=null">
+                and du.U_Name like concat('%',#{params.taskUserName},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and t.Te_Id = #{params.teId}
+            </if>
+            <if test="params.typeStr!=null">
+                and stm.u_Ids= #{params.uId}
+            </if>
+            <if test="params.minType!=null">
+                <if test="params.minDids!=null">
+                    and (pro.P_Competent_Department in
+                    <foreach collection="params.minDids" open="(" close=")" separator="," item="code">
+                        #{code}
+                    </foreach>
+
+                    <if test="params.minUids">
+                        or ( pro.P_Id is null and
+                        t.TaskUser in
+                        <foreach collection="params.minUids" open="(" close=")" separator="," item="userId">
+                            #{userId}
+                        </foreach>
+                        )
+                    </if>
+                    )
+                </if>
+                <if test="params.taskSendTimeStartMin!=null">
+                    and t.TaskSendTime >= #{params.taskSendTimeStartMin}
+                </if>
+            </if>
+
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by t.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by t.Taskendtime DESC
+            </otherwise>
+        </choose>
+        <if test="params.dataCount!='All'">
+            limit #{params.start},#{params.size}
+        </if>
+
+    </select>
+
+
+    <select id="getUserTaskListCount" resultType="java.lang.Integer">
+        select
+        COUNT(1)
+        from SYS_Task t
+        left join SYS_File f on f.FileID=t.TaskEntityID
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        left join SYS_User u on u.U_ID=t.TaskSendUser
+        left join SYS_Flow flow on flow.FlowID=t.TaskFlow
+        <if test="params.typeStr!=null">
+            left join Sys_Task_Massage stm on stm.task_Id=t.taskId
+        </if>
+        <where>
+            1=1
+            <if test="params.userIds!=null">
+                and t.TaskUser in
+                <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                    #{userId}
+                </foreach>
+            </if>
+            <if test="params.tCode!=null">
+                and f.T_Code=#{params.tCode}
+            </if>
+            <if test="params.taskname!=null">
+                and t.TaskName like concat('%',#{params.taskname},'%')
+            </if>
+            <if test="params.pName!=null">
+                and pro.P_Name like concat('%',#{params.pName},'%')
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.taskSendUser!=null">
+                and u.U_Name like concat('%',#{params.taskSendUser},'%')
+            </if>
+            <if test="params.taskUser!=null">
+                and du.U_Name like concat('%',#{params.taskUser},'%')
+            </if>
+            <if test="params.flowName!=null">
+                and flow.FlowName like concat('%',#{params.flowName},'%')
+            </if>
+            <if test="params.taskSendTimeStart!=null">
+                and t.TaskSendTime >= #{params.taskSendTimeStart}
+            </if>
+            <if test="params.taskSendTimeEnd!=null">
+                and #{params.taskSendTimeEnd} >= t.TaskSendTime
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and t.Te_Id = #{params.teId}
+            </if>
+            <if test="params.typeStr!=null">
+                and stm.u_Ids= #{params.uId}
+            </if>
+            <if test="params.minType!=null">
+                <if test="params.minDids!=null">
+                    and (pro.P_Competent_Department in
+                    <foreach collection="params.minDids" open="(" close=")" separator="," item="code">
+                        #{code}
+                    </foreach>
+                    <if test="params.minUids">
+                        or ( pro.P_Id is null and
+                        t.TaskUser in
+                        <foreach collection="params.minUids" open="(" close=")" separator="," item="userId">
+                            #{userId}
+                        </foreach>
+                        )
+                    </if>
+                    )
+                </if>
+                <if test="params.taskSendTimeStartMin!=null">
+                    and t.TaskSendTime >= #{params.taskSendTimeStartMin}
+                </if>
+            </if>
+
+        </where>
+    </select>
+
+
+    <select id="getNeedMassageTask" resultType="com.jpmsoft.common.model.response.TaskResponse">
+
+        select u.U_Name as sendUserName,
+        du.C_ID as cId,
+        du.U_Name as taskUserName,
+        f.FileTitle as fileTitle,
+        f.FileCode as fileCode,
+        f.FileFlowStatus as fileflowstatus,
+        f.FileCreateDate as filecreatedate,
+        f.FileCreateUser as filecreateuser,
+        f.FileCreateUserName as filecreateusername,
+        f.FileProject as fileproject,
+        f.T_Code as tCode,
+        <include refid="TaskEntity"/>
+        from sys_task t
+        left join SYS_User u on u.U_ID=t.TaskSendUser
+        left join SYS_User du on du.U_ID=t.TaskUser
+        left join SYS_File f on f.FileID=t.TaskEntityID
+        left join sys_Task_Massage stm on t.TaskID = stm.task_Id
+        where stm.id is null
+        and du.U_Type = '2'
+        and #{newDate}>TaskStartTime;
+    </select>
+
+    <select id="getTaskList" resultType="com.jpmsoft.common.model.response.TaskResponse">
+        select
+        u.U_Name as sendUserName,
+        u1.U_Name as taskUserName,
+        f.FileTitle as fileTitle,
+        f.FileCode as fileCode,
+        f.FileFlowStatus as fileflowstatus,
+        f.FileCreateDate as filecreatedate,
+        f.FileCreateUser as filecreateuser,
+        f.FileCreateUserName as filecreateusername,
+        flow.FlowName as flowName,
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        f.T_Code as tCode,
+        <include refid="TaskEntity"/>
+        from SYS_Task t
+        left join SYS_User u on u.U_ID=t.TaskSendUser
+        left join SYS_User u1 on u1.U_ID=t.TaskUser
+        left join SYS_File f on f.FileID=t.TaskEntityID
+        left join SYS_Flow flow on flow.FlowID=t.TaskFlow
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        <where>
+            1=1
+            <if test="params.taskname!=null">
+                and t.TaskName like concat('%',#{params.taskname},'%')
+            </if>
+            <if test="params.pName!=null">
+                and pro.P_Name like concat('%',#{params.pName},'%')
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.taskSendUser!=null">
+                and u.U_Name like concat('%',#{params.taskSendUser},'%')
+            </if>
+            <if test="params.taskUser!=null">
+                and u1.U_Name like concat('%',#{params.taskUser},'%')
+            </if>
+            <if test="params.fileId!=null">
+                and t.TaskEntityID =#{params.fileId}
+            </if>
+            <if test="params.taskSendUserId!=null">
+                and t.TaskSendUser =#{params.taskSendUserId}
+            </if>
+            <if test="params.secName!=null">
+                and sec.Sec_Name like concat('%',#{params.secName},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and t.Te_Id = #{params.teId}
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by t.${params.sortFiled} ${params.sortType}
+        </if>
+
+        <if test="params.dataCount!='All'">
+            limit #{params.start},#{params.size}
+        </if>
+
+    </select>
+
+
+    <select id="getTaskListCount" resultType="java.lang.Integer">
+        select
+        COUNT(1)
+        from SYS_Task t
+        left join SYS_File f on f.FileID=t.TaskEntityID
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        left join SYS_User u on u.U_ID=t.TaskSendUser
+        left join SYS_User u1 on u1.U_ID=t.TaskUser
+        <where>
+            1=1
+            <if test="params.taskname!=null">
+                and t.TaskName like concat('%',#{params.taskname},'%')
+            </if>
+            <if test="params.pName!=null">
+                and pro.P_Name like concat('%',#{params.pName},'%')
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.taskUser!=null">
+                and u1.U_Name like concat('%',#{params.taskUser},'%')
+            </if>
+            <if test="params.taskSendUser!=null">
+                and u.U_Name like concat('%',#{params.taskSendUser},'%')
+            </if>
+            <if test="params.fileId!=null">
+                and t.TaskEntityID =#{params.fileId}
+            </if>
+            <if test="params.taskSendUserId!=null">
+                and t.TaskSendUser =#{params.taskSendUserId}
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and t.Te_Id = #{params.teId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getAutomaticTasks" resultType="com.jpmsoft.jpbpm.pojo.vo.AutomaticTasks">
+        select
+        sf.ActID as actid,
+        sf.ActName as actname,
+        sf.Act_Auto_Completion as actAutoCompletion,
+        sf.Act_Triggert_Time as actTriggertTime,
+        sf.Act_Auto_Multiple as actAutoMultiple,
+        sf.Act_Auto_Completion_K as actAutoCompletionK,
+        sf.Act_Auto_Completion_T as actAutoCompletionT,
+        sf.Act_Auto_Default_Opinion as actAutoDefaultOpinion,
+        sf.Act_Auto_Trigger_Field as actAutoTriggerField,
+        case when (sf.Act_Auto_Trigger_Field is not null and sf.Act_Auto_Trigger_Field != '')
+             then approvalTimes(t.TaskStartTime,#{params.newDate},#{params.festivalHoliday},#{params.workTimeType},#{params.workShift},#{params.closingTime})
+             else null
+        end as elapsedHours,
+        <include refid="TaskEntity"/>
+        from SYS_Task t
+        left join SYS_FlowActivity sf on t.TaskCurrentActID=sf.ActID
+        where Act_Auto_Completion='1' and
+        (
+            ( (sf.Act_Auto_Trigger_Field is null or sf.Act_Auto_Trigger_Field = '')
+              and approvalTimes(t.TaskStartTime,#{params.newDate},#{params.festivalHoliday},#{params.workTimeType},#{params.workShift},#{params.closingTime})>sf.Act_Triggert_Time )
+            or
+            ( sf.Act_Auto_Trigger_Field is not null and sf.Act_Auto_Trigger_Field != '' )
+        )
+        and t.TaskID not in (select Task_Id from Sys_Task_Auto_Complete_Log where Task_Id is not null)
+        <if test="params.teId!=null and params.teId!='All'">
+            and t.Te_Id = #{params.teId}
+        </if>
+    </select>
+
+
+    <select id="statisticsUserAgency" resultType="com.jpmsoft.jpbpm.pojo.vo.AgencyStatisticsVo">
+        select f.T_Code as tCode,
+        count(*) as total
+        from Sys_Task tk
+        left join Sys_File f on f.FileId=tk.TaskEntityId
+        where f.T_Code in
+        <foreach collection="params.tCodes" open="(" close=")" separator="," item="code">
+            #{code}
+        </foreach>
+        <if test="params.uId!=null and params.uId!=''">
+            and tk.TaskUser=#{params.uId}
+        </if>
+        <if test="params.teId!=null and params.teId!='All'">
+            and tk.Te_Id = #{params.teId}
+        </if>
+        group by f.T_Code
+    </select>
+
+
+    <select id="getPrescription" resultType="com.jpmsoft.jpbpm.pojo.vo.TaskCountVo">
+        select
+        uer.U_Name as uName,
+        uer.U_ID as uId,
+        sf.FileProject as pId,
+        st.TaskID as taskId,
+        st.TaskCurrentActID as actId,
+        st.TaskEntityID as taskEntityId from SYS_Task st
+        left join SYS_User uer on uer.U_ID=st.TaskUser
+        left join SYS_File sf on sf.FileID=TaskEntityID
+        WHERE 1=1
+        <if test="params.uName!=null ">
+            and uer.U_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and uer.U_Type=#{params.uType}
+        </if>
+        <if test="params.teId!=null and params.teId!='All'">
+            and st.Te_Id = #{params.teId}
+        </if>
+    </select>
+
+
+    <select id="getTaskCoordinationTask" resultType="com.jpmsoft.jpbpm.pojo.vo.TaskCoordinationTaskVo">
+        select t2.*,
+        pre_project.P_Name as pName,
+        u.U_Name as createName,
+        u1.U_Name as doUserName,
+        sys_file.FileCreateUser as fileCreateId,
+        sys_file.FileCreateUserName as fileCreateName,
+        sys_file.FileFlowStatus as fileFlowStatusc,
+        sys_file.T_Code as  tCode
+        from (select '待办' as taskType,
+        Task_Return_Type  as  taskReturnType,
+        TaskID as taskId,
+        TaskID as  ctTaskid,
+        TaskName as taskName,
+        TaskUser as doUserId,
+        TaskSendTime as createtime,
+        TaskEntityID as fileId,
+        TaskEntityID as taskentityid,
+        TaskSendUser as createId,
+        TaskCurrentActID as  actId
+        from sys_task
+        where
+        1=1
+        <if test="params.userIds!=null">
+            and TaskUser in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and TaskName like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and TaskName in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+        UNION
+        select
+        '沟通' as taskType,
+        '' as  taskReturnType,
+        CT_ID as taskId,
+        CT_TaskID as  ctTaskid,
+        CT_Name as taskName,
+        CT_User as doUserId,
+        CT_Time as createtime,
+        CT_FileID as fileId ,
+        CT_FileID as taskentityid,
+        CT_SendUser as createId,
+        CT_ActID as  actId
+        from sys_coordinationtask where
+        1=1
+        <if test="params.userIds!=null">
+            and CT_User in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and CT_Name like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and CT_Name in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+        )t2
+        left join sys_file on t2.fileId = sys_file.FileID
+        left join pre_project on sys_file.FileProject = pre_project.P_ID
+        left join SYS_User u on u.U_ID=t2.createId
+        left join SYS_User u1 on u1.U_ID=t2.doUserId
+        where 1=1
+        <include refid="getTaskCjFilter"/>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by t2.${params.sortFiled} ${params.sortType}
+        </if>
+
+        <if test="params.dataCount!='All'">
+            limit #{params.start},#{params.size}
+        </if>
+
+    </select>
+
+    <select id="getTaskCoordinationTaskCount" resultType="java.lang.Integer">
+        select count(1)
+        from (select '待办' as taskType,
+        TaskID as taskId,
+        TaskName as taskName,
+        TaskUser as doUserId,
+        TaskSendTime as createtime,
+        TaskEntityID as fileId,
+        TaskSendUser as createId
+        from sys_task
+        where
+        1=1
+        <if test="params.userIds!=null">
+            and TaskUser in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and TaskName like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and TaskName in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+         UNION
+        select
+        '沟通' as taskType,
+        CT_ID as taskId,
+        CT_Name as taskName,
+        CT_User as doUserId,
+        CT_Time as createtime,
+        CT_FileID as fileId ,
+        CT_SendUser as createId
+        from sys_coordinationtask where
+        1=1
+        <if test="params.userIds!=null">
+            and CT_User in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and CT_Name like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and CT_Name in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+        ) t2
+        left join sys_file on t2.fileId = sys_file.FileID
+        left join pre_project on sys_file.FileProject = pre_project.P_ID
+        left join SYS_User u on u.U_ID=t2.createId
+        left join SYS_User u1 on u1.U_ID=t2.doUserId
+        where 1=1
+        <include refid="getTaskCjFilter"/>
+    </select>
+
+    <select id="getTaskCoordinationTaskKey" resultType="java.lang.String">
+        select DISTINCT ${key}
+        from (select '待办' as taskType,
+        TaskID as taskId,
+        TaskName as taskName,
+        TaskUser as doUserId,
+        TaskSendTime as createtime,
+        TaskEntityID as fileId,
+        TaskSendUser as createId
+        from sys_task
+        where
+        1=1
+        <if test="params.userIds!=null">
+            and TaskUser in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and TaskName like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and TaskName in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+         UNION
+        select
+        '沟通' as taskType,
+        CT_ID as taskId,
+        CT_Name as taskName,
+        CT_User as doUserId,
+        CT_Time as createtime,
+        CT_FileID as fileId ,
+        CT_SendUser as createId
+        from sys_coordinationtask where
+        1=1
+        <if test="params.userIds!=null">
+            and CT_User in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and CT_Name like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and CT_Name in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+        )t2
+        left join sys_file on t2.fileId = sys_file.FileID
+        left join pre_project on sys_file.FileProject = pre_project.P_ID
+        left join SYS_User u on u.U_ID=t2.createId
+        left join SYS_User u1 on u1.U_ID=t2.doUserId
+        where  1=1
+        <include refid="getTaskCjFilter"/>
+    </select>
+
+    <sql id="getTaskCjFilter">
+        <if test="params.pNames!=null">
+            and pre_project.P_Name in
+            <foreach collection="params.pNames" open="(" close=")" separator="," item="pName">
+                #{pName}
+            </foreach>
+        </if>
+        <if test="params.createNames!=null">
+            and u.U_Name in
+            <foreach collection="params.createNames" open="(" close=")" separator="," item="uName">
+                #{uName}
+            </foreach>
+        </if>
+        <if test="params.doUserNames!=null">
+            and u1.U_Name in
+            <foreach collection="params.doUserNames" open="(" close=")" separator="," item="doUserName">
+                #{doUserName}
+            </foreach>
+        </if>
+        <if test="params.fileCreateNames!=null">
+            and sys_file.FileCreateUserName in
+            <foreach collection="params.fileCreateNames" open="(" close=")" separator="," item="fileCreateName">
+                #{fileCreateName}
+            </foreach>
+        </if>
+
+        <if test="params.startTime!=null">
+            and t2.createtime >= #{params.startTime}
+        </if>
+        <if test="params.endTime!=null">
+            and #{params.endTime} >= t2.createtime
+        </if>
+    </sql>
+
+    <sql id="TaskEntity">
+        t
+        .
+        TaskID
+        as taskid,
+        t.TaskFlow as taskflow,
+        t.TaskRule as taskrule,
+        t.TaskEntityID as taskentityid,
+        t.TaskClient as taskclient,
+        t.TaskProject as taskproject,
+        t.TaskCurrentActID as taskcurrentactid,
+        t.TaskPreActID taskpreactid,
+        t.TaskUser as taskuser,
+        t.TaskSendTime as tasksendtime,
+        t.TaskName as taskname,
+        t.TaskSendUser as tasksenduser,
+        t.TaskParentTaskID as taskparenttaskid,
+        t.TaskParentFlowID as taskparentflowid,
+        t.TaskParentActID as taskparentactid,
+        t.TaskCoordination as taskcoordination,
+        t.TaskStartTime as taskstarttime,
+        t.TaskEndTime as taskendtime,
+        t.TaskRB as taskrb,
+        t.TaskRead as taskread,
+        t.TaskReadTime as taskreadtime,
+        t.TaskSection as tasksection,
+        t.TaskContract as taskcontract,
+        t.TaskGetFlagstr as taskgetflagstr,
+        t.Task_Return_Type as taskReturnType
+    </sql>
+
+
+    <sql id="computingTime" databaseId="dm">
+        add_days
+        (TaskStartTime,1)
+    </sql>
+
+    <sql id="computingTime" databaseId="postgre">
+        TaskStartTime
+        +1
+    </sql>
+
+    <sql id="computingTime" databaseId="mysql">
+        DATE_ADD
+        (TaskStartTime, INTERVAL 1 DAY)
+    </sql>
+
+    <select id="getUserTodoList" resultType="com.jpmsoft.common.model.response.SysFileResponse">
+        select
+        mn.*,
+        pp.p_name as pName,
+        con.Con_Name as conName,
+        sec.Sec_Name as secName
+        from SYS_File mn
+        left join Pre_Project pp on pp.P_ID = mn.FileProject
+        left join Con_Contract con on con.Con_Id = mn.FileContract
+        left join Sec_Info sec on sec.Sec_Id = mn.FileSectionID
+        <include refid="userTodoListFilter"/>
+        order by mn.FileCreateDate desc
+    </select>
+
+    <select id="getUserTodoCount" resultType="java.lang.Integer">
+        select count(1)
+        from SYS_File mn
+        left join Pre_Project pp on pp.P_ID = mn.FileProject
+        left join Con_Contract con on con.Con_Id = mn.FileContract
+        left join Sec_Info sec on sec.Sec_Id = mn.FileSectionID
+        <where>
+            and mn.FileTitle is not null
+            and mn.T_Code is not null
+            <if test="uId != null and uId != ''">
+                and mn.FileCreateUser = #{uId}
+            </if>
+            <if test="customerId != null and customerId != '' and customerId != 'All'">
+                and mn.Te_Id = #{customerId}
+            </if>
+            <if test="states != null and states.size != 0">
+                and mn.FileFlowStatus in
+                <foreach collection="states" open="(" close=")" separator="," item="state">
+                    #{state}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <sql id="userTodoListFilter">
+        <where>
+            and mn.FileTitle is not null
+            and mn.T_Code is not null
+            <if test="uId != null and uId != ''">
+                and mn.FileCreateUser = #{uId}
+            </if>
+            <if test="customerId != null and customerId != '' and customerId != 'All'">
+                and mn.Te_Id = #{customerId}
+            </if>
+            <if test="states != null and states.size != 0">
+                and mn.FileFlowStatus in
+                <foreach collection="states" open="(" close=")" separator="," item="state">
+                    #{state}
+                </foreach>
+            </if>
+            <if test="params.pName != null and params.pName != ''">
+                and pp.P_Name like concat('%',#{params.pName},'%')
+            </if>
+            <if test="params.filetitle != null and params.filetitle != ''">
+                and mn.FileTitle like concat('%',#{params.filetitle},'%')
+            </if>
+            <if test="params.filecode != null and params.filecode != ''">
+                and mn.FileCode like concat('%',#{params.filecode},'%')
+            </if>
+            <if test="params.tCode != null and params.tCode != ''">
+                and mn.T_Code like concat('%',#{params.tCode},'%')
+            </if>
+            <if test="params.conName != null and params.conName != ''">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.conNames != null and params.conNames.size != 0">
+                and con.Con_Name in
+                <foreach collection="params.conNames" open="(" close=")" separator="," item="conName">
+                    #{conName}
+                </foreach>
+            </if>
+            <if test="params.taskNames != null and params.taskNames.size != 0">
+                and mn.FileTitle in
+                <foreach collection="params.taskNames" open="(" close=")" separator="," item="fileId">
+                    #{fileId}
+                </foreach>
+            </if>
+            <if test="params.pNames != null and params.pNames.size != 0">
+                and pp.P_Name in
+                <foreach collection="params.pNames" open="(" close=")" separator="," item="pName">
+                    #{pName}
+                </foreach>
+            </if>
+            <if test="params.fileCreateDate != null and params.fileCreateDate != ''">
+                and mn.FileCreateDate = #{params.fileCreateDate}
+            </if>
+            <if test="params.fileCreateDateStart != null and params.fileCreateDateStart != ''">
+                and mn.FileCreateDate >= #{params.fileCreateDateStart}
+            </if>
+            <if test="params.fileCreateDateEnd != null and params.fileCreateDateEnd != ''">
+                and #{params.fileCreateDateEnd} >= mn.FileCreateDate
+            </if>
+            <if test="params.fileflowstatuses != null and params.fileflowstatuses.size != 0">
+                and mn.FileFlowStatus in
+                <foreach collection="params.fileflowstatuses" open="(" close=")" separator="," item="fileflowstatus">
+                    #{fileflowstatus}
+                </foreach>
+            </if>
+            <if test="params.startTime != null and params.startTime != ''">
+                and mn.FileCreateDate >= #{params.startTime}
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                and #{params.endTime} >= mn.FileCreateDate
+            </if>
+            <if test="params.secName != null and params.secName != ''">
+                and sec.Sec_Name like concat('%',#{params.secName},'%')
+            </if>
+            <if test="params.secNames != null and params.secNames.size != 0">
+                and sec.Sec_Name in
+                <foreach collection="params.secNames" open="(" close=")" separator="," item="secName">
+                    #{secName}
+                </foreach>
+            </if>
+        </where>
+    </sql>
+
+    <select id="getUserTodoListTaskKey" resultType="java.lang.String">
+        select distinct ${key}
+        from SYS_File mn
+        left join Pre_Project pp on pp.P_ID = mn.FileProject
+        left join Con_Contract con on con.Con_Id = mn.FileContract
+        <include refid="userTodoListFilter"/>
+    </select>
+
+    <select id="getExistFileIds" resultType="java.lang.String">
+        select ${primaryKey}
+        from ${tableName}
+        where ${primaryKey} in
+        <foreach collection="fileIds" open="(" close=")" separator="," item="fileId">
+            #{fileId}
+        </foreach>
+    </select>
+</mapper>

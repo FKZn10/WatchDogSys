@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysExtendConfMapper">
+
+    <select id="getSysExtendConfByTCodes" resultType="com.jpmsoft.common.model.request.SysExtendConfDTO">
+        select
+            tmp.T_Code as tCode,
+            mn.*
+        from Sys_Extend_Conf mn
+        left join SYS_FileTemplate tmp on tmp.T_ID=mn.T_Id
+        where tmp.T_Code in
+        <foreach collection="codes" item="code" separator="," open="(" close=")">
+            #{code}
+        </foreach>
+    </select>
+</mapper>

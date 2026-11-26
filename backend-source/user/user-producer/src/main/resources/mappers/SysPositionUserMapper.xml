@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysPositionUserMapper">
+
+    <update id="disableMainDuty">
+        update SYS_Position_User set Pu_Main_Duty=false
+        where PU_Id in
+        <foreach collection="ids" separator="," open="(" close=")" item="id">
+        #{id}
+        </foreach>
+    </update>
+
+    <select id="getUserIdsByDids" resultType="java.lang.String">
+        select pu.U_Id from
+         SYS_Position_User pu
+        left join  SYS_Position p on pu.P_Id=p.P_Id
+        left join  SYS_Department d on d.D_Id=p.D_Id
+        where
+         d.D_Id in
+        <foreach collection="dIds" open="( " close=")" item="dId" separator=",">
+            #{uid}
+        </foreach>
+    </select>
+
+
+    <select id="GetUserPositionList" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select p.P_ID as pId,
+        p.D_ID as dId,
+        p.P_Name as pName,
+        d.D_Name as dName,
+        c.C_Name as cName,
+        plv.PL_Name as plName,
+        pu.PU_ID as puId,
+        pu.PU_Main_Duty as puMainDuty,
+        pu.Pu_Duty as puDuty,
+        pu.Pu_Main_Dep as puMainDep,
+        <include refid="sqlFileds"/>
+        from
+         SYS_User u
+        left join  SYS_Position_User pu on u.U_ID=pu.U_ID
+        left join  SYS_Position p on pu.P_ID=p.P_ID
+        left join  SYS_Department d on d.D_ID=p.D_ID
+        left join  SYS_Company c on c.C_ID=u.C_ID
+        left join  SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        <where>
+            p.P_Id is not null
+            <if test="dId!=null">
+                and d.D_ID=#{dId}
+            </if>
+            <if test="uName!=null">
+                and u.U_Name like  concat('%',#{uName},'%')
+            </if>
+        </where>
+        <if test="sortType!=null and sortFiled!=null">
+            order by u.${sortFiled} ${sortType}
+        </if>
+        <if test="sortType == null or sortFiled==null">
+            order by u.U_CreateTime desc
+        </if>
+        limit #{start},#{size}
+    </select>
+
+
+    <select id="GetUserPositionListCount" resultType="java.lang.Integer">
+        select count(1)
+        from
+         SYS_User u
+        left join  SYS_Position_User pu on u.U_ID=pu.U_ID
+        left join  SYS_Position p on pu.P_ID=p.P_ID
+        left join  SYS_Department d on d.D_ID=p.D_ID
+        left join  SYS_Company c on c.C_ID=u.C_ID
+        left join  SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        <where>
+            p.P_Id is not null
+            <if test="dId!=null">
+                and d.D_ID=#{dId}
+            </if>
+            <if test="uName!=null">
+                and u.U_Name like concat('%',#{uName},'%')
+            </if>
+        </where>
+    </select>
+
+
+    <sql id="sqlFileds">
+        u.U_ID as uId,
+        u.PL_ID as plID,
+        u.C_ID as cID,
+        u.U_Name as uName,
+        u.U_Code as uCode,
+        u.U_MTel as uMtel,
+        u.U_Tel as uTel,
+        u.U_Email as uEmail,
+        u.U_Account as uAccount,
+        u.U_Sex as uSex,
+        u.U_Birthday as uBirthday,
+        u.U_State as uState,
+        u.U_MDM_NO as uMdmNo,
+        u.U_CreateTime as uCreatetime,
+        u.U_CreateU_ID as uCreateuID,
+        u.U_CreateU_Name as uCreateuName,
+        u.U_Type  as uType
+    </sql>
+</mapper>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysPositionMapper">
+
+    <select id="getPositionByRole" resultType="Map">
+        select p.P_Name as pName,
+               d.D_Name as dName
+        from SYS_Position p
+                 left join SYS_Department d on p.D_ID = d.D_ID
+                 left join SYS_Position_Role pr on p.P_ID = pr.P_ID
+        where pr.Role_Id = #{roleId}
+    </select>
+
+    <select id="GetPositionList" resultType="com.jpmsoft.userProducer.pojo.vo.SysPositionVo">
+        select
+        p.P_ID as pId,
+        p.D_ID as dId,
+        p.P_Name as pName,
+        p.P_Code as pCode,
+        p.P_Remark as pRemark,
+        p.P_Sort as pSort,
+        p.P_Status as pStatus,
+        p.P_MDM_NO as pMdmNo,
+        p.P_CreateTime as pCreatetime,
+        p.P_CreateU_Id as pCreateuId,
+        p.P_CreateU_Name as pCreateuName,
+        p.P_Duty as pDuty,
+        d.D_Name as dName
+        from SYS_Position p
+        left join SYS_Department d on p.D_ID=d.D_ID
+        <where>
+            1=1
+            <if test="pStatus!=null">
+                and p.P_Status=#{pStatus}
+            </if>
+            <if test="dId!=null">
+                and p.D_ID=#{dId}
+            </if>
+            <if test="pName!=null">
+                and p.P_Name like concat('%',#{pName},'%')
+            </if>
+        </where>
+        <if test="sortType!=null and sortFiled!=null">
+            order by p.${sortFiled} ${sortType}
+        </if>
+        limit #{start},#{size}
+    </select>
+
+    <select id="GetPositionListCount" resultType="java.lang.Integer">
+        select
+        count(*)
+        from SYS_Position p
+        left join SYS_Department d on p.D_ID=d.D_ID
+        <where>
+            1=1
+            <if test="pStatus!=null">
+                and p.P_Status=#{pStatus}
+            </if>
+            <if test="dId!=null">
+                and p.D_ID=#{dId}
+            </if>
+            <if test="pName!=null">
+                and p.P_Name like concat('%',#{pName},'%')
+            </if>
+        </where>
+    </select>
+
+</mapper>

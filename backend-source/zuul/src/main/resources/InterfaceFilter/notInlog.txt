@@ -1,0 +1,16 @@
+/authCode/toGetAuthCode
+/SystemManage/routes
+/project/statisticsProject
+/jpm/downloadOpenFile
+/jpm/downloadAloneFile
+/jpm/downloadFile
+/jpm/downloadAloneOpenFile
+/jpm/doc2Pdf2View
+/jpm/watermarkDown
+/seqSet/sequenceRestEnable
+/collection/selectUserTap
+/material/brand-report-review
+/flow/setTaskStatus
+/intelligentSafetyService/data/create
+/jpmAI/api/ocr/recognize
+/jpmAI/api/ocr/recognizePdf

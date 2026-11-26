@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.qualitySafety.QsViolationPunishmentMapper">
+
+    <select id="getQsViolationPunishmentById"
+            resultType="com.jpmsoft.common.model.response.Qs.QsViolationPunishmentResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        c1.C_Name as vpCName,
+        c1.C_Abbreviation as vpCAbbName,
+        sec.Sec_Name as secName,
+        sd.D_Name as vpDName,
+        qst.Qst_Score as qstScore,
+        qst.Qst_Punish as qstPunish,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Qs_Violation_Punishment mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Department sd on sd.D_ID=mn.Vp_D_Id
+        left join SYS_Company c1 on c1.C_Id=mn.Vp_C_Id
+        left join Qs_Type qst on qst.Qst_Id=mn.Qst_Id
+        left join Sys_File f on f.FileID=mn.Vp_Id
+        where mn.Vp_Id=#{vpId}
+    </select>
+
+
+    <select id="getQsViolationPunishmentList"
+            resultType="com.jpmsoft.common.model.response.Qs.QsViolationPunishmentResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        pro.P_Name as pName,
+        c1.C_Name as vpCName,
+        c1.C_Name_History as vpCNameHistory,
+        c1.C_Abbreviation as vpCAbbName,
+        pro.P_Name_History as pNameHistory,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        sd.D_Name as vpDName,
+        sec.Sec_Name as secName,
+        qst.Qst_Name qstName,
+        qst.Qst_Score as qstScore,
+        qst.Qst_Punish as qstPunish,
+        mn.*
+        from Qs_Violation_Punishment mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Department sd on sd.D_ID=mn.Vp_D_Id
+        left join SYS_Company c1 on c1.C_Id=mn.Vp_C_Id
+        left join Qs_Type qst on qst.Qst_Id=mn.Qst_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id=#{params.secId}
+        </if>
+        <if test="params.vpCId!=null">
+            and mn.Vp_C_Id=#{params.vpCId}
+        </if>
+        <if test="params.vpDId != null and params.vpDId != ''">
+            and mn.Vp_D_Id = #{params.vpDId}
+        </if>
+        <if test="params.qstName!=null">
+            and qst.Qst_Name like concat('%',#{params.qstName},'%')
+        </if>
+        <if test="params.vpCName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.vpCName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.vpCName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.vpType!=null">
+            and mn.Vp_Type=#{params.vpType}
+        </if>
+        <if test="params.vpState!=null">
+            and mn.Vp_State=#{params.vpState}
+        </if>
+        <if test="params.vpLevel!=null">
+            and mn.Vp_Level=#{params.vpLevel}
+        </if>
+        <if test="params.vpCreateUname!=null">
+            and mn.Vp_Create_Uname like concat('%',#{params.vpCreateUname},'%')
+        </if>
+        <if test="params.vpCode!=null">
+            and mn.Vp_Code like concat('%',#{params.vpCode},'%')
+        </if>
+        <if test="params.vpPageCode!=null">
+            and mn.Vp_Page_Code like concat('%',#{params.vpPageCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.vpStates!=null and params.vpStates.size()>0">
+            and mn.Vp_State in
+            <foreach collection="params.vpStates" item="state" separator="," open="(" close=")">
+                #{state}
+            </foreach>
+        </if>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Vp_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

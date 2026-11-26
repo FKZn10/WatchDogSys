@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreConstructionPermitMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.Project.PreConstructionPermitModel"
+               id="getPreConstructionPermit">
+        <id column="Cp_Id" property="cpId"/>
+        <collection property="preConstructionPermitUnits"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Project.PreConstructionPermitUnitModel"
+                    column="Cp_Id" select="getPreConstructionPermitUnit">
+        </collection>
+    </resultMap>
+
+    <select id="getPreConstructionPermitUnit"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreConstructionPermitUnitModel">
+        select c1.C_Name         as cpuCName,
+               c1.C_Abbreviation as cpuCAbbName,
+               c1.C_Name_History as cpuCNameHistory,
+               c1.C_Type         as cpuCType,
+               cpu.*
+        from Pre_Construction_Permit_Unit cpu
+                 left join Sys_Company c1 on c1.C_Id = cpu.Cpu_Cid
+        where cpu.Cp_Id = #{cpId}
+        order by cpu.Cpu_Order asc
+    </select>
+
+
+    <select id="getPreConstructionPermitById" resultMap="getPreConstructionPermit">
+        select f.file_relation_id  as fileRelationId,
+               c1.C_Name           as cpCreateCName,
+               c1.C_Name_History   as cpCreateCNameHistory,
+               pro.P_Name          as pName,
+               pro.P_Name_History  as pNameHistory,
+               pro.P_Code          as pCode,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               con.Con_Name        as conName,
+               mn.*
+        from Pre_Construction_Permit mn
+                 left join Sys_Company c1 on c1.C_Id = mn.Cp_Create_Cid
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join Con_Contract con on con.con_Id = mn.Con_Id
+                 left join Sys_File f on f.FileID = mn.Cp_Id
+        where mn.Cp_Id = #{cpId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.cpState!=null">
+            and mn.Cp_State = #{params.cpState}
+        </if>
+        <if test="params.cpCreateCid!=null">
+            and mn.Cp_Create_Cid = #{params.cpCreateCid}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.cpFixedPrice!=null">
+            and mn.Cp_Fixed_Price = #{params.cpFixedPrice}
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.cpProjectAddress!=null">
+            and mn.Cp_Project_Address like concat('%',#{params.cpProjectAddress},'%')
+        </if>
+        <if test="params.cpOverview!=null">
+            and mn.Cp_Overview like concat('%',#{params.cpOverview},'%')
+        </if>
+        <if test="params.cpCreateUname!=null">
+            and mn.Cp_Create_Uname like concat('%',#{params.cpCreateUname},'%')
+        </if>
+        <if test="params.cpCreateCName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.cpCreateCName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.cpCreateCName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.cpContractPriceStart!=null">
+            and mn.Cp_Contract_Price > #{params.cpContractPriceStart}
+        </if>
+        <if test="params.cpContractPriceEnd!=null">
+            and mn.Cp_Contract_Price &lt; #{params.cpContractPriceEnd}
+        </if>
+        <include refid="timeFilter"/>
+    </sql>
+
+    <select id="getPreConstructionPermitList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreConstructionPermitModel">
+        select
+        c1.C_Name as cpCreateCName,
+        c1.C_Name_History as cpCreateCNameHistory,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        mn.*
+        from Pre_Construction_Permit mn
+        left join Sys_Company c1 on c1.C_Id=mn.Cp_Create_Cid
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.con_Id=mn.Con_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Cp_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getCpContractPriceSum"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.PreConstructionPermitStatisticsVo">
+        select
+        sum(mn.Cp_Contract_Price) as cpContractPriceSum
+        from Pre_Construction_Permit mn
+        left join Sys_Company c1 on c1.C_Id=mn.Cp_Create_Cid
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join Con_Contract con on con.con_Id=mn.Con_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+ 	<select id="getPreConstructionPermitListByPid" resultMap="getPreConstructionPermit">
+        select mn.*
+        from  Pre_Construction_Permit mn
+        where mn.P_Id=#{pId}
+    </select>
+
+    <!-- *********************************** dm *********************************** -->
+    <sql id="timeFilter" databaseId="dm">
+        <if test="params.cpStartTimeStart!=null">
+            and to_date(mn.Cp_Start_Time,'yyyy-MM-dd') >= to_date(#{params.cpStartTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.cpStartTimeEnd!=null">
+            and to_date(mn.Cp_Start_Time,'yyyy-MM-dd') &lt;= to_date(#{params.cpStartTimeEnd},'yyyy-MM-dd')
+        </if>
+        <if test="params.cpEndTimeStart!=null">
+            and to_date(mn.Cp_End_Time,'yyyy-MM-dd') >= to_date(#{params.cpEndTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.cpEndTimeEnd!=null">
+            and to_date(mn.Cp_End_Time,'yyyy-MM-dd') &lt;= to_date(#{params.cpEndTimeEnd},'yyyy-MM-dd')
+        </if>
+        <if test="params.cpCreateTimeStart!=null">
+            and to_date(mn.Cp_Create_Time,'yyyy-MM-dd') >= to_date(#{params.cpCreateTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.cpCreateTimeEnd!=null">
+            and to_date(mn.Cp_Create_Time,'yyyy-MM-dd') &lt;= to_date(#{params.cpCreateTimeEnd},'yyyy-MM-dd')
+        </if>
+    </sql>
+
+    <sql id="timeFilter" databaseId="postgre">
+        <if test="params.cpStartTimeStart!=null">
+            and to_char(mn.Cp_Start_Time,'yyyy-MM-dd') >= to_char(#{params.cpStartTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.cpStartTimeEnd!=null">
+            and to_char(mn.Cp_Start_Time,'yyyy-MM-dd') &lt;= to_char(#{params.cpStartTimeEnd},'yyyy-MM-dd')
+        </if>
+        <if test="params.cpEndTimeStart!=null">
+            and to_char(mn.Cp_End_Time,'yyyy-MM-dd') >= to_char(#{params.cpEndTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.cpEndTimeEnd!=null">
+            and to_char(mn.Cp_End_Time,'yyyy-MM-dd') &lt;= to_char(#{params.cpEndTimeEnd},'yyyy-MM-dd')
+        </if>
+        <if test="params.cpCreateTimeStart!=null">
+            and to_char(mn.Cp_Create_Time,'yyyy-MM-dd') >= to_char(#{params.cpCreateTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.cpCreateTimeEnd!=null">
+            and to_char(mn.Cp_Create_Time,'yyyy-MM-dd') &lt;= to_char(#{params.cpCreateTimeEnd},'yyyy-MM-dd')
+        </if>
+    </sql>
+    <!-- *********************************** mysql *********************************** -->
+    <sql id="timeFilter" databaseId="mysql">
+        <if test="params.cpStartTimeStart!=null">
+            and date_format(mn.Cp_Start_Time,'%Y-%m-%d') >= date_format(#{params.cpStartTimeStart},'%Y-%m-%d')
+        </if>
+        <if test="params.cpStartTimeEnd!=null">
+            and date_format(mn.Cp_Start_Time,'%Y-%m-%d') &lt;= date_format(#{params.cpStartTimeEnd},'%Y-%m-%d')
+        </if>
+        <if test="params.cpEndTimeStart!=null">
+            and date_format(mn.Cp_End_Time,'%Y-%m-%d') >= date_format(#{params.cpEndTimeStart},'%Y-%m-%d')
+        </if>
+        <if test="params.cpEndTimeEnd!=null">
+            and date_format(mn.Cp_End_Time,'%Y-%m-%d') &lt;= date_format(#{params.cpEndTimeEnd},'%Y-%m-%d')
+        </if>
+        <if test="params.cpCreateTimeStart!=null">
+            and date_format(mn.Cp_Create_Time,'%Y-%m-%d') >= date_format(#{params.cpCreateTimeStart},'%Y-%m-%d')
+        </if>
+        <if test="params.cpCreateTimeEnd!=null">
+            and date_format(mn.Cp_Create_Time,'%Y-%m-%d') &lt;= date_format(#{params.cpCreateTimeEnd},'%Y-%m-%d')
+        </if>
+    </sql>
+</mapper>

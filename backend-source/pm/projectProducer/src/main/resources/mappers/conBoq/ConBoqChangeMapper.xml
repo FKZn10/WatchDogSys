@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.conBoq.ConBoqChangeMapper">
+    <select id="getConBoqChangeList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.ConBoq.ConBoqChangeDto">
+        select mn.*,
+        pp.P_Name as pName,
+        cc.Con_Name as conName
+        from Con_Boq_Change mn
+        left join pre_project pp on mn.P_Id = pp.P_ID
+        left join con_contract cc on mn.Con_Id = cc.Con_Id
+        <where>
+            <if test="params.version != null and params.version != ''">
+                and mn.Version = #{params.version}
+            </if>
+            <if test="params.boqId != null and params.boqId != ''">
+                and mn.Boq_Id = #{params.boqId}
+            </if>
+            <if test="params.boqcVersion != null and params.boqcVersion != ''">
+                and mn.Boqc_Version like concat('%', #{params.boqcVersion}, '%')
+            </if>
+            <if test="params.pName != null and params.pName != ''">
+                and pp.P_Name like concat('%', #{params.pName}, '%')
+            </if>
+            <if test="params.conName != null and params.conName != ''">
+                and cc.Con_Name like concat('%', #{params.conName}, '%')
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Boqc_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getConBoqChangeById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.ConBoq.ConBoqChangeDto">
+        select mn.*,
+        pp.P_Name as pName,
+        cc.Con_Name as conName
+        from Con_Boq_Change mn
+        left join pre_project pp on mn.P_Id = pp.P_ID
+        left join con_contract cc on mn.Con_Id = cc.Con_Id
+        where mn.Boqc_Id = #{id}
+    </select>
+</mapper>
+

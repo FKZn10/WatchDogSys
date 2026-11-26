@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.performanceClaim.PcAwardTicketMapper">
+
+    <update id="refreshConPayId2Null">
+        update Pc_Award_Ticket set Pay_Id=null
+        where At_Id in
+        <foreach collection="atIds" item="atId" open="(" close=")" separator=",">
+            #{atId}
+        </foreach>
+    </update>
+
+    <update id="refreshConPayId">
+        update Pc_Award_Ticket set Pay_Id=#{payId}
+        where At_Id in
+        <foreach collection="atIds" item="atId" open="(" close=")" separator=",">
+            #{atId}
+        </foreach>
+    </update>
+
+    <select id="getPcAwardTicketByConPay"
+            resultType="com.jpmsoft.common.model.response.Claim.PcAwardTicketResponse">
+        select con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               pro.P_Name          as pName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               c1.C_Name           as atCName,
+               c1.C_Abbreviation   as atCAbbName,
+               f.file_relation_id  as fileRelationId,
+               mn.*
+        from Pc_Award_Ticket mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Company c1 on c1.C_Id = mn.At_C_Id
+                 left join Sys_File f on f.FileID = mn.At_Id
+        where mn.Pay_Id = #{payId}
+    </select>
+
+
+    <select id="getPcAwardTicketById"
+            resultType="com.jpmsoft.common.model.response.Claim.PcAwardTicketResponse">
+        select con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               pro.P_Name          as pName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               c1.C_Name           as atCName,
+               c1.C_Abbreviation   as atCAbbName,
+               pay.Pay_Code        as payCode,
+               pay.Pay_Type        as payType,
+               pay.Pay_Type_Detailed as payTypeDetailed,
+               pay.Pay_Create_Time as payCreateTime,
+               pay.Pay_State as payState,
+               f.file_relation_id  as fileRelationId,
+               mn.*
+        from Pc_Award_Ticket mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Company c1 on c1.C_Id = mn.At_C_Id
+                 left join Con_Pay pay on pay.Pay_Id = mn.Pay_Id
+                 left join Sys_File f on f.FileID = mn.At_Id
+        where mn.At_Id = #{atId}
+    </select>
+
+
+    <select id="getPcAwardTicketList"
+            resultType="com.jpmsoft.common.model.response.Claim.PcAwardTicketResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name_History as atCNameHistory,
+        c1.C_Name as atCName,
+        c1.C_Abbreviation as atCAbbName,
+        pay.Pay_Code as payCode,
+        pay.Pay_Type as payType,
+        pay.Pay_Type_Detailed as payTypeDetailed,
+        pay.Pay_Create_Time as payCreateTime,
+        pay.Pay_State as payState,
+        mn.*
+        from Pc_Award_Ticket mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on c1.C_Id=mn.At_C_Id
+        left join Con_Pay pay on pay.Pay_Id=mn.Pay_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.atType!=null">
+            and mn.At_Type=#{params.atType}
+        </if>
+        <if test="params.atCId!=null">
+            and mn.At_C_Id=#{params.atCId}
+        </if>
+        <if test="params.payId!=null and params.paySelect==false">
+            and mn.Pay_Id=#{params.payId}
+        </if>
+        <if test="params.atState!=null">
+            and mn.At_State=#{params.atState}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id=#{params.conId}
+        </if>
+        <if test="params.paySelect==true">
+            and mn.At_State=7 and (
+             mn.Pay_Id is null or (select cp0.Pay_State from Con_Pay cp0 where cp0.Pay_Id=mn.Pay_Id)=3
+             <if test="params.payId!=null">
+                 or mn.Pay_Id=#{params.payId}
+             </if>
+            )
+        </if>
+        <if test="params.atCName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.atCName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.atCName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.atCode!=null">
+            and mn.At_Code like concat('%',#{params.atCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.At_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

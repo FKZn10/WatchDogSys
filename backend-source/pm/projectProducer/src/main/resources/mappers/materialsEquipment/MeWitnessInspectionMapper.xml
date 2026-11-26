@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MeWitnessInspectionMapper">
+
+    
+    <sql id="selectMain">
+        select
+            con.Con_Name as conName,
+            con.Con_Party_B_Id as conPartyBId,
+            pro.P_Name as pName,
+            proc.C_Name as pConstructionUnitName,
+            proc.C_Abbreviation as pConsAbbName,
+            prod.D_Name as pCompetentDepartmentName,
+            c1.C_Name as wiUnitName,
+            c2.C_Name as conPartyBName,
+            c1.C_Abbreviation as wiUnitAbbName,
+            c2.C_Abbreviation as conPartyBAbbName,
+            mtl.Met_Name as metName,
+            ead.Ead_Standard_Type as eadStandardType,
+            ead.Ead_Supply_Order_No as eadSupplyOrderNo,
+            ead.Ead_Brand_Name as eadBrandName,
+            ead.Ead_Count as eadCount,
+            ea.Ea_Code as eaCode,
+            f.file_relation_id as fileRelationId,
+            mn.*,
+            (select sum(Wd_Amount) from Me_Witness_Dtl where Wi_Id=mn.Wi_Id ) as  wdAmountTotal
+        from  Me_Witness_Inspection mn
+                  left join  Con_Contract con on con.Con_Id=mn.Con_Id
+                  left join  Pre_Project pro on pro.P_Id=mn.P_Id
+                  left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+                  left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+                  left join  SYS_Company c1 on mn.Wi_Unit_Id=c1.C_Id
+                  left join  Me_Enter_Apply_Dtl ead on ead.Ead_Id=mn.Ead_Id
+                  left join  Me_Enter_Apply ea on ead.Ea_Id=ea.Ea_Id
+                  left join  Me_Type_Library mtl on mtl.Met_Id=ead.Met_Id
+                  left join  SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+                  left join  Sys_File f on f.FileID=mn.Wi_Id
+    </sql>
+
+    <select id="getMeWitnessInspectionByOrderNo"
+            resultType="com.jpmsoft.common.model.response.MeEnter.MeWitnessInspectionResponse">
+        <include refid="selectMain"></include>
+        where mn.Wi_Order_No=#{wiOrderNo} and mn.Wi_State=7
+        order by mn.Wi_Create_Time desc
+    </select>
+
+
+    <select id="getMeWitnessInspectionByConId"
+            resultType="com.jpmsoft.common.model.response.MeEnter.MeWitnessInspectionResponse">
+        <include refid="selectMain"></include>
+        where mn.Con_Id=#{conId} and mn.Wi_State=7
+        order by mn.Wi_Create_Time desc
+    </select>
+
+
+    <select id="getMeWitnessInspectionByWiId"
+            resultType="com.jpmsoft.common.model.response.MeEnter.MeWitnessInspectionResponse">
+        <include refid="selectMain"></include>
+        where mn.Wi_Id=#{wiId}
+    </select>
+
+
+    <select id="getMeWitnessInspectionList"
+            resultType="com.jpmsoft.common.model.response.MeEnter.MeWitnessInspectionResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Party_B_Id as conPartyBId,
+        c1.C_Name_History as wiUnitNameHistory,
+        c2.C_Name_History as conPartyBNameHistory,
+        c1.C_Name as wiUnitName,
+        c2.C_Name as conPartyBName,
+        c1.C_Abbreviation as wiUnitAbbName,
+        c2.C_Abbreviation as conPartyBAbbName,
+        mtl.Met_Name as metName,
+        ead.Ead_Standard_Type as eadStandardType,
+        ead.Ead_Supply_Order_No as eadSupplyOrderNo,
+        ead.Ead_Brand_Name as eadBrandName,
+        ead.Ead_Count as eadCount,
+        ea.Ea_Code as eaCode,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Me_Witness_Inspection mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  SYS_Company c1 on mn.Wi_Unit_Id=c1.C_Id
+        left join  Me_Enter_Apply_Dtl ead on ead.Ead_Id=mn.Ead_Id
+        left join  Me_Enter_Apply ea on ead.Ea_Id=ea.Ea_Id
+        left join  Me_Type_Library mtl on mtl.Met_Id=ead.Met_Id
+        left join  SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+        left join  Sys_File f on f.FileID=mn.Wi_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.conPartyBId!=null">
+            and con.Con_Party_B_Id = #{params.conPartyBId}
+        </if>
+        <if test="params.eadId!=null">
+            and mn.Ead_Id = #{params.eadId}
+        </if>
+        <if test="params.eaId!=null">
+            and mn.Ea_Id = #{params.eaId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.wiUnitId!=null">
+            and mn.Wi_Unit_Id = #{params.wiUnitId}
+        </if>
+        <if test="params.wiOrderNo!=null">
+            and mn.Wi_Order_No like concat('%',#{params.wiOrderNo},'%')
+        </if>
+        <if test="params.wiCode!=null">
+            and mn.Wi_Code like concat('%',#{params.wiCode},'%')
+        </if>
+        <if test="params.wiDetectionCode!=null">
+            and mn.Wi_Detection_Code like concat('%',#{params.wiDetectionCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Wi_End_Date DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

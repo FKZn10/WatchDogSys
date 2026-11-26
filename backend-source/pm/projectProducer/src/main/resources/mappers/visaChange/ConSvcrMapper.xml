@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.visaChange.ConSvcrMapper">
+
+    <select id="getConSvcrById" resultType="com.jpmsoft.common.model.response.DesignChange.ConSvcrResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        c1.C_Name as svcrProposeName,
+        c1.C_Abbreviation as svcrProposeAbbName,
+        svv.Svv_Project_Name as svvProjectName,
+        svis.Svis_Project_Name as svisProjectName,
+        svis.Svis_Name as svisName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Con_Svcr mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  SYS_Company c1 on mn.Svcr_Propose_Id=c1.C_Id
+        left join  Con_Sv_Verify svv on mn.Svv_Id=svv.Svv_Id
+        left join  Con_Svis svis on svis.Svis_Id=mn.Svis_Id
+        left join  Sys_File f on f.FileID=mn.Svcr_Id
+        where mn.Svcr_Id=#{svcrId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.svcrState!=null">
+            and mn.Svcr_State=#{params.svcrState}
+        </if>
+        <if test="params.svcrProposeId!=null">
+            and mn.Svcr_Propose_Id=#{params.svcrProposeId}
+        </if>
+        <if test="params.svcrCode!=null">
+            and mn.Svcr_Code like concat('%',#{params.svcrCode},'%')
+        </if>
+        <if test="params.svcrProjectName!=null">
+            and mn.Svcr_Project_Name like concat('%',#{params.svcrProjectName},'%')
+        </if>
+        <if test="params.svcrMajor!=null">
+            and mn.Svv_Project_Name like concat('%',#{params.svcrMajor},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+    </sql>
+
+    <select id="getConSvcrList" resultType="com.jpmsoft.common.model.response.DesignChange.ConSvcrResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name_History as svcrProposeNameHistory,
+        c1.C_Name as svcrProposeName,
+        c1.C_Abbreviation as svcrProposeAbbName,
+        mn.*
+        from  Con_Svcr mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  SYS_Company c1 on mn.Svcr_Propose_Id=c1.C_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Svcr_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecDocumentReleaseMapper">
+    <!--************************************* 公用 *************************************-->
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecDocumentReleaseModel"
+               id="getSecDocumentRelease">
+        <id column="Sdr_Id" property="sdrId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Sdr_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Document_Release sab on sab.Sec_Id=sec.Sec_Id
+        where sab.Sdr_Id=#{sdrId}
+    </select>
+
+    <select id="getSecDocumentReleaseById" resultMap="getSecDocumentRelease">
+        select
+        f.file_relation_id as fileRelationId,
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        mn.*
+        from  Sec_Document_Release mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sys_File f on f.FileID=mn.Sdr_Id
+        where mn.Sdr_Id=#{sdrId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id=#{params.secId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.sabCreateUname!=null">
+            and mn.Sdr_Create_Uname like concat('%',#{params.sabCreateUname},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.secCode!=null">
+            and sec.Sec_Code like concat('%',#{params.secCode},'%')
+        </if>
+        <include refid="secCodeFilter"/>
+        <if test="params.sdrCreateTimeStart!=null">
+            and mn.Sdr_Create_Time>#{params.sdrCreateTimeStart}
+        </if>
+        <if test="params.sdrCreateTimeEnd!=null">
+            and mn.Sdr_Create_Time &lt; #{params.sdrCreateTimeEnd}
+        </if>
+        <if test="params.sdrBidOpenTimeStart!=null">
+            and mn.Sdr_Bid_Open_Time>#{params.sdrBidOpenTimeStart}
+        </if>
+        <if test="params.sdrBidOpenTimeEnd!=null">
+            and mn.Sdr_Bid_Open_Time &lt; #{params.sdrBidOpenTimeEnd}
+        </if>
+        <if test="params.sdrControlPriceStart!=null">
+            and mn.Sdr_Control_Price>#{params.sdrControlPriceStart}
+        </if>
+        <if test="params.sdrControlPriceEnd!=null">
+            and mn.Sdr_Control_Price &lt; #{params.sdrControlPriceEnd}
+        </if>
+        <if test="params.sdrStageStart!=null">
+            and mn.Sdr_Stage>#{params.sdrStageStart}
+        </if>
+        <if test="params.sdrStageEnd!=null">
+            and mn.Sdr_Stage &lt; #{params.sdrStageEnd}
+        </if>
+    </sql>
+
+    <select id="getSecDocumentReleaseList" resultMap="getSecDocumentRelease">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        mn.*
+        from Sec_Document_Release mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sdr_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecDocumentReleaseListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Document_Release mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+
+    <!--************************************* dm *************************************-->
+
+    <sql id="secCodeFilter" databaseId="dm">
+        <if test="params.secCode!=null">
+            and to_char(mn.Sdr_Bid_Open_Time,'yyyy-MM') = #{params.dBidMonYear}
+        </if>
+    </sql>
+    <!--************************************* postgre *************************************-->
+
+    <sql id="secCodeFilter" databaseId="postgre">
+        <if test="params.secCode!=null">
+            and to_char(mn.Sdr_Bid_Open_Time,'yyyy-MM') = #{params.dBidMonYear}
+        </if>
+    </sql>
+    <!--************************************* mysql *************************************-->
+
+    <sql id="secCodeFilter" databaseId="mysql">
+        <if test="params.secCode!=null">
+            and date_format(mn.Sdr_Bid_Open_Time,'%Y-%m') = #{params.dBidMonYear}
+        </if>
+    </sql>
+
+</mapper>

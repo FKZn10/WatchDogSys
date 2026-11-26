@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProProjectRegisterUnitMapper">
+
+    <select id="getByRegisterId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.project.ProProjectRegisterUnit">
+        select *
+        from Pro_Project_Register_Unit
+        where register_id = #{registerId}
+        order by sort_no, id
+    </select>
+
+    <delete id="deleteByRegisterId">
+        delete from Pro_Project_Register_Unit where register_id = #{registerId}
+    </delete>
+</mapper>

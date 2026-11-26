@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.ProjectPresetYearMapper">
+
+
+
+
+    <select id="getProjectPresetYearList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.ProjectPresetYearResponse">
+        select yea.*,pre.p_name as pName,
+        pre.p_Region as pRegion,
+        pre.P_Construction_Unit as pConstructionUnit,
+        pre.P_Project_Stage as ProjectStage,
+        pre.p_Project_Status as pProjectStatus,
+        pre.p_Approve_Budget as pApproveBudget
+        from project_preset_year yea
+         left join pre_project pre on yea.p_id = pre.p_id
+    <where>
+        1=1
+        <if test="request.pName!=null and request.pName!='' ">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{request.pName},pre.P_Id)=true
+                </when>
+                <otherwise>
+                    and pre.p_name  like concat('%',#{request.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="request.pyEclareYear!=null and request.pyEclareYear!='' ">
+            and yea.Py_Eclare_Year = #{request.pyEclareYear}
+        </if>
+    </where>
+    </select>
+
+
+    <select id="getProjectPresetYearId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.ProjectPresetYearResponse">
+        select yea.*,pre.p_name as pName from project_preset_year yea
+        left join pre_project pre on yea.p_id = pre.p_id
+        <where>
+            1=1
+            <if test="id!=null and id!='' ">
+                and yea.id  = #{id}
+            </if>
+        </where>
+    </select>
+
+
+
+</mapper>

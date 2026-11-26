@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.dh.MonthlyInspectionReportMapper">
+    <select id="getMonthlyInspectionReportList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.dh.MonthlyInspectionReportDTO">
+        select
+        mn.*,
+        pp.P_Name,
+        sec.Sec_Name,
+        cc.Con_Name
+        from Monthly_Inspection_Report mn
+        left join pre_project pp on mn.P_Id = pp.P_Id
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join Con_Contract cc on cc.Con_Id = mn.Con_Id
+        <where>
+            <if test="params.pNameList != null and params.pNameList.size() > 0">
+                and pp.P_Name in
+                <foreach collection="params.pNameList" item="pName" open="(" separator="," close=")">
+                    #{pName}
+                </foreach>
+            </if>
+            <if test="params.secNameList != null and params.secNameList.size() > 0">
+                and sec.Sec_Name in
+                <foreach collection="params.secNameList" item="secName" open="(" separator="," close=")">
+                    #{secName}
+                </foreach>
+            </if>
+            <if test="params.conNameList != null and params.conNameList.size() > 0">
+                and cc.Con_Name in
+                <foreach collection="params.conNameList" item="conName" open="(" separator="," close=")">
+                    #{conName}
+                </foreach>
+            </if>
+            <if test="params.fillDateStart != null and params.fillDateStart != ''">
+                and mn.Fill_Date &gt;= #{params.fillDateStart}
+            </if>
+            <if test="params.fillDateEnd != null and params.fillDateEnd != ''">
+                and mn.Fill_Date &lt;= #{params.fillDateEnd}
+            </if>
+        </where>
+    </select>
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select ${selectClause}
+        from Monthly_Inspection_Report mn
+        left join pre_project pp on mn.P_Id = pp.P_Id
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join Con_Contract cc on cc.Con_Id = mn.Con_Id
+        <where>
+            <if test="params.pNameList != null and params.pNameList.size() > 0">
+                and pp.P_Name in
+                <foreach collection="params.pNameList" item="pName" open="(" separator="," close=")">
+                    #{pName}
+                </foreach>
+            </if>
+            <if test="params.secNameList != null and params.secNameList.size() > 0">
+                and sec.Sec_Name in
+                <foreach collection="params.secNameList" item="secName" open="(" separator="," close=")">
+                    #{secName}
+                </foreach>
+            </if>
+            <if test="params.conNameList != null and params.conNameList.size() > 0">
+                and cc.Con_Name in
+                <foreach collection="params.conNameList" item="conName" open="(" separator="," close=")">
+                    #{conName}
+                </foreach>
+            </if>
+            <if test="params.fillDateStart != null and params.fillDateStart != ''">
+                and mn.Fill_Date &gt;= #{params.fillDateStart}
+            </if>
+            <if test="params.fillDateEnd != null and params.fillDateEnd != ''">
+                and mn.Fill_Date &lt;= #{params.fillDateEnd}
+            </if>
+        </where>
+    </select>
+</mapper>

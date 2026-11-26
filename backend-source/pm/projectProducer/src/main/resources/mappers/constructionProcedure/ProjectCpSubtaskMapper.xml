@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.constructionProcedure.ProjectCpSubtaskMapper">
+    <select id="getProjectCpSubtaskList" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpSubtaskResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        <include refid="entityFileds"/>
+        <include refid="projectCpDtlFileds"/>
+        from  Project_Cp_Subtask pcs
+        left join  Project_Cp_Dtl cpd on cpd.Cpd_Id=pcs.Cpd_Id
+        left join  Project_Cp cp on cp.Cp_Id=cpd.Cp_Id
+        left join  Pre_Project pro on pro.P_ID=cp.P_ID
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join  SYS_User u on  u.U_ID=pcs.Pcs_Handler
+        <where>
+            <if test="params.teId!=null">
+                and pcs.Te_Id = #{params.teId}
+            </if>
+            <if test="params.cpdId!=null">
+                and   pcs.Cpd_Id=#{params.cpdId}
+            </if>
+            <if test="params.pId!=null">
+                and cp.P_ID=#{params.pId}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},cp.P_ID)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.cpdName!=null">
+                and  cpd.Cpd_Name like concat('%',#{params.cpdName},'%')
+            </if>
+            <if test="params.pcsTaskName!=null">
+                and  cpd.Pcs_Task_Name like concat('%',#{params.pcsTaskName},'%')
+            </if>
+            <if test="params.pcsCreateUname!=null">
+                and  pcs.Pcs_Create_Uname like concat('%',#{params.pcsCreateUname},'%')
+            </if>
+            <if test="params.pending!=null">
+                <if test="params.pending==0">
+                    and Pcs_Actual_Start_Time is  null
+                </if>
+            </if>
+            <if test="params.pcsHandler!=null">
+                and  pcs.Pcs_Handler =#{params.pcsHandler}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by pcs.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by pcs.Pcs_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getProjectCpSubtaskByCpId" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpSubtaskResponse">
+        select
+        <include refid="entityFileds"/>
+        <include refid="projectCpDtlFileds"/>
+        from  Project_Cp_Subtask pcs
+        left join  Project_Cp_Dtl cpd on cpd.Cpd_Id=pcs.Cpd_Id
+        left join  Project_Cp cp on cpd.Cp_Id=cp.Cp_Id
+        left join  SYS_User u on  u.U_ID=pcs.Pcs_Handler
+        where pcs.Pcs_Id=#{pcsId}
+    </select>
+
+    <sql id="entityFileds">
+        pcs.Pcs_Id as pcsId,
+        pcs.Cpd_Id as cpdId,
+        pcs.Pcs_Task_Name as pcsTaskName,
+        pcs.Pcs_Handler as pcsHandler,
+        u.U_Name as pcsHandlerName,
+        pcs.Pcs_Plan_Start_Time as pcsPlanStartTime,
+        pcs.Pcs_Plan_End_Time as pcsPlanEndTime,
+        pcs.Pcs_Actual_Start_Time as pcsActualStartTime,
+        pcs.Pcs_Actual_Ok_Time as pcsActualOkTime,
+        pcs.Pcs_Task_Content as pcsTaskContent,
+        pcs.Pcs_Ok_Status as pcsOkStatus,
+        pcs.Pcs_Remark as pcsRemark,
+        pcs.Pcs_Prove as pcsProve,
+        pcs.Pcs_Create_Uid as pcsCreateUid,
+        pcs.Pcs_Create_Uname as pcsCreateUname,
+        pcs.Pcs_Create_Time as pcsCreateTime,
+
+    </sql>
+
+
+
+    <sql id="projectCpDtlFileds">
+        cpd.Cp_Id as cpId,
+        cpd.Cpd_Name as cpdName,
+        cpd.Cpd_Code as cpdCode,
+        cpd.Cpd_Parent_Id as cpdParentId,
+        cpd.Cpd_Type as cpdType,
+        cpd.Cpd_Days as cpdDays,
+        cpd.Cpd_Pro_Id as cpdProId,
+        cpd.Cpd_Administration as cpdAdministration,
+        cpd.Cpd_Administration_Url as cpdAdministrationUrl,
+        cpd.Cpd_Remark as cpdRemark,
+        cpd.Cpd_Html as cpdHtml,
+        cpd.Cpd_Plan_Start_Time as cpdPlanStartTime,
+        cpd.Cpd_Plan_End_Time as cpdPlanEndTime,
+        cpd.Cpd_Person_Id as cpdPersonId,
+        cpd.Cpd_Person_Name as cpdPersonName,
+        cpd.Cpd_Start_Time as cpdStartTime,
+        cpd.Cpd_End_Time as cpdEndTime,
+        cpd.Cpd_State as cpdState,
+        cpd.Cpd_Doc as cpdDoc,
+        cpd.Cpd_Create_Uid as cpdCreateUid,
+        cpd.Cpd_Create_Uname as cpdCreateUname,
+        cpd.Cpd_Create_Time as cpdCreateTime
+    </sql>
+
+
+</mapper>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.projectOutline.OutlineSystemLibMapper">
+    <sql id="AllColumnList">
+            mn.id,
+            mn.Osm_Id,
+            mn.Osl_Parent_Id,
+            mn.Osl_Name,
+            mn.Osl_Code,
+            mn.Osl_Remark,
+            mn.Osl_Status,
+            mn.Osl_Sort,
+            mn.Osl_Content,
+            mn.Osl_Bussnis,
+            mn.Create_Time,
+            mn.Create_Uid,
+            mn.Create_Uname,
+            mn.Osl_Content_Rendered
+    </sql>
+
+    <sql id="BaseColumnList">
+            mn.id,
+            mn.Osm_Id,
+            mn.Osl_Parent_Id,
+            mn.Osl_Name,
+            mn.Osl_Code,
+            mn.Osl_Remark,
+            mn.Osl_Status,
+            mn.Osl_Sort,
+            mn.Osl_Bussnis,
+            mn.Create_Time,
+            mn.Create_Uid,
+            mn.Create_Uname
+    </sql>
+
+    <select id="getOutlineSystemLibList"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineSystemLibResponse">
+        select
+        <choose>
+            <when test="params.noContent == true">
+                <include refid="BaseColumnList"/>,
+            </when>
+            <otherwise>
+                <include refid="AllColumnList"/>,
+            </otherwise>
+        </choose>
+        if(mn.Osl_Content is null or length(mn.Osl_Content) = 0, 1, 0) as isEmpty
+        from outline_system_lib mn
+        <where>
+            <if test="params.id != null and params.id != ''">
+                and mn.id = #{params.id}
+            </if>
+            <if test="params.osmId != null and params.osmId != ''">
+                and mn.osm_id = #{params.osmId}
+            </if>
+            <if test="params.oslNameList != null and params.oslNameList.size() > 0">
+                and mn.osl_name in
+                <foreach item="item" collection="params.oslNameList" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.oslCodeList != null and params.oslCodeList.size() > 0">
+                and mn.osl_code in
+                <foreach item="item" collection="params.oslCodeList" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.oslStatusList != null and params.oslStatusList.size() > 0">
+                and mn.osl_status in
+                <foreach item="item" collection="params.oslStatusList" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        order by mn.osl_sort asc
+    </select>
+
+    <select id="checkEmptyOutlineSystemLib"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineSystemLibResponse">
+        select mn.*
+        from outline_system_lib mn
+        left join outline_system_lib child on child.Osl_Parent_Id = mn.id
+        where mn.Osm_Id = #{osmId}
+        and (mn.Osl_Content is null or length(mn.Osl_Content) = 0)
+        and child.id is null
+    </select>
+
+    <select id="getLibWithTempByOsmId"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineSystemLibResponse">
+        select mn.*
+        from Outline_System_Lib mn
+        where Osm_Id = #{osmId}
+        and Osl_Status = '1'
+        and mn.Osl_Content is not null
+        and exists(
+        select 1
+        from Outline_Node_Temp ont
+        where ont.Osl_Id = mn.id
+        and ont.Pre_Type = '01'
+        )
+    </select>
+</mapper>

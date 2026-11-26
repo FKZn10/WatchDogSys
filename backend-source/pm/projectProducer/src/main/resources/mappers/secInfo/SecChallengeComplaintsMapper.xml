@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecChallengeComplaintsMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecChallengeComplaintsResponse"
+               id="SecChallengeComplaints">
+        <id column="Scc_Id" property="sccId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Scc_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Challenge_Complaints sd on sd.Sec_Id=sec.Sec_Id
+        where sd.Scc_Id=#{sccId}
+    </select>
+
+
+    <select id="getSecChallengeComplaintsById" resultMap="SecChallengeComplaints">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Type as secType,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Sec_Challenge_Complaints mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sys_File f on f.FileID=mn.Scc_Id
+        where mn.Scc_Id=#{sccId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.sccQuestion!=null">
+            and mn.Scc_Question = #{params.sccQuestion}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+        <if test="params.secBiddingType!=null">
+            and sec.Sec_Bidding_Type = #{params.secBiddingType}
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.sccQuestionerTelephone!=null">
+            and mn.Scc_Questioner_Telephone like concat('%',#{params.sccQuestionerTelephone},'%')
+        </if>
+        <if test="params.sccQuestionQuestion!=null">
+            and mn.Scc_Question_Question like concat('%',#{params.sccQuestionQuestion},'%')
+        </if>
+        <if test="params.sccRespondent!=null">
+            and mn.Scc_Respondent like concat('%',#{params.sccRespondent},'%')
+        </if>
+        <if test="params.sccReplyContent!=null">
+            and mn.Scc_Reply_Content like concat('%',#{params.sccReplyContent},'%')
+        </if>
+        <if test="params.sccRemarks!=null">
+            and mn.Scc_Remarks like concat('%',#{params.sccRemarks},'%')
+        </if>
+        <if test="params.sccCreateUname!=null">
+            and mn.Scc_Create_Uname like concat('%',#{params.sccCreateUname},'%')
+        </if>
+        <if test="params.sccCreateTimeStart!=null">
+            and mn.Scc_Create_Time > #{params.sccCreateTimeStart}
+        </if>
+        <if test="params.sccCreateTimeEnd!=null">
+            and mn.Scc_Create_Time &lt; #{params.sccCreateTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getSecChallengeComplaintsList" resultMap="SecChallengeComplaints">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        mn.*
+        from Sec_Challenge_Complaints mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecChallengeComplaintsListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Challenge_Complaints mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+
+
+    <select id="getSecChallengeComplaintsListOne2Many"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecChallengeComplaintsResponse">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Type as secType,
+        sec.Sec_Bidding_Type as secBiddingType,
+        <include refid="projectInfo"/>
+        mn.*
+        from Sec_Challenge_Complaints mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="pNameFilter"/>
+        order by pId asc
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecChallengeComplaintsListOne2ManyCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Challenge_Complaints mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="pNameFilter"/>
+    </select>
+
+    <!--************************************* dm *************************************-->
+    <sql id="projectInfo" databaseId="dm">
+      (select wm_concat(P_Id) from Sec_Project where Sec_Id=mn.Sec_Id) as pId,
+      (select wm_concat(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="dm">
+        <if test="params.pName!=null">
+            and (select wm_concat(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=mn.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+
+    <!--************************************* postgre *************************************-->
+    <sql id="projectInfo" databaseId="postgre">
+        (select string_agg(P_Id,',') from Sec_Project where Sec_Id = mn.Sec_Id)
+        as pId,
+      (select string_agg(pro.P_Name,',') from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="postgre">
+        <if test="params.pName!=null">
+            and (select string_agg(pro.P_Name,',') from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=mn.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+    <!--************************************* mysql *************************************-->
+    <sql id="projectInfo" databaseId="mysql">
+      (select GROUP_CONCAT(P_Id) from Sec_Project where Sec_Id=mn.Sec_Id) as pId,
+      (select GROUP_CONCAT(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="mysql">
+        <if test="params.pName!=null">
+            and (select GROUP_CONCAT(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=mn.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+</mapper>

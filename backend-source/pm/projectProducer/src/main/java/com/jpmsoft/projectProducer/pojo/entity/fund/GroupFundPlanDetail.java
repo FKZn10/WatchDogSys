@@ -1,0 +1,108 @@
+package com.jpmsoft.projectProducer.pojo.entity.fund;
+
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+
+import java.math.BigDecimal;
+
+@Data
+@TableName("Group_Fund_Plan_Detail")
+public class GroupFundPlanDetail {
+    private String id;
+    // Gfp_Id
+    private String gfpId;
+    // Gfpd_Type
+    private String gfpdType;
+    // Gfpd_Contract_Id 合同ID
+    private String gfpdContractId;
+    // Gfpd_Contract_Name 合同名称
+    @TableField(exist = false)
+    private String gfpdContractName;
+    // Gfpd_Contract_Company_Id 乙方单位ID
+    @TableField(exist = false)
+    private String gfpdContractCompanyId;
+    // Gfpd_Contract_Company_Name 乙方单位名称
+    @TableField(exist = false)
+    private String gfpdContractCompanyName;
+    // Gfpd_Pay_Amount 已支付金额
+    private BigDecimal gfpdPayAmount;
+    // Gfpd_Pay_Rate 已支付比例
+    private BigDecimal gfpdPayRate;
+    // Gfpd_Apply_Amount 本次申请金额
+    private BigDecimal gfpdApplyAmount;
+    // Gfpd_Total_Pay_Amount 本次累计支付金额
+    private BigDecimal gfpdTotalPayAmount;
+    // Gfpd_Total_Pay_Rate 本次累计支付比例
+    private BigDecimal gfpdTotalPayRate;
+    // Gfpd_Cost_Name 费用名称
+    private String gfpdCostName;
+    // Gfpd_Cost_Code 费用编码
+    private String gfpdCostCode;
+    // Gfpd_Remark 备注
+    private String gfpdRemark;
+    // Gfpd_Attachment 附件
+    private String gfpdAttachment;
+    // Gfpd_Attachment 附件FileId
+    private String gfpdAttachmentFileIds;
+
+    /**
+     * 支付类型
+     */
+    private String payType;
+
+    /**
+     * 资金需求
+     */
+    private BigDecimal fundsDemand;
+
+    /**
+     * 需求描述
+     */
+    private String demandDesc;
+
+    /**
+     * 余额支付金额
+     */
+    private BigDecimal gfpdBalancePayAmount;
+
+    /**
+     * 余额支付比例
+     */
+    private BigDecimal gfpdBalancePayRate;
+
+    /**
+     * 预计来款支付金额
+     */
+    private BigDecimal gfpdExpectedPayAmount;
+
+    /**
+     * 预计来款支付比例
+     */
+    private BigDecimal gfpdExpectedPayRate;
+
+    /**
+     * 收款单位
+     */
+    private String payCompany;
+
+    /**
+     * 概算金额
+     */
+    private BigDecimal budgetAmount;
+
+    /**
+     * 其他支付类型
+     */
+    private String otherPayType;
+
+    /**
+     * 资金用途
+     */
+    private String fundPurpose;
+
+    /**
+     * 合同计量计价id
+     */
+    private String cmpId;
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.custom.mapper.SysDepartmentMapper">
+
+    <select id="getUserDepIdsByUid" resultType="String">
+        select mn.D_ID
+        from SYS_Department mn
+                 left join SYS_Company c1 on mn.D_Company_Id = c1.C_Id
+                 left join SYS_Position po on po.D_Id = mn.D_Id
+                 left join SYS_Position_User pu on po.P_Id = pu.P_Id
+        where pu.U_Id = #{uId}
+        order by mn.D_Sort asc
+    </select>
+
+</mapper>

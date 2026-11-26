@@ -1,0 +1,2514 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConContractMapper">
+
+    <!--************************************* 公用 *************************************-->
+
+    <select id="selectChContractSettlement" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ChContractSettlementVO">
+        select
+            mn.Con_Money_Total as conMoneyTotal,
+            (select sum(pay.Pay_Apply) from Con_Pay pay where pay.Con_Id=mn.Con_Id and pay.Pay_State=7 and
+                pay.Pay_Category='01') as payApprovalTotal,
+            (select sum(case when sam.Ecf_Apply_Money_Type=1 then sam.Ecf_Apply_Money else -1*sam.Ecf_Apply_Money end) from
+                Con_EC_Fee sam where sam.Con_Id=mn.Con_Id and sam.Ecf_State=7 and sam.Ecf_Type='01') as ecfApplyMoneyTotal,
+            (select case when sam.Ecf_Apply_Money_Type=1 then sam.Ecf_Apply_Money else -1*sam.Ecf_Apply_Money end from
+                Con_EC_Fee sam where sam.Con_Id=mn.Con_Id and sam.Ecf_State=7 and sam.Ecf_Type='02' order by sam.Ecf_Create_Time desc limit 1) as ecfApplyClearMoney
+        from con_contract mn
+        where mn.con_id=#{conId}
+    </select>
+
+
+
+    <select id="getConContractBySecId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.contract.ConContract">
+        select * from Con_Contract where Con_Section_Id=#{secId}
+    </select>
+
+    <select id="getConContractByPid" resultType="Map">
+        select
+            con.con_id as conId,
+            con.Con_Project_Id as projectId,
+            con.con_name as conName,
+            con.con_code as conCode,
+            con.Con_Money_Total as conMoneyTotal,
+            pre.P_Name as projectName,
+            pre.P_Code as projectCode
+        from Con_Contract con
+        left join Pre_Project pre on pre.P_ID=con.Con_Project_Id
+        where con.Con_Project_Id=#{id}  and  con.Con_Approval_State=7
+    </select>
+
+
+    <select id="getContractStatisticsGroupConType" resultType="Map">
+        select
+        substr(Con_Type,1,2) as "conType",
+        count(1) as "conCount"
+        from Con_Contract
+        where Con_Approval_State!=3
+        <if test="teId!=null">and Te_Id = #{teId}</if>
+        and Con_Type is not null group by substr(Con_Type,1,2)
+    </select>
+
+
+    <sql id="payApplicationDateFilter" databaseId="mysql">
+        and DATE_FORMAT(pay.Pay_Application_Date,'%Y')=
+        #{params.year}
+    </sql>
+    <sql id="payApplicationDateFilter" databaseId="dm">
+        and to_char(pay.Pay_Application_Date,'yyyy')=
+        #{params.year}
+    </sql>
+
+    <sql id="payApplicationDateFilter" databaseId="postgre">
+        and to_char(pay.Pay_Application_Date,'yyyy')=
+        #{params.year}
+    </sql>
+
+    <sql id="getContractFundStatisticsFilter">
+        <if test="params.pId==null">
+            ${params.authSql} and mn.Con_Approval_State=7
+        </if>
+        <if test="params.pId!=null">
+            <choose>
+                <when test="params.childProject != null and params.childProject != '' and params.allPids != null and params.allPids.size() > 0">
+                    where mn.con_Project_Id in
+                    <foreach collection="params.allPids" open="(" close=")" item="pid" separator=",">
+                        #{pid}
+                    </foreach>
+                    and mn.Con_Approval_State=7
+                </when>
+                <otherwise>
+                    where mn.con_Project_Id=#{params.pId} and mn.Con_Approval_State=7
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id=#{params.teId}
+        </if>
+        <if test="params.conEvaluateId!=null">
+            and mn.Con_Evaluate_Id=#{params.conEvaluateId}
+        </if>
+        <if test="params.conScanUp!=null">
+            and mn.Con_Scan_Up=#{params.conScanUp}
+        </if>
+        <if test="params.conType!=null">
+            and mn.Con_Type=#{params.conType}
+        </if>
+        <if test="params.conState!=null">
+            and mn.Con_State=#{params.conState}
+        </if>
+        <if test="params.isYear!=null">
+            and csi.Is_Year=#{params.isYear}
+        </if>
+        <if test="params.conExecution!=null">
+            and mn.Con_Execution=#{params.conExecution}
+        </if>
+        <if test="params.conCode!=null">
+            and INSTR(mn.Con_Code,#{params.conCode})
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(mn.Con_Name,#{params.conName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.p_id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and INSTR(pro.P_Code,#{params.pCode})
+        </if>
+        <if test="params.conPartyBName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.conPartyBName},c.c_id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c.C_Name,#{params.conPartyBName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conPartyAName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.conPartyAName},c1.c_id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c1.C_Name,#{params.conPartyAName})
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+    <select id="getContractFundStatisticsSum"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ContractFundStatisticsSumVO">
+        select
+        sum(a.conMoneyTotal) as conMoneyTotalSum,
+        sum(a.payApprovalTotal) as payApprovalTotalSum,
+        sum(a.payYearTotal) as payYearTotalSum,
+        sum(a.unPayAmtTotal) as unPayAmtTotalSum,
+        sum(a.payDoneTotal) as payDoneTotalSum,
+        sum(a.saApprovedAmtTotal) as saApprovedAmtTotalSum,
+        sum(a.saContractorAmountTotal) as saContractorAmountTotalSum,
+        sum(a.saSupervisorAmountTotal) as saSupervisorAmountTotalSum,
+        sum(a.saCostConsultTotal) as saCostConsultAmountTotalSum,
+        sum(a.ecApplyMoneyTotal) as ecApplyMoneyTotalSum,
+        sum(a.ecfApplyMoneyTotal) as ecfApplyMoneyTotalSum,
+        sum(a.isPaymentAmtTotal) as isPaymentAmtTotalSum,
+        sum(a.ciCollectTaxAmtTotal) as ciCollectTaxAmtTotalSum,
+        sum(a.isActualAmtTotal) as isActualAmtTotalSum
+        from(
+        select
+        mn.Con_Money_Total as conMoneyTotal,
+        (select sum(pay.Pay_Apply) from Con_Pay pay where pay.Con_Id=mn.Con_Id and pay.Pay_State=7 and
+        pay.Pay_Category='01') as payApprovalTotal,
+        (select sum(pay.Pay_Apply) from Con_Pay pay where pay.Con_Id=mn.Con_Id and pay.Pay_State=7 and
+        pay.Pay_Category='01'
+        <include refid="payApplicationDateFilter"/>
+        ) as payYearTotal,
+        mn.Con_Money_Total-(select sum(pay.Pay_Apply)  from Con_Pay pay where pay.Con_Id=mn.Con_Id and pay.Pay_State=7
+        and pay.Pay_Category='01') as unPayAmtTotal,
+        (select sum(pay.Pay_Done) from Con_Pay pay where pay.Con_Id=mn.Con_Id and pay.Pay_State=7 and
+        pay.Pay_Category='01') as payDoneTotal,
+        (select sum(sam.Sa_Approved_Amt) from Inv_Settlement_Apply sam where sam.Con_Id=mn.Con_Id and sam.Sa_State=7) as
+        saApprovedAmtTotal,
+        (select sum(sam.Sa_Contractor_Amount) from Inv_Settlement_Apply sam where sam.Con_Id=mn.Con_Id and
+        sam.Sa_State=7) as saContractorAmountTotal,
+        (select sum(sam.Sa_Supervisor_Amount) from Inv_Settlement_Apply sam where sam.Con_Id=mn.Con_Id and
+        sam.Sa_State=7) as saSupervisorAmountTotal,
+        (select sum(sam.Sa_Cost_Consult_Amount) from Inv_Settlement_Apply sam where sam.Con_Id=mn.Con_Id and
+        sam.Sa_State=7) as saCostConsultTotal,
+        (select sum(sam.Ec_Apply_Money) from Con_EC sam where sam.Con_Id=mn.Con_Id and sam.Ec_State=7) as
+        ecApplyMoneyTotal,
+        (select sum(case when sam.Ecf_Apply_Money_Type=1 then sam.Ecf_Apply_Money else -1*sam.Ecf_Apply_Money end) from
+        Con_EC_Fee sam where sam.Con_Id=mn.Con_Id and sam.Ecf_State=7) as ecfApplyMoneyTotal,
+        (select sum(cis.Is_Payment_Amt) from Con_Invoice_Sign cis where cis.Con_Id=mn.Con_Id and cis.state=7) as isPaymentAmtTotal,
+        (select sum(ci.Ci_Collect_Tax_Amt) from Con_Invoice_Info ci left join Con_Invoice_Sign cis on cis.id=ci.Is_id
+        where cis.Con_Id=mn.Con_Id and cis.state=7)  as  ciCollectTaxAmtTotal,
+        (select sum(cis.Is_Actual_Amt) from Con_Invoice_Sign cis where cis.Con_Id=mn.Con_Id and cis.state=7) as isActualAmtTotal,
+        ly.Sa_Approved_Amt as saApprovedAmt
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join Con_Invoice_Sign csi on csi.Con_Id=mn.Con_Id
+        left join Inv_Settlement_Apply ly on ly.con_id = mn.con_id
+        <include refid="getContractFundStatisticsFilter"/>
+        ) a
+    </select>
+
+    <select id="getContractFundStatistics"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ContractFundStatisticsVO">
+        select
+        f.T_Code as tCode,
+        pro.P_Name as pName,
+        pro.P_Name as pCode,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        mn.Con_Id as conId,
+        mn.Con_Name as conName,
+        mn.Con_Code as conCode,
+        mn.Con_Party_A_Id as conPartyAId,
+        mn.Con_Party_B_Id as conPartyBId,
+        mn.Con_Type as conType,
+        mn.Con_Money_Total as conMoneyTotal,
+        mn.Con_State as conState,
+        mn.Con_Rate as conRate,
+        mn.Con_Money_Rate as conMoneyRate,
+        mn.Con_Execution as conExecution,
+        mn.Con_Plan_Start_Date as conPlanStartDate,
+        mn.Con_Plan_End_Date as conPlanEndDate,
+        (select SUM(cpfa.cpaf_Application) from Con_Pay_Apply_Flow cpfa where cpfa.con_id=mn.con_id and cpfa.state=7)
+        as cpafApplicationSum,
+        (select sum(pay.Pay_Apply) from Con_Pay pay where pay.Con_Id=mn.Con_Id and pay.Pay_State=7 and
+        pay.Pay_Category='01') as payApprovalTotal,
+        (select sum(pay.pay_Approval) from Con_Pay pay where pay.Con_Id=mn.Con_Id and pay.Pay_State=7 and
+        pay.Pay_Category='01') as payApprovalSum,
+        (select sum(pay.Pay_Apply) from Con_Pay pay where pay.Con_Id=mn.Con_Id and pay.Pay_State=7 and
+        pay.Pay_Category='01'
+        <include refid="payApplicationDateFilter"/>
+        ) as payYearTotal,
+        mn.Con_Money_Total-(select sum(pay.Pay_Apply)  from Con_Pay pay where pay.Con_Id=mn.Con_Id and pay.Pay_State=7
+        and pay.Pay_Category='01') as unPayAmtTotal,
+        (select sum(pay.Pay_Done) from Con_Pay pay where pay.Con_Id=mn.Con_Id and pay.Pay_State=7 and
+        pay.Pay_Category='01') as payDoneTotal,
+        (select sum(sam.Sa_Approved_Amt) from Inv_Settlement_Apply sam where sam.Con_Id=mn.Con_Id and sam.Sa_State=7) as
+        saApprovedAmtTotal,
+        (select sum(sam.Sa_Contractor_Amount) from Inv_Settlement_Apply sam where sam.Con_Id=mn.Con_Id and
+        sam.Sa_State=7) as saContractorAmountTotal,
+        (select sum(sam.Sa_Supervisor_Amount) from Inv_Settlement_Apply sam where sam.Con_Id=mn.Con_Id and
+        sam.Sa_State=7) as saSupervisorAmountTotal,
+        (select sum(sam.Sa_Cost_Consult_Amount) from Inv_Settlement_Apply sam where sam.Con_Id=mn.Con_Id and
+        sam.Sa_State=7) as saCostConsultTotal,
+        (select sum(sam.Ec_Apply_Money) from Con_EC sam where sam.Con_Id=mn.Con_Id and sam.Ec_State=7) as
+        ecApplyMoneyTotal,
+        (select sum(case when sam.Ecf_Apply_Money_Type=1 then sam.Ecf_Apply_Money else -1*sam.Ecf_Apply_Money end) from
+        Con_EC_Fee sam where sam.Con_Id=mn.Con_Id and sam.Ecf_State=7) as ecfApplyMoneyTotal,
+        (select sum(cis.Is_Payment_Amt) from Con_Invoice_Sign cis where cis.Con_Id=mn.Con_Id and cis.state=7) as isPaymentAmtTotal,
+        (select sum(ci.Ci_Collect_Tax_Amt) from Con_Invoice_Info ci left join Con_Invoice_Sign cis on cis.id=ci.Is_id
+        where cis.Con_Id=mn.Con_Id and cis.state=7)  as  ciCollectTaxAmtTotal,
+        (select sum(cis.Is_Actual_Amt) from Con_Invoice_Sign cis where cis.Con_Id=mn.Con_Id and cis.state=7) as isActualAmtTotal,
+        ly.Sa_Approved_Amt as saApprovedAmt
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join Con_Invoice_Sign csi on csi.Con_Id=mn.Con_Id
+        left join Sys_File f on f.FileID=mn.Con_Id
+        left join Inv_Settlement_Apply ly on ly.con_id = mn.con_id
+        <include refid="getContractFundStatisticsFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <resultMap type="com.jpmsoft.common.model.response.Contract.ConContractResponse"
+               id="selectContractPayee">
+        <id column="Con_Id" property="conId"/>
+        <collection property="conPayeeDtls"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Contract.ConPayeeDtlModel"
+                    column="Con_Id" select="selectConPayeeDtl">
+        </collection>
+        <collection property="conEstimate"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Contract.ConEstimateModel"
+                    column="Con_Id" select="selectConEstimate">
+        </collection>
+    </resultMap>
+
+    <select id="selectConPayeeDtl" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConPayeeDtlModel">
+        select mn.*
+        from Con_Payee_Dtl mn
+        where mn.Con_Id = #{conId}
+        order by mn.Cpd_Create_Time Desc
+    </select>
+
+    <select id="getConPayeeDtlList" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConPayeeDtlModel">
+        select mn.*
+        from Con_Payee_Dtl mn
+        <where>
+            <if test="conIds != null and conIds.size() != 0">
+                and mn.Con_Id in
+                <foreach collection="conIds" open="(" close=")" item="conId" separator=",">
+                    #{conId}
+                </foreach>
+            </if>
+        </where>
+        order by mn.Cpd_Create_Time Desc
+    </select>
+
+    <select id="selectConEstimate" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConEstimateModel">
+        select mn.*
+        from Con_Estimate mn
+        where mn.Con_Id = #{conId}
+    </select>
+
+    <select id="getConEstimateList" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConEstimateModel">
+        select mn.*
+        from Con_Estimate mn
+        <where>
+            <if test="conIds != null and conIds.size() != 0">
+                and mn.Con_Id in
+                <foreach collection="conIds" open="(" close=")" item="conId" separator=",">
+                    #{conId}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getConBudgetSum" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConBudgetSumVo">
+        select count(*)             as nonBudgetCount,
+               sum(Con_Money_Total) as nonBudgetAmt
+        from Con_Contract
+        where Con_Approval_State = 7
+          and Con_Budget_Id is null
+          and Con_Category != '1'
+          and Con_Category != '6'
+          and Con_Project_Id = #{pId}
+    </select>
+
+
+    <sql id="budgetFilter">
+        <if test="params.excludeCategory!=null">
+            <foreach collection="params.excludeCategory" open="" close="" item="category" separator="">
+                and mn.Con_Category != #{category}
+            </foreach>
+        </if>
+        <if test="params.bddName!=null">
+            and bdd.Bdd_Name like concat('%',#{params.bddName},'%')
+        </if>
+        <if test="params.bddCode!=null">
+            and bdd.Bdd_Code like concat('%',#{params.bddCode},'%')
+        </if>
+        <if test="params.bddIds!=null">
+            and mn.Con_Budget_Id in
+            <foreach collection="params.bddIds" open="(" close=")" item="bddId" separator=",">
+                #{bddId}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="getContractBudgetList" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ContractBudgetVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        sec.Sec_Name as secName,
+        bdd.Bdd_Name as bddName,
+        bdd.Bdd_Code as bddCode,
+        bdd.Bdd_Unit as bddUnit,
+        bdd.Bdd_Count as bddCount,
+        bdd.Bdd_Price as bddPrice,
+        bdd.Bdd_Total as bddTotal,
+        mn.*
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Inv_Budget_Declare_Dtl bdd on bdd.Bdd_Id=mn.Con_Budget_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <include refid="budgetFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getAdditionalExpenditure" resultType="Map">
+        select sum(Pay_Management_Expense)     as "payManagementExpense",
+               sum(Pay_Sporadic_Expenditure)   as "paySporadicExpenditure",
+               sum(Pay_Other_Expenses_Payable) as "payOtherExpensesPayable"
+        from Con_Pay
+        where Pay_State = 7
+          and Pay_Type = '02'
+          and Pay_Id != #{payId}
+          and Con_Id = #{conId}
+    </select>
+
+    <select id="getContractStatisticsBiddingType" resultType="Map">
+        select
+        sec.Sec_Bidding_Type as "secBiddingType",
+        count(1) as "recordTotal",
+        sum(Con_Money_Total) as "amtTotal"
+        from Con_Contract con
+        left join Sec_Info sec on sec.Sec_Id=con.Con_Section_Id
+        where con.Con_Section_Id is not null
+        <if test="teId!=null">and con.Te_Id = #{teId}</if>
+        group by sec.Sec_Bidding_Type
+    </select>
+
+    <select id="getRelieveContractByConId" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select c.C_Name                 as conPartyBName,
+               c1.C_Name                as conPartyAName,
+               c.C_Abbreviation         as conPartyBAbbName,
+               c1.C_Abbreviation        as conPartyAAbbName,
+               sec.Sec_Name             as secName,
+               master.Con_Name          as conMasterConName,
+               parent.Con_Name          as conParentConName,
+               mn.Con_Name              as conRelieveConName,
+               mn.Con_Code              as conRelieveConCode,
+               rel.Con_Id               as conId,
+               rel.Con_Name             as conName,
+               rel.Con_Code             as conCode,
+               rel.Con_Relieve_Reason   as conRelieveReason,
+               rel.Con_Create_User_Id   as conCreateUserId,
+               rel.Con_Create_User_Name as conCreateUserName,
+               rel.Con_Create_Time      as conCreateTime,
+               rel.Con_Approval_State   as conApprovalState,
+               rel.Con_Approval_Time    as conApprovalTime,
+               rel.Con_Is_Supply        as conIsSupply,
+               rel.Con_Supply_Txt       as conSupplyTxt,
+               pro.P_Name               as conProjectName,
+               proc.C_Name              as pConstructionUnitName,
+               proc.C_Abbreviation      as pConsAbbName,
+               prod.D_Name              as pCompetentDepartmentName,
+               sdep.D_Name              as conDepName,
+               f.file_relation_id       as fileRelationId,
+               mn.*
+        from Con_Contract rel
+                 left join Con_Contract mn on rel.Con_Relieve_Con_Id = mn.Con_Id
+                 left join Pre_Project pro on rel.con_Project_Id = pro.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Department sdep on sdep.D_Id = mn.Con_Department
+                 left join SYS_Company c on mn.con_Party_B_Id = c.C_Id
+                 left join SYS_Company c1 on mn.Con_Party_A_Id = c1.C_Id
+                 left join Con_Contract master on mn.Con_Master_Con_Id = master.Con_Id
+                 left join Con_Contract parent on mn.Con_Parent_Con_Id = parent.Con_Id
+                 left join Sec_Info sec on sec.Sec_Id = mn.con_Section_Id
+                 left join Sys_File f on f.FileID = rel.con_Id
+        where rel.Con_Id = #{conId}
+    </select>
+
+    <select id="getContractByConId" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select pro.P_Name                          as conProjectName,
+               pro.P_Advance_Fund                  as pAdvanceFund,
+               pro.P_Corporate_Risk                as pCorporateRisk,
+               proc.C_Name                         as pConstructionUnitName,
+               proc.C_Abbreviation                 as pConsAbbName,
+               prod.D_Name                         as pCompetentDepartmentName,
+               pro.P_Competent_Department          as pCompetentDepartment,
+               c.C_Name                            as conPartyBName,
+               c1.C_Name                           as conPartyAName,
+               c2.C_Name                           as conPartyAOtherName,
+               c3.C_Name                           as conPartyB1Name,
+               c4.C_Name                           as conPartyB2Name,
+               c5.C_Name                           as conPartyB3Name,
+               c6.C_Name                           as conPartyB4Name,
+               c7.C_Name                           as conPartyB5Name,
+               c8.C_Name                           as conPartyCName,
+               c9.C_Name                           as conPartyDName,
+               c10.C_Name                          as conAcClientName,
+               c11.C_Name                          as conAcBidSubjectName,
+               c12.C_Name                          as conAcImplementName,
+               c13.C_Name                          as conPbBeneficiaryName,
+               c14.C_Name                          as conEvaluateBName,
+               c15.C_Name                          as conEvaluateAName,
+               c16.C_Name                          as conPartyEName,
+               c17.C_Name                          as conPartyFName,
+        c18.C_Name                          as conPartyAOtherIdBName,
+        c19.C_Name                          as conPartyAOtherIdCName,
+               c.C_Abbreviation                    as conPartyBAbbName,
+               c1.C_Abbreviation                   as conPartyAAbbName,
+               c2.C_Abbreviation                   as conPartyAOtherAbbName,
+               c3.C_Abbreviation                   as conPartyB1AbbName,
+               c4.C_Abbreviation                   as conPartyB2AbbName,
+               c5.C_Abbreviation                   as conPartyB3AbbName,
+               c6.C_Abbreviation                   as conPartyB4AbbName,
+               c7.C_Abbreviation                   as conPartyB5AbbName,
+               c8.C_Abbreviation                   as conPartyCAbbName,
+               c9.C_Abbreviation                   as conPartyDAbbName,
+               c10.C_Abbreviation                  as conAcClientAbbName,
+               c11.C_Abbreviation                  as conAcBidSubjectAbbName,
+               c12.C_Abbreviation                  as conAcImplementAbbName,
+               sec.Sec_Name                        as secName,
+               sec.sec_bidding_type                as secBiddingType,
+               master.Con_Name                     as conMasterConName,
+               parent.Con_Name                     as conParentConName,
+               con.Con_Name                        as conRelieveConName,
+               con.Con_Code                        as conRelieveConCode,
+               con1.Con_Name                       as conEvaluateName,
+               con1.Con_Code                       as conEvaluateCode,
+               con1.Con_Provisional_Pe             as conEvaluatePeAmt,
+               con1.Con_Money_Total                as conEvaluateMoneyTotal,
+               jl.Con_Id                         as conJlId,
+               prop.p_name                         as conSubPName,
+               jl.Con_Name                         as conJlName,
+               sdep.D_Name                         as conDepName,
+               f.file_relation_id                  as fileRelationId,
+               (select sum(cone.Con_Money_Total)
+                from con_contract cone
+                where cone.Con_Evaluate_Id = mn.Con_Evaluate_Id
+                  and cone.Con_Approval_State = 7) as conEvaluateAmt,
+               mn.*
+        from Con_Contract mn
+                 left join Pre_Project pro on mn.con_Project_Id = pro.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Department sdep on sdep.D_Id = mn.Con_Department
+                 left join SYS_Company c on mn.con_Party_B_Id = c.C_Id
+                 left join SYS_Company c1 on mn.Con_Party_A_Id = c1.C_Id
+                 left join SYS_Company c2 on mn.Con_Party_A_Other_Id = c2.C_Id
+                 left join SYS_Company c3 on mn.Con_Party_B1 = c3.C_Id
+                 left join SYS_Company c4 on mn.Con_Party_B2 = c4.C_Id
+                 left join SYS_Company c5 on mn.Con_Party_B3 = c5.C_Id
+                 left join SYS_Company c6 on mn.Con_Party_B4 = c6.C_Id
+                 left join SYS_Company c7 on mn.Con_Party_B5 = c7.C_Id
+                 left join SYS_Company c8 on mn.Con_Party_C_Id = c8.C_Id
+                 left join SYS_Company c9 on mn.Con_Party_D_Id = c9.C_Id
+                 left join SYS_Company c16 on mn.Con_Party_E_Id = c16.C_Id
+                 left join SYS_Company c17 on mn.Con_Party_F_Id = c17.C_Id
+                 left join Con_Contract master on mn.Con_Master_Con_Id = master.Con_Id
+                 left join Con_Contract parent on mn.Con_Parent_Con_Id = parent.Con_Id
+                 left join Sys_File f on f.FileID = mn.con_Id
+                 left join Sec_Info sec on sec.Sec_Id = mn.con_Section_Id
+                 left join SYS_Company c10 on mn.Con_AC_Client_Id = c10.C_Id
+                 left join SYS_Company c11 on mn.Con_AC_Bid_Subject_Id = c11.C_Id
+                 left join SYS_Company c12 on mn.Con_AC_Implement_Id = c12.C_Id
+                 left join SYS_Company c13 on mn.Con_Pb_Beneficiary_Id = c13.C_Id
+                 left join Con_Contract con on mn.Con_Relieve_Con_Id = con.Con_Id
+                 left join Con_Contract con1 on mn.Con_Evaluate_Id = con1.Con_Id
+                 left join SYS_Company c14 on con1.con_Party_B_Id = c14.C_Id
+                 left join SYS_Company c15 on con1.Con_Party_A_Id = c15.C_Id
+                 left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+                 left join Pre_Project prop on mn.Con_Sub_P_Id = prop.P_Id
+        left join SYS_Company c18 on mn.Con_Party_A_Other_Id_B = c18.C_Id
+        left join SYS_Company c19 on mn.Con_Party_A_Other_Id_C = c19.C_Id
+        where mn.Con_Id = #{conId}
+    </select>
+
+    <sql id="getListFilter">
+        <if test="params.conNames != null and params.conNames.size() > 0">
+            and mn.Con_Name in
+            <foreach collection="params.conNames" item="name" open="(" separator="," close=")">#{name}</foreach>
+        </if>
+        <if test="params.conCodes != null and params.conCodes.size() > 0">
+            and mn.Con_Code in
+            <foreach collection="params.conCodes" item="code" open="(" separator="," close=")">#{code}</foreach>
+        </if>
+        <if test="params.pNames != null and params.pNames.size() > 0">
+            and pro.P_Name in
+            <foreach collection="params.pNames" item="name" open="(" separator="," close=")">#{name}</foreach>
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.p_id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conPartyANames != null and params.conPartyANames.size() > 0">
+            and c1.C_Name in
+            <foreach collection="params.conPartyANames" item="name" open="(" separator="," close=")">#{name}</foreach>
+        </if>
+        <if test="params.conPartyBNames != null and params.conPartyBNames.size() > 0">
+            and c.C_Name in
+            <foreach collection="params.conPartyBNames" item="name" open="(" separator="," close=")">#{name}</foreach>
+        </if>
+        <if test="params.conCreateUserNames != null and params.conCreateUserNames.size() > 0">
+            and mn.Con_Create_User_Name in
+            <foreach collection="params.conCreateUserNames" item="name" open="(" separator="," close=")">#{name}</foreach>
+        </if>
+        <if test="params.conApprovalStates != null and params.conApprovalStates.size() > 0">
+            and mn.Con_Approval_State in
+            <foreach collection="params.conApprovalStates" item="state" open="(" separator="," close=")">#{state}</foreach>
+        </if>
+        <if test="params.conSups != null and params.conSups.size() > 0">
+            and (case when mn.Con_Sup = '是' then '否' when mn.Con_Sup = '否' then '是' else mn.Con_Sup end) in
+            <foreach collection="params.conSups" item="sup" open="(" separator="," close=")">#{sup}</foreach>
+        </if>
+        <if test="params.conId!=null and params.conId!=''">
+            and mn.Con_Id=#{params.conId}
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id=#{params.teId}
+        </if>
+        <if test="params.conEvaluateId!=null">
+            and mn.Con_Evaluate_Id=#{params.conEvaluateId}
+        </if>
+        <if test="params.conScanUp!=null">
+            and mn.Con_Scan_Up=#{params.conScanUp}
+        </if>
+        <if test="params.conCategory!=null">
+            and mn.con_Category=#{params.conCategory}
+        </if>
+        <if test="params.conCategoryDn!=null">
+            and mn.con_Category like concat('%',#{params.conCategoryDn},'%')
+        </if>
+        <if test="params.conApprovalState!=null">
+            and mn.con_Approval_State=#{params.conApprovalState}
+        </if>
+        <if test="params.conType!=null">
+            and mn.con_Type=#{params.conType}
+        </if>
+        <if test="params.conBudgetId!=null">
+            and mn.Con_Budget_Id=#{params.conBudgetId}
+        </if>
+        <if test="params.conIsHistory!=null">
+            and mn.Con_Is_History=#{params.conIsHistory}
+        </if>
+        <if test="params.conState!=null">
+            and mn.Con_State=#{params.conState}
+        </if>
+        <if test="params.conExecution!=null">
+            and mn.Con_Execution=#{params.conExecution}
+        </if>
+        <if test="params.conBiddingType!=null">
+            and mn.Con_Bidding_Type=#{params.conBiddingType}
+        </if>
+        <if test="params.conConsortium!=null">
+            and mn.Con_Consortium=#{params.conConsortium}
+        </if>
+        <if test="params.conMasterConId!=null">
+            and mn.Con_Master_Con_Id=#{params.conMasterConId}
+        </if>
+        <if test="params.conMultiSubject!=null">
+            and mn.Con_Multi_Subject=#{params.conMultiSubject}
+        </if>
+        <if test="params.conSup!=null">
+            and mn.Con_Sup=#{params.conSup}
+        </if>
+        <if test="params.conCurrency!=null">
+            and mn.Con_Currency=#{params.conCurrency}
+        </if>
+        <if test="params.conYear!=null">
+            and mn.Con_Year=#{params.conYear}
+        </if>
+        <if test="params.conProfessionalType!=null">
+            and mn.Con_Professional_Type=#{params.conProfessionalType}
+        </if>
+        <if test="params.conSectionId!=null">
+            and mn.con_Section_Id=#{params.conSectionId}
+        </if>
+        <if test="params.conIsBidding!=null">
+            and mn.con_Is_Bidding=#{params.conIsBidding}
+        </if>
+        <if test="params.conInvolveFunds!=null">
+            and mn.Con_Involve_Funds=#{params.conInvolveFunds}
+        </if>
+        <if test="params.conPurchaseType!=null">
+            and mn.Con_Purchase_Type=#{params.conPurchaseType}
+        </if>
+        <if test="params.excludeSeven!=null and params.excludeSeven==true">
+            and mn.con_Category!='7'
+        </if>
+        <if test="params.pAdvanceFund!=null">
+            and pro.P_Advance_Fund=#{params.pAdvanceFund}
+        </if>
+        <if test="params.pCorporateRisk!=null">
+            and pro.P_Corporate_Risk=#{params.pCorporateRisk}
+        </if>
+        <if test="params.conIsSupply!=null">
+            and mn.Con_Is_Supply=#{params.conIsSupply}
+        </if>
+        <if test="params.conOpenBidding!=null">
+            and mn.Con_Open_Bidding=#{params.conOpenBidding}
+        </if>
+        <if test="params.conPayCategory!=null">
+            and mn.Con_Pay_Category=#{params.conPayCategory}
+        </if>
+        <if test="params.conMoneyTotal!=null">
+            and mn.Con_Money_Total=#{params.conMoneyTotal}
+        </if>
+        <if test="params.filterSubChangeAmt!=null and params.filterSubChangeAmt==true">
+            and mn.Con_Sup_Change_Money is not null and mn.Con_Sup_Change_Money != 0
+        </if>
+        <if test="params.bUnitId!=null">
+            and (
+            mn.Con_Party_B_Id=#{params.bUnitId}
+            or mn.Con_Party_B1=#{params.bUnitId}
+            or mn.Con_Party_B2=#{params.bUnitId}
+            or mn.Con_Party_B3=#{params.bUnitId}
+            or mn.Con_Party_B4=#{params.bUnitId}
+            or mn.Con_Party_C_Id=#{params.bUnitId}
+            or mn.Con_Party_D_Id=#{params.bUnitId}
+            )
+        </if>
+        <if test="params.conSerialNumber!=null">
+            and mn.Con_Serial_Number like concat('%',#{params.conSerialNumber},'%')
+        </if>
+        <if test="params.conOriginalCode!=null">
+            and mn.Con_Original_Code like concat('%',#{params.conOriginalCode},'%')
+        </if>
+        <if test="params.conUsingType!=null">
+            and mn.Con_Using_Type like concat('%',#{params.conUsingType},'%')
+        </if>
+        <if test="params.onPartyBPmTel!=null">
+            and mn.Con_Party_B_Pm_Tel like concat('%',#{params.onPartyBPmTel},'%')
+        </if>
+        <if test="params.conCreateUserName!=null">
+            and mn.Con_Create_User_Name like concat('%',#{params.conCreateUserName},'%')
+        </if>
+        <if test="params.conPartyBLegal!=null">
+            and mn.Con_Party_B_Legal like concat('%',#{params.conPartyBLegal},'%')
+        </if>
+        <if test="params.conPartyBAgent!=null">
+            and mn.Con_Party_B_Agent like concat('%',#{params.conPartyBAgent},'%')
+        </if>
+        <if test="params.conPartyBPoxyNum!=null">
+            and mn.Con_Party_B_Poxy_Num like concat('%',#{params.conPartyBPoxyNum},'%')
+        </if>
+        <if test="params.conPartyBAgentTel!=null">
+            and mn.Con_Party_B_Agent_Tel like concat('%',#{params.conPartyBAgentTel},'%')
+        </if>
+        <if test="params.conTdName!=null">
+            and mn.Con_TD_Name like concat('%',#{params.conTdName},'%')
+        </if>
+        <if test="params.conTdNum!=null">
+            and mn.Con_TD_Num like concat('%',#{params.conTdNum},'%')
+        </if>
+        <if test="params.conTdMobileNumber!=null">
+            and mn.Con_TD_Mobile_Number like concat('%',#{params.conTdMobileNumber},'%')
+        </if>
+        <if test="params.conPartyBPm!=null">
+            and mn.Con_Party_B_Pm like concat('%',#{params.conPartyBPm},'%')
+        </if>
+        <if test="params.conPartyBPmConsNu!=null">
+            and mn.Con_Party_B_Pm_Cons_Nu like concat('%',#{params.conPartyBPmConsNu},'%')
+        </if>
+        <if test="params.conPartyBPmIdcard!=null">
+            and mn.Con_Party_B_Pm_Idcard like concat('%',#{params.conPartyBPmIdcard},'%')
+        </if>
+        <if test="params.pId!=null">
+            and(  mn.Con_Project_Id=#{params.pId} or mn.con_Project_Id in (select child.P_Id from Pre_Project child where child.P_Parent_ID = #{params.pId}))
+        </if>
+        <if test="params.conProjectId!=null">
+            and(  mn.Con_Project_Id=#{params.conProjectId}
+            or mn.con_Project_Id in (select child.P_Id from Pre_Project child where child.P_Parent_ID = #{params.conProjectId}))
+        </if>
+        <if test="params.excludeConIds !=null and params.excludeConIds.size()>0">
+            and mn.Con_Id not in
+            <foreach collection="params.excludeConIds" item="excludeConId" open="(" close=")" separator=",">
+                #{excludeConId}
+            </foreach>
+        </if>
+        <if test="params.excludeConTypes !=null and params.excludeConTypes.size()>0">
+            and mn.Con_Type not in
+            <foreach collection="params.excludeConTypes" item="excludeConType" open="(" close=")" separator=",">
+                #{excludeConType}
+            </foreach>
+        </if>
+        <if test="params.blSearch!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and (INSTR(mn.con_Name,#{params.blSearch}) or INSTR(mn.con_Code,#{params.blSearch})
+                    or likePname(#{params.blSearch},pro.p_id)=true or INSTR(pro.P_Code,#{params.blSearch}))
+                </when>
+                <otherwise>
+                    and (INSTR(mn.con_Name,#{params.blSearch}) or INSTR(mn.con_Code,#{params.blSearch})
+                    or INSTR(pro.P_Name,#{params.blSearch}) or INSTR(pro.P_Code,#{params.blSearch}))
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and mn.con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.conCode!=null">
+            and mn.con_Code like concat('%',#{params.conCode},'%')
+        </if>
+        <if test="params.conProjectName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.conProjectName},pro.p_id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.conProjectName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conPartyBName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.conPartyBName},c.c_id)=true
+                </when>
+                <otherwise>
+                    and c.C_Name like concat('%',#{params.conPartyBName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conPartyAName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.conPartyAName},c1.c_id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.conPartyAName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conPartyAOtherName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.conPartyAOtherName},c2.c_id)=true
+                </when>
+                <otherwise>
+                    and c2.C_Name like concat('%',#{params.conPartyAOtherName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.moneyTotalStart!=null">
+            and mn.Con_Money_Total &gt;= #{params.moneyTotalStart}
+        </if>
+        <if test="params.moneyTotalEnd!=null">
+            and mn.Con_Money_Total &lt;= #{params.moneyTotalEnd}
+        </if>
+        <if test="params.totalDurationStart!=null">
+            and mn.Con_Total_Duration > #{params.totalDurationStart}
+        </if>
+        <if test="params.totalDurationEnd!=null">
+            and mn.Con_Total_Duration &lt; #{params.totalDurationEnd}
+        </if>
+        <if test="params.planStartDateStart!=null">
+            and mn.Con_Plan_Start_Date > #{params.planStartDateStart}
+        </if>
+        <if test="params.planStartDateEnd!=null">
+            and mn.Con_Plan_Start_Date &lt; #{params.planStartDateEnd}
+        </if>
+        <if test="params.planEndDateStart!=null">
+            and mn.Con_Plan_End_Date > #{params.planEndDateStart}
+        </if>
+        <if test="params.planEndDateEnd!=null">
+            and mn.Con_Plan_End_Date &lt; #{params.planEndDateEnd}
+        </if>
+        <if test="params.createTimeStart!=null">
+            and mn.Con_Create_Time > #{params.createTimeStart}
+        </if>
+        <if test="params.createTimeEnd!=null">
+            and mn.Con_Create_Time &lt; #{params.createTimeEnd}
+        </if>
+        <if test="params.conDateStart!=null">
+            and mn.Con_Date > #{params.conDateStart}
+        </if>
+        <if test="params.conDateEnd!=null">
+            and mn.Con_Date &lt; #{params.conDateEnd}
+        </if>
+        <if test="params.filterSettlement!=null and params.filterSettlement==true">
+            and mn.Con_Id in (select Con_Id from Inv_Settlement_Apply where Sa_State=7)
+        </if>
+        <if test="params.conTypes!=null and params.conTypes.size()>0">
+            and mn.Con_Type in
+            <foreach collection="params.conTypes" item="type" separator="," open="(" close=")">
+                #{type}
+            </foreach>
+        </if>
+        <if test="params.containState!=null and params.containState.size()>0">
+            and mn.Con_Approval_State in
+            <foreach collection="params.containState" item="state" separator="," open="(" close=")">
+                #{state}
+            </foreach>
+        </if>
+        <if test="params.authUser!=null and params.authCpy!=null">
+            and (
+            mn.con_id in (select conpu.con_id from Contract_Permission_User conpu where  conpu.u_id=#{params.authUser} )
+            or
+            mn.con_id in (select cpc.con_id from Contract_Permission_Company cpc where  cpc.c_id=#{params.authCpy} )
+            )
+        </if>
+        <if test="params.authUser!=null  and params.authCpy==null">
+            and mn.con_id in (select conpu.con_id from Contract_Permission_User conpu where  conpu.u_id=#{params.authUser} )
+        </if>
+        <if test="params.authCpy!=null  and params.authUser==null">
+            and  mn.con_id in (select cpc.con_id from Contract_Permission_Company cpc where  cpc.c_id=#{params.authCpy} )
+        </if>
+        <if test="params.excludeConMulti != null and params.excludeConMulti == '01'">
+            and mn.ccm_Id is null
+        </if>
+        <if test="params.includeCategoryStr != null and params.includeCategoryStr.length > 0">
+            and mn.con_Category in
+            <foreach collection="params.includeCategoryStr" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.excludeCategoryStr != null and params.excludeCategoryStr.length > 0">
+            and mn.con_Category not in
+            <foreach collection="params.excludeCategoryStr" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </sql>
+
+    <sql id="listSelectAmtTotleSum">
+        select
+        mn.Con_Money_Total,mn.con_Id
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="listSelect">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        pro.P_Building_Scale as pBuildingScale,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c4.C_Name as conEvaluateBName,
+        c5.C_Name as conEvaluateAName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        con1.Con_Name as conEvaluateName,
+        con1.Con_Code as conEvaluateCode,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        (select sum(isa.Sa_Approved_Amt) from Inv_Settlement_Apply isa where isa.Con_Id=mn.Con_Id and isa.Sa_State=7) as
+        saApprovedAmtSum,
+        (select count(*) from con_contract cone where cone.Con_Evaluate_Id=mn.con_Id and cone.Con_Approval_State=7) as
+        conEvaluateCount,
+        (select sum(cone.Con_Money_Total) from con_contract cone where cone.Con_Evaluate_Id=mn.con_Id and
+        cone.Con_Approval_State=7) as conEvaluateAmt,
+        (select count(cone.Con_Money_Total) from con_contract cone where cone.Con_Master_Con_Id=mn.con_Id and
+        cone.Con_Approval_State=7) as conMasterAmt,
+        (select count(*) from con_contract cone where cone.Con_Master_Con_Id=mn.con_Id and cone.Con_Approval_State=7) as conMasterCount,
+        mn.*,
+        jl.Con_Name  as conJlName,
+        sf.file_relation_id as fileRelationId
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        left join SYS_File sf on sf.FileID = mn.Con_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </sql>
+    <sql id="listSelect2">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c4.C_Name as conEvaluateBName,
+        c5.C_Name as conEvaluateAName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        con1.Con_Name as conEvaluateName,
+        con1.Con_Code as conEvaluateCode,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        (select sum(isa.Sa_Approved_Amt) from Inv_Settlement_Apply isa where isa.Con_Id=mn.Con_Id and isa.Sa_State=7) as
+        saApprovedAmtSum,
+        (select count(*) from con_contract cone where cone.Con_Evaluate_Id=mn.con_Id and cone.Con_Approval_State=7) as
+        conEvaluateCount,
+        (select sum(cone.Con_Money_Total) from con_contract cone where cone.Con_Evaluate_Id=mn.con_Id and
+        cone.Con_Approval_State=7) as conEvaluateAmt,
+        (select count(cone.Con_Money_Total) from con_contract cone where cone.Con_Master_Con_Id=mn.con_Id and
+        cone.Con_Approval_State=7) as conMasterAmt,
+        (select count(*) from con_contract cone where cone.Con_Master_Con_Id=mn.con_Id and cone.Con_Approval_State=7) as conMasterCount,
+        mn.*,
+        jl.Con_Name  as conJlName
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <if test="params.stateFilterType != null and params.stateFilterType == '01'">
+            and mn.Con_Approval_State!=3 and mn.Con_Approval_State!=0
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </sql>
+    <sql id="listSelectForDangerousProject">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c4.C_Name as conEvaluateBName,
+        c5.C_Name as conEvaluateAName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        con1.Con_Name as conEvaluateName,
+        con1.Con_Code as conEvaluateCode,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        (select sum(isa.Sa_Approved_Amt) from Inv_Settlement_Apply isa where isa.Con_Id=mn.Con_Id and isa.Sa_State=7) as
+        saApprovedAmtSum,
+        (select count(*) from con_contract cone where cone.Con_Evaluate_Id=mn.con_Id and cone.Con_Approval_State=7) as
+        conEvaluateCount,
+        (select sum(cone.Con_Money_Total) from con_contract cone where cone.Con_Evaluate_Id=mn.con_Id and
+        cone.Con_Approval_State=7) as conEvaluateAmt,
+        (select count(cone.Con_Money_Total) from con_contract cone where cone.Con_Master_Con_Id=mn.con_Id and
+        cone.Con_Approval_State=7) as conMasterAmt,
+        (select count(*) from con_contract cone where cone.Con_Master_Con_Id=mn.con_Id and cone.Con_Approval_State=7) as conMasterCount,
+        mn.*
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <if test="params.conProjectId!=null">
+            and mn.con_id not in (SELECT dp.contract_id FROM dangerous_project dp
+            WHERE dp.project_id = #{params.conProjectId} and dp.approve_status = 7)
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="getContractPartialDataList" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ContractPartialVO">
+        select
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        mn.con_Project_Id as conProjectId,
+        mn.Con_Approval_State as conApprovalState,
+        mn.Con_Id as conId,
+        mn.Con_Name as conName,
+        mn.Con_Code as conCode,
+        mn.Con_Type as conType
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        WHERE 1=1
+        <include refid="getListFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getContractListExcel" resultMap="selectContractPayee">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c3.C_Name as conPartyCName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        mn.*
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getContractList" resultMap="selectContractPayee">
+        <include refid="listSelect"/>
+    </select>
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select ${selectClause}
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id=jl.Con_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <if test="params.stateFilterType != null and params.stateFilterType == '01'">
+            and mn.Con_Approval_State!=3 and mn.Con_Approval_State!=0
+        </if>
+    </select>
+
+    <select id="getContractGgList" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        pro.P_Building_Scale as pBuildingScale,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c4.C_Name as conEvaluateBName,
+        c5.C_Name as conEvaluateAName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        con1.Con_Name as conEvaluateName,
+        con1.Con_Code as conEvaluateCode,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        sa.saApprovedAmtSum,
+        eval.conEvaluateCount,
+        eval.conEvaluateAmt,
+        master.conMasterAmt,
+        master.conMasterCount,
+        mn.*,
+        jl.Con_Name  as conJlName,
+        ca.Ca_Date as completeDate,
+        ca.commencement_Time as commencementTime,
+        ise.State_Time as endTime,
+        ise.Sae_Audit_Report as auditReport,
+        cp.Warranty_Refund_Time as warrantyRefundTime
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        left join completion_acceptance ca on mn.con_Id=ca.con_Id and ca.Ca_State = 7
+        left join inv_settlement_end_gg ise on mn.con_Id=ise.con_Id and ise.State = 7
+        left join (
+        select Con_Id, sum(Sa_Approved_Amt) as saApprovedAmtSum
+        from Inv_Settlement_Apply
+        where Sa_State=7
+        group by Con_Id
+        ) sa on sa.Con_Id = mn.Con_Id
+        left join (
+        select
+        Con_Evaluate_Id,
+        count(*) as conEvaluateCount,
+        sum(Con_Money_Total) as conEvaluateAmt
+        from con_contract
+        where Con_Approval_State=7 and Con_Evaluate_Id is not null
+        group by Con_Evaluate_Id
+        ) eval on eval.Con_Evaluate_Id = mn.con_Id
+        left join (
+        select
+        Con_Master_Con_Id,
+        count(*) as conMasterCount,
+        count(Con_Money_Total) as conMasterAmt
+        from con_contract
+        where Con_Approval_State=7 and Con_Master_Con_Id is not null
+        group by Con_Master_Con_Id
+        ) master on master.Con_Master_Con_Id = mn.con_Id
+        left join (
+        <include refid="lastConPay"/>
+        ) cp on mn.con_Id=cp.Con_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <if test="params.fsCostCode != null and params.fsCostCode != ''">
+            and exists (select 1 from Pro_Sources_Funds psf where psf.P_ID=mn.con_Project_Id and psf.Fs_Cost_Code like concat('%',#{params.fsCostCode},'%'))
+        </if>
+        <if test="params.pCampus != null and params.pCampus != ''">
+            and pro.P_Campus = #{params.pCampus}
+        </if>
+        <if test="params.pType != null and params.pType != ''">
+            and pro.P_Type = #{params.pType}
+        </if>
+        <if test="params.pBuildingScale != null">
+            and pro.P_Building_Scale = #{params.pBuildingScale}
+        </if>
+        <if test="params.conTerm != null and params.conTerm != ''">
+            and mn.Con_Term = #{params.conTerm}
+        </if>
+        <if test="params.startDateStart != null and params.startDateStart != ''">
+            and mn.Con_Start_Date &gt;= #{params.startDateStart}
+        </if>
+        <if test="params.startDateEnd != null and params.startDateEnd != ''">
+            and mn.Con_Start_Date &lt;= #{params.startDateEnd}
+        </if>
+        <if test="params.completeDateStart != null and params.completeDateStart != ''">
+            and ca.Ca_Date &gt;= #{params.completeDateStart}
+        </if>
+        <if test="params.completeDateEnd != null and params.completeDateEnd != ''">
+            and ca.Ca_Date &lt;= #{params.completeDateEnd}
+        </if>
+        <if test="params.endTimeStart != null and params.endTimeStart != ''">
+            and ise.Sae_Audit_End_Time &gt;= #{params.endTimeStart}
+        </if>
+        <if test="params.endTimeEnd != null and params.endTimeEnd != ''">
+            and ise.Sae_Audit_End_Time &lt;= #{params.endTimeEnd}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="lastConPay" databaseId="mysql">
+        select p1.Con_Id, p1.Warranty_Refund_Time
+        from Con_Pay p1
+                 inner join (select Con_Id, max(Pay_State_Time) as max_pay_time
+                             from Con_Pay
+                             where Pay_State = 7
+                               and Pay_Type = '04'
+                             group by Con_Id) p2 on p1.Con_Id = p2.Con_Id and p1.Pay_State_Time = p2.max_pay_time
+        where p1.Pay_State = 7
+          and p1.Pay_Type = '04'
+    </sql>
+
+    <sql id="lastConPay" databaseId="dm">
+        select Con_Id, Warranty_Refund_Time
+        from (select Con_Id,
+                     Warranty_Refund_Time,
+                     ROW_NUMBER() OVER (PARTITION BY Con_Id ORDER BY Pay_State_Time DESC) as rn
+              from Con_Pay
+              where Pay_State = 7
+                and Pay_Type = '04') ranked_pay
+        where rn = 1
+    </sql>
+
+    <select id="getContractListByPermission" resultMap="selectContractPayee">
+        <include refid="listSelect"/>
+    </select>
+
+    <select id="getContractListAmtSum" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        <include refid="listSelectAmtTotleSum"/>
+    </select>
+
+    <select id="getContractListForDangerousProject" resultMap="selectContractPayee">
+        <include refid="listSelectForDangerousProject"/>
+    </select>
+
+
+    <select id="getContractWithMoneyPayList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConContractModel">
+        <include refid="listSelect2"/>
+
+    </select>
+
+
+    <select id="getConMoneyTotalSum" resultType="BigDecimal">
+        select sum(Con_Money_Total)
+        from Con_Contract where Con_Id in
+        <foreach collection="conIds" separator="," open="(" close=")" item="id">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="getConMoneyTotalSumByPid" resultType="BigDecimal">
+        select sum(Con_Money_Total)
+        from Con_Contract
+        where Con_Project_Id = #{pId}
+    </select>
+
+
+    <select id="countContract" resultType="com.jpmsoft.projectProducer.pojo.entity.multiproject.MpcFunds">
+        SELECT c.conProjectName projectName,
+               c.totalContractAmount,
+               c.conceptualAmount,
+               d.paymentAmount,
+               '1'              type
+        FROM (SELECT a.pid                 pId,
+                     a.conProjectName      conProjectName,
+                     a.totalContractAmount totalContractAmount,
+                     b.conceptualAmount    conceptualAmount
+              FROM (SELECT sum(mn.con_money_total) totalContractAmount,
+                           p.P_Name                conProjectName,
+                           p.P_Id                  pid
+                    FROM Con_Contract mn
+                             LEFT JOIN Pre_Project p ON mn.con_Project_Id = p.P_Id
+                    GROUP BY p.P_Id,
+                             p.P_Name) a
+                       LEFT JOIN (SELECT p_id pid, sum(di_budget) conceptualAmount FROM Design_Initial GROUP BY p_id) b
+                                 ON a.pid = b.pid) c
+                 LEFT JOIN (SELECT p_id pId, sum(Pay_apply) paymentAmount
+                            FROM Con_Pay
+                            WHERE Pay_State = 7
+                            GROUP BY p_id) d ON c.pId = d.pId
+    </select>
+
+
+    <!--************************************* 达梦 *************************************-->
+
+    <select id="getContractStatisticsSigning" resultType="Map" databaseId="dm">
+        select
+        to_char(Con_Approval_Time,'mm') as "monNum",
+        count(1) as "recordTotal",
+        sum(Con_Money_Total) as "amtTotal"
+        from Con_Contract where Con_Approval_State=7
+        <if test="teId!=null">and Te_Id = #{teId}</if>
+        and to_char(Con_Approval_Time,'yyyy')= to_char(now(),'yyyy')
+        group by to_char(Con_Approval_Time,'mm')
+    </select>
+
+    <select id="getContractPartyBNum" resultType="Integer">
+        select count(cbId)
+        from (
+        select distinct Con_Party_B_Id as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if>
+        union
+        select distinct Con_Party_B1 as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if>
+        union
+        select distinct Con_Party_B2 as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if>
+        union
+        select distinct Con_Party_B3 as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if>
+        union
+        select distinct Con_Party_B4 as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if>
+        union
+        select distinct Con_Party_B5 as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if>
+        union
+        select distinct Con_Party_C_Id as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if>
+        union
+        select distinct Con_Party_D_Id as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if>
+        ) a
+    </select>
+
+    <select id="getContractPartyBNumToday" resultType="Integer">
+        select count(cbId)
+        from (
+        select distinct Con_Party_B_Id as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if> <include refid="todayContract"/>
+        union
+        select distinct Con_Party_B1 as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if> <include refid="todayContract"/>
+        union
+        select distinct Con_Party_B2 as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if> <include refid="todayContract"/>
+        union
+        select distinct Con_Party_B3 as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if> <include refid="todayContract"/>
+        union
+        select distinct Con_Party_B4 as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if> <include refid="todayContract"/>
+        union
+        select distinct Con_Party_B5 as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if> <include refid="todayContract"/>
+        union
+        select distinct Con_Party_C_Id as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if> <include refid="todayContract"/>
+        union
+        select distinct Con_Party_D_Id as cbId from Con_Contract where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if> <include refid="todayContract"/>
+        ) a
+    </select>
+    <sql id="todayContract" databaseId="dm">
+        and to_char(Con_Create_Time,'yyyy-mm-dd')=to_char(now(),'yyyy-mm-dd')
+    </sql>
+    <sql id="todayContract" databaseId="mysql">
+        and date_format(Con_Create_Time,'%Y-%m-%d')= date_format(now(),'%Y-%m-%d')
+    </sql>
+    <sql id="todayContract" databaseId="postgre">
+        and  to_char(Con_Create_Time,'yyyy-mm-dd')=to_char(now(),'yyyy-mm-dd')
+    </sql>
+
+    <select id="getContractStatisticsOverview" resultType="Map" databaseId="dm">
+        select
+        Sum(Con_Money_Total) conAmtCount,
+        count(1) conCount,
+        count(distinct Con_Party_A_Id) companyCount,
+        (select count(1) from Con_Contract where Con_Approval_State=7 <if test="teId!=null">and Te_Id = #{teId}</if>) as
+        finishCount,
+        (select count(distinct Con_Party_A_Id) from Con_Contract
+        where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if> and
+        to_char(Con_Create_Time,'yyyy-mm-dd')=to_char(now(),'yyyy-mm-dd')) as companyToday,
+        (select count(1) from Con_Contract
+        where Con_Approval_State=7 <if test="teId!=null">and Te_Id = #{teId}</if> and
+        to_char(Con_Approval_Time,'yyyy-mm-dd')=to_char(now(),'yyyy-mm-dd')) as finishToday
+        from Con_Contract where Con_Approval_State!=3
+        <if test="teId!=null">and Te_Id = #{teId}</if>
+    </select>
+
+    <!--************************************* MySql *************************************-->
+
+    <select id="getContractStatisticsSigning" resultType="Map" databaseId="mysql">
+        select
+        date_format(Con_Approval_Time,'%m') as "monNum",
+        count(1) as "recordTotal",
+        sum(Con_Money_Total) as "amtTotal"
+        from Con_Contract where Con_Approval_State=7
+        <if test="teId!=null">and Te_Id = #{teId}</if>
+        and date_format(Con_Approval_Time,'%Y')=date_format(now(),'%Y')
+        group by date_format(Con_Approval_Time,'%m')
+    </select>
+
+    <select id="getContractStatisticsOverview" resultType="Map" databaseId="mysql">
+        select
+        Sum(Con_Money_Total) conAmtCount,
+        count(1) conCount,
+        count(distinct Con_Party_A_Id) companyCount,
+        (select count(1) from Con_Contract where Con_Approval_State=7 <if test="teId!=null">and Te_Id = #{teId}</if>) as
+        finishCount,
+        (select count(distinct Con_Party_A_Id) from Con_Contract
+        where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if> and
+        date_format(Con_Create_Time,'%Y-%m-%d')= date_format(now(),'%Y-%m-%d')) as companyToday,
+        (select count(1) from Con_Contract
+        where Con_Approval_State=7 <if test="teId!=null">and Te_Id = #{teId}</if>  and
+        date_format(Con_Approval_Time,'%Y-%m-%d')= date_format(now(),'%Y-%m-%d')) as finishToday
+        from Con_Contract where Con_Approval_State!=3
+    </select>
+
+
+    <!--************************************* postgre *************************************-->
+
+    <select id="getContractStatisticsSigning" resultType="Map" databaseId="postgre">
+        select
+        to_char(Con_Approval_Time,'mm') as "monNum",
+        count(1) as "recordTotal",
+        sum(Con_Money_Total) as "amtTotal"
+        from Con_Contract where Con_Approval_State=7
+        <if test="teId!=null">and Te_Id = #{teId}</if>
+        and to_char(Con_Approval_Time,'yyyy')= to_char(now(),'yyyy')
+        group by to_char(Con_Approval_Time,'mm')
+    </select>
+
+
+    <select id="getContractStatisticsOverview" resultType="Map" databaseId="postgre">
+        select
+        Sum(Con_Money_Total) conAmtCount,
+        count(1) conCount,
+        count(distinct Con_Party_A_Id) companyCount,
+        (select count(1) from Con_Contract where Con_Approval_State=7 <if test="teId!=null">and Te_Id = #{teId}</if>) as
+        finishCount,
+        (select count(distinct Con_Party_A_Id) from Con_Contract
+        where Con_Approval_State!=3 <if test="teId!=null">and Te_Id = #{teId}</if> and
+        to_char(Con_Create_Time,'yyyy-mm-dd')=to_char(now(),'yyyy-mm-dd')) as companyToday,
+        (select count(1) from Con_Contract
+        where Con_Approval_State=7 <if test="teId!=null">and Te_Id = #{teId}</if>  and
+        to_char(Con_Approval_Time,'yyyy-mm-dd')=to_char(now(),'yyyy-mm-dd')) as finishToday
+        from Con_Contract where Con_Approval_State!=3
+    </select>
+
+    <select id="getContractStampDuty" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ContractStampDutyModel">
+        select
+            pre.P_Name as pName,
+            pre.P_Id as pId,
+            con.Con_Id as conId,
+            con.Con_Name as conName,
+            con.Con_Original_Code as unitConCode,
+            con.Con_Type as conType,
+            con.Con_Code as conCode,
+            con.Con_Approval_Time as signDate,
+            com.C_Name as conSecondParty,
+            con.Con_Money_Total as conMoney,
+            con.Con_Money_Total_No_Tax as taxableAmount,
+            con.Con_Stamp_Duty_Rate as taxRate,
+            con.Con_Stamp_Duty_Amount as taxAmount
+        from Con_Contract con
+        left join Pre_Project pre on pre.P_ID=con.Con_Project_Id
+        left join Sys_Company com on com.C_ID=con.Con_Party_B_Id
+        where con.Con_Approval_State=7
+    </select>
+
+    <select id="getContractStampDutyList" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ContractStampDutyModel">
+        select
+            pre.P_Name as pName,
+            pre.P_Id as pId,
+            con.Con_Id as conId,
+            con.Con_Name as conName,
+            con.Con_Original_Code as unitConCode,
+            con.Con_Type as conType,
+            con.Con_Code as conCode,
+            con.Con_Approval_Time as signDate,
+            com.C_Name as conSecondParty,
+            con.Con_Money_Total as conMoney,
+            con.Con_Money_Total_No_Tax as taxableAmount,
+            con.Con_Stamp_Duty_Rate as taxRate,
+            con.Con_Stamp_Duty_Amount as taxAmount
+        from Con_Contract con
+                 left join Pre_Project pre on pre.P_ID=con.Con_Project_Id
+                 left join Sys_Company com on com.C_ID=con.Con_Party_B_Id
+        where con.Con_Approval_State=7
+    </select>
+
+
+    <select id="getConMoneyTotal" resultType="com.jpmsoft.projectProducer.pojo.entity.contract.ConContract">
+        select con_id,Con_Money_Total
+        from Con_Contract where Con_Id  = #{conId}
+
+    </select>
+
+    <select id="getContractLedgerForWJT"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ContractLedgerForWJTVO">
+        select
+            cc.con_id contractId,
+            cc.con_name contractName,
+            cc.con_code contractCode,
+            cc.con_type contractType,
+            cc.con_money_total contractMoneyTotal,
+            cc.con_rate contractRate,
+            cc.con_money_rate contractMoneyRate,
+            cc.con_party_a_id contractPartyAId,
+            scA.c_name contractPartyAName,
+            cc.con_party_b_id contractPartyBId,
+            scB.c_name contractPartyBName,
+            cc.con_date contractSignDate,
+            cc.Con_Approval_State state,
+            cc.Con_Create_User_Id createUid,
+            cc.Con_Create_User_Name createUname,
+            pp.p_id projectId,
+            pp.p_name projectName,
+            cc.con_create_time createTime,
+            cc.con_money_tentative contractMoneyTentative
+        from con_contract cc
+        left join pre_project pp on pp.p_id = cc.con_project_id
+        left join sys_company scA on scA.c_id = cc.con_party_a_id
+        left join sys_company scB on scB.c_id = cc.con_party_b_id
+        <where>
+            <if test="param.projectName != null and param.projectName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{param.projectName},pp.p_id)=true
+                    </when>
+                    <otherwise>
+                        and pp.p_name like concat('%',#{param.projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="param.projectId != null and param.projectId != ''">
+                and pp.p_id = #{param.projectId}
+            </if>
+            <if test="param.pId != null and param.pId != ''">
+                and pp.p_id = #{param.pId}
+            </if>
+            <if test="param.contractName != null and param.contractName != ''">
+                and cc.con_name like concat('%',#{param.contractName},'%')
+            </if>
+        </where>
+        order by cc.Con_Create_Time desc
+    </select>
+
+    <select id="getFinalAccountDataList" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        pro.p_id as pId,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c4.C_Name as conEvaluateBName,
+        c5.C_Name as conEvaluateAName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        con1.Con_Name as conEvaluateName,
+        con1.Con_Code as conEvaluateCode,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        (select  sys.c_name as cName from  SYS_Company sys where sys.c_id = ifaa.Fa_Approval_Unit) as faApprovalUnitName,
+        ifaa.fa_id  as faId,
+        ifaa.Fa_Total_Contract  ,
+        ifaa.Fa_Total_Approved ,
+        ifaa.Fa_Submit_Cost ,
+        ifaa.Fa_Remark ,
+        ifaa.Fa_Create_Uid ,
+        ifaa.Fa_Create_Uname  ,
+        ifaa.Fa_Create_Time ,
+        ifaa.Fa_State ,
+        ifaa.Fa_State_Time ,
+        ifaa.Fa_Approved_Amt,
+        ifaa.Fa_Approved_Time,
+        ifaa.Fa_Approval_Title,
+        ifaa.Fa_Approval_Num	,
+        ifaa.Fa_Approval_Time,
+        ifaa.Fa_Approval_File,
+        ifaa.Fa_Approval_Unit,
+        mn.*,
+        jl.Con_Name  as conJlName
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        left join Inv_Final_Accounts_Apply ifaa on ifaa.Con_Id = mn.Con_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <if test="params.conPartyAAgent != null and params.conPartyAAgent != ''">
+            and mn.con_Party_A_Agent like concat('%',#{params.conPartyAAgent},'%')
+        </if>
+        <if test="params.faApprovalUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and  likeCname(#{params.faApprovalUnitName},c6.c_id)=true
+                </when>
+                <otherwise>
+                    and  c6.c_name like concat('%',#{params.faApprovalUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="getPreliminaryAuditDataList" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        c.C_Name as conPartyBName,
+        pro.p_id as pId,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c4.C_Name as conEvaluateBName,
+        c5.C_Name as conEvaluateAName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        con1.Con_Name as conEvaluateName,
+        con1.Con_Code as conEvaluateCode,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,pa.pa_Examine_Approve as paExamineApprove,pa.id as paId,pa.state as paState,
+        mn.*,
+        jl.Con_Name  as conJlName
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        left join Preliminary_Audit pa on pa.Con_Id = mn.Con_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <if test="params.conPartyAAgent != null and params.conPartyAAgent != ''">
+            and mn.con_Party_A_Agent like concat('%',#{params.conPartyAAgent},'%')
+        </if>
+
+    </select>
+
+    <select id="getTCSettlementAuditDataList" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        pro.p_id as pId,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c4.C_Name as conEvaluateBName,
+        c5.C_Name as conEvaluateAName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        con1.Con_Name as conEvaluateName,
+        con1.Con_Code as conEvaluateCode,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        mn.*,
+        asett.as_Review_The_Amount  as asReviewTheAmount,
+        asett.as_Audited_Amount  as asAuditedAmount,
+        asett.as_Deduction_Amount  as asDeductionAmount,
+        asett.as_Reduction_Rate  as asReductionRate,
+        asett.as_id as asId,
+        jl.Con_Name  as conJlName
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        left join Audit_Settlement asett on asett.Con_Id = mn.Con_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <if test="params.conPartyAAgent != null and params.conPartyAAgent != ''">
+            and mn.con_Party_A_Agent like concat('%',#{params.conPartyAAgent},'%')
+        </if>
+
+    </select>
+
+
+    <select id="getBalancePaymentDataList" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        c.C_Name as conPartyBName,
+        pro.p_id as pId,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c4.C_Name as conEvaluateBName,
+        c5.C_Name as conEvaluateAName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        con1.Con_Name as conEvaluateName,
+        con1.Con_Code as conEvaluateCode,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        mn.*,
+        asett.as_Review_The_Amount  as asReviewTheAmount,
+        asett.as_Audited_Amount  as asAuditedAmount,
+        asett.as_Deduction_Amount  as asDeductionAmount,
+        asett.as_Reduction_Rate  as asReductionRate,
+        jl.Con_Name  as conJlName,
+        bp.bpPayable as bpPayable,
+        bp.bpActualApplication as bpActualApplication,
+        bp.bpApplicationDate as bpApplicationDate,
+        bp.createUname as bpCreateUname,
+        bp.state as bpState,
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        left join Balance_Payment bp on bp.Con_Id = mn.Con_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+
+        <if test="params.conPartyAAgent != null and params.conPartyAAgent != ''">
+            and mn.con_Party_A_Agent like concat('%',#{params.conPartyAAgent},'%')
+        </if>
+
+    </select>
+
+    <select id="getBalancePaymentPlanDataList" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        pro.p_id as pId,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c4.C_Name as conEvaluateBName,
+        c5.C_Name as conEvaluateAName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        con1.Con_Name as conEvaluateName,
+        con1.Con_Code as conEvaluateCode,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        mn.*,
+        jl.Con_Name  as conJlName,
+        bp.bp_Payable as bpPayable,
+        bp.bp_Actual_Application as bpActualApplication,
+        bp.bp_Application_Date as bpApplicationDate,
+        bp.create_Uname as bpCreateUname,
+        bp.state as bpState,
+        c6.c_name as conPayeeName,
+        mn.con_Payee_Id as conPayeeId
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        left join Balance_Payment bp on bp.Con_Id = mn.Con_Id
+        left join SYS_Company c6 on mn.con_Payee_Id=c6.C_Id
+
+        INNER JOIN ( SELECT Con_Id
+        FROM Con_Contract_Pay_Plan
+        <where>
+            <if test="params.pddPayType != null and params.pddPayType != ''">
+                and Cpp_Condition_Type = #{params.pddPayType}
+            </if>
+        </where>
+        GROUP BY Con_Id ) p
+        ON mn.Con_Id = p.Con_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+
+        <if test="params.conPartyAAgent != null and params.conPartyAAgent != ''">
+            and mn.con_Party_A_Agent like concat('%',#{params.conPartyAAgent},'%')
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and pro.p_id  = #{params.pId}
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            and pro.p_name like concat('%',#{params.pName},'%')
+        </if>
+
+    </select>
+    <select id="getgetCompleteById" resultType="int">
+        SELECT COUNT(*)
+        FROM completion_acceptance mn
+                 LEFT JOIN con_contract con ON mn.con_Id = con.con_id
+        WHERE mn.con_id = #{conId}
+          AND mn.ca_state = 7
+    </select>
+    <select id="childProjectContracts"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConContractModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c4.C_Name as conEvaluateBName,
+        c5.C_Name as conEvaluateAName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        con1.Con_Name as conEvaluateName,
+        con1.Con_Code as conEvaluateCode,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        (select sum(isa.Sa_Approved_Amt) from Inv_Settlement_Apply isa where isa.Con_Id=mn.Con_Id and isa.Sa_State=7) as
+        saApprovedAmtSum,
+        (select count(*) from con_contract cone where cone.Con_Evaluate_Id=mn.con_Id and cone.Con_Approval_State=7) as
+        conEvaluateCount,
+        (select sum(cone.Con_Money_Total) from con_contract cone where cone.Con_Evaluate_Id=mn.con_Id and
+        cone.Con_Approval_State=7) as conEvaluateAmt,
+        (select count(cone.Con_Money_Total) from con_contract cone where cone.Con_Master_Con_Id=mn.con_Id and
+        cone.Con_Approval_State=7) as conMasterAmt,
+        (select count(*) from con_contract cone where cone.Con_Master_Con_Id=mn.con_Id and cone.Con_Approval_State=7) as conMasterCount,
+        mn.*,
+        jl.Con_Name  as conJlName
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        <where>
+            mn.Con_Approval_State!=3
+            <if test="params.conProjectId!= null and params.conProjectId!= ''">
+                and mn.con_Project_Id in (select child.P_Id from Pre_Project child where child.P_Parent_ID=#{params.conProjectId})
+            </if>
+        </where>
+    </select>
+    <select id="getContractListNew"
+            resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+            select
+                   pp.*,
+                   sc.C_Name as partyBName,
+                   psf.Fs_Cost_Code as fsCostCode,
+                   ca.Ca_Date as completeDate,
+                   ise.Sae_Audit_End_Time as endTime,
+                   ise.Sae_Audit_Report as auditReport,
+                   mn.*
+            from con_contract mn
+            left join pre_project pp on mn.con_Project_Id=pp.p_id
+            left join sys_company sc on mn.con_Party_B_Id=sc.c_id
+            left join completion_acceptance ca on mn.con_Id=ca.con_Id
+            left join inv_settlement_end ise on mn.con_Id=ise.con_Id
+            left join Pro_Sources_Funds psf on pp.P_Id=psf.P_Id
+            <if test="authSql != null and authSql != ''">
+                ${authSql}
+            </if>
+            <if test="authSql == null or authSql == ''">
+                where 1=1
+            </if>
+            <if test="params.pName!=null and params.pName!=''">
+                and pp.P_Name like concat('%', #{params.pName}, '%')
+            </if>
+            <if test="params.conName!=null and params.conName!=''">
+                and mn.Con_Name like concat('%', #{params.conName}, '%')
+            </if>
+            <if test="params.conCode!=null and params.conCode!=''">
+                and mn.Con_Code like concat('%', #{params.conCode}, '%')
+            </if>
+            <if test="params.conCategory!=null and params.conCategory!=''">
+                and mn.Con_Category=#{params.conCategory}
+            </if>
+    </select>
+
+    <select id="getTotalMoney" resultType="java.math.BigDecimal">
+        select SUM(mn.Con_Money_Total) as totalMoney
+        from con_contract mn
+        left join pre_project pp on mn.con_Project_Id=pp.p_id
+        left join sys_company sc on mn.con_Party_B_Id=sc.c_id
+        left join completion_acceptance ca on mn.con_Id=ca.con_Id
+        left join inv_settlement_end_gg ise on mn.con_Id=ise.con_Id
+        left join Pro_Sources_Funds psf on pp.P_Id=psf.P_Id
+        ${authSql}
+        <if test="params.pName!=null and params.pName!=''">
+            and pp.P_Name like concat('%', #{params.pName}, '%')
+        </if>
+        <if test="params.conName!=null and params.conName!=''">
+            and mn.Con_Name like concat('%', #{params.conName}, '%')
+        </if>
+        <if test="params.conCode!=null and params.conCode!=''">
+            and mn.Con_Code like concat('%', #{params.conCode}, '%')
+        </if>
+        <if test="params.conCategory!=null and params.conCategory!=''">
+            and mn.Con_Category=#{params.conCategory}
+        </if>
+    </select>
+
+    <select id="getConContractByConProjectId" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select
+            mn.*,
+            pp.P_Name as conProjectName,
+            c.C_Name as conPartyBName
+        from con_contract mn
+        left join sys_company c on mn.con_Party_B_Id=c.c_id
+        left join pre_project pp on mn.con_Project_Id=pp.p_id
+        where 1=1
+        <if test="params.pId != null and params.pId != ''">
+            and mn.con_Project_Id=#{params.pId}
+        </if>
+        <if test="params.conName != null and params.conName != ''">
+            and mn.Con_Name like concat('%', #{params.conName}, '%')
+        </if>
+        <if test="params.conCode != null and params.conCode != ''">
+            and mn.Con_Code like concat('%', #{params.conCode}, '%')
+        </if>
+        <if test="params.conCategory != null and params.conCategory != ''">
+            and mn.Con_Category= #{params.conCategory}
+        </if>
+        <if test="params.conState != null and params.conState != ''">
+            and mn.Con_State= #{params.conState}
+        </if>
+        <if test="params.conApprovalState != null">
+            and mn.Con_Approval_State= #{params.conApprovalState}
+        </if>
+        <if test="params.conPartyBName != null and params.conPartyBName != ''">
+            and c.C_Name like concat('%', #{params.conPartyBName}, '%')
+        </if>
+        <if test="params.conType != null and params.conType != ''">
+            and mn.Con_Type= #{params.conType}
+        </if>
+    </select>
+
+    <select id="getContractStatisticsOverviewList" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        pro.P_Building_Scale as pBuildingScale,
+        CONCAT_WS('；', c.C_Name, cc1.C_Name, cc2.C_Name, cc3.C_Name, cc4.C_Name, cc5.C_Name, c3.C_Name, cc6.C_Name)
+        as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c4.C_Name as conEvaluateBName,
+        c5.C_Name as conEvaluateAName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        con1.Con_Name as conEvaluateName,
+        con1.Con_Code as conEvaluateCode,
+        con1.Con_Provisional_Pe as conEvaluatePeAmt,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        mn.*,
+        jl.Con_Name  as conJlName
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company cc1 on mn.con_Party_B1=c.C_Id
+        left join SYS_Company cc2 on mn.con_Party_B2=c.C_Id
+        left join SYS_Company cc3 on mn.con_Party_B3=c.C_Id
+        left join SYS_Company cc4 on mn.con_Party_B4=c.C_Id
+        left join SYS_Company cc5 on mn.con_Party_B5=c.C_Id
+        left join SYS_Company cc6 on mn.Con_Party_D_Id=cc6.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id=con1.Con_Id
+        left join SYS_Company c4 on con1.con_Party_B_Id=c4.C_Id
+        left join SYS_Company c5 on con1.Con_Party_A_Id=c5.C_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        <where>
+            mn.Con_Approval_State != 3
+            <if test="teId != null and teId != ''">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.type != null and params.type != ''">
+                <include refid="contractStatisticsOverviewFilter"/>
+            </if>
+            <if test="params.conEvaluateId!=null">
+                and mn.Con_Evaluate_Id=#{params.conEvaluateId}
+            </if>
+            <if test="params.conScanUp!=null">
+                and mn.Con_Scan_Up=#{params.conScanUp}
+            </if>
+            <if test="params.conCategory!=null">
+                and mn.con_Category=#{params.conCategory}
+            </if>
+            <if test="params.conApprovalState!=null">
+                and mn.con_Approval_State=#{params.conApprovalState}
+            </if>
+            <if test="params.conProjectId!=null">
+                and(  mn.Con_Project_Id=#{params.conProjectId}
+                or mn.con_Project_Id in (select child.P_Id from Pre_Project child where child.P_Parent_ID = #{params.conProjectId}))
+            </if>
+            <if test="params.conType!=null">
+                and mn.con_Type=#{params.conType}
+            </if>
+            <if test="params.conBudgetId!=null">
+                and mn.Con_Budget_Id=#{params.conBudgetId}
+            </if>
+            <if test="params.conIsHistory!=null">
+                and mn.Con_Is_History=#{params.conIsHistory}
+            </if>
+            <if test="params.conState!=null">
+                and mn.Con_State=#{params.conState}
+            </if>
+            <if test="params.conExecution!=null">
+                and mn.Con_Execution=#{params.conExecution}
+            </if>
+            <if test="params.conBiddingType!=null">
+                and mn.Con_Bidding_Type=#{params.conBiddingType}
+            </if>
+            <if test="params.conConsortium!=null">
+                and mn.Con_Consortium=#{params.conConsortium}
+            </if>
+            <if test="params.conMasterConId!=null">
+                and mn.Con_Master_Con_Id=#{params.conMasterConId}
+            </if>
+            <if test="params.conMultiSubject!=null">
+                and mn.Con_Multi_Subject=#{params.conMultiSubject}
+            </if>
+            <if test="params.conSup!=null">
+                and mn.Con_Sup=#{params.conSup}
+            </if>
+            <if test="params.conCurrency!=null">
+                and mn.Con_Currency=#{params.conCurrency}
+            </if>
+            <if test="params.conYear!=null">
+                and mn.Con_Year=#{params.conYear}
+            </if>
+            <if test="params.conProfessionalType!=null">
+                and mn.Con_Professional_Type=#{params.conProfessionalType}
+            </if>
+            <if test="params.conSectionId!=null">
+                and mn.con_Section_Id=#{params.conSectionId}
+            </if>
+            <if test="params.conIsBidding!=null">
+                and mn.con_Is_Bidding=#{params.conIsBidding}
+            </if>
+            <if test="params.conInvolveFunds!=null">
+                and mn.Con_Involve_Funds=#{params.conInvolveFunds}
+            </if>
+            <if test="params.pId!=null">
+                and(  mn.Con_Project_Id=#{params.pId} or mn.con_Project_Id in (select child.P_Id from Pre_Project child where child.P_Parent_ID = #{params.pId}))
+            </if>
+            <if test="params.conPurchaseType!=null">
+                and mn.Con_Purchase_Type=#{params.conPurchaseType}
+            </if>
+            <if test="params.excludeSeven!=null and params.excludeSeven==true">
+                and mn.con_Category!='7'
+            </if>
+            <if test="params.pAdvanceFund!=null">
+                and pro.P_Advance_Fund=#{params.pAdvanceFund}
+            </if>
+            <if test="params.pCorporateRisk!=null">
+                and pro.P_Corporate_Risk=#{params.pCorporateRisk}
+            </if>
+            <if test="params.conIsSupply!=null">
+                and mn.Con_Is_Supply=#{params.conIsSupply}
+            </if>
+            <if test="params.conOpenBidding!=null">
+                and mn.Con_Open_Bidding=#{params.conOpenBidding}
+            </if>
+            <if test="params.conPayCategory!=null">
+                and mn.Con_Pay_Category=#{params.conPayCategory}
+            </if>
+            <if test="params.conMoneyTotal!=null">
+                and mn.Con_Money_Total=#{params.conMoneyTotal}
+            </if>
+            <if test="params.filterSubChangeAmt!=null and params.filterSubChangeAmt==true">
+                and mn.Con_Sup_Change_Money is not null and mn.Con_Sup_Change_Money != 0
+            </if>
+            <if test="params.bUnitId!=null">
+                and (
+                mn.Con_Party_B_Id=#{params.bUnitId}
+                or mn.Con_Party_B1=#{params.bUnitId}
+                or mn.Con_Party_B2=#{params.bUnitId}
+                or mn.Con_Party_B3=#{params.bUnitId}
+                or mn.Con_Party_B4=#{params.bUnitId}
+                or mn.Con_Party_C_Id=#{params.bUnitId}
+                or mn.Con_Party_D_Id=#{params.bUnitId}
+                )
+            </if>
+            <if test="params.conSerialNumber!=null">
+                and mn.Con_Serial_Number like concat('%',#{params.conSerialNumber},'%')
+            </if>
+            <if test="params.conOriginalCode!=null">
+                and mn.Con_Original_Code like concat('%',#{params.conOriginalCode},'%')
+            </if>
+            <if test="params.conUsingType!=null">
+                and mn.Con_Using_Type like concat('%',#{params.conUsingType},'%')
+            </if>
+            <if test="params.conCreateUserName!=null">
+                and mn.Con_Create_User_Name like concat('%',#{params.conCreateUserName},'%')
+            </if>
+            <if test="params.conPartyBLegal!=null">
+                and mn.Con_Party_B_Legal like concat('%',#{params.conPartyBLegal},'%')
+            </if>
+            <if test="params.conPartyBAgent!=null">
+                and mn.Con_Party_B_Agent like concat('%',#{params.conPartyBAgent},'%')
+            </if>
+            <if test="params.conPartyBPoxyNum!=null">
+                and mn.Con_Party_B_Poxy_Num like concat('%',#{params.conPartyBPoxyNum},'%')
+            </if>
+            <if test="params.conPartyBAgentTel!=null">
+                and mn.Con_Party_B_Agent_Tel like concat('%',#{params.conPartyBAgentTel},'%')
+            </if>
+            <if test="params.conTdName!=null">
+                and mn.Con_TD_Name like concat('%',#{params.conTdName},'%')
+            </if>
+            <if test="params.conTdNum!=null">
+                and mn.Con_TD_Num like concat('%',#{params.conTdNum},'%')
+            </if>
+            <if test="params.conTdMobileNumber!=null">
+                and mn.Con_TD_Mobile_Number like concat('%',#{params.conTdMobileNumber},'%')
+            </if>
+            <if test="params.conPartyBPm!=null">
+                and mn.Con_Party_B_Pm like concat('%',#{params.conPartyBPm},'%')
+            </if>
+            <if test="params.conPartyBPmConsNu!=null">
+                and mn.Con_Party_B_Pm_Cons_Nu like concat('%',#{params.conPartyBPmConsNu},'%')
+            </if>
+            <if test="params.conPartyBPmIdcard!=null">
+                and mn.Con_Party_B_Pm_Idcard like concat('%',#{params.conPartyBPmIdcard},'%')
+            </if>
+            <if test="params.blSearch!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and (INSTR(mn.con_Name,#{params.blSearch}) or INSTR(mn.con_Code,#{params.blSearch})
+                        or likePname(#{params.blSearch},pro.p_id)=true or INSTR(pro.P_Code,#{params.blSearch}))
+                    </when>
+                    <otherwise>
+                        and (INSTR(mn.con_Name,#{params.blSearch}) or INSTR(mn.con_Code,#{params.blSearch})
+                        or INSTR(pro.P_Name,#{params.blSearch}) or INSTR(pro.P_Code,#{params.blSearch}))
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conName!=null">
+                and mn.con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.conCode!=null">
+                and mn.con_Code like concat('%',#{params.conCode},'%')
+            </if>
+            <if test="params.conProjectName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.conProjectName},pro.p_id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.conProjectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conPartyBName!=null and params.conPartyBName!=''">
+                and CONCAT_WS('；', c.C_Name, cc1.C_Name, cc2.C_Name, cc3.C_Name, cc4.C_Name, cc5.C_Name, c3.C_Name, cc6.C_Name) like concat('%',#{params.conPartyBName},'%')
+            </if>
+            <if test="params.conPartyAName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.conPartyAName},c1.c_id)=true
+                    </when>
+                    <otherwise>
+                        and c1.C_Name like concat('%',#{params.conPartyAName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conPartyAOtherName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.conPartyAOtherName},c2.c_id)=true
+                    </when>
+                    <otherwise>
+                        and c2.C_Name like concat('%',#{params.conPartyAOtherName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.filterSettlement!=null and params.filterSettlement==true">
+                and mn.Con_Id in (select Con_Id from Inv_Settlement_Apply where Sa_State=7)
+            </if>
+            <if test="params.conTypes!=null and params.conTypes.size()>0">
+                and mn.Con_Type in
+                <foreach collection="params.conTypes" item="type" separator="," open="(" close=")">
+                    #{type}
+                </foreach>
+            </if>
+            <if test="params.containState!=null and params.containState.size()>0">
+                and mn.Con_Approval_State in
+                <foreach collection="params.containState" item="state" separator="," open="(" close=")">
+                    #{state}
+                </foreach>
+            </if>
+            <if test="params.excludeConMulti != null and params.excludeConMulti == '01'">
+                and mn.ccm_Id is null
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="contractStatisticsOverviewFilter" databaseId="dm">
+        <choose>
+            <when test="params.type == 'finishCount'">
+                and mn.Con_Approval_State = 7
+            </when>
+            <when test="params.type == 'companyToday'">
+                and to_char(mn.Con_Create_Time, 'yyyy-mm-dd') = to_char(now(),'yyyy-mm-dd')
+            </when>
+            <when test="params.type == 'finishToday'">
+                and mn.Con_Approval_State = 7
+                and to_char(mn.Con_Approval_Time, 'yyyy-mm-dd') = to_char(now(),'yyyy-mm-dd')
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="contractStatisticsOverviewFilter" databaseId="mysql">
+        <choose>
+            <when test="params.type == 'finishCount'">
+                and mn.Con_Approval_State = 7
+            </when>
+            <when test="params.type == 'companyToday'">
+                and date_format(mn.Con_Create_Time,'%Y-%m-%d') = date_format(now(),'%Y-%m-%d')
+            </when>
+            <when test="params.type == 'finishToday'">
+                and mn.Con_Approval_State = 7
+                and date_format(mn.Con_Approval_Time,'%Y-%m-%d') = date_format(now(),'%Y-%m-%d')
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="getContractStatistics" resultType="java.util.Map">
+        select count(*) as conCount,
+        COALESCE(sum(mn.Con_Money_Total), 0) as conMoneyTotal
+        from Con_Contract mn
+        where mn.Con_Approval_State = 7
+        <if test="params.conCategory!=null">
+            and mn.con_Category = #{params.conCategory}
+        </if>
+    </select>
+
+    <select id="getFinishedContractMoneyByCompanyIds" resultType="java.math.BigDecimal">
+        select COALESCE(sum(mn.Con_Money_Total), 0)
+        from Con_Contract mn
+        where mn.Con_Approval_State = 7
+        <if test="teId != null and teId != ''">
+            and mn.Te_Id = #{teId}
+        </if>
+        and (
+            mn.Con_Party_B_Id in
+            <foreach collection="companyIds" item="companyId" open="(" separator="," close=")">
+                #{companyId}
+            </foreach>
+            or mn.Con_Party_B1 in
+            <foreach collection="companyIds" item="companyId" open="(" separator="," close=")">
+                #{companyId}
+            </foreach>
+            or mn.Con_Party_B2 in
+            <foreach collection="companyIds" item="companyId" open="(" separator="," close=")">
+                #{companyId}
+            </foreach>
+            or mn.Con_Party_B3 in
+            <foreach collection="companyIds" item="companyId" open="(" separator="," close=")">
+                #{companyId}
+            </foreach>
+            or mn.Con_Party_B4 in
+            <foreach collection="companyIds" item="companyId" open="(" separator="," close=")">
+                #{companyId}
+            </foreach>
+            or mn.Con_Party_B5 in
+            <foreach collection="companyIds" item="companyId" open="(" separator="," close=")">
+                #{companyId}
+            </foreach>
+            or mn.Con_Party_B6 in
+            <foreach collection="companyIds" item="companyId" open="(" separator="," close=")">
+                #{companyId}
+            </foreach>
+            or mn.Con_Party_B7 in
+            <foreach collection="companyIds" item="companyId" open="(" separator="," close=")">
+                #{companyId}
+            </foreach>
+            or mn.Con_Party_B8 in
+            <foreach collection="companyIds" item="companyId" open="(" separator="," close=")">
+                #{companyId}
+            </foreach>
+            or mn.Con_Party_B9 in
+            <foreach collection="companyIds" item="companyId" open="(" separator="," close=")">
+                #{companyId}
+            </foreach>
+            or mn.Con_Party_B10 in
+            <foreach collection="companyIds" item="companyId" open="(" separator="," close=")">
+                #{companyId}
+            </foreach>
+        )
+    </select>
+</mapper>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.cockpit.ProjectPanoramaOverviewMapper">
+
+    <select id="getProjectPanoramaOverviewById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SmartSite.ProjectPanoramaOverviewModel">
+        select pro.P_Name as pName,
+               pro.P_Code as pCode,
+               mn.*
+        from Project_Panorama_Overview mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+        where mn.Ppo_Id = #{ppoId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.ppoFileType!=null">
+            and mn.Ppo_File_Type = #{params.ppoFileType}
+        </if>
+        <if test="params.ppoState!=null">
+            and mn.Ppo_State = #{params.ppoState}
+        </if>
+        <if test="params.ppoType!=null">
+            and mn.Ppo_Type = #{params.ppoType}
+        </if>
+        <if test="params.ppoCreateUname!=null">
+            and mn.Ppo_Create_Uname like concat('%',#{params.ppoCreateUname},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and pro.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+    </sql>
+
+    <select id="getProjectPanoramaOverviewList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SmartSite.ProjectPanoramaOverviewModel">
+        select
+            cc.con_name contractName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Project_Panorama_Overview mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join con_contract cc on cc.con_id = mn.contract_id
+        <if test="params.authSql != null and params.authSql != ''">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql == null or params.authSql == ''">
+            where 1 = 1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ppo_Data DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getProjectPanoramaList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SmartSite.ProjectPanoramaOverviewModel">
+        select pro.P_Name as pName,
+               pro.P_Code as pCode,
+               mn.*
+        from (
+             select PPO.*
+             from Project_Panorama_Overview PPO,
+                  (
+                      select P_Id, max(Ppo_Create_Time) Ppo_Create_Time
+                      from Project_Panorama_Overview
+                      where Ppo_File_Type = 'img'
+                      group by P_Id
+                  ) TT
+             where TT.Ppo_Create_Time = PPO.Ppo_Create_Time
+             and TT.P_Id = PPO.P_Id
+                <if test="teId!=null">
+                    and PPO.Te_Id = #{teId}
+                </if>
+             ) mn
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+    </select>
+
+    <select id="getProjectPanoramaOverview"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SmartSite.ProjectPanoramaOverviewModel">
+        select
+        mn.*,
+        pro.p_name as pName
+        from project_panorama_overview mn
+        left join pre_project pro on pro.p_id = mn.p_id
+        <where>
+            and mn.Ppo_State = 1
+            <if test="params.pId != null and params.pId != ''">
+                and mn.P_Id = #{params.pId}
+            </if>
+            <if test="params.pName != null and params.pName != ''">
+                and pro.P_Name like concat('%', #{params.pName}, '%')
+            </if>
+        </where>
+    </select>
+</mapper>

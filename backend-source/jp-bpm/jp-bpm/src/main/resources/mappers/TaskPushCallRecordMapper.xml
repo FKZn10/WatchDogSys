@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.TaskPushCallRecordMapper">
+    <select id="getTaskPushCallRecordList" resultType="com.jpmsoft.jpbpm.pojo.entity.TaskPushCallRecord">
+      select  * from  Task_Push_Call_Record
+      <where>
+      1=1
+          <if test="params.tpcrState!=null">
+              and  tpcrState=#{params.taskname}
+          </if>
+          <if test="params.tpcrCreateTime!=null">
+              and  Tpcr_Create_Time=#{params.tpcrCreateTime}
+          </if>
+          <if test="params.tpcrCreateTimeStart!=null">
+              and  Tpcr_Create_Time>=#{params.tpcrCreateTimeStart}
+          </if>
+          <if test="params.tpcrCreateTimeEnd!=null">
+              and   #{params.tpcrCreateTimeEnd}>= Tpcr_Create_Time
+          </if>
+          <if test="params.teId!=null">
+              and Te_Id = #{params.teId}
+          </if>
+      </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by Tpcr_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+    <select id="getTaskPushCallRecordCount" resultType="java.lang.Integer">
+          select  count(1) from  Task_Push_Call_Record
+        <where>
+            1=1
+            <if test="params.tpcrState!=null">
+                and  tpcrState=#{params.taskname}
+            </if>
+            <if test="params.tpcrCreateTime!=null">
+                and  Tpcr_Create_Time=#{params.tpcrCreateTime}
+            </if>
+            <if test="params.tpcrCreateTimeStart!=null">
+                and  Tpcr_Create_Time>=#{params.tpcrCreateTimeStart}
+            </if>
+            <if test="params.tpcrCreateTimeEnd!=null">
+                and   #{params.tpcrCreateTimeEnd}>= Tpcr_Create_Time
+            </if>
+            <if test="params.teId!=null">
+                and Te_Id = #{params.teId}
+            </if>
+        </where>
+    </select>
+</mapper>

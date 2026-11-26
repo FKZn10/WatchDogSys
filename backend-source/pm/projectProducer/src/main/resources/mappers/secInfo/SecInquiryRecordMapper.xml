@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecInquiryRecordMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecInquiryRecordVo"
+               id="selectSecInquiryRecord">
+        <id column="id" property="id"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="id" select="getSecInfoProject">
+        </collection>
+        <collection property="secQuotationUnits" ofType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecQuotationUnitVo"
+                    column="id" select="getQuotationUnit">
+        </collection>
+    </resultMap>
+
+    <select id="getQuotationUnit" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecQuotationUnitVo">
+        select c1.C_Name         as cName,
+               c1.C_Abbreviation as cAbbName,
+               mn.*
+        from Sec_Quotation_Unit mn
+                 left join SYS_Company c1 on mn.C_Id = c1.C_Id
+        where mn.Sir_Id = #{id}
+        order by mn.squ_Amt ASC
+    </select>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join Sec_Inquiry_Record sir on sir.Sec_Id = sec.Sec_Id
+        where sir.id = #{id}
+    </select>
+
+
+    <select id="getSecInquiryRecordById" resultMap="selectSecInquiryRecord">
+        select sec.Sec_Name          as secName,
+               sec.Sec_Type          as secType,
+               sec.Sec_Organize_Form as secOrganizeForm,
+               sec.Sec_Bidding_Type  as secBiddingType,
+               sec.Sec_Start_Time    as secStartTime,
+               sec.Sec_Bidding_Cycle as secBiddingCycle,
+               sec.Sec_Place         as secPlace,
+               sec.Sec_Money         as secMoney,
+               c1.C_Name             as tendereeName,
+               c1.C_Abbreviation     as tendereeAbbName,
+               c2.C_Name             as sirIntendedUnitName,
+               c2.C_Abbreviation     as sirIntendedUnitAbbName,
+               c6.C_Name             as secAgencyName,
+               f.File_Relation_Id    as fileRelationId,
+               pre.P_Name as pName,
+               pre.p_Category as pCategory,
+               pre.P_Build_Model as pBuildModel,
+        case when pre.ppr_id is not null and pre.State != 7 then '1' else '0' end as reserveItems,
+               mn.*
+        from Sec_Inquiry_Record mn
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join SYS_Company c1 on c1.C_ID = sec.Sec_Tenderee
+                 left join SYS_Company c2 on c2.C_ID = mn.Sir_Intended_Unit
+                 left join Sys_Company c6 on c6.C_Id = sec.Sec_Agency
+                 left join pre_project pre on pre.P_Id=mn.P_Id
+                 left join Sys_File f on f.FileId = mn.id
+        where mn.id = #{id}
+    </select>
+
+
+    <select id="getSecInquiryRecordBySecId" resultMap="selectSecInquiryRecord">
+        select sec.Sec_Name as secName,
+               sec.Sec_Type as secType,
+               sec.Sec_Organize_Form as secOrganizeForm,
+               sec.Sec_Bidding_Type as secBiddingType,
+               sec.Sec_Start_Time as secStartTime,
+               sec.Sec_Bidding_Cycle as secBiddingCycle,
+               sec.Sec_Place as secPlace,
+               c1.C_Name as tendereeName,
+               c1.C_Abbreviation as tendereeAbbName,
+               c2.C_Name as sirIntendedUnitName,
+               c2.C_Abbreviation as sirIntendedUnitAbbName,
+               mn.*
+        from Sec_Inquiry_Record mn
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join SYS_Company c1 on c1.C_ID=sec.Sec_Tenderee
+                 left join SYS_Company c2 on c2.C_ID=mn.Sir_Intended_Unit
+        where mn.Sec_Id = #{secId}
+          and mn.State = 7
+        order by mn.State_Time desc limit 1
+    </select>
+
+    <select id="getSecInquiryRecordBySecIds" resultMap="selectSecInquiryRecord">
+        select sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Organize_Form as secOrganizeForm,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Start_Time as secStartTime,
+        sec.Sec_Bidding_Cycle as secBiddingCycle,
+        sec.Sec_Place as secPlace,
+        c1.C_Name as tendereeName,
+        c1.C_Abbreviation as tendereeAbbName,
+        c2.C_Name as sirIntendedUnitName,
+        c2.C_Abbreviation as sirIntendedUnitAbbName,
+        mn.*
+        from Sec_Inquiry_Record mn
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join SYS_Company c1 on c1.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c2 on c2.C_ID=mn.Sir_Intended_Unit
+        where mn.Sec_Id IN
+        <foreach collection="secIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        and mn.State = 7
+        order by mn.State_Time desc
+    </select>
+    <select id="getAllValues" resultType="java.util.Map">
+        select ${selectClause}
+        from Sec_Inquiry_Record mn
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join SYS_Company c1 on c1.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c2 on c2.C_ID=mn.Sir_Intended_Unit
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join SYS_Department dpre on dpre.D_Id = pre.p_Competent_Department
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+        ${authSql}
+        <include refid="listFilterClass"/>
+    </select>
+
+    <select id="getSecInquiryRecordListClass" resultMap="selectSecInquiryRecord">
+        select sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Organize_Form as secOrganizeForm,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Start_Time as secStartTime,
+        sec.Sec_Bidding_Cycle as secBiddingCycle,
+        sec.Sec_Place as secPlace,
+        c1.C_Name as tendereeName,
+        c1.C_Abbreviation as tendereeAbbName,
+        c2.C_Name as sirIntendedUnitName,
+        c2.C_Abbreviation as sirIntendedUnitAbbName,
+        case when pre.P_Name is null then sp.P_Name else pre.P_Name end as pName,
+        case when pre.P_Category is null then sp.p_Category else pre.P_Category end as pCategory,
+        case when pre.P_Build_Model is null then sp.P_Build_Model else pre.P_Build_Model end as pBuildModel,
+        case when dpre.D_Name is null then sp.D_Name else dpre.D_Name end as pCompetentDepartmentName,
+        mn.*,
+        case when mn.P_Id is null then sp.P_Id else mn.P_Id end as pId
+        from Sec_Inquiry_Record mn
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join SYS_Company c1 on c1.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c2 on c2.C_ID=mn.Sir_Intended_Unit
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join SYS_Department dpre on dpre.D_Id = pre.p_Competent_Department
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+        ${authSql}
+        <include refid="listFilterClass"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilterClass">
+        <if test="params.isNew != null and params.isNew != ''">
+            and sbp.is_new = 1
+        </if>
+        <if test="params.pNameList!=null and params.pNameList.size()>0 ">
+            <choose>
+                <when test="params.pNameList.contains('空白数据')">
+                    and (
+                    (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) is null
+                    or
+                    (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) = ''
+                    )
+                </when>
+                <otherwise>
+                    and (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) in
+                    <foreach collection="params.pNameList" open="(" close=")" separator="," item="pName">
+                        #{pName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.secNameList!=null and params.secNameList.size()>0 ">
+            <choose>
+                <when test="params.secNameList.contains('空白数据')">
+                    and (sec.sec_name is null or sec.sec_name = '')
+                </when>
+                <otherwise>
+                    and sec.sec_name in
+                    <foreach collection="params.secNameList" open="(" close=")" separator="," item="secName">
+                        #{secName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategoryList!=null and params.pCategoryList.size()>0 ">
+            <choose>
+                <when test="params.pCategoryList.contains('空白数据')">
+                    and (
+                    (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) is null
+                    or
+                    (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) = ''
+                    )
+                </when>
+                <otherwise>
+                    and (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) in
+                    <foreach collection="params.pCategoryList" open="(" close=")" separator="," item="pCategory">
+                        #{pCategory}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createUnameList!=null and params.createUnameList.size()>0 ">
+            <choose>
+                <when test="params.createUnameList.contains('空白数据')">
+                    and (mn.create_Uname is null or mn.create_Uname = '')
+                </when>
+                <otherwise>
+                    and mn.create_Uname in
+                    <foreach collection="params.createUnameList" open="(" close=")" separator="," item="createUname">
+                        #{createUname}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.stateList!=null and params.stateList.size()>0">
+            <choose>
+                <when test="params.stateList.contains('空白数据')">
+                    and (mn.state is null or mn.state = '')
+                </when>
+                <otherwise>
+                    and mn.state in
+                    <foreach collection="params.stateList" open="(" close=")" separator="," item="state">
+                        #{state}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createTimeStr!=null and params.createTimeStr!=''">
+            <include refid="getAllValuesDateFilter"/>
+        </if>
+    </sql>
+
+    <sql id="getAllValuesDateFilter" databaseId="dm">
+        and to_char(mn.Create_Time,'yyyy-MM-dd') = #{params.createTimeStr}
+    </sql>
+
+    <sql id="getAllValuesDateFilter" databaseId="mysql">
+        and date_format(mn.Create_Time,'%Y-%m-%d') = #{params.createTimeStr}
+    </sql>
+
+    <select id="getSecInquiryRecordList" resultMap="selectSecInquiryRecord">
+        select sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Organize_Form as secOrganizeForm,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Start_Time as secStartTime,
+        sec.Sec_Bidding_Cycle as secBiddingCycle,
+        sec.Sec_Place as secPlace,
+        c1.C_Name as tendereeName,
+        c1.C_Abbreviation as tendereeAbbName,
+        c2.C_Name as sirIntendedUnitName,
+        c2.C_Abbreviation as sirIntendedUnitAbbName,
+        mn.*
+        from Sec_Inquiry_Record mn
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join SYS_Company c1 on c1.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c2 on c2.C_ID=mn.Sir_Intended_Unit
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.secId!=null and params.secId!=''">
+                    and mn.Sec_Id = #{params.secId}
+            </if>
+            <if test="params.secType!=null">
+                and sec.Sec_Type=#{params.secType}
+            </if>
+            <if test="params.secOrganizeForm!=null">
+                and sec.Sec_Organize_Form=#{params.secOrganizeForm}
+            </if>
+            <if test="params.secBiddingType!=null">
+                and sec.Sec_Bidding_Type=#{params.secBiddingType}
+            </if>
+            <if test="params.state!=null">
+                and mn.State=#{params.state}
+            </if>
+            <if test="params.sirPrerequisites!=null">
+                and INSTR(mn.Sir_Prerequisites,#{params.sirPrerequisites})
+            </if>
+            <if test="params.sirRemark!=null">
+                and INSTR(mn.Sir_Remark,#{params.sirRemark})
+            </if>
+            <if test="params.createUname!=null">
+                and INSTR(mn.Create_Uname,#{params.createUname})
+            </if>
+            <if test="params.secName!=null">
+                and INSTR(sec.Sec_Name,#{params.secName})
+            </if>
+            <if test="params.projectId!=null">
+                and mn.Sec_Id in (
+                Select sp.Sec_Id from Sec_Project sp
+                left join Pre_Project sppj on sppj.P_ID = sp.P_Id
+                where sppj.P_ID = #{params.projectId}
+                )
+            </if>
+            <if test="params.tendereeName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.tendereeName},c1.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c1.C_Name,#{params.tendereeName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.sirIntendedUnitName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.sirIntendedUnitName},c2.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c2.C_Name,#{params.sirIntendedUnitName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.secPlace!=null">
+                and INSTR(sec.Sec_Place,#{params.secPlace})
+            </if>
+            <if test="params.secTradingPlace!=null">
+                and INSTR(sec.Sec_Trading_Place,#{params.secTradingPlace})
+            </if>
+            <if test="params.sirConMoneyStart!=null">
+                and mn.Sir_Con_Money>=#{params.sirConMoneyStart}
+            </if>
+            <if test="params.sirConMoneyEnd!=null">
+                and mn.Sir_Con_Money&lt;=#{params.sirConMoneyEnd}
+            </if>
+            <if test="params.secStartTimeStart!=null">
+                and sec.Sec_Start_Time>=#{params.secStartTimeStart}
+            </if>
+            <if test="params.secStartTimeEnd!=null">
+                and sec.Sec_Start_Time&lt;=#{params.secStartTimeEnd}
+            </if>
+            <if test="params.secBiddingCycleStart!=null">
+                and sec.Sec_Bidding_Cycle>=#{params.secBiddingCycleStart}
+            </if>
+            <if test="params.secBiddingCycleEnd!=null">
+                and sec.Sec_Bidding_Cycle&lt;=#{params.secBiddingCycleEnd}
+            </if>
+            <if test="params.createTimeStart!=null">
+                and sec.Create_Time>=#{params.createTimeStart}
+            </if>
+            <if test="params.createTimeEnd!=null">
+                and sec.Create_Time&lt;=#{params.createTimeEnd}
+            </if>
+            <if test="params.pCompetentDepartmentName!=null or params.pName!=null ">
+                and mn.Sec_Id in (
+                Select sp.Sec_Id from Sec_Project sp
+                left join Pre_Project sppj on sppj.P_ID = sp.P_Id
+                left join SYS_Department dep on sppj.P_Competent_Department = dep.D_Id
+                <where>
+                    <if test="params.pId!=null">
+                        and sp.P_Id=#{params.pId}
+                    </if>
+                    <if test="params.pCompetentDepartmentName!=null">
+                        and INSTR(dep.D_Name,#{params.pCompetentDepartmentName})
+                    </if>
+                    <if test="params.pName!=null">
+                        <choose>
+                            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                                and likePname(#{params.pName},sppj.P_Id)=true
+                            </when>
+                            <otherwise>
+                                and INSTR(sppj.P_Name,#{params.pName})
+                            </otherwise>
+                        </choose>
+                    </if>
+                </where>
+                )
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getSecQuotationUnitBySirId"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecQuotationUnitVo">
+        select c1.C_Name         as cName,
+               c1.C_Abbreviation as cAbbName,
+               mn.*
+        from Sec_Quotation_Unit mn
+                 left join SYS_Company c1 on mn.C_Id = c1.C_Id
+        where mn.Sir_Id = #{sirId}
+    </select>
+</mapper>

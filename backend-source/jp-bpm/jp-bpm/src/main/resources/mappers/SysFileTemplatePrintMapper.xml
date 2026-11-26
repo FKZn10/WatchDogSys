@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.SysFileTemplatePrintMapper">
+
+    <resultMap type="com.jpmsoft.jpbpm.pojo.vo.SysFileTemplatePrintVo" id="FileTemplatePrintList">
+        <id column="TP_Id" property="tpId"/>
+        <collection property="fields" ofType="com.jpmsoft.jpbpm.pojo.vo.SysFileTemplateApiFieldVo"
+                    column="TP_Id" select="selectFileTemplateApiField">
+        </collection>
+    </resultMap>
+
+    <select id="selectFileTemplateApiField"
+            resultType="com.jpmsoft.jpbpm.pojo.vo.SysFileTemplateApiFieldVo">
+      select
+        mn.*
+       from  SYS_FileTemplate_Api_Field mn
+       where mn.Tp_Id=#{tpId}
+    </select>
+
+    <select id="getFileTemplatePrintList" resultMap="FileTemplatePrintList">
+        select
+        ft.T_Name as tName,
+        ft.T_Code as tCode,
+        ft.T_Type as tType,
+        mn.*
+        from  SYS_FileTemplate_Print mn
+        left join  SYS_FileTemplate ft on ft.T_Id=mn.T_Id
+        <where>
+            1=1
+            <if test="params.tType!=null">
+                and ft.T_Type = #{params.tType}
+            </if>
+            <if test="params.tId!=null">
+                and mn.T_Id = #{params.tId}
+            </if>
+            <if test="params.tpName!=null">
+                and INSTR(mn.Tp_Name,#{params.tpName})
+            </if>
+            <if test="params.tName!=null">
+                and INSTR(ft.T_Name,#{params.tName})
+            </if>
+            <if test="params.tCode!=null">
+                and INSTR(ft.T_Code,#{params.tCode})
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.tpState != null">
+                <choose>
+                    <when test="params.tpState == 1">
+                        and (mn.Tp_State = #{params.tpState} or mn.Tp_State is null)
+                    </when>
+                    <otherwise>
+                        and mn.Tp_State = #{params.tpState}
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by
+                (case when mn.Tp_Order is null or mn.Tp_Order = 0 then 1 else 0 end) asc,
+                mn.Tp_Order asc,
+                mn.Tp_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getFileTemplatePrintListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  SYS_FileTemplate_Print mn
+        left join  SYS_FileTemplate ft on ft.T_Id=mn.T_Id
+        <where>
+            1=1
+            <if test="params.tType!=null">
+                and ft.T_Type = #{params.tType}
+            </if>
+            <if test="params.tId!=null">
+                and mn.T_Id = #{params.tId}
+            </if>
+            <if test="params.tpName!=null">
+                and INSTR(mn.Tp_Name,#{params.tpName})
+            </if>
+            <if test="params.tName!=null">
+                and INSTR(ft.T_Name,#{params.tName})
+            </if>
+            <if test="params.tCode!=null">
+                and INSTR(ft.T_Code,#{params.tCode})
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.tpState != null">
+                <choose>
+                    <when test="params.tpState == 1">
+                        and (mn.Tp_State = #{params.tpState} or mn.Tp_State is null)
+                    </when>
+                    <otherwise>
+                        and mn.Tp_State = #{params.tpState}
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.removedTpIds != null and params.removedTpIds.size() > 0">
+                and mn.Tp_Id not in
+                <foreach collection="params.removedTpIds" item="tpId" open="(" separator="," close=")">
+                    #{tpId}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getTablePkName" resultType="java.lang.String">
+        select mn.Table_PK
+        from Sys_Table mn
+        where upper(mn.Table_Code) = upper(#{tableCode})
+    </select>
+
+    <select id="getTableDataByIds" resultType="java.util.Map">
+        select mn.*
+        from ${tableName} mn
+        where ${pkName} = #{entityId}
+    </select>
+
+    <select id="getTableDataByField" resultType="java.util.Map">
+        select mn.*
+        from ${tableName} mn
+        where ${fieldName} = #{fieldValue}
+        limit 1
+    </select>
+</mapper>

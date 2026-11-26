@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.acpm.AcpmDJTBDocumentsApprovalMapper">
+
+
+    <sql id="fieldMapping">
+        mn.id as id,
+        mn.Acp_id as acpid,
+        mn.Da_Code  as daCode,
+        mn.Da_BidBondMoney as daBidBondMoney,
+        mn.Da_Area as daArea,
+        mn.Da_TenderClosingTime as daTenderClosingTime,
+        mn.Da_Authorized_Agent as daAuthorizedAgent,
+        mn.Da_Authorized_Agent_Id as daAuthorizedAgentId,
+        mn.Da_SpecialInstructions as daSpecialInstructions,
+        mn.Create_Uid as createUid,
+        mn.Create_Uname as createUname,
+        mn.Create_Time as createTime,
+        mn.Update_Uid as updateUid,
+        mn.Update_Uname as updateUname,
+        mn.Update_Time as updateTime,
+        mn.State as state,
+        mn.State_Time as stateTime
+    </sql>
+
+
+    <sql id="listFilter">
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.state!=null">
+                and mn.State = #{params.state}
+            </if>
+            <if test="params.daAuthorizedAgent!=null">
+                and mn.Da_Authorized_Agent = #{params.daAuthorizedAgent}
+            </if>
+            <if test="params.daArea!=null">
+                and mn.Da_Area = #{params.daArea}
+            </if>
+            <if test="params.daCode!=null">
+                and mn.Da_Code like concat('%',#{params.daCode},'%')
+            </if>
+            <if test="params.daAuthorAgentName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and (likeCname(#{params.daAuthorAgentName},mn.Da_Authorized_Agent_Id)=true or vc1.C_Abbreviation like
+                        concat('%',#{params.daAuthorAgentName},'%'))
+                    </when>
+                    <otherwise>
+                        and (c1.C_Name like concat('%',#{params.daAuthorAgentName},'%') or c1.C_Abbreviation like
+                        concat('%',#{params.daAuthorAgentName},'%'))
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.piaCode!=null">
+                and pia.Pia_Code like concat('%',#{params.piaCode},'%')
+            </if>
+            <if test="params.piaName!=null">
+                and pia.Pia_Name like concat('%',#{params.piaName},'%')
+            </if>
+            <if test="params.createUname!=null">
+                and mn.Create_Uname like concat('%',#{params.createUname},'%')
+            </if>
+            <include refid="daTenderClosingTimeFilter"/>
+        </where>
+    </sql>
+
+    <select id="getById" resultType="com.jpmsoft.projectProducer.pojo.vo.acpm.AcpmDJTBDocumentsApprovalVo">
+        select
+        pia.Pia_Code as piaCode,
+        pia.Pia_Name as piaName,
+        pia.Pia_Area as piaArea,
+        pia.Pia_Type as piaType,
+        pia.Pia_Developer as piaDeveloper,
+        c1.C_Name as daAuthorAgentName,
+        c1.C_Abbreviation as daAuthorAgentAbbName,
+        f.file_relation_id as fileRelationId,
+        <include refid="fieldMapping"/>
+        from Acpm_DJTBDocumentsApproval mn
+        left join Acpm_ProjectInvestmentApproval pia on pia.id=mn.Acp_id
+        left join Sys_Company c1 on c1.C_Id=mn.Da_Authorized_Agent_Id
+        left join Sys_File f on f.FileID=mn.id
+        where mn.id=#{id}
+    </select>
+
+
+    <select id="getList" resultType="com.jpmsoft.projectProducer.pojo.vo.acpm.AcpmDJTBDocumentsApprovalVo">
+        select
+        pia.Pia_Code as piaCode,
+        pia.Pia_Name as piaName,
+        pia.Pia_Area as piaArea,
+        pia.Pia_Type as piaType,
+        pia.Pia_Developer as piaDeveloper,
+        c1.C_Name as daAuthorAgentName,
+        c1.C_Abbreviation as daAuthorAgentAbbName,
+        <include refid="fieldMapping"/>
+        from Acpm_DJTBDocumentsApproval mn
+        left join Acpm_ProjectInvestmentApproval pia on pia.id=mn.Acp_id
+        left join Sys_Company c1 on c1.C_Id=mn.Da_Authorized_Agent_Id
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Acpm_DJTBDocumentsApproval mn
+        left join Acpm_ProjectInvestmentApproval pia on pia.id=mn.Acp_id
+        left join Sys_Company c1 on c1.C_Id=mn.Da_Authorized_Agent_Id
+        <include refid="listFilter"/>
+    </select>
+
+
+    <sql id="daTenderClosingTimeFilter" databaseId="dm">
+        <if test="params.daTenderClosingTimeStart!=null">
+            and to_date(#{params.daTenderClosingTimeStart},'yyyy-MM-dd') &lt;=
+            to_date(mn.Da_TenderClosingTime,'yyyy-MM-dd')
+        </if>
+        <if test="params.daTenderClosingTimeEnd!=null">
+            and to_date(#{params.aTenderClosingTimeEnd},'yyyy-MM-dd') >=
+            to_date(mn.Da_TenderClosingTime,'yyyy-MM-dd')
+        </if>
+    </sql>
+
+
+    <sql id="daTenderClosingTimeFilter" databaseId="mysql">
+        <if test="params.daTenderClosingTimeStart!=null">
+            and date_format(#{params.daTenderClosingTimeStart},'%Y-%m-%d') &lt;=
+            date_format(mn.Da_TenderClosingTime,'%Y-%m-%d')
+        </if>
+        <if test="params.daTenderClosingTimeEnd!=null">
+            and date_format(#{params.aTenderClosingTimeEnd},'%Y-%m-%d') >=
+            date_format(mn.Da_TenderClosingTime,'%Y-%m-%d')
+        </if>
+    </sql>
+
+    <sql id="daTenderClosingTimeFilter" databaseId="postgre">
+        <if test="params.daTenderClosingTimeStart!=null">
+            and to_char(#{params.daTenderClosingTimeStart},'yyyy-MM-dd') &lt;=
+            to_char(mn.Da_TenderClosingTime,'yyyy-MM-dd')
+        </if>
+        <if test="params.daTenderClosingTimeEnd!=null">
+            and to_char(#{params.aTenderClosingTimeEnd},'yyyy-MM-dd') >=
+            to_char(mn.Da_TenderClosingTime,'yyyy-MM-dd')
+        </if>
+    </sql>
+
+</mapper>

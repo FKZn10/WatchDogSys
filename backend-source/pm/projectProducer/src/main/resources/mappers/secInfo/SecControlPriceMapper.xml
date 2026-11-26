@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecControlPriceMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecControlPriceResponse" id="getControlPrice">
+        <id column="Cp_Id" property="cpId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Cp_Id" select="getSecInfoProject">
+        </collection>
+        <collection property="secControlCpys" ofType="com.jpmsoft.common.model.request.SecInfo.SecControlCpyDto"
+                    column="Cp_Id" select="getSecControlCpy">
+        </collection>
+    </resultMap>
+
+    <select id="getSecControlCpy" resultType="com.jpmsoft.common.model.request.SecInfo.SecControlCpyDto">
+            select
+            mn.*
+            from Sec_Control_Cpy mn
+            where mn.Cp_Id=#{cpId}
+    </select>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Control_Price scp on scp.Sec_Id=sec.Sec_Id
+        where scp.Cp_Id=#{cpId}
+    </select>
+
+    <select id="getControlPriceBycpId" resultMap="getControlPrice">
+        select
+        c1.C_Name as cpAuditUnitName,
+        c3.C_Name as cpPreparedByName,
+        c4.C_Name as cpConsultingName,
+        c1.C_Abbreviation as cpAuditAbbName,
+        c3.C_Abbreviation as cpPreparAbbName,
+        sec.Sec_Type as secType,
+        sec.Sec_Name as secName,
+        sec.Sec_Other_Valuation as secOtherValuation,
+        sec.Sec_Pricing_Method as secPricingMethod,
+        sec.Sec_Money as secMoney,
+        scp.*
+        from  Sec_Control_Price scp
+        left join  Sec_Info sec on sec.Sec_Id=scp.Sec_Id
+        left join  SYS_Company c1 on scp.Cp_Audit_Unit=c1.C_Id
+        left join  SYS_Company c3 on scp.Cp_Prepared_By=c3.C_Id
+        left join  SYS_Company c4 on scp.Cp_Consulting_Id=c4.C_Id
+        where scp.Cp_Id=#{cpId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and scp.Te_Id = #{params.teId}
+        </if>
+        <if test="params.cpType!=null">
+            and scp.Cp_Type=#{params.cpType}
+        </if>
+        <if test="params.cpState!=null">
+            and scp.Cp_State=#{params.cpState}
+        </if>
+        <if test="params.cpConMode!=null">
+            and scp.Cp_Con_Mode=#{params.cpConMode}
+        </if>
+        <if test="params.cpCreateUname!=null">
+            and scp.Cp_Create_Uname like concat('%',#{params.cpCreateUname},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.cpConsultingName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.cpConsultingName},c4.C_Id)=true
+                </when>
+                <otherwise>
+                    and c4.C_Name like concat('%',#{params.cpConsultingName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.cpPreparedByName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.cpPreparedByName},c3.C_Id)=true
+                </when>
+                <otherwise>
+                    and c3.C_Name like concat('%',#{params.cpPreparedByName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.cpAuditUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.cpAuditUnitName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.cpAuditUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.cpPreparedPriceStart!=null">
+            and scp.Cp_Prepared_Price>#{params.cpPreparedPriceStart}
+        </if>
+        <if test="params.cpPreparedPriceEnd!=null">
+            and scp.Cp_Prepared_Price &lt; #{params.cpPreparedPriceEnd}
+        </if>
+        <if test="params.cpConstructPriceStart!=null">
+            and scp.Cp_Construct_Price>#{params.cpConstructPriceStart}
+        </if>
+        <if test="params.cpConstructPriceEnd!=null">
+            and scp.Cp_Construct_Price &lt; #{params.cpConstructPriceEnd}
+        </if>
+        <if test="params.cpEconomicIndicatorStart!=null">
+            and scp.Cp_Economic_Indicator>#{params.cpEconomicIndicatorStart}
+        </if>
+        <if test="params.cpEconomicIndicatorEnd!=null">
+            and scp.Cp_Economic_Indicator &lt; #{params.cpEconomicIndicatorEnd}
+        </if>
+        <if test="params.cpNonCompetitiveStart!=null">
+            and scp.Cp_Non_Competitive>#{params.cpNonCompetitiveStart}
+        </if>
+        <if test="params.cpNonCompetitiveEnd!=null">
+            and scp.Cp_Non_Competitive &lt; #{params.cpNonCompetitiveEnd}
+        </if>
+        <if test="params.cpCreateTimeStart!=null">
+            and scp.Cp_Create_Time>#{params.cpCreateTimeStart}
+        </if>
+        <if test="params.cpCreateTimeEnd!=null">
+            and scp.Cp_Create_Time &lt; #{params.cpCreateTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getControlPriceList" resultMap="getControlPrice">
+        select
+        c1.C_Name as cpAuditUnitName,
+        c3.C_Name as cpPreparedByName,
+        c4.C_Name as cpConsultingName,
+        c1.C_Abbreviation as cpAuditAbbName,
+        c3.C_Abbreviation as cpPreparAbbName,
+        c3.C_Name_History as cpPreparedByNameHistory,
+        sec.Sec_Name as secName,
+        scp.*
+        from  Sec_Control_Price scp
+        left join  Sec_Info sec on sec.Sec_Id=scp.Sec_Id
+        left join  SYS_Company c1 on scp.Cp_Audit_Unit=c1.C_Id
+        left join  SYS_Company c3 on scp.Cp_Prepared_By=c3.C_Id
+        left join  SYS_Company c4 on scp.Cp_Consulting_Id=c4.C_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by scp.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by scp.Cp_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getControlPriceListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  Sec_Control_Price scp
+        left join  Sec_Info sec on sec.Sec_Id=scp.Sec_Id
+        left join  SYS_Company c1 on scp.Cp_Audit_Unit=c1.C_Id
+        left join  SYS_Company c3 on scp.Cp_Prepared_By=c3.C_Id
+        left join  SYS_Company c4 on scp.Cp_Consulting_Id=c4.C_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+</mapper>

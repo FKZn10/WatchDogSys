@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecProcurementPlanAmountMapper">
+
+
+    <select id="getListByPpId"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.secInfo.SecProcurementPlanAmountDto">
+        SELECT * from Sec_Procurement_Plan_Amount where pp_id = #{ppId}
+    </select>
+
+    <select id="getPlanAmountByPid"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.secInfo.SecProcurementPlanAmount">
+        SELECT * from Sec_Procurement_Plan_Amount sppa left join Sec_Procurement_Plan spp on sppa.pp_id = spp.pp_Id
+        where spp.state!=3 and spp.p_id = #{pId}
+    </select>
+
+    <select id="getInvBudgetDeclareDtlByPpid"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.secInfo.SecProcurementPlanAmount">
+        SELECT * from Sec_Procurement_Plan_Amount sppa left join Sec_Procurement_Plan spp on sppa.pp_id = spp.pp_Id
+        where spp.state=7 and spp.pp_Id = #{ppId}
+    </select>
+
+    <select id="getInvBudgetDeclareDtlByBddIdList"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.secInfo.SecProcurementPlanAmount">
+        SELECT * from Sec_Procurement_Plan_Amount sppa left join Sec_Procurement_Plan spp on sppa.pp_id = spp.pp_Id
+        <where>
+             spp.state!=3
+             <if test="bddIdList != null and bddIdList.size()>0">
+                 and sppa.Bdd_Id in
+                 <foreach collection="bddIdList" item="item" index="index" open="(" separator="," close=")">
+                     #{item}
+                 </foreach>
+             </if>
+        </where>
+    </select>
+
+</mapper>

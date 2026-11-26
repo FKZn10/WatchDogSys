@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.zdyxy.ConstructionDrawingMapper">
+
+    <select id="getList" resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.ConstructionDrawingModel">
+        select mn.*, u.U_NAME as initiatingPersonName,c.C_NAME as initiatingUnitName
+        from construction_drawing mn
+        left join sys_user u on u.U_ID = mn.Initiating_Person
+        left join sys_company c on c.C_ID = mn.Initiating_Unit
+        ${params.authSql}
+        <if test="params.id != null">
+            and mn.id = #{params.id}
+        </if>
+        <if test="params.initiatingPerson != null">
+            and mn.Initiating_Person = #{params.initiatingPerson}
+        </if>
+        <if test="params.initiatingUnit != null">
+            and mn.Initiating_Unit = #{params.initiatingUnit}
+        </if>
+        <if test="params.initiatingPersonName != null and params.initiatingPersonName != ''">
+            and u.U_NAME like concat('%', #{params.initiatingPersonName}, '%')
+        </if>
+        <if test="params.initiatingUnitName != null and params.initiatingUnitName != ''">
+            and c.C_NAME like concat('%', #{params.initiatingUnitName}, '%')
+        </if>
+        <if test="params.state != null">
+            and mn.state = #{params.state}
+        </if>
+        <if test="params.initiatingPersonPhone!= null and params.initiatingPersonPhone != ''">
+            and mn.Initiating_Person_Phone like concat('%', #{params.initiatingPersonPhone}, '%')
+        </if>
+        <if test="params.constructionDrawingCode != null and params.constructionDrawingCode != ''">
+            and mn.Construction_Drawing_Code like concat('%', #{params.constructionDrawingCode}, '%')
+        </if>
+        <if test="params.createTimeRange!=null and params.createTimeRange.size() > 1">
+            and mn.Create_Time between #{params.createTimeRange[0]} and #{params.createTimeRange[1]}
+        </if>
+        <if test="params.isSelect != null and params.isSelect==1">
+            and mn.id not in (select distinct
+            mr.Mr_Report_Construction_Drawing_Id from maintenance_record mr where mr.Mr_State!=3)
+        </if>
+        <if test="params.constructionDrawingName != null and params.constructionDrawingName != ''">
+            and mn.Construction_Drawing_Name like concat('%', #{params.constructionDrawingName}, '%')
+        </if>
+        order by mn.Create_Time desc
+    </select>
+
+    <select id="getDetail"
+            resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.ConstructionDrawingModel">
+        select mn.*, u.U_NAME as initiatingPersonName,c.C_NAME as initiatingUnitName
+        from construction_drawing mn
+        left join sys_user u on u.U_ID = mn.Initiating_Person
+        left join sys_company c on c.C_ID = mn.Initiating_Unit
+        where mn.id = #{id}
+    </select>
+</mapper>

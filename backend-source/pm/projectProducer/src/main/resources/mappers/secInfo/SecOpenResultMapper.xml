@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecOpenResultMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecOpenResultResponse"
+               id="SecOpenResult">
+        <id column="Or_Id" property="orId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Or_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecOpenResultResponse"
+               id="SecOpenResultById">
+        <id column="Or_Id" property="orId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Or_Id" select="getSecInfoProject">
+        </collection>
+        <collection property="secOpenResultLists"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecOpenResultListModel"
+                    column="Or_Id" select="getOpenResultLists">
+        </collection>
+        <collection property="secOpenResultCandidateList"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecOpenResultCandidateModel"
+                    column="Or_Id" select="getOpenResultCandidate">
+        </collection>
+    </resultMap>
+
+    <select id="getOpenResultLists"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecOpenResultListModel">
+         select
+         mn.*
+         from   Sec_Open_Result_List mn
+         where mn.Or_Id=#{orId}
+    </select>
+
+    <select id="getOpenResultCandidate" resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecOpenResultCandidateModel">
+        select
+            mn.*
+        from   Sec_Open_Result_Candidate mn
+        where mn.Or_Id=#{orId}  order by mn.orc_group_num asc , mn.orc_sort asc
+    </select>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Open_Result sd on sd.Sec_Id=sec.Sec_Id
+        where sd.Or_Id=#{orId}
+    </select>
+
+
+    <select id="getSecOpenResultById" resultMap="SecOpenResultById">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Type as secType,
+        sec.Sec_Organize_Form as secOrganizeForm,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Start_Time as secStartTime,
+        sec.Sec_Bidding_Cycle as secBiddingCycle,
+        sec.Sec_Place as secPlace,
+        c4.C_Name as tendereeName,
+        c6.C_Name as secAgencyName,
+        c4.C_Abbreviation as tendereeAbbName,
+        sd.D_Amount as dAmount,
+        f.file_relation_id as fileRelationId,
+        <include refid="getProCompetentDepartment"/>
+        mn.*
+        from Sec_Open_Result mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join Sys_File f on f.FileID=mn.Or_Id
+        left join SYS_Company c4 on c4.C_ID=sec.Sec_Tenderee
+        left join Sys_Company c6 on c6.C_Id=sec.Sec_Agency
+        left join Sec_Document sd on mn.Sec_Id=sd.Sec_Id and sd.D_State=7
+        where mn.Or_Id=#{orId}
+        order by sd.D_Create_Time desc limit 1
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and EXISTS (
+            SELECT 1 FROM sec_Project sp WHERE sp.Sec_Id = mn.Sec_Id
+            AND sp.P_Id = #{params.pId}
+            )
+        </if>
+        <if test="params.orBidMethod!=null">
+            and mn.Or_Bid_Method = #{params.orBidMethod}
+        </if>
+        <if test="params.secBiddingType!=null">
+            and sec.Sec_Bidding_Type = #{params.secBiddingType}
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.orBulletinPlatform!=null">
+            and mn.Or_Bulletin_Platform like concat('%',#{params.orBulletinPlatform},'%')
+        </if>
+        <if test="params.orCandidateOne!=null">
+            and mn.Or_Candidate_One like concat('%',#{params.orCandidateOne},'%')
+        </if>
+        <if test="params.orCandidateTwo!=null">
+            and mn.Or_Candidate_Two like concat('%',#{params.orCandidateTwo},'%')
+        </if>
+        <if test="params.orCandidateThree!=null">
+            and mn.Or_Candidate_Three like concat('%',#{params.orCandidateThree},'%')
+        </if>
+        <if test="params.orProcurementAgencyName!=null">
+            and mn.Or_Procurement_Agency_Name like concat('%',#{params.orProcurementAgencyName},'%')
+        </if>
+        <if test="params.orPlaceBidOpening!=null">
+            and mn.Or_Place_Bid_Opening like concat('%',#{params.orPlaceBidOpening},'%')
+        </if>
+        <if test="params.orCreateUname!=null">
+            and mn.Or_Create_Uname like concat('%',#{params.orCreateUname},'%')
+        </if>
+        <!--区间筛选-->
+        <if test="params.orCreateTimeStart!=null">
+            and mn.Or_Create_Time > #{params.orCreateTimeStart}
+        </if>
+        <if test="params.orCreateTimeEnd!=null">
+            and mn.Or_Create_Time &lt; #{params.orCreateTimeEnd}
+        </if>
+        <if test="params.orOpenDateStart!=null">
+            and mn.Or_Open_Date > #{params.orOpenDateStart}
+        </if>
+        <if test="params.orOpenDateEnd!=null">
+            and mn.Or_Open_Date &lt; #{params.orOpenDateEnd}
+        </if>
+        <if test="params.orBulletinStartStart!=null">
+            and mn.Or_Bulletin_Start > #{params.orBulletinStartStart}
+        </if>
+        <if test="params.orBulletinStartEnd!=null">
+            and mn.Or_Bulletin_Start &lt; #{params.orBulletinStartEnd}
+        </if>
+        <if test="params.orBulletinEndStart!=null">
+            and mn.Or_Bulletin_End > #{params.orBulletinEndStart}
+        </if>
+        <if test="params.orBulletinEndEnd!=null">
+            and mn.Or_Bulletin_End &lt; #{params.orBulletinEndEnd}
+        </if>
+        <if test="params.orApplyNumStart!=null">
+            and mn.Or_Apply_Num > #{params.orApplyNumStart}
+        </if>
+        <if test="params.orApplyNumEnd!=null">
+            and mn.Or_Apply_Num &lt; #{params.orApplyNumEnd}
+        </if>
+        <if test="params.orValidQuoteStart!=null">
+            and mn.Or_Valid_Quote > #{params.orValidQuoteStart}
+        </if>
+        <if test="params.orValidQuoteEnd!=null">
+            and mn.Or_Valid_Quote &lt; #{params.orValidQuoteEnd}
+        </if>
+        <if test="params.orQuoteOneStart!=null">
+            and mn.Or_Quote_One > #{params.orQuoteOneStart}
+        </if>
+        <if test="params.orQuoteOneEnd!=null">
+            and mn.Or_Quote_One &lt; #{params.orQuoteOneEnd}
+        </if>
+        <if test="params.orQuoteTwoStart!=null">
+            and mn.Or_Quote_Two > #{params.orQuoteTwoStart}
+        </if>
+        <if test="params.orQuoteTwoEnd!=null">
+            and mn.Or_Quote_Two &lt; #{params.orQuoteTwoEnd}
+        </if>
+        <if test="params.orQuoteThreeStart!=null">
+            and mn.Or_Quote_Three > #{params.orQuoteThreeStart}
+        </if>
+        <if test="params.orQuoteThreeEnd!=null">
+            and mn.Or_Quote_Three &lt; #{params.orQuoteThreeEnd}
+        </if>
+        <if test="params.orBulletinResStartStart!=null">
+            and mn.Or_Bulletin_Res_Start > #{params.orBulletinResStartStart}
+        </if>
+        <if test="params.orBulletinResStartEnd!=null">
+            and mn.Or_Bulletin_Res_Start &lt; #{params.orBulletinResStartEnd}
+        </if>
+        <if test="params.orBulletinResEndStart!=null">
+            and mn.Or_Bulletin_Res_End > #{params.orBulletinResEndStart}
+        </if>
+        <if test="params.orBulletinResEndEnd!=null">
+            and mn.Or_Bulletin_Res_End &lt; #{params.orBulletinResEndEnd}
+        </if>
+        <if test="params.secBiddingCycleStart!=null">
+            and sec.Sec_Bidding_Cycle > #{params.secBiddingCycleStart}
+        </if>
+        <if test="params.secBiddingCycleEnd!=null">
+            and sec.Sec_Bidding_Cycle &lt; #{params.secBiddingCycleEnd}
+        </if>
+    </sql>
+
+    <select id="getSecOpenResultList" resultMap="SecOpenResult">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        mn.*
+        from Sec_Open_Result mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Or_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecOpenResultListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Open_Result mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+
+
+    <select id="getSecOpenResultListOne2Many"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecOpenResultResponse">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Bidding_Cycle as secBiddingCycle,
+        <include refid="projectInfo"/>
+        mn.*
+        from Sec_Open_Result mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="pNameFilter"/>
+        order by pId asc
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecOpenResultListOne2ManyCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Open_Result mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="pNameFilter"/>
+    </select>
+
+
+    <sql id="getProCompetentDepartment">
+         (
+	        select
+	        sd.D_Name
+	        from Pre_Project pro
+	        left join Sec_Project sp on pro.P_Id=sp.P_Id
+	        left join Sys_Department sd on sd.D_Id=pro.P_Competent_Department
+	        where sd.D_Name is not null and sp.Sec_Id=mn.Sec_Id limit 1
+        ) as pCompetentDepartmentName,
+    </sql>
+
+    <!--************************************* dm *************************************-->
+    <sql id="projectInfo" databaseId="dm">
+      (select wm_concat(P_Id) from Sec_Project where Sec_Id=mn.Sec_Id) as pId,
+      (select wm_concat(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="dm">
+        <if test="params.pName!=null">
+            and (select wm_concat(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=mn.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+
+
+    <!--************************************* postgre *************************************-->
+    <sql id="projectInfo" databaseId="postgre">
+        (select string_agg(P_Id,',') from Sec_Project where Sec_Id = mn.Sec_Id)
+        as pId,
+      (select string_agg(pro.P_Name,',') from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="postgre">
+        <if test="params.pName!=null">
+            and (select string_agg(pro.P_Name,',') from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=mn.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+
+    <!--************************************* mysql *************************************-->
+    <sql id="projectInfo" databaseId="mysql">
+      (select GROUP_CONCAT(P_Id) from Sec_Project where Sec_Id=mn.Sec_Id) as pId,
+      (select GROUP_CONCAT(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="mysql">
+        <if test="params.pName!=null">
+            and (select GROUP_CONCAT(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=mn.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+</mapper>

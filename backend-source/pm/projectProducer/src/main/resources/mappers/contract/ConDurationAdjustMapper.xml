@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConDurationAdjustMapper">
+
+    <select id="getConDurationAdjustById" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConDurationAdjustVo">
+        select pro.P_Name          as pName,
+               con.Con_Name        as conName,
+               con.Con_Money_Total as conMoneyTotal,
+               con.Con_Party_A_Id  as conPartyAId,
+               con.Con_Party_B_Id  as conPartyBId,
+               c1.C_Name           as conPartyAName,
+               c2.C_Name           as conPartyBName,
+               c3.C_Name           as daSupervisorName,
+               f.File_Relation_Id  as fileRelationId,
+               c4.C_Name           as conBName,
+               mn.*
+        from Con_Duration_Adjust mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company c1 on c1.C_Id = con.Con_Party_A_Id
+                 left join SYS_Company c2 on c2.C_Id = con.Con_Party_B_Id
+                 left join SYS_Company c3 on c3.C_Id = mn.Da_Supervisor
+                 left join SYS_Company c4 on c4.C_Id = mn.con_b_id
+                 left join SYS_File f on f.fileId = mn.id
+        where mn.id = #{id}
+    </select>
+
+    <select id="getConDurationAdjustConMoneySum" resultType="BigDecimal">
+        select
+        sum(con.Con_Money_Total)
+        from Con_Duration_Adjust mn
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id = con.Con_Party_A_Id
+        left join SYS_Company c2 on c2.C_Id = con.Con_Party_B_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Da_Supervisor
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+    <select id="getConDurationAdjustList" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConDurationAdjustVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Party_A_Id as conPartyAId,
+        con.Con_Party_B_Id as conPartyBId,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyBName,
+        c3.C_Name as daSupervisorName,
+        c4.C_Name as conBName,
+        mn.*
+        from Con_Duration_Adjust mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id = con.Con_Party_A_Id
+        left join SYS_Company c2 on c2.C_Id = con.Con_Party_B_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Da_Supervisor
+        left join SYS_Company c4 on c4.C_Id = mn.con_b_id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilter">
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pId!=null">
+                and mn.P_Id=#{params.pId}
+            </if>
+            <if test="params.daReason!=null">
+                and mn.Da_Reason=#{params.daReason}
+            </if>
+            <if test="params.conId!=null">
+                and mn.Con_Id=#{params.conId}
+            </if>
+            <if test="params.state!=null">
+                and mn.State=#{params.state}
+            </if>
+            <if test="params.daType!=null">
+                and mn.Da_Type=#{params.daType}
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    <if test="params.conPartyAName!=null">
+                        and likeCname(#{params.conPartyAName},c1.C_Id)=true
+                    </if>
+                    <if test="params.conPartyBName!=null">
+                        and likeCname(#{params.conPartyBName},c2.C_Id)=true
+                    </if>
+                    <if test="params.daSupervisorName!=null">
+                        and likeCname(#{params.daSupervisorName},c3.C_Id)=true
+                    </if>
+                    <if test="params.conBName!=null">
+                        and likeCname(#{params.conBName},c4.C_Id)=true
+                    </if>
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.conPartyAName!=null">
+                        and INSTR(c1.C_Name,#{params.conPartyAName})
+                    </if>
+                    <if test="params.conPartyBName!=null">
+                        and INSTR(c2.C_Name,#{params.conPartyBName})
+                    </if>
+                    <if test="params.daSupervisorName!=null">
+                        and INSTR(c3.C_Name,#{params.daSupervisorName})
+                    </if>
+                    <if test="params.conBName!=null">
+                        and INSTR(c4.C_Name,#{params.conBName})
+                    </if>
+                    <if test="params.pName!=null">
+                        and INSTR(pro.P_Name,#{params.pName})
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.createUname!=null">
+                and INSTR(mn.Create_Uname,#{params.createUname})
+            </if>
+            <if test="params.conName!=null">
+                and INSTR(con.Con_Name,#{params.conName})
+            </if>
+    </sql>
+</mapper>

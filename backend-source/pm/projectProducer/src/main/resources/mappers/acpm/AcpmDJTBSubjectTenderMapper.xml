@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.acpm.AcpmDJTBSubjectTenderMapper">
+
+    <select id="getByDaId" resultType="com.jpmsoft.projectProducer.pojo.vo.acpm.AcpmDJTBSubjectTenderVo">
+        select
+        c1.C_Name as cName,
+        c1.C_Abbreviation as cAbbName,
+        mn.Das_Id as dasId,
+        mn.Da_Id  as daId,
+        mn.C_Id  as  cId,
+        mn.Das_Sort  as dasSort
+        from Acpm_DJTBSubjectTender mn
+        left join Sys_Company c1 on c1.C_Id=mn.C_Id
+        where mn.Da_Id=#{daId}
+        order by  mn.Das_Sort asc
+    </select>
+
+
+    <select id="getBathByDaIds" resultType="com.jpmsoft.projectProducer.pojo.vo.acpm.AcpmDJTBSubjectTenderVo">
+        select
+        c1.C_Name as cName,
+        c1.C_Abbreviation as cAbbName,
+        mn.Das_Id as dasId,
+        mn.Da_Id as daId,
+        mn.C_Id as cId,
+        mn.Das_Sort as dasSort
+        from Acpm_DJTBSubjectTender mn
+        left join Sys_Company c1 on c1.C_Id=mn.C_Id
+        where mn.Da_Id in
+        <foreach collection="daIds" open="(" close=")" item="daId" separator=",">
+            #{daId}
+        </foreach>
+        order by mn.Das_Sort asc
+    </select>
+
+</mapper>

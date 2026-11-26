@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecContractSignPleaseReviewMapper">
+
+
+    <select id="getContractSignPleaseReviewList"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecContractSignPleaseReviewResponse">
+        select * from sec_contract_sign_please_review
+        <where>
+            <if test="params.csprReviewMatter != null and params.csprReviewMatter != ''">
+                and cspr_review_matter like concat('%',#{params.csprReviewMatter},'%')
+            </if>
+            <if test="params.csprApprovalUnit != null and params.csprApprovalUnit != ''">
+                and cspr_approval_unit like concat('%',#{params.csprApprovalUnit},'%')
+            </if>
+            <if test="params.csprApprovalContent != null and params.csprApprovalContent != ''">
+                and cspr_approval_content like concat('%',#{params.csprApprovalContent},'%')
+            </if>
+            <if test="params.secId != null and params.secId != ''">
+                and secId = #{params.secId}
+            </if>
+            <if test="params.state != null">
+                and state = #{params.state}
+            </if>
+            <if test="params.createUname != null and params.createUname != ''">
+                and create_uname like concat('%',#{params.createUname},'%')
+            </if>
+        </where>
+    </select>
+
+    <select id="getContractSignPleaseReviewById"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecContractSignPleaseReviewResponse">
+        select sec.Sec_Type as secType,
+               sec.Sec_Name as secName,
+               sec.Sec_Other_Valuation as secOtherValuation,
+               sec.Sec_Pricing_Method as secPricingMethod,
+               sec.Sec_Money as secMoney,
+               scspr.*
+        from sec_contract_sign_please_review   scspr
+        left join  Sec_Info sec on sec.Sec_Id=scspr.Sec_Id
+        where scspr.cspr_id = #{csprId}
+    </select>
+
+</mapper>

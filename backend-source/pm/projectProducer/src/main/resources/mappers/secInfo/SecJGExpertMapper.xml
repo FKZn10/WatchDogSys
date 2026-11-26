@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecJGExpertMapper">
+
+
+    <select id="getSecExpertList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecJGExpertModel">
+        select
+        f.file_relation_id as fileRelationId,
+        c1.C_Name as cName,
+        c1.C_Abbreviation as cAbbName,
+        c1.C_Name_History as cNameHistory,
+        c2.C_Name as exApplicantCName,
+        u1.U_Name as exApplicantName,
+        mn.*
+        from Sec_JG_Expert mn
+        left join Sys_Company c1 on c1.C_Id=mn.C_Id
+        left join Sys_User u1 on u1.U_Id = mn.Ex_Applicant_Id
+        left join Sys_Company c2 on c2.C_Id = u1.C_Id
+        left join Sys_File f on f.FileID=mn.id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ex_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getSecJGExpertById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecJGExpertModel">
+        select f.file_relation_id as fileRelationId,
+               c1.C_Name          as cName,
+               c1.C_Abbreviation  as cAbbName,
+               c1.C_Name_History  as cNameHistory,
+               c2.C_Name          as exApplicantCName,
+               u1.U_Name          as exApplicantName,
+               mn.*
+        from Sec_JG_Expert mn
+                 left join Sys_Company c1 on c1.C_Id = mn.C_Id
+                 left join Sys_User u1 on u1.U_Id = mn.Ex_Applicant_Id
+                 left join Sys_Company c2 on c2.C_Id = u1.C_Id
+                 left join Sys_File f on f.FileID = mn.id
+        where mn.id = #{exId}
+    </select>
+
+    <select id="getExpertListByIds"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecJGExpertModel">
+        select
+        c1.C_Name as cName,
+        c1.C_Abbreviation as cAbbName,
+        c1.C_Name_History as cNameHistory,
+        mn.*
+        from Sec_JG_Expert mn
+        left join Sys_Company c1 on c1.C_Id=mn.C_Id
+        where mn.id in
+        <foreach collection="ids" separator="," open="(" close=")" item="id">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="getExtractExpertList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecJGExpertModel">
+        select
+        c1.C_Name as cName,
+        c1.C_Abbreviation as cAbbName,
+        c1.C_Name_History as cNameHistory,
+        mn.*
+        from Sec_JG_Expert mn
+        left join Sys_Company c1 on c1.C_Id=mn.C_Id
+        <where>
+            <if test="exInsideType!=null">
+                mn.Ex_Inside_Type = #{exInsideType}
+            </if>
+            <if test="excludeIds!=null and excludeIds.size()>0">
+                and mn.id not in
+                <foreach collection="excludeIds" open="(" close=")" item="id" separator=",">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="avoidCompanyIds!=null and avoidCompanyIds.size()>0">
+                and (mn.C_Id not in
+                <foreach collection="avoidCompanyIds" open="(" close=")" item="id" separator=",">
+                    #{id}
+                </foreach>
+                or mn.C_Id is null)
+            </if>
+            <if test="teId!=null">
+                and mn.Te_Id = #{teId}
+            </if>
+            <if test="monStart!=null and monEnd!=null and monthExNum!=null">
+                and (select count(*) from Sec_JG_Selection_Record_Dtl srd
+                  left join Sec_JG_Selection_Record sr on sr.id=srd.Sr_Id where sr.State!=3
+                and srd.Ex_Id=mn.id and srd.Srd_Attend=true and srd.Srd_Confirm_Time>=#{monStart}
+                and srd.Srd_Confirm_Time&lt;=#{monEnd}
+                ) &lt;=#{monthExNum}
+            </if>
+            and mn.Ex_Status=1 and mn.Ex_State=7
+        </where>
+    </select>
+
+    <select id="getByExIdNumberSecJgExpert"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.secInfo.SecJGExpert">
+         select * from Sec_JG_Expert
+        <where>
+             Ex_State!=3
+             <if test="idNumberList!=null and idNumberList.size()>0">
+                 and Ex_Plaintext_Num in
+                  <foreach collection="idNumberList" open="(" separator="," close=")" item="item" index="index">
+                     #{item}
+                  </foreach>
+             </if>
+        </where>
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.cId!=null">
+            and mn.C_Id = #{params.cId}
+        </if>
+        <if test="params.exState!=null">
+            and mn.Ex_State = #{params.exState}
+        </if>
+        <if test="params.exInsideType!=null">
+            and mn.Ex_Inside_Type = #{params.exInsideType}
+        </if>
+        <if test="params.exEntry!=null">
+            and mn.Ex_Entry = #{params.exEntry}
+        </if>
+        <if test="params.exSex!=null">
+            and mn.Ex_Sex = #{params.exSex}
+        </if>
+        <if test="params.exIdType!=null">
+            and mn.Ex_Id_Type = #{params.exIdType}
+        </if>
+        <if test="params.exWorkState!=null">
+            and mn.Ex_Work_State = #{params.exWorkState}
+        </if>
+        <if test="params.exProfessionalCategory!=null">
+            and mn.Ex_Professional_Category = #{params.exProfessionalCategory}
+        </if>
+        <if test="params.exCategory!=null">
+            and mn.Ex_Category = #{params.exCategory}
+        </if>
+        <if test="params.exStatus!=null">
+            and mn.Ex_Status = #{params.exStatus}
+        </if>
+        <if test="params.exApplicantId!=null">
+            and mn.Ex_Applicant_Id = #{params.exApplicantId}
+        </if>
+        <if test="params.exApplicantCId!=null">
+            and c2.C_ID = #{params.exApplicantCId}
+        </if>
+        <if test="params.exCreateUname!=null">
+            and mn.Ex_Create_Uname like concat('%',#{params.exCreateUname},'%')
+        </if>
+        <if test="params.exCellphoneNumber!=null">
+            and (
+            mn.Ex_Cellphone_Number1 like concat('%',#{params.exCellphoneNumber},'%')
+            or
+            mn.Ex_Cellphone_Number2 like concat('%',#{params.exCellphoneNumber},'%')
+            )
+        </if>
+        <if test="params.exIndustry!=null">
+            and mn.Ex_Industry like concat('%',#{params.exIndustry},'%')
+        </if>
+        <if test="params.exPracticeCode!=null">
+            and mn.Ex_Practice_Code like concat('%',#{params.exPracticeCode},'%')
+        </if>
+        <if test="params.exPost!=null">
+            and mn.Ex_Post like concat('%',#{params.exPost},'%')
+        </if>
+        <if test="params.exTitle!=null">
+            and mn.Ex_Title like concat('%',#{params.exTitle},'%')
+        </if>
+        <if test="params.exTitleNumber!=null">
+            and mn.Ex_Title_Number like concat('%',#{params.exTitleNumber},'%')
+        </if>
+        <if test="params.exWorkUnit!=null">
+            and mn.Ex_Work_Unit like concat('%',#{params.exWorkUnit},'%')
+        </if>
+        <if test="params.exSchool!=null">
+            and mn.Ex_School like concat('%',#{params.exSchool},'%')
+        </if>
+        <if test="params.exMajor!=null">
+            and mn.Ex_Major like concat('%',#{params.exMajor},'%')
+        </if>
+        <if test="params.exEducation!=null">
+            and mn.Ex_Education like concat('%',#{params.exEducation},'%')
+        </if>
+        <if test="params.exPolitics!=null">
+            and mn.Ex_Politics like concat('%',#{params.exPolitics},'%')
+        </if>
+        <if test="params.exLocation!=null">
+            and mn.Ex_Location like concat('%',#{params.exLocation},'%')
+        </if>
+        <if test="params.exIdNumber!=null">
+            and mn.Ex_Plaintext_Num like concat('%',#{params.exIdNumber},'%')
+        </if>
+        <if test="params.exName!=null">
+            and mn.Ex_Name like concat('%',#{params.exName},'%')
+        </if>
+        <if test="params.exType!=null">
+            and mn.Ex_Type like concat('%',#{params.exType},'%')
+        </if>
+        <if test="params.cName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.cName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.cName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.cNameHistory!=null">
+            and c1.C_Name_History like concat('%',#{params.cNameHistory},'%')
+        </if>
+    </sql>
+
+
+</mapper>

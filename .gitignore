@@ -1,0 +1,9 @@
+/private/
+/logs/
+/run/
+*.local.sql
+.env.local
+.env.*.local
+node_modules/
+target/
+*.log

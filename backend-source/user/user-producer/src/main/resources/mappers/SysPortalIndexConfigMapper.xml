@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysPortalIndexConfigMapper">
+
+    <select id="getSysPortalIndexConfigList" resultType="com.jpmsoft.userProducer.pojo.dto.SysPortalIndexConfigDto">
+        select
+            mn.*
+        from sys_portal_index_config mn
+        where 1=1
+        <if test="params.createUid != null">
+            and mn.Create_Uid = #{params.createUid}
+        </if>
+        <if test="params.state != null">
+            and mn.state = #{params.state}
+        </if>
+        <if test="params.portalState != null">
+            and mn.Portal_State = #{params.portalState}
+        </if>
+        <if test="params.createUname != null">
+            and mn.Create_Uname like concat('%',#{params.createUname},'%')
+        </if>
+        <if test="params.portalName != null">
+            and mn.Portal_Name like concat('%',#{params.portalName},'%')
+        </if>
+        <if test="params.portalCode != null">
+            and mn.Portal_Code like concat('%',#{params.portalCode},'%')
+        </if>
+        <if test="params.systemIdentifier != null and params.systemIdentifier != ''">
+            and mn.System_Identifier = #{params.systemIdentifier}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="queryRoleListByUid" resultType="com.jpmsoft.userProducer.pojo.entity.SysRole">
+        SELECT r.*
+        FROM SYS_Role r
+        WHERE EXISTS (
+            SELECT 1
+            FROM SYS_Position_Role pr
+                     JOIN SYS_Position_User pu ON pu.P_ID = pr.P_ID
+            WHERE pr.Role_ID = r.Role_ID
+              AND pu.U_ID = #{uid}
+        )
+           OR EXISTS (
+            SELECT 1
+            FROM SYS_PositionP_Role ppr
+                     JOIN SYS_Position_User_P pup ON pup.PP_ID = ppr.PP_ID
+            WHERE ppr.Role_ID = r.Role_ID
+              AND pup.U_ID = #{uid}
+        )
+    </select>
+</mapper>

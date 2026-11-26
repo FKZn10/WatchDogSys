@@ -1,0 +1,642 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConEcFeeMapper">
+    <!--*********************************************清标*********************************************-->
+    <select id="getConEcFeeClearList" resultType="com.jpmsoft.common.model.response.Contract.ConEcFeeResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name as ecfContractorName,
+        c2.C_Name as ecfSupervisorName,
+        c3.C_Name as ecfApplyUnitName,
+        c1.C_Name_History as ecfContractorNameHistory,
+        c2.C_Name_History as ecfSupervisorNameHistory,
+        c1.C_Abbreviation as ecfContractorAbbName,
+        c2.C_Abbreviation as ecfSupervisorAbbName,
+        c3.C_Abbreviation as ecfApplyUnitAbbName,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        mn.*
+        from Con_EC_Fee mn
+        left join SYS_Company c1 on mn.Ecf_Contractor=c1.C_Id
+        left join SYS_Company c2 on mn.Ecf_Supervisor=c2.C_Id
+        left join SYS_Company c3 on mn.Ecf_Apply_Unit=c3.C_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        and mn.Ecf_Type='02'
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ecf_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getConEcFeeClearById" resultType="com.jpmsoft.common.model.response.Contract.ConEcFeeResponse">
+        select c1.C_Name           as ecfContractorName,
+               c2.C_Name           as ecfSupervisorName,
+               c3.C_Name           as ecfApplyUnitName,
+               c1.C_Abbreviation   as ecfContractorAbbName,
+               c2.C_Abbreviation   as ecfSupervisorAbbName,
+               c3.C_Abbreviation   as ecfApplyUnitAbbName,
+               con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               con.Con_Money_Total as conMoneyTotal,
+               pro.P_Name          as pName,
+               pro.P_Id            as pId,
+               mn.*
+        from Con_EC_Fee mn
+                 left join SYS_Company c1 on mn.Ecf_Contractor = c1.C_Id
+                 left join SYS_Company c2 on mn.Ecf_Supervisor = c2.C_Id
+                 left join SYS_Company c3 on mn.Ecf_Apply_Unit = c3.C_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_ID = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        where mn.Ecf_Id = #{id}
+          and mn.Ecf_Type = '02'
+    </select>
+
+    <!--*********************************************变更费用申报*********************************************-->
+
+    <select id="getConEcFeeApplyMoneySum" resultType="BigDecimal">
+        select (select sum(case when Ecf_Apply_Money_Type = 1 then Ecf_Apply_Money else -abs(Ecf_Apply_Money) end)
+                from Con_EC_Fee
+                where Ecf_Type = '02'
+                  and Con_Id = #{conId}
+                  and Ecf_State = 7) +
+               (select sum(case when Ecf_Apply_Money_Type = 1 then Ecf_Apply_Money else -abs(Ecf_Apply_Money) end)
+                from Con_EC_Fee mn
+                         left join Con_EC ce on ce.Ec_Id = mn.Ec_Id
+                where Ecf_Type = '01'
+                  and ce.Con_Id = #{conId}
+                  and Ecf_State = 7)
+    </select>
+
+
+    <select id="getConEcFeeByEcfId" resultType="com.jpmsoft.common.model.response.Contract.ConEcFeeResponse">
+        select c1.C_Name            as ecfContractorName,
+               c2.C_Name            as ecfSupervisorName,
+               c3.C_Name            as ecfApplyUnitName,
+               c1.C_Abbreviation    as ecfContractorAbbName,
+               c2.C_Abbreviation    as ecfSupervisorAbbName,
+               c3.C_Abbreviation    as ecfApplyUnitAbbName,
+               con.Con_Name         as conName,
+               con.Con_Code         as conCode,
+               con.Con_Money_Total  as conMoneyTotal,
+               pro.P_Name           as pName,
+               pro.P_Id             as pId,
+               ce.Ec_Code           as ecCode,
+               ce.Ec_Apply_Money    as ecApplyMoney,
+               ce.Ec_Main_Cause     as ecMainCause,
+               ce.Ec_Part           as ecPart,
+               ce.Ec_Reason         as ecReason,
+               dco.Dco_Name         as dcoName,
+               dco.Dco_Code         as dcoCode,
+               dco.Dco_Project_Name as dcoProjectName,
+               dco.Dco_Major        as dcoMajor,
+               (select cdb.Dcb_Estimate_Amt from Con_Dc_Budget cdb where cdb.Dco_Id = mn.Dco_Id and cdb.Dcb_State = 7
+                limit 1)   as dcbEstimateAmt,
+               mn.*
+        from Con_EC_Fee mn
+                 left join SYS_Company c1 on mn.Ecf_Contractor = c1.C_Id
+                 left join SYS_Company c2 on mn.Ecf_Supervisor = c2.C_Id
+                 left join SYS_Company c3 on mn.Ecf_Apply_Unit = c3.C_Id
+                 left join Con_EC ce on ce.Ec_Id = mn.Ec_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Con_Dco dco on dco.Dco_Id = mn.Dco_Id
+                 left join Pre_Project pro on con.Con_Project_Id = pro.P_ID
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        where mn.Ecf_Id = #{ecfId}
+          and mn.Ecf_Type = '01'
+    </select>
+
+    <select id="getConEcFeeorRecordByEcfId" resultType="com.jpmsoft.common.model.response.Contract.ConEcFeeResponse">
+        select c1.C_Name            as ecfContractorName,
+        c2.C_Name            as ecfSupervisorName,
+        c3.C_Name            as ecfApplyUnitName,
+        c1.C_Abbreviation    as ecfContractorAbbName,
+        c2.C_Abbreviation    as ecfSupervisorAbbName,
+        c3.C_Abbreviation    as ecfApplyUnitAbbName,
+        con.Con_Name         as conName,
+        con.Con_Code         as conCode,
+        con.Con_Money_Total  as conMoneyTotal,
+        pro.P_Name           as pName,
+        pro.P_Id             as pId,
+        ce.Ec_Code           as ecCode,
+        ce.Ec_Apply_Money    as ecApplyMoney,
+        ce.Ec_Main_Cause     as ecMainCause,
+        ce.Ec_Part           as ecPart,
+        ce.Ec_Reason         as ecReason,
+        ce.Ec_Construction_Name as ecConstructionName,
+        ce.ec_Apply_Money as ecApplyMoney,
+        ce.ec_Change_Type as ecChangeType,
+        dco.Dco_Name         as dcoName,
+        dco.Dco_Code         as dcoCode,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Major        as dcoMajor,
+        (select cdb.Dcb_Estimate_Amt from Con_Dc_Budget cdb where cdb.Dco_Id = mn.Dco_Id and cdb.Dcb_State = 7
+        limit 1)   as dcbEstimateAmt,
+        mn.*
+        from Con_EC_Fee mn
+        left join SYS_Company c1 on mn.Ecf_Contractor = c1.C_Id
+        left join SYS_Company c2 on mn.Ecf_Supervisor = c2.C_Id
+        left join SYS_Company c3 on mn.Ecf_Apply_Unit = c3.C_Id
+        left join Con_EC ce on ce.Ec_Id = mn.Ec_Id
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Con_Dco dco on dco.Dco_Id = mn.Dco_Id
+        left join Pre_Project pro on con.Con_Project_Id = pro.P_ID
+        left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        where mn.Ecf_Id = #{ecfId}
+        and mn.Ecf_Type = '03'
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ecfChangeType!=null">
+            and mn.Ecf_Change_Type=#{params.ecfChangeType}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.ecfState!=null">
+            and mn.Ecf_State=#{params.ecfState}
+        </if>
+        <if test="params.ecfContractor!=null">
+            and mn.Ecf_Contractor=#{params.ecfContractor}
+        </if>
+        <if test="params.ecfSupervisor!=null">
+            and mn.Ecf_Supervisor=#{params.ecfSupervisor}
+        </if>
+        <if test="params.ecId!=null">
+            and mn.Ec_Id=#{params.ecId}
+        </if>
+        <if test="params.conId!=null">
+            and con.Con_Id=#{params.conId}
+        </if>
+        <if test="params.ecfPm!=null">
+            and mn.Ecf_Pm like concat('%',#{params.ecfPm},'%')
+        </if>
+        <if test="params.ecfCode!=null">
+            and mn.Ecf_Code like concat('%',#{params.ecfCode},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.ecfContractorName!=null">
+                    and likeCname(#{params.ecfContractorName},c1.C_Id)=true
+                </if>
+                <if test="params.ecfSupervisorName!=null">
+                    and likeCname(#{params.ecfSupervisorName},c2.C_Id)=true
+                </if>
+                <if test="params.conPartyBName!=null">
+                    and likeCname(#{params.conPartyBName},c4.C_Id)=true
+                </if>
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.ecfContractorName!=null">
+                    and c1.C_Name like concat('%',#{params.ecfContractorName},'%')
+                </if>
+                <if test="params.ecfSupervisorName!=null">
+                    and c2.C_Name like concat('%',#{params.ecfSupervisorName},'%')
+                </if>
+                <if test="params.conPartyBName!=null">
+                    and c4.C_Name like concat('%',#{params.conPartyBName},'%')
+                </if>
+                <if test="params.pName!=null">
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </if>
+            </otherwise>
+        </choose>
+        <if test="params.dcoName!=null">
+            and dco.Dco_Name like concat('%',#{params.dcoName},'%')
+        </if>
+        <if test="params.dcoCode!=null">
+            and dco.Dco_Code like concat('%',#{params.dcoCode},'%')
+        </if>
+        <if test="params.dcoProjectName!=null">
+            and dco.Dco_Project_Name like concat('%',#{params.dcoProjectName},'%')
+        </if>
+        <if test="params.dcoSubCode!=null">
+            and dco.Dco_Sub_Code like concat('%',#{params.dcoSubCode},'%')
+        </if>
+        <!--区间筛选-->
+        <if test="params.ecfCreateTimeStart!=null">
+            and mn.Ecf_Create_Time > #{params.ecfCreateTimeStart}
+        </if>
+        <if test="params.ecfCreateTimeEnd!=null">
+            and mn.Ecf_Create_Time &lt; #{params.ecfCreateTimeEnd}
+        </if>
+        <if test="params.ecfApplyMoneyStart!=null">
+            and mn.Ecf_Apply_Money > #{params.ecfApplyMoneyStart}
+        </if>
+        <if test="params.ecfApplyMoneyEnd!=null">
+            and mn.Ecf_Apply_Money &lt; #{params.ecfApplyMoneyEnd}
+        </if>
+        <if test="params.ecfDurationStart!=null">
+            and mn.Ecf_Duration > #{params.ecfDurationStart}
+        </if>
+        <if test="params.ecfDurationEnd!=null">
+            and mn.Ecf_Duration &lt; #{params.ecfDurationEnd}
+        </if>
+    </sql>
+
+    <select id="getConEcFeeList" resultType="com.jpmsoft.common.model.response.Contract.ConEcFeeResponse">
+        select
+        c1.C_Name as ecfContractorName,
+        c2.C_Name as ecfSupervisorName,
+        c3.C_Name as ecfApplyUnitName,
+        c1.C_Name_History as ecfContractorNameHistory,
+        c2.C_Name_History as ecfSupervisorNameHistory,
+        c1.C_Abbreviation as ecfContractorAbbName,
+        c2.C_Abbreviation as ecfSupervisorAbbName,
+        c3.C_Abbreviation as ecfApplyUnitAbbName,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        ce.Ec_Code as ecCode,
+        dco.Dco_Name as dcoName,
+        dco.Dco_Code as dcoCode,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Major as dcoMajor,
+        dco.Dco_Sub_Code as dcoSubCode,
+        <if test="params.conId!=null">
+            ject.p_name as pName,
+        </if>
+        <if test="params.conId==null">
+            con.Con_Project_Id as pId,
+            <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        </if>
+        (select cdb.Dcb_Estimate_Amt from Con_Dc_Budget cdb where cdb.Dco_Id = mn.Dco_Id and cdb.Dcb_State = 7
+        limit 1)   as dcbEstimateAmt,
+        mn.*
+        from Con_EC_Fee mn
+        left join SYS_Company c1 on mn.Ecf_Contractor=c1.C_Id
+        left join SYS_Company c2 on mn.Ecf_Supervisor=c2.C_Id
+        left join SYS_Company c3 on mn.Ecf_Apply_Unit=c3.C_Id
+        left join Con_EC ce on ce.Ec_Id=mn.Ec_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        <if test="params.conId!=null">
+            left join Pre_Project ject on  ject.P_Id=con.Con_Project_Id
+        </if>
+        <if test="params.conId==null">
+            left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+            <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        </if>
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        and mn.Ecf_Type='01'
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ecf_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getConEcFeeListorRecord" resultType="com.jpmsoft.common.model.response.Contract.ConEcFeeResponse">
+        select
+        c1.C_Name as ecfContractorName,
+        c2.C_Name as ecfSupervisorName,
+        c3.C_Name as ecfApplyUnitName,
+        c1.C_Name_History as ecfContractorNameHistory,
+        c2.C_Name_History as ecfSupervisorNameHistory,
+        c1.C_Abbreviation as ecfContractorAbbName,
+        c2.C_Abbreviation as ecfSupervisorAbbName,
+        c3.C_Abbreviation as ecfApplyUnitAbbName,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        ce.Ec_Code as ecCode,
+        ce.Ec_Construction_Name as ecConstructionName,
+        ce.ec_Apply_Money as ecApplyMoney,
+        ce.ec_Change_Type as ecChangeType,
+        ce.ec_Reason   as ecReason,
+        ce.ec_Grade as ecGrade,
+        dco.Dco_Name as dcoName,
+        dco.Dco_Code as dcoCode,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Major as dcoMajor,
+        dco.Dco_Sub_Code as dcoSubCode,
+        prect.p_Name as pName,
+        mn.*
+        from Con_EC_Fee mn
+        left join SYS_Company c1 on mn.Ecf_Contractor=c1.C_Id
+        left join SYS_Company c2 on mn.Ecf_Supervisor=c2.C_Id
+        left join SYS_Company c3 on mn.Ecf_Apply_Unit=c3.C_Id
+        left join Con_EC ce on ce.Ec_Id=mn.Ec_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project prect on prect.P_ID=mn.p_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        and mn.Ecf_Type='03'
+        <include refid="listFilter"/>
+        <include refid="listConFeeRecord"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ecf_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select distinct ${selectClause}
+        from Con_EC_Fee mn
+        left join SYS_Company c1 on mn.Ecf_Contractor=c1.C_Id
+        left join SYS_Company c2 on mn.Ecf_Supervisor=c2.C_Id
+        left join SYS_Company c3 on mn.Ecf_Apply_Unit=c3.C_Id
+        left join Con_EC ce on ce.Ec_Id=mn.Ec_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project prect on prect.P_ID=mn.p_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        and mn.Ecf_Type='03'
+        <include refid="listFilter"/>
+        <include refid="listConFeeRecord"/>
+    </select>
+
+    <sql id="listConFeeRecord">
+        <if test="params.pName != null and params.pName != ''">
+            and prect.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.conName != null and params.conName != ''">
+            and con.con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.pNameList != null and params.pNameList.size() > 0">
+            <choose>
+                <when test="params.pNameList.contains('空白数据')">
+                    and (prect.P_Name is null or prect.P_Name = '')
+                </when>
+                <otherwise>
+                    and prect.P_Name in
+                    <foreach collection="params.pNameList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conNameList != null and params.conNameList.size() > 0">
+            <choose>
+                <when test="params.conNameList.contains('空白数据')">
+                    and (con.con_Name is null or con.con_Name = '')
+                </when>
+                <otherwise>
+                    and con.con_Name in
+                    <foreach collection="params.conNameList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ecChangeTypeList != null and params.ecChangeTypeList.size() > 0">
+            <choose>
+                <when test="params.ecChangeTypeList.contains('空白数据')">
+                    and (ce.Ec_Change_Type is null or ce.Ec_Change_Type = '')
+                </when>
+                <otherwise>
+                    and ce.Ec_Change_Type in
+                    <foreach collection="params.ecChangeTypeList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createUnameList != null and params.createUnameList.size() > 0">
+            <choose>
+                <when test="params.createUnameList.contains('空白数据')">
+                    and (mn.Ecf_Create_Uname is null or mn.Ecf_Create_Uname = '')
+                </when>
+                <otherwise>
+                    and mn.Ecf_Create_Uname in
+                    <foreach collection="params.createUnameList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.stateList != null and params.stateList.size() > 0">
+            and mn.ecf_state in
+            <foreach collection="params.stateList" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.ecConstructionNameList != null and params.ecConstructionNameList.size() > 0">
+            <choose>
+                <when test="params.ecConstructionNameList.contains('空白数据')">
+                    and (ce.Ec_Construction_Name is null or ce.Ec_Construction_Name = '')
+                </when>
+                <otherwise>
+                    and ce.Ec_Construction_Name in
+                    <foreach collection="params.ecConstructionNameList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="getConEcFeeStandingBookPage" resultType="com.jpmsoft.common.model.response.Contract.ConEcFeeResponse">
+        select
+        c1.C_Name as ecfContractorName,
+        c2.C_Name as ecfSupervisorName,
+        c3.C_Name as ecfApplyUnitName,
+        c4.C_Name as conPartyBName,
+        c1.C_Name_History as ecfContractorNameHistory,
+        c2.C_Name_History as ecfSupervisorNameHistory,
+        c1.C_Abbreviation as ecfContractorAbbName,
+        c2.C_Abbreviation as ecfSupervisorAbbName,
+        c3.C_Abbreviation as ecfApplyUnitAbbName,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        ce.Ec_Code as ecCode,
+        ce.Ec_Apply_Money as ecApplyMoney,
+        con.Con_Project_Id as pId,
+        dco.Dco_Name as dcoName,
+        dco.Dco_Code as dcoCode,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Major as dcoMajor,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Con_EC_Fee mn
+        left join SYS_Company c1 on mn.Ecf_Contractor=c1.C_Id
+        left join SYS_Company c2 on mn.Ecf_Supervisor=c2.C_Id
+        left join SYS_Company c3 on mn.Ecf_Apply_Unit=c3.C_Id
+        left join Con_EC ce on ce.Ec_Id=mn.Ec_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        left join SYS_Company c4 on con.Con_Party_B_Id=c4.C_Id
+        left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        ${params.authSql}
+        and mn.Ecf_Type='01'
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ecf_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getConEcFeeStandingBook"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConEcFeeStandingBookVo">
+        select
+        sum(ce.Ec_Apply_Money) as ecApplyMoneySum,
+        sum(case when mn.Ecf_Apply_Money_Type=1 then mn.Ecf_Apply_Money else -1*mn.Ecf_Apply_Money end) as
+        ecfApplyMoneySum,
+        sum(case when mn.Ecf_Duration_Type=1 then mn.Ecf_Duration else -1*mn.Ecf_Duration end) as ecfDurationSum
+        from Con_EC_Fee mn
+        left join SYS_Company c1 on mn.Ecf_Contractor=c1.C_Id
+        left join SYS_Company c2 on mn.Ecf_Supervisor=c2.C_Id
+        left join SYS_Company c3 on mn.Ecf_Apply_Unit=c3.C_Id
+        left join Con_EC ce on ce.Ec_Id=mn.Ec_Id
+        left join Con_Contract con on con.Con_Id=ce.Con_Id
+        left join SYS_Company c4 on con.Con_Party_B_Id=c4.C_Id
+        left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        ${params.authSql}
+        and mn.Ecf_Type='01'
+        <include refid="listFilter"/>
+    </select>
+
+    <select id="getPreliminaryAmountSumByConId" resultType="java.math.BigDecimal">
+        select sum(mn.Ecf_Preliminary_Amount)
+        from Con_EC_Fee mn
+        where Con_Id = #{conId}
+        and mn.Ecf_State = 7
+        and mn.Ecf_Preliminary_Amount is not null
+    </select>
+
+    <select id="getMultiContractConEcRelationList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConEcFeeDesignChangeRelationVO">
+        select mcce.uuid,
+               mcce.project_id as projectId,
+               mn.P_Name as projectName,
+               mcce.change_name as changeName,
+               mcce.change_code as changeCode,
+               mcce.ec_change_reason_type as ecChangeReasonType,
+               mcce.reason,
+               mcce.content,
+               mcce.remark,
+               mcce.apply_amount as applyAmount,
+               mcce.create_uid as createUid,
+               mcce.create_uname as createUname,
+               mcce.create_time as createTime,
+               mcce.state,
+               mcce.ec_change_type as ecChangeType,
+               mcce.engineer_change_type as engineerChangeType
+        from multi_contract_con_ec mcce
+        left join Pre_Project mn on mn.P_Id = mcce.project_id
+        ${authSql}
+        and mcce.project_id = #{projectId}
+        and mcce.state = 7
+        and not exists (
+            select 1
+            from Con_EC_Fee ecf
+            where ecf.mcce_id = mcce.uuid
+              and (ecf.Ecf_State is null or ecf.Ecf_State &lt;&gt; #{invalidState})
+        )
+        <if test="conId != null and conId != ''">
+            and exists (
+                select 1
+                from Con_EC ce
+                where ce.multi_contract_con_ec_id = mcce.uuid
+                  and ce.Con_Id = #{conId}
+            )
+        </if>
+        order by mcce.create_time desc
+    </select>
+
+    <select id="getConSvisRelationList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConEcFeeSiteVisaRelationVO">
+        select mn.Svis_Id as svisId,
+               mn.P_Id as pId,
+               mn.Svis_Name as svisName,
+               mn.Svis_Project_Name as svisProjectName,
+               mn.Svis_Code as svisCode,
+               mn.Svis_Contractor_Amt as svisContractorAmt,
+               mn.Svis_Create_Uid as svisCreateUid,
+               mn.Svis_Create_Uname as svisCreateUname,
+               mn.Svis_Create_Time as svisCreateTime,
+               mn.Svis_State as svisState,
+               mn.Svis_Proposed_Id as svisProposedId,
+               mn.Svis_Major as svisMajor,
+               mn.Svis_Content_Summary as svisContentSummary
+        from Con_Svis mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${authSql}
+        and mn.P_Id = #{projectId}
+        and mn.Svis_State = 7
+        and not exists (
+            select 1
+            from Con_EC_Fee ecf
+            where ecf.cs_id = mn.Svis_Id
+              and (ecf.Ecf_State is null or ecf.Ecf_State &lt;&gt; #{invalidState})
+        )
+        <if test="conId != null and conId != ''">
+            and exists (
+                select 1
+                from Con_EC ce
+                where ce.Con_Svis_Id = mn.Svis_Id
+                  and ce.Con_Id = #{conId}
+            )
+        </if>
+        <if test="teId != null and teId != ''">
+            and mn.Te_Id = #{teId}
+        </if>
+        order by mn.Svis_Create_Time desc
+    </select>
+
+</mapper>

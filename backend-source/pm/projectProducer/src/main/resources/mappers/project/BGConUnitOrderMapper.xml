@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.BGConUnitOrderMapper">
+    <select id="getBGConUnitOrderMoney" resultType="java.math.BigDecimal">
+        select Sum((CUO_Money * IFNUll(CUO_BL,100) / 100 ))
+        from BG_ConUnitOrder
+        where
+            State = 7
+          and
+            CUO_ConId = #{conId}
+          and
+            (CUO_bl != 0 or CUO_bl is null)
+          and
+            id not in (select VO_GLID from BG_VisaOrder where state = 7)
+    </select>
+    <select id="BGConUnitOrderListByConId"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.project.ProBGDTO">
+        select *
+        from (
+                 select
+                     cuo.id as id,
+                     cuo.CUO_Code as code,
+                     '单位指令单' as type,
+                     cuo.CUO_PId as pId,
+                     cuo.CUO_ConId as conId,
+                     ifnull((IFNUll(cuo.CUO_BL,100) - (select ifnull(sum(co_glbl),0) from bg_contactorder where co_glid = cuo.id and state =7)),100) as BL,
+                     cuo.CUO_Money as Money,
+                     cuo.final_confirm_money as finalConfirmMoney
+                 from
+                     BG_ConUnitOrder cuo
+                 where
+                     cuo.State = 7
+                   and
+                     (cuo.CUO_bl != 0 or cuo.CUO_bl is null)
+                   and
+                     cuo.CUO_ConId = #{request.conId}
+                   and
+                     cuo.id not in (select vo_GLID from BG_VisaOrder where state = 7)
+        ) t
+        where t.BL > 0
+    </select>
+    <select id="BGConUnitOrderListByType" resultType="com.jpmsoft.projectProducer.pojo.dto.project.ProBGDTO">
+        select
+            cuo.id as id,
+            cuo.CUO_Code as code,
+            '单位指令单' as type,
+            cuo.CUO_PId as pId,
+            pp.P_Name as pName,
+            cuo.CUO_ConId as conId,
+            cc.Con_Name as conName,
+            (100 - IFNUll(cuo.CUO_BL,100)) as BL,
+            cuo.CUO_Money as Money,
+            IFNUll(cuo.CUO_BL,100) as TrueBL,
+            (cuo.CUO_Money * IFNUll(cuo.CUO_BL,100) / 100 ) as TrueMoney
+        from
+            BG_ConUnitOrder cuo
+            left join Con_Contract cc on cc.Con_Id = cuo.Con_Id
+            left join pre_project pp on pp.P_ID = cuo.P_Id
+        where
+            cuo.State = 7
+          and
+            (cuo.CUO_bl != 0 or cuo.CUO_bl is null)
+          and
+            cuo.id not in (select VO_GLID from BG_VisaOrder where state = 7)
+          <if test="request.code != null and request.code != ''">
+                and INSTR(cuo.CUO_Code,#{request.code})
+          </if>
+          <if test="request.conName != null and request.conName != ''">
+                 and INSTR(cc.con_name,#{request.conName})
+          </if>
+            <if test="request.pName != null and request.pName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{request.pName},pp.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(pp.p_name,#{request.pName})
+                    </otherwise>
+                </choose>
+            </if>
+    </select>
+</mapper>

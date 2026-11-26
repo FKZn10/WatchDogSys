@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.constructionProcedure.ProjectCpLibraryRiskMapper">
+    <select id="getProjectCpLibraryRiskByCplId"
+            resultType="com.jpmsoft.common.model.response.proCp.ProjectCpLibraryRiskResponse">
+        select
+        mn.*,
+        rpm.*
+        from Project_Cp_Library_Risk mn
+        left join Risk_Prevention_Measure rpm on mn.Rpm_Id = rpm.id
+        where mn.cpl_id = #{cplId}
+    </select>
+
+    <select id="getProjectCpLibraryRiskByCplIds"
+            resultType="com.jpmsoft.common.model.response.proCp.ProjectCpLibraryRiskResponse">
+        select
+        mn.*,
+        rpm.*
+        from Project_Cp_Library_Risk mn
+        left join Risk_Prevention_Measure rpm on mn.Rpm_Id = rpm.id
+        where mn.cpl_id in
+        <foreach item="cplId" collection="cplIds" open="(" separator="," close=")">
+            #{cplId}
+        </foreach>
+    </select>
+</mapper>

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MeWitnessDtlMapper">
+
+    <update id="updateValueNull" >
+        update Me_Witness_Dtl
+        set Wd_Quantity=null,
+            Wd_Formula=null,
+            Wd_Amount=null,
+            Wd_Result=null,
+            Wd_Res_Remark=null
+        where Wi_Id=#{wiId}
+    </update>
+
+    <select id="getMeWitnessDtlInspeList"
+            resultType="com.jpmsoft.common.model.response.MeEnter.MeWitnessDtlResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Id as pId,
+        con.Con_Name as conName,
+        con.Con_Id as conId,
+        con.Con_Party_B_Id as conPartyBId,
+        c2.C_Name_History as conPartyBNameHistory,
+        c3.C_Name_History as wiUnitNameHistory,
+        c2.C_Name as conPartyBName,
+        c3.C_Name as wiUnitName,
+        c2.C_Abbreviation as conPartyBAbbName,
+        c3.C_Abbreviation as wiUnitAbbName,
+        mn.Wi_State as wiState,
+        mn.Wi_Create_Uid as wiCreateUid,
+        mn.Wi_Create_Uname as wiCreateUname,
+        mn.Wi_Create_Time as wiCreateTime,
+        mwd.*
+        from Me_Witness_Dtl mwd
+        left join Me_Witness_Inspection mn on mn.Wi_Id=mwd.Wi_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Wi_Unit_Id=c3.C_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.wiUnitId!=null">
+            and mn.Wi_Unit_Id=#{params.wiUnitId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id=#{params.conId}
+        </if>
+        <if test="params.wiId!=null">
+            and mwd.Wi_Id = #{params.wiId}
+        </if>
+        <if test="params.wdResult!=null">
+            and mwd.Wd_Result = #{params.wdResult}
+        </if>
+        <if test="params.wiState!=null">
+            and mn.Wi_State = #{params.wiState}
+        </if>
+        <if test="params.wdName!=null">
+            and INSTR(mwd.Wd_Name,#{params.wdName})
+        </if>
+        <if test="params.wdCode!=null">
+            and INSTR(mwd.Wd_Code,#{params.wdCode})
+        </if>
+        <if test="params.haveReport!=null">
+            <if test="params.haveReport==1">
+                and mwd.Wi_Id in (select Wi_Id from Me_Inspection_Report where Ir_State!=3)
+            </if>
+            <if test="params.haveReport==2">
+                and mwd.Wi_Id not in (select Wi_Id from Me_Inspection_Report where Wi_Id is not null and Ir_State!=3)
+            </if>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mwd.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mwd.Wd_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getMeWitnessDtlList"
+            resultType="com.jpmsoft.common.model.response.MeEnter.MeWitnessDtlResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Id as conId,
+        con.Con_Party_B_Id as conPartyBId,
+        con2.Con_Name as eaPurchaseContractName,
+        mtl.Met_Name as metName,
+        c2.C_Name_History as conPartyBNameHistory,
+        c3.C_Name_History as wiUnitNameHistory,
+        c2.C_Name as conPartyBName,
+        c3.C_Name as wiUnitName,
+        c2.C_Abbreviation as conPartyBAbbName,
+        c3.C_Abbreviation as wiUnitAbbName,
+        mea.Ea_Code as eaCode,
+        mea.Ea_Date as eaDate,
+        mea.P_Id as pId,
+        ead.Ead_Standard_Type as eadStandardType,
+        ead.Ead_Count as eadCount,
+        ead.Ead_Brand_Name as eadBrandName,
+        ead.Ead_Supplier_Name as eadSupplierName,
+        ead.Ead_Batch_Number as eadBatchNumber,
+        ead.Ead_Supply_Order_No as eadSupplyOrderNo,
+        mn.Wi_State as wiState,
+        mn.Wi_Create_Uid as wiCreateUid,
+        mn.Wi_Create_Uname as wiCreateUname,
+        mn.Wi_Create_Time as wiCreateTime,
+        mwd.*
+        from Me_Witness_Dtl mwd
+        left join Me_Enter_Apply_Dtl ead on ead.Ead_Id=mwd.Ead_Id
+        left join Me_Enter_Apply mea on mea.Ea_Id=ead.Ea_Id
+        left join Con_Contract con on con.Con_Id=mea.Con_Id
+        left join Con_Contract con2 on con2.Con_Id=mea.Ea_Purchase_Contract
+        left join Pre_Project pro on pro.P_Id=mea.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join Me_Type_Library mtl on mtl.Met_Id=ead.Met_Id
+        left join SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+        left join Me_Witness_Inspection mn on mn.Wi_Id=mwd.Wi_Id
+        left join SYS_Company c3 on mn.Wi_Unit_Id=c3.C_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.wiUnitId!=null">
+            and mn.Wi_Unit_Id=#{params.wiUnitId}
+        </if>
+        <if test="params.pId!=null">
+            and mea.P_Id=#{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mea.Con_Id=#{params.conId}
+        </if>
+        <if test="params.wiId!=null">
+            and mwd.Wi_Id = #{params.wiId}
+        </if>
+        <if test="params.wdResult!=null">
+            and mwd.Wd_Result = #{params.wdResult}
+        </if>
+        <if test="params.metName!=null">
+            and mtl.Met_Name like concat('%',#{params.metName},'%')
+        </if>
+        <if test="params.eaCode!=null">
+            and mea.Ea_Code like concat('%',#{params.eaCode},'%')
+        </if>
+        <if test="params.wdCode!=null">
+            and INSTR(mwd.Wd_Code,#{params.wdCode})
+        </if>
+        <if test="params.wdName!=null">
+            and INSTR(mwd.Wd_Name,#{params.wdName})
+        </if>
+        <if test="params.wiState!=null">
+            and mn.Wi_State = #{params.wiState}
+        </if>
+        <if test="params.haveReport!=null">
+            <if test="params.haveReport==1">
+                and mwd.Wi_Id in (select Wi_Id from Me_Inspection_Report where Ir_State!=3)
+            </if>
+            <if test="params.haveReport==2">
+                and mwd.Wi_Id not in (select Wi_Id from Me_Inspection_Report where Wi_Id is not null and Ir_State!=3)
+            </if>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mwd.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mwd.Wd_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

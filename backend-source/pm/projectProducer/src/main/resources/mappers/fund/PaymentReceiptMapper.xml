@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.PaymentReceiptMapper">
+
+    <select id="getPaymentReceiptList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.PaymentReceiptVo">
+        select
+        mn.*,pro.P_Name as pName,pro.P_Name as projectName,com.C_Name as prPayCName
+        from Payment_Receipt mn
+        left join Pre_Project pro on pro.P_ID = mn.Project_Id
+        left join SYS_Company com on com.C_ID = mn.Pr_Pay_C_Id
+        ${params.authSql}
+        and mn.Pr_Method is not null and mn.Pr_Issued_State!=5 and mn.Pr_Verify_State!=4
+        <if test="params.projectId != null and params.projectId != '' ">
+            and mn.Project_Id = #{params.projectId}
+        </if>
+        <if test="params.pName!=null and params.pName!='' ">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.prIssuedState!=null">
+            and mn.Pr_Issued_State = #{params.prIssuedState}
+        </if>
+        <if test="params.prVerifyState!=null">
+            and mn.Pr_Verify_State = #{params.prVerifyState}
+        </if>
+        <if test="params.prVerifyStates != null and params.prVerifyStates.size() > 0">
+            and mn.Pr_Verify_State in
+            <foreach collection="params.prVerifyStates" item="state" open="(" separator="," close=")">
+                #{state}
+            </foreach>
+        </if>
+        <if test="params.state != null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.hasUnwrittenAmount != null and params.hasUnwrittenAmount != ''">
+            and mn.receipt_Unwritten_Amount > 0
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.create_time DESC
+            </otherwise>
+        </choose>
+    </select>
+    <select id="selectPaymentReceiptById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.PaymentReceiptVo">
+        select
+        mn.*,pro.P_Name as pName,pro.P_Name as projectName,com.C_Name as prPayCName,
+        cifd.cifd_Account as cifdAccount,
+        cifd.cif_Id as keyId
+        from Payment_Receipt mn
+        left join Pre_Project pro on pro.P_ID = mn.Project_Id
+        left join SYS_Company com on com.C_ID = mn.Pr_Pay_C_Id
+        left join Claim_Incoming_Funds_Dtl cifd on cifd.id = mn.cif_Id
+        where mn.id= #{id}
+    </select>
+    <select id="getReceipt" resultType="com.jpmsoft.projectProducer.pojo.entity.fund.PaymentReceipt">
+        select
+        mn.*
+        from Payment_Receipt mn
+        where mn.Project_Id= #{pId} and mn.Pr_Verify_State=2 and mn.State=7
+    </select>
+
+    <select id="getPaymentReceiptList2" resultType="com.jpmsoft.projectProducer.pojo.vo.fund.PaymentReceiptVo">
+         select
+        mn.*,pro.P_Name as pName,pro.P_Name as projectName,com.C_Name as prPayCName
+        from Payment_Receipt mn
+        left join Pre_Project pro on pro.P_ID = mn.Project_Id
+        left join SYS_Company com on com.C_ID = mn.Pr_Pay_C_Id
+        <where>
+             mn.Pr_Method is not null and mn.Pr_Issued_State!=5 and mn.Pr_Verify_State!=4
+            <if test="params.pId!= null and params.pId != '' " >
+                and mn.Project_Id = #{params.pId}
+            </if>
+            <if test="params.pName!=null and params.pName!='' ">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.prIssuedState!=null">
+                and mn.Pr_Issued_State = #{params.prIssuedState}
+            </if>
+            <if test="params.prVerifyState!=null">
+                and mn.Pr_Verify_State = #{params.prVerifyState}
+            </if>
+            <choose>
+                <when test="params.sortType!=null and params.sortFiled!=null">
+                    order by mn.${params.sortFiled} ${params.sortType}
+                </when>
+                <when test="params.sortType!=null and params.sortSideFiled!=null">
+                    order by ${params.sortSideFiled} ${params.sortType}
+                </when>
+                <otherwise>
+                    order by mn.create_time DESC
+                </otherwise>
+            </choose>
+        </where>
+    </select>
+</mapper>

@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.conBoq.ConBoqDtlMapper">
+
+    <insert id="insertBatchBoqDtl">
+        insert into Con_Boq_Dtl (Boqd_Id, Boqd_Code, Boqd_Name, Boqd_Feature, Boqd_Content,
+        Boqd_Unit, Boqd_Amount, Boqd_Price, Boqd_Total_Price, Boqd_Remark,
+        Boqd_State, Boqd_Parent_Id, Boqd_Sort, Boqd_Bdd_Id, Boqd_Create_Uid,
+        Boqd_Create_Uname, Boqd_Create_Time, Boqd_Update_Time, Boq_Id, Boqd_Type,
+        Boqd_Provisional_Estimate, Boqd_Rate, Boqd_Jsgz, Boqd_Rgf, Boqd_Zcf,
+        Boqd_Sbf, Boqd_Fcf, Boqd_Clf, Boqd_Jxf, Boqd_Glf, Boqd_Lr, Boqd_Zgr,
+        Boqd_Rcjhl, Boqd_Rcj_Id, Boqd_Fxxs, Boqd_Xh, Boqd_Aqsg, Boqd_Gf,
+        Boqd_Jsjc, Boqd_Qfjs, Boqd_Jz_Dj, Boqd_Tb_Dj, Boqd_Formula,
+        Boqd_Fees_Ratio, Boqd_Other_Ratio, Boqd_Taxes_Ratio, page_type,
+        Boqd_Change_Pre_Id)
+        values
+        <foreach collection="entities" item="item" separator=",">
+        (
+            #{item.boqdId}, #{item.boqdCode}, #{item.boqdName}, #{item.boqdFeature}, #{item.boqdContent},
+            #{item.boqdUnit}, #{item.boqdAmount}, #{item.boqdPrice}, #{item.boqdTotalPrice}, #{item.boqdRemark},
+            #{item.boqdState}, #{item.boqdParentId}, #{item.boqdSort}, #{item.boqdBddId}, #{item.boqdCreateUid},
+            #{item.boqdCreateUname}, #{item.boqdCreateTime}, #{item.boqdUpdateTime}, #{item.boqId}, #{item.boqdType},
+            #{item.boqdProvisionalEstimate}, #{item.boqdRate}, #{item.boqdJsgz}, #{item.boqdRgf}, #{item.boqdZcf},
+            #{item.boqdSbf}, #{item.boqdFcf}, #{item.boqdClf}, #{item.boqdJxf}, #{item.boqdGlf}, #{item.boqdLr}, #{item.boqdZgr},
+            #{item.boqdRcjhl}, #{item.boqdRcjId}, #{item.boqdFxxs}, #{item.boqdXh}, #{item.boqdAqsg}, #{item.boqdGf},
+            #{item.boqdJsjc}, #{item.boqdQfjs}, #{item.boqdJzDj}, #{item.boqdTbDj}, #{item.boqdFormula},
+            #{item.boqdFeesRatio}, #{item.boqdOtherRatio}, #{item.boqdTaxesRatio}, #{item.pageType},
+            #{item.boqdChangePreId}
+            )
+        </foreach>
+    </insert>
+
+
+    <select id="getConBoqDtlBudgetList" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConBoqDtlVo">
+        select mn.*,
+               bdd.Bdd_Name as bddName
+        from Con_Boq_Dtl mn
+                 left join Inv_Budget_Declare_Dtl bdd on mn.Boqd_Bdd_Id = bdd.Bdd_Id
+                 left join Con_Boq cb on cb.Boq_Id=mn.Boq_Id
+        <where>
+            <if test="params.teId!=null">
+                and cb.Te_Id = #{params.teId}
+            </if>
+            <if test="params.bddIds!=null">
+                  mn.Boqd_Bdd_Id in
+                <foreach collection="params.bddIds" open="(" close=")" item="bddId" separator=",">
+                    #{bddId}
+                </foreach>
+            </if>
+            <if test="params.boqState!=null">
+                and cb.Boq_State=#{params.boqState}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Boqd_Sort DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getConBoqDtlByConIdAndCode" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConBoqDtlVo">
+        select mn.*,
+               boqp.Boqd_Name as boqdParentName,
+               bdd.Bdd_Name as bddName
+        from Con_Boq_Dtl mn
+        left join Con_Boq_Dtl boqp on boqp.Boqd_Id=mn.Boqd_Parent_Id
+        left join Inv_Budget_Declare_Dtl bdd on mn.Boqd_Bdd_Id = bdd.Bdd_Id
+        left join Con_Boq cb on cb.Boq_Id=mn.Boq_Id
+        where cb.Con_Id=#{conId} and mn.Boqd_Code=#{boqdCode}
+        order by mn.Boqd_Sort asc
+    </select>
+
+    <select id="getConBoqDtlParentByIds" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConBoqDtlVo">
+        select mn.*,
+               bdd.Bdd_Name as bddName
+        from Con_Boq_Dtl mn
+                 left join Inv_Budget_Declare_Dtl bdd on mn.Boqd_Bdd_Id = bdd.Bdd_Id
+                 left join Con_Boq cb on cb.Boq_Id=mn.Boq_Id
+        where  mn.Boqd_Id in
+        (select Boqd_Parent_Id from Con_Boq_Dtl where Boqd_Id in
+            <foreach collection="boqdIds" open="(" close=")" separator="," item="id">
+                #{id}
+            </foreach>
+        )
+        order by mn.Boqd_Sort asc
+    </select>
+
+    <select id="getConBoqDtlByBoqId" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConBoqDtlVo">
+        select mn.*,
+               bdd.Bdd_Name as bddName
+        from Con_Boq_Dtl mn
+                 left join Inv_Budget_Declare_Dtl bdd on mn.Boqd_Bdd_Id = bdd.Bdd_Id
+        where mn.Boq_Id=#{boqId}
+        order by mn.Boqd_Sort asc
+    </select>
+
+    <select id="getConBoqDtlByBoqIdAndParent" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConBoqDtlVo">
+        select mn.*,
+               bdd.Bdd_Name as bddName
+        from Con_Boq_Dtl mn
+                 left join Inv_Budget_Declare_Dtl bdd on mn.Boqd_Bdd_Id = bdd.Bdd_Id
+        where mn.Boq_Id=#{boqId} and mn.boqd_parent_id=#{parentId}
+        order by mn.Boqd_Sort asc
+    </select>
+
+    <select id="getConBoqDtlAndMeasureTree"  resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConBoqDtlMeasureVo">
+        select
+        mn.Boqd_Id as boqdId,
+        bdd.Bdd_Name as bddName,
+        (case when mn.Boqd_Type='06' or mn.Boqd_Type='07' then 0
+        else (select count(*) from Con_Boq_Dtl cc where cc.Boqd_Parent_Id=mn.Boqd_Id) end ) as childDtlNum,
+        <if test="params.joinMeasure==false and params.meaId!=null and params.meaId!=''">
+            (case when mn.Boqd_Type='06' or mn.Boqd_Type='07' then 0
+            else (select count(*) from Con_Measure_Record cc where cc.Mea_Id=#{params.meaId} and cc.State!=3 and cc.Boqd_Id in (select Boqd_Id from Con_Boq_Dtl cbd where cbd.Boqd_Parent_Id=mn.Boqd_Id)) end ) as fillingNum,
+            (case when mn.Boqd_Type='06' or mn.Boqd_Type='07' then 0
+            else (select count(*) from Con_Measure_Record cc where cc.Mea_Id=#{params.meaId} and cc.State=7 and cc.Boqd_Id in (select Boqd_Id from Con_Boq_Dtl cbd where cbd.Boqd_Parent_Id=mn.Boqd_Id)) end ) as approvedNum,
+        </if>
+        <if test="params.joinMeasure==true">
+            pro.P_Name         as pName,
+            con.Con_Name       as conName,
+            c1.C_Name          as mearContName,
+            mn.Boqd_Amount     as mearBoqdAmount,
+            (select count(*) from Con_Measure_Record_Check rc where rc.Mear_Id=cmr.id) as recordCheckNum,
+            cmr.*,
+            (case when cmr.mear_Upper_Amount is not null then cmr.mear_Upper_Amount else
+            (select sum(mear.Mear_Final_Amount) from Con_Measure_Record mear
+            left join Con_Measure cmea on cmea.Id=mear.Mea_Id where cmea.state=7 and cmea.con_id=con.con_id
+            and mear.state=7 and mear.Boqd_Id=mn.Boqd_Id and cmea.id!=#{params.meaId}) end) as mearUpperAmount,
+            (case when cmr.Mear_Upper_Total is not null then cmr.Mear_Upper_Total else
+            (select sum(mear.Mear_Final_Total) from Con_Measure_Record mear
+            left join Con_Measure cmea on cmea.Id=mear.Mea_Id where cmea.state=7 and cmea.con_id=con.con_id
+            and mear.state=7 and mear.Boqd_Id=mn.Boqd_Id and cmea.id!=#{params.meaId}) end) as mearUpperTotal,
+        </if>
+        mn.*
+        from Con_Boq_Dtl mn
+        left join Inv_Budget_Declare_Dtl bdd on mn.Boqd_Bdd_Id = bdd.Bdd_Id
+        left join Con_Boq cb on cb.Boq_Id=mn.Boq_Id
+        <if test="params.joinMeasure==true">
+            left join Con_Measure_Record cmr on cmr.Boqd_Id=mn.Boqd_Id and cmr.Mea_Id=#{params.meaId}
+            left join Con_Measure cm on cm.Id=cmr.Mea_Id and cm.State!=3
+            left join Con_Contract con on con.Con_Id = cmr.Con_Id
+            left join Pre_Project pro on pro.P_Id = cmr.P_Id
+            left join SYS_Company c1 on c1.C_Id = cmr.Mear_Contractor_Id
+        </if>
+        <where>
+             cb.Con_Id=#{params.conId} and cb.Boq_State=7 and (mn.page_type!='03' or mn.page_type is NULL)
+            <if test="params.joinMeasure==true and params.meaId!=null and params.meaId!=''">
+<!--                <if test="params.excludeUnApproval==false">-->
+<!--                and ((cm.id=#{params.meaId} and cm.State!=3)-->
+<!--                    or (cm.id!=#{params.meaId} and cm.State==3)-->
+<!--                    or cmr.Mea_Id is null)-->
+<!--                </if>-->
+                <if test="params.excludeUnApproval==true">
+                    and cmr.Mea_Id=#{params.meaId} and cmr.State!=3
+                </if>
+            </if>
+            <if test="params.boqdParentId!=null and params.boqdParentId!=''">
+                and mn.Boqd_Parent_Id=#{params.boqdParentId}
+            </if>
+            <if test="params.filterMeasureType!=null and params.filterMeasureType==0">
+                and (mn.Boqd_Type='06' or mn.Boqd_Type='07')
+            </if>
+            <if test="params.filterMeasureType!=null and params.filterMeasureType==1">
+                and mn.Boqd_Type!='06' and mn.Boqd_Type!='07'
+            </if>
+        </where>
+        order by mn.Boqd_Sort asc
+    </select>
+
+
+    <select id="getConBoqDtlByConId" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ConBoqDtlDto">
+        select
+            boqp.Boqd_Name as boqdParentName,
+            mn.*
+        from Con_Boq_Dtl mn
+                 left join Con_Boq boq on mn.Boq_Id = boq.Boq_Id
+                 left join Con_Boq_Dtl boqp on boqp.Boqd_Id=mn.Boqd_Parent_Id
+        where boq.Con_Id=#{conId} and boq.Boq_State=7 and (mn.page_type!='03' or mn.page_type is NULL)
+        order by mn.Boqd_Sort asc
+    </select>
+
+
+    <select id="getConBoqDtlVoByConId" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConBoqDtlVo">
+        select
+            boqp.Boqd_Name as boqdParentName,
+            mn.*
+        from Con_Boq_Dtl mn
+                 left join Con_Boq boq on mn.Boq_Id = boq.Boq_Id
+                 left join Con_Boq_Dtl boqp on boqp.Boqd_Id=mn.Boqd_Parent_Id
+        where boq.Con_Id=#{conId} and boq.Boq_State=7
+        order by mn.Boqd_Sort asc
+    </select>
+
+
+    <select id="getConBoqDtlByBoqIdAndParentCon" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConBoqDtlVo">
+        select
+        boqp.Boqd_Name as boqdParentName,
+        (select ibdd.bdd_total from Inv_Budget_Declare_Dtl ibdd where ibdd.Bdd_Id=mn.Boqd_Bdd_Id) as bddTotal,
+        mn.*
+        from Con_Boq_Dtl mn
+        left join Con_Boq boq on mn.Boq_Id = boq.Boq_Id
+        left join Con_Boq_Dtl boqp on boqp.Boqd_Id=mn.Boqd_Parent_Id
+        <where>
+            boq.Boq_State=7
+            <if test="boqId!=null and boqId!=''">
+             and    mn.Boq_Id=#{boqId}
+            </if>
+            <if test="parentId!=null and parentId!=''">
+                and  mn.boqd_parent_id=#{parentId}
+            </if>
+            <if test="conId!=null and conId!=''">
+                and   boq.Con_Id=#{conId}
+            </if>
+        </where>
+        order by mn.Boqd_Sort asc
+    </select>
+
+
+</mapper>

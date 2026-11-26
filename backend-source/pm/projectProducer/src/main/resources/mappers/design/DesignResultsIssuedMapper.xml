@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.design.DesignResultsIssuedMapper">
+
+    <select id="getDesignResultsIssuedList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignResultsIssuedModel">
+        select
+        mn.*,
+        sy.file_relation_id as fileRelationId,
+        sy.T_Code as tCode,
+        sy.T_Id as tId,
+        sy.FileTitle as fileTitle,
+        pre.P_Name as pName
+        from  Design_Results_Issued mn
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join Sys_File sy on sy.FileID=mn.Id
+        ${authSql}
+        <if test="params.driFormType != null and params.driFormType != ''">
+            and mn.Dri_Form_Type=#{params.driFormType}
+        </if>
+        and (mn.dri_Is_Change != '2' or mn.dri_Is_Change is null)
+        <include refid="listQueryDesign"/>
+        order by mn.Create_Time desc
+    </select>
+
+    <select id="getDesignResultsIssuedListCJTZ"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignResultsIssuedModel">
+        select
+        mn.*,
+        sy.file_relation_id as fileRelationId,
+        sy.T_Code as tCode,
+        sy.T_Id as tId,
+        sy.FileTitle as fileTitle,
+        pre.P_Name as pName
+        from  Design_Results_Issued mn
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join Sys_File sy on sy.FileID=mn.Id
+        ${authSql}
+        <if test="params.driFormType != null and params.driFormType != ''">
+            and mn.Dri_Form_Type=#{params.driFormType}
+        </if>
+        and (mn.dri_Is_Change != '2' or mn.dri_Is_Change is null)
+        <include refid="listQueryDesign"/>
+        order by mn.Create_Time desc
+    </select>
+
+    <select id="getDownloadLogListForDesign" resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignResultsIssuedModel">
+        SELECT
+        mn.*,
+        sy.FileID AS dlFileId,
+        sy.FileTitle AS fileTitle,
+        pre.P_Name AS pName,
+        sfa.file_name as dlfileName,
+        logInfo.dlTime,
+        logInfo.downloadCount
+        FROM Design_Results_Issued mn
+        LEFT JOIN Sys_File sy ON sy.FileID = mn.Id
+        LEFT JOIN pre_project pre ON pre.P_Id = mn.P_Id
+        INNER JOIN (
+        SELECT
+        Dl_File_Id,
+        Dl_Form_Id,
+        MAX(Dl_Time) AS dlTime,
+        COUNT(*) AS downloadCount
+        FROM sys_download_log
+        GROUP BY Dl_File_Id,Dl_Form_Id
+        ) logInfo ON logInfo.Dl_Form_Id = sy.FileID
+        Left Join sys_fileannex sfa on logInfo.Dl_File_Id=sfa.File_ID
+        WHERE 1=1
+        <if test="params.driFormType != null and params.driFormType != ''">
+            AND mn.Dri_Form_Type = #{params.driFormType}
+        </if>
+        <include refid="listQueryDesignDown"/>
+    </select>
+
+    <sql id="listQueryDesignDown">
+        <if test="params.pName != null">
+            and pre.P_Name like '%${params.pName}%'
+        </if>
+        <if test="params.driName != null">
+            and mn.Dri_Name like '%${params.driName}%'
+        </if>
+        <if test="params.driType != null">
+            and mn.Dri_Type = #{params.driType}
+        </if>
+        <if test="params.dlfileName != null">
+            and sfa.file_name like '%${params.dlfileName}%'
+        </if>
+        <if test="params.createUname != null">
+            and mn.Create_Uname like '%${params.createUname}%'
+        </if>
+        <if test="params.state != null">
+            and mn.State=#{params.state}
+        </if>
+    </sql>
+
+
+
+    <select id="getAllValues"
+            resultType="java.util.Map">
+        select ${selectClause}
+        from  Design_Results_Issued mn
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        ${authSql}
+        <if test="params.driFormType != null and params.driFormType != ''">
+            and mn.Dri_Form_Type=#{params.driFormType}
+        </if>
+        <include refid="listQueryDesign"/>
+    </select>
+
+    <select id="getAllValuesCJTZ"
+            resultType="java.util.Map">
+        select distinct ${selectClause}
+        from  Design_Results_Issued mn
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        ${authSql}
+        <if test="params.driFormType != null and params.driFormType != ''">
+            and mn.Dri_Form_Type=#{params.driFormType}
+        </if>
+        <include refid="listQueryDesign"/>
+    </select>
+
+    <select id="getDesignResultsIssuedById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignResultsIssuedModel">
+        select
+        mn.*,
+        sy.file_relation_id as fileRelationId,
+        sy.T_Code as tCode,
+        sy.T_Id as tId,
+        sy.FileTitle as fileTitle,
+        pre.P_Name as pName,
+        dqc.Dq_Code as dqCode
+        from  Design_Results_Issued mn
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join Sys_File sy on sy.FileID=mn.Id
+        left join design_qr_code dqc on dqc.Id=mn.Dqc_Id
+        ${authSql}
+        <if test="id != null and id != ''">
+            and mn.Id=#{id}
+        </if>
+    </select>
+
+    <sql id="listQueryDesign">
+        <if test="params.pName != null and params.pName.size() > 0">
+            <choose>
+                <when test="params.pName.contains('空白数据')">
+                    and (pre.P_Name is null or pre.P_Name = '')
+                </when>
+                <otherwise>
+                    and pre.P_Name in
+                    <foreach collection="params.pName" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.driName != null and params.driName.size() > 0">
+            <choose>
+                <when test="params.driName.contains('空白数据')">
+                    and (mn.Dri_Name is null or mn.Dri_Name = '')
+                </when>
+                <otherwise>
+                    and mn.Dri_Name in
+                    <foreach collection="params.driName" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.driType != null and params.driType.size() > 0">
+            <choose>
+                <when test="params.driType.contains('空白数据')">
+                    and (mn.Dri_Type is null or mn.Dri_Type = '')
+                </when>
+                <otherwise>
+                    and mn.Dri_Type in
+                    <foreach collection="params.driType" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createUname != null and params.createUname.size() > 0">
+            <choose>
+                <when test="params.createUname.contains('空白数据')">
+                    and (mn.Create_Uname is null or mn.Create_Uname = '')
+                </when>
+                <otherwise>
+                    and mn.Create_Uname in
+                    <foreach collection="params.createUname" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.state != null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.driNameLike != null and params.driNameLike != ''">
+            and mn.Dri_Name like concat('%',#{params.driNameLike},'%')
+        </if>
+    </sql>
+</mapper>

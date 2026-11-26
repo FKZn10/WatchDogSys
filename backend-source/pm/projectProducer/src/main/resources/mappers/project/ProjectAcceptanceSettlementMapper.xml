@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProjectAcceptanceSettlementMapper">
+    <select id="getProjectAcceptanceSettlementList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProjectAcceptanceSettlementModel">
+        SELECT
+        mn.*,pro.P_Name AS projectName, con.Con_Name AS contractName, com.C_Name AS constructionUnitName
+        FROM Project_Acceptance_Settlement mn
+        LEFT JOIN pre_project pro ON mn.project_id = pro.P_ID
+        LEFT JOIN con_contract con ON mn.contract_id = con.Con_Id
+        LEFT JOIN sys_company com ON mn.construction_unit = com.C_ID
+        <where>
+            <if test="params.projectId != null and params.projectId != ''">
+                AND mn.project_id = #{params.projectId}
+            </if>
+            <if test="params.projectName != null and params.projectName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        AND likePname(#{params.projectName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        AND pro.P_Name like concat('%',#{params.projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.projectType != null and params.projectType != ''">
+                AND mn.project_type = #{params.projectType}
+            </if>
+            <if test="params.constructionUnit != null and params.constructionUnit != ''">
+                AND mn.construction_unit = #{params.constructionUnit}
+            </if>
+            <if test="params.constructionUnitName != null and params.constructionUnitName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        AND likeCname(#{params.constructionUnitName},com.C_Id)=true
+                    </when>
+                    <otherwise>
+                        AND com.C_Name like concat('%',#{params.constructionUnitName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.contractId != null and params.contractId != ''">
+                AND mn.contract_id = #{params.contractId}
+            </if>
+            <if test="params.contractName != null and params.contractName != ''">
+                AND con.Con_Name like concat('%',#{params.contractName},'%')
+            </if>
+            <if test="params.projectNameTemp != null and params.projectNameTemp != ''">
+                AND mn.project_name_temp like concat('%',#{params.projectNameTemp},'%')
+            </if>
+        </where>
+    </select>
+    <select id="getProjectAcceptanceSettlementById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProjectAcceptanceSettlementModel">
+        SELECT
+            mn.*,pro.P_Name AS projectName, con.Con_Name AS contractName, com.C_Name AS constructionUnitName
+        FROM Project_Acceptance_Settlement mn
+         LEFT JOIN pre_project pro ON mn.project_id = pro.P_ID
+         LEFT JOIN con_contract con ON mn.contract_id = con.Con_Id
+         LEFT JOIN sys_company com ON mn.construction_unit = com.C_ID
+        WHERE mn.id = #{id}
+    </select>
+</mapper>

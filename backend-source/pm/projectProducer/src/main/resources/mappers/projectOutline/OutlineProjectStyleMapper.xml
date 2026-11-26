@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.projectOutline.OutlineProjectStyleMapper">
+    <resultMap id="OutlineProjectStyleRes"
+               type="com.jpmsoft.common.model.response.projectOutline.OutlineProjectStyleResponse">
+        <id column="id" property="id"/>
+        <result column="Create_Uid" property="createUid"/>
+        <result column="Create_Uname" property="createUname"/>
+        <result column="Create_Time" property="createTime"/>
+        <result column="State" property="state"/>
+        <result column="State_Time" property="stateTime"/>
+        <result column="Category" property="category"/>
+        <result column="Status" property="status"/>
+        <result column="Style_Name" property="styleName"/>
+        <collection property="styleList" column="id"
+                     select="com.jpmsoft.projectProducer.mapper.projectOutline.OutlineProjectStyleDtlMapper.getOutlineStyleDtlListByOpsId"/>
+    </resultMap>
+
+    <select id="getOutlineStylePage" resultMap="OutlineProjectStyleRes">
+        select mn.*
+        from Outline_Project_Style mn
+        <where>
+            <if test="params.state != null">
+                and mn.state = #{params.state}
+            </if>
+            <if test="params.styleName != null and params.styleName != ''">
+                and mn.style_name like concat('%', #{params.styleName}, '%')
+            </if>
+            <if test="params.status != null and params.status != ''">
+                and mn.status = #{params.status}
+            </if>
+        </where>
+        order by mn.Create_Time desc
+    </select>
+</mapper>

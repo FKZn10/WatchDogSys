@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecInfoChangeMapper">
+
+
+    <select id="getSecInfoChangeList" resultType="com.jpmsoft.common.model.response.SecInfo.SecInfoChangeRes">
+        select
+        c1.C_Name as tendereeName,
+        c1.C_Abbreviation as tendereeAbbName,
+        c2.C_Name as secAgencyName,
+        c2.C_Abbreviation as secAgencyAbbName,
+        dp.D_Name as secContractingDepartmentName,
+        (select count(*) from Sec_Bidding_Plan_Change bpc
+         left join Sec_Info_Change sc on sc.Bpc_Id=bpc.Bpc_Id
+         where sc.Sec_Id=sec.Sec_Id and sc.Sec_Change_Type='变更'
+         and bpc.State!=3 and bpc.State!=7 and sc.Bpc_Id!=#{bpcId})  as unalterable,
+        sec.*
+        from Sec_Info_Change sec
+        left join SYS_Company c1 on c1.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c2 on c2.C_ID=sec.Sec_Agency
+        left join SYS_Department dp on dp.D_ID=sec.Sec_Contracting_Department
+        where sec.Bpc_Id=#{bpcId}
+    </select>
+
+    <select id="getSecInfoChangeListById"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.secInfo.SecInfoChange">
+        select * from Sec_Info_Change sic left join Sec_Bidding_Plan_Change sbpc on sic.Bpc_Id=sbpc.Bpc_Id
+        <where>
+            <if test="notStateList">
+                sbpc.State not in
+                <foreach collection="notStateList" item="item" open="(" separator="," close=")">
+                  #{item}
+                </foreach>
+            </if>
+            <if test="secId != null and secId != ''">
+                and sic.Sec_Id=#{secId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

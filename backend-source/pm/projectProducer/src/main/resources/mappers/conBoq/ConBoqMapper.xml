@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.conBoq.ConBoqMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.jpmsoft.projectProducer.pojo.entity.conBoq.ConBoq">
+        <id column="Boq_Id" property="boqId"/>
+        <result column="run_id" property="runId"/>
+        <result column="Boq_Title" property="boqTitle"/>
+        <result column="Boq_Remark" property="boqRemark"/>
+        <result column="Boq_Version" property="boqVersion"/>
+        <result column="Boq_Product_Id" property="boqProductId"/>
+        <result column="Boq_Product_Name" property="boqProductName"/>
+        <result column="Boq_Contract_Id" property="boqContractId"/>
+        <result column="Boq_Contract_Name" property="boqContractName"/>
+        <result column="Boq_Create_Uid" property="boqCreateUid"/>
+        <result column="Boq_Create_Uname" property="boqCreateUname"/>
+        <result column="Boq_Create_Time" property="boqCreateTime"/>
+        <result column="Boq_Update_Time" property="boqUpdateTime"/>
+        <result column="Boq_State" property="boqState"/>
+        <result column="Boq_State_Time" property="boqStateTime"/>
+        <result column="file_relation_id" property="fileRelationId"/>
+    </resultMap>
+
+    <select id="getBoqList" resultType="com.jpmsoft.projectProducer.pojo.entity.conBoq.ConBoq">
+        select *
+        from (select Boq_Id             as boqId,
+        mn.run_id as runId,
+                     Boq_Title          as boqTitle,
+                     Boq_Remark         as boqRemark,
+                     Boq_Version        as boqVersion,
+                     Boq_Product_Id     as boqProductId,
+                     Boq_Product_Name   as boqProductName,
+                     Boq_Contract_Id    as boqContractId,
+                     Boq_Contract_Name  as boqContractName,
+                     Boq_Create_Uid     as boqCreateUid,
+                     Boq_Create_Uname   as boqCreateUname,
+                     Boq_Create_Time    as boqCreateTime,
+                     Boq_Update_Time    as boqUpdateTime,
+                     Boq_State          as boqState,
+                     Boq_State_Time     as boqStateTime,
+                     f.file_relation_id as fileRelationId
+              from Con_Boq mn
+                       left join Sys_File f on mn.Boq_Id = f.FileID) c ${ew.customSqlSegment}
+    </select>
+
+    <!--***************************************************************************************************************************-->
+
+    <sql id="fields">
+        mn.Boq_Id           as boqId,
+        mn.run_id          as runId,
+        mn.Boq_Title        as boqTitle,
+        mn.Boq_Remark       as boqRemark,
+        mn.Boq_Version      as boqVersion,
+        mn.Boq_Create_Uid   as boqCreateUid,
+        mn.Boq_Create_Uname as boqCreateUname,
+        mn.Boq_Create_Time  as boqCreateTime,
+        mn.Boq_Update_Time  as boqUpdateTime,
+        mn.Boq_State        as boqState,
+        mn.Boq_State_Time   as boqStateTime,
+        mn.P_Id             as pId,
+        mn.Con_Id          as conId,
+        mn.con_boq_version as conBoqVersion,
+        mn.con_boq_type    as conBoqType
+    </sql>
+
+    <select id="getConBoqById" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConBoqVo">
+        select
+        pro.P_Name as pName,
+        con.Con_Name as conName,
+        f.file_relation_id as fileRelationId,
+        <include refid="fields"/>
+        from Con_Boq mn
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Sys_File f on f.FileID=mn.Boq_Id
+        where mn.Boq_Id=#{boqId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.boqState!=null">
+            and mn.Boq_State = #{params.boqState}
+        </if>
+        <if test="params.boqTitle!=null">
+            and INSTR(mn.Boq_Title,#{params.boqTitle})
+        </if>
+        <if test="params.boqRemark!=null">
+            and INSTR(mn.Boq_Remark,#{params.boqRemark})
+        </if>
+        <if test="params.boqVersion!=null">
+            and INSTR(mn.Boq_Version,#{params.boqVersion})
+        </if>
+        <if test="params.boqCreateUname!=null">
+            and INSTR(mn.Boq_Create_Uname,#{params.boqCreateUname})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+    </sql>
+    <select id="getConBoqList" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConBoqVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        <include refid="fields"/>
+        from Con_Boq mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Boq_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

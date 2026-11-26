@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectChangeMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectChangeModel"
+               id="selectPreProjectById">
+        <id column="Pc_ID" property="pcId"/>
+        <collection property="pcConstructionAreaDtls"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Project.PcConstructionAreaDtlModel"
+                    column="pcId" select="selectPcConstructionAreaDtlModel">
+        </collection>
+        <collection property="pcSourcesFunds"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Project.PcSourcesFundsModel"
+                    column="pcId" select="selectPcSourcesFundsModel">
+        </collection>
+        <collection property="pcInvDetails"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Project.PcSourcesFundsModel"
+                    column="pcId" select="selectPcInvDetails">
+        </collection>
+    </resultMap>
+
+    <select id="selectPcConstructionAreaDtlModel"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PcConstructionAreaDtlModel">
+        select
+        mn.*
+        from  Pc_Construction_Area_Dtl mn
+        where mn.Pc_Id=#{pcId}
+        order by mn.Cat_Sort asc
+    </select>
+
+    <select id="selectPcSourcesFundsModel"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PcSourcesFundsModel">
+        select
+        mn.*
+        from  Pc_Sources_Funds mn
+        where mn.Pc_Id=#{pcId}
+        order by mn.Fs_Sort asc
+    </select>
+
+    <select id="selectPcInvDetails"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PcSourcesFundsModel">
+        select
+        mn.*
+        from  Pc_Inv_Detail mn
+        where mn.Pc_Id=#{pcId}
+        order by mn.Fs_Sort asc
+    </select>
+
+    <select id="getPreProjectChangeById" resultMap="selectPreProjectById">
+        select
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name as pParentName,
+        parent.P_code as pParentCode,
+        f.file_relation_id as fileRelationId,
+        <include refid="entityFileds"/>
+        from  Pre_Project_Change mn
+        left join  SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join  SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join  SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join  SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join  Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        left join  Sys_File f on f.FileID=mn.Pc_ID
+        where mn.Pc_Id=#{pcId}
+    </select>
+
+    <sql id="getPreProjectListFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and mn.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.pParentId!=null">
+            and mn.P_Parent_ID = #{params.pParentId}
+        </if>
+        <if test="params.pType!=null">
+            and mn.P_Type = #{params.pType}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.pProjectStage!=null">
+            and mn.P_Project_Stage = #{params.pProjectStage}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and mn.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pIsProjectApproval!=null">
+            and mn.P_Is_Project_Approval = #{params.pIsProjectApproval}
+        </if>
+        <if test="params.state!=null">
+            and mn.state = #{params.state}
+        </if>
+        <if test="params.pSuperviseType!=null">
+            and mn.P_Supervise_Type = #{params.pSuperviseType}
+        </if>
+        <if test="params.pGroupType!=null">
+            and mn.P_Group_Type = #{params.pGroupType}
+        </if>
+        <if test="params.pMajorType!=null">
+            and mn.P_Major_Type = #{params.pMajorType}
+        </if>
+        <if test="params.pProjectStatus!=null">
+            and mn.P_Project_Status = #{params.pProjectStatus}
+        </if>
+        <if test="params.pCheckType!=null">
+            and mn.P_Check_Type = #{params.pCheckType}
+        </if>
+        <if test="params.pProjectAbbreviation!=null">
+            and mn.P_Project_Abbreviation like concat('%',#{params.pProjectAbbreviation},'%')
+        </if>
+        <if test="params.pOriginalName!=null">
+            and mn.P_Origina_lName like concat('%',#{params.pOriginalName},'%')
+        </if>
+        <if test="params.pNameInitials!=null">
+            and mn.P_Name_Initials like concat('%',#{params.pNameInitials},'%')
+        </if>
+        <if test="params.pLongitude!=null">
+            and mn.P_Longitude like concat('%',#{params.pLongitude},'%')
+        </if>
+        <if test="params.pLatitude!=null">
+            and mn.P_Latitude like concat('%',#{params.pLatitude},'%')
+        </if>
+        <if test="params.pUseUnit!=null">
+            and mn.P_Use_Unit like concat('%',#{params.pUseUnit},'%')
+        </if>
+        <if test="params.pAddress!=null">
+            and mn.P_Address like concat('%',#{params.pAddress},'%')
+        </if>
+        <if test="params.pIntroduction!=null">
+            and mn.P_Introduction like concat('%',#{params.pIntroduction},'%')
+        </if>
+        <if test="params.pProjectDirector!=null">
+            and mn.P_Project_Director like concat('%',#{params.pProjectDirector},'%')
+        </if>
+        <if test="params.pLandArea!=null">
+            and mn.P_Land_Area like concat('%',#{params.pLandArea},'%')
+        </if>
+        <if test="params.pProjectCode!=null">
+            and mn.P_Project_Code like concat('%',#{params.pProjectCode},'%')
+        </if>
+        <if test="params.pCompetentDepartmentName!=null">
+            and d.D_Name like concat('%',#{params.pCompetentDepartmentName},'%')
+        </if>
+        <if test="params.pAssignmentNo!=null">
+            and mn.P_Assignment_No like concat('%',#{params.pAssignmentNo},'%')
+        </if>
+        <if test="params.pConstructionUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.pConstructionUnitName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.pConstructionUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pName!=null">
+            and mn.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.pCode!=null">
+            and mn.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.pSafetyFiling!=null">
+            and mn.P_Safety_Filing like concat('%',#{params.pSafetyFiling},'%')
+        </if>
+    </sql>
+
+    <select id="getPreProjectChangeList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectChangeModel">
+        select
+        c1.C_Name_History as pConstructionUnitNameHistory,
+        c2.C_Name_History as pAgentUnitNameHistory,
+        c3.C_Name_History as pDesignUnitNameHistory,
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name as pParentName,
+        parent.P_Name_History as pParentNameHistory,
+        parent.P_code as pParentCode,
+        <include refid="entityFileds"/>
+        from  Pre_Project_Change mn
+        left join  SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join  SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join  SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join  SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join  Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        ${params.authSql}
+        and mn.deleted = false
+        <include refid="getPreProjectListFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ISNULL(mn.${params.sortFiled}),mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ISNULL(${params.sortSideFiled}),${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Pc_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <sql id="entityFileds">
+        mn.Pc_ID as pcId,
+        mn.P_ID as pId,
+        mn.PR_ID as prId,
+        mn.P_Code as pCode,
+        mn.P_Parent_ID as pParentId,
+        mn.P_Name as pName,
+        mn.P_Project_Abbreviation as pProjectAbbreviation,
+        mn.P_Original_Name as pOriginalName,
+        mn.P_Name_Initials as pNameInitials,
+        mn.P_Project_Code as pProjectCode,
+        mn.P_Address as pAddress,
+        mn.P_Region as pRegion,
+        mn.P_Construction_Area as pConstructionArea,
+        mn.P_Longitude as pLongitude,
+        mn.P_Latitude as pLatitude,
+        mn.P_Overview as pOverview,
+        mn.P_Volume_Rate as pVolumeRate,
+        mn.P_Land_Area as pLandArea,
+        mn.P_Seat as pSeat,
+        mn.P_Number_Of_Elevators as pNumberOfElevators,
+        mn.P_Max_Height as pMaxHeight,
+        mn.P_Parking_Number as pParkingNumber,
+        mn.P_Buildings_Number as pBuildingsNumber,
+        mn.P_Design_Life as pDesignLife,
+        mn.P_Super_Structure as pSuperStructure,
+        mn.P_Basic_Structure as pBasicStructure,
+        mn.P_Ground_Floors as pGroundFloors,
+        mn.P_Under_Ground_Floors as pUnderGroundFloors,
+        mn.P_Is_Gas as pIsGas,
+        mn.P_Basement_Area as pBasementArea,
+        mn.P_Is_Air_Defense as pIsAirDefense,
+        mn.P_Air_Defense_Area as pAirDefenseArea,
+        mn.P_Type as pType,
+        mn.P_Major_Type as pMajorType,
+        mn.P_Construction_Unit as pConstructionUnit,
+        mn.P_Competent_Department as pCompetentDepartment,
+        mn.P_Project_Director as pProjectDirector,
+        mn.P_Project_Stage as pProjectStage,
+        mn.P_Project_Status as pProjectStatus,
+        mn.P_PLan_Start_Date as pPlanStartDate,
+        mn.P_Plan_Complete_Date as pPlanCompleteDate,
+        mn.P_Total_Duration as pTotalDuration,
+        mn.P_Actual_Start_Time as pActualStartTime,
+        mn.P_Actual_Complete_Date as pActualCompleteDate,
+        mn.P_Actual_Total_Duration as pActualTotalDuration,
+        mn.P_Intervention_Date as pInterventionDate,
+        mn.P_Intervention_Year as pInterventionYear,
+        mn.P_Receipt_Time as pReceiptTime,
+        mn.P_Acceptance_Record_Date as pAcceptanceRecordDate,
+        mn.P_Handover_Date as pHandoverDate,
+        mn.P_Is_Project_Summary as pIsProjectSummary,
+        mn.P_Use_Unit as pUseUnit,
+        mn.P_Sources_Funds as pSourcesFunds,
+        mn.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+        mn.P_Estimate_Amount as pEstimateAmount,
+        mn.P_Approve_Budget as pApproveBudget,
+        mn.P_Approve_Budget_Code as pApproveBudgetCode,
+        mn.P_Approve_Budget_Date as pApproveBudgetDate,
+        mn.P_Final_Accounts as pFinalAccounts,
+        mn.P_Final_Accounts_Report_Date as pFinalAccountsReportDate,
+        mn.P_Construction_Project_Planning_Permit_Code as pConstructionProjectPlanningPermitCode,
+        mn.P_Construction_Land_Planning_PermitCode as pConstructionLandPlanningPermitcode,
+        mn.P_Opinions_On_Site_Selection_For_Construction_Projects_Code as pOpinionsOnSiteSelectionForConstructionProjectsCode,
+        mn.P_Land_Use_Right_Assignment_Contract_Code as pLandUseRightAssignmentContractCode,
+        mn.P_Feasibility_Study_Approval_Code as pFeasibilityStudyApprovalCode,
+        mn.P_EIA_Approval_Code as pEiaApprovalCode,
+        mn.P_Is_Agent_Construction as pIsAgentConstruction,
+        mn.P_Agent_Construction_Unit as pAgentConstructionUnit,
+        mn.P_Design_Grade as pDesignGrade,
+        mn.P_Is_Prefabricated as pIsPrefabricated,
+        mn.P_Four_New_Technologies as pFourNewTechnologies,
+        mn.P_BIM_Technology as pBimTechnology,
+        mn.P_Is_EPC as pIsEpc,
+        mn.P_Is_Sponge_City as pIsSpongeCity,
+        mn.P_Is_Regular_Mode as pIsRegularMode,
+        mn.P_Is_Design_And_Construction_Integration as pIsDesignAndConstructionIntegration,
+        mn.P_Design_And_Construction_Integration_Unit as  pDesignAndConstructionIntegrationUnit,
+        mn.P_Is_Whole_Process_Management as pIsWholeProcessManagement,
+        mn.P_Whole_Process_Management_Unit as pWholeProcessManagementUnit,
+        mn.P_Construction_Cooperation as pConstructionCooperation,
+        mn.P_Update_User_ID as pUpdateUserId,
+        mn.P_Update_Time as pUpdateTime,
+        mn.P_Serial_Number as pSerialNumber,
+        mn.deleted as deleted,
+        mn.P_Assignment_No as pAssignmentNo,
+        mn.P_Raise_Funds as pRaiseFunds,
+        mn.P_Introduction as pIntroduction,
+        mn.P_Land_Warrant as pLandWarrant,
+        mn.P_Parking_Number_Un as pParkingNumberUn,
+        mn.P_Parking_Number_On as pParkingNumberOn,
+        mn.P_Item_Number as pItemNumber,
+        mn.P_Pre_Item_Number as pPreItemNumber,
+        mn.P_Pre_Item_Time as pPreItemTime,
+        mn.P_Item_Time as pItemTime,
+        mn.P_Site_Area as pSiteArea,
+        mn.P_Cm_Mode as pCmMode,
+        mn.P_Name_History as pNameHistory,
+        mn.P_Assignment_File as pAssignmentFile,
+        mn.P_Committee_Approva_Document as pCommitteeApprovaDocument,
+        mn.P_City_Leader_Meeting_Minutes as pCityLeaderMeetingMinutes,
+        mn.P_City_Leader_Instructions as pCityLeaderInstructions,
+        mn.P_Other as pOther,
+        mn.P_Nature as pNature,
+        mn.P_Reported_Amount as pReportedAmount,
+        mn.P_Approva_Document as pApprovaDocument,
+        mn.P_Leader_Meeting_Minutes as pLeaderMeetingMinutes,
+        mn.P_Leader_Instructions as pLeaderInstructions,
+        mn.P_Project_Director_Tel as pProjectDirectorTel,
+        mn.P_Construction_Cost as pConstructionCost,
+        mn.P_Contract_Price as pContractPrice,
+        mn.P_Purchase_Price as pPurchasePrice,
+        mn.P_Estimate_File as pEstimateFile,
+        mn.P_Scale_Describe as pScaleDescribe,
+        mn.P_Bim as pBim,
+        mn.P_Smart_Site as pSmartSite,
+        mn.P_Management_System as pManagementSystem,
+        mn.P_New_Technology as pNewTechnology,
+        mn.P_New_Material as pNewMaterial,
+        mn.P_New_Craft as pNewCraft,
+        mn.P_Save_Energy as pSaveEnergy,
+        mn.P_Save_Land as pSaveLand,
+        mn.P_Save_Water as pSaveWater,
+        mn.P_Save_Material as pSaveMaterial,
+        mn.P_Digital_Construction as pDigitalConstruction,
+        mn.P_Green_Construction as pGreenConstruction,
+        mn.P_Centralized_Construction as pCentralizedConstruction,
+        mn.P_Contracting_Mode as pContractingMode,
+        mn.P_Process_Consulting as pProcessConsulting,
+        mn.P_Engineer_Responsible as pEngineerResponsible,
+        mn.P_Is_Project_Approval  as pIsProjectApproval,
+        mn.P_Building_Scale  as pBuildingScale,
+        mn.P_Building_Unit  as pBuildingUnit,
+        mn.P_Relation_File as pRelationFile,
+        mn.Pc_Create_Uid as pcCreateUid,
+        mn.Pc_Create_Uname as pcCreateUname,
+        mn.Pc_Create_Time as pcCreateTime,
+        mn.State as state,
+        mn.State_Time as stateTime,
+        mn.P_Supervise_Type as pSuperviseType,
+        mn.P_Group_Type as pGroupType,
+        mn.P_Remark_Planned as pRemarkPlanned,
+        mn.P_Plan_Number as pPlanNumber,
+        mn.P_Cons_Release as pConsRelease,
+        mn.P_Imp_Company as pImpCompany,
+        mn.P_Imp_State as pImpState,
+        mn.P_Apply_Tilte as pApplyTilte,
+        mn.P_Inv_Total as pInvTotal,
+        mn.P_Inv_Caliber as pInvCaliber,
+        mn.P_Inv_Tilte as pInvTilte,
+        mn.P_Inv_Code as pInvCode,
+        mn.P_Inv_Date as pInvDate,
+        mn.P_Inv_File as pInvFile,
+        mn.P_Build_Model as pBuildModel,
+        mn.P_Intervention_End_Year as  pInterventionEndYear,
+        mn.P_Approval_Unit as  pApprovalUnit,
+        mn.P_Construction_Start as  pConstructionStart,
+        mn.P_Construction_End as  pConstructionEnd,
+        mn.P_Check_Type as  pCheckType,
+        mn.P_Progress_Situation as pProgressSituation,
+        mn.P_Record_Number as pRecordNumber,
+        mn.P_Category as pCategory,
+        mn.P_Economic_File as pEconomicFile,
+        mn.P_Proposal_File as pProposalFile,
+        mn.P_Report_File as pReportFile,
+        mn.P_Inv_Category as pInvCategory,
+        mn.P_Advance_Fund as pAdvanceFund,
+        mn.P_Corporate_Risk as pCorporateRisk,
+        mn.P_Safety_Filing as pSafetyFiling
+    </sql>
+
+</mapper>

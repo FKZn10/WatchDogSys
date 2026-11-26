@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.SysCoordinationTaskMapper">
+
+    <select id="getUserCoordinationTaskList" resultType="com.jpmsoft.common.model.response.CoordinationTaskResponse">
+        select
+        f.FileTitle as ctFileTitle,
+        t.TaskName as ctTaskName,
+        u.U_Name as ctSendName,
+        flow.FlowName as ctFlowName,
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        f.T_Code as tCode,
+        <include refid="CoordinationTaskEntity"/>
+        from  SYS_CoordinationTask ct
+        left join  SYS_Task t on t.TaskID=ct.CT_TaskID
+        left join  SYS_Flow flow on flow.FlowID=ct.CT_FlowID
+        left join  Sys_File f on f.FileID=ct.CT_FileID
+        left join  Sys_User u on u.U_Id=ct.CT_SendUser
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        <where>
+            ct.CT_User=#{params.userId}
+            <if test="params.ctName!=null">
+                and  ct.CT_Name like concat('%',#{params.ctName},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conName!=null">
+                and  con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.ctSendUser!=null">
+                and   u.U_Name like concat('%',#{params.ctSendUser},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and ct.Te_Id = #{params.teId}
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by ct.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getUserCoordinationTaskListCount" resultType="java.lang.Integer">
+        select
+          COUNT(1)
+        from  SYS_CoordinationTask ct
+        left join  Sys_File f on f.FileID=ct.CT_FileID
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        left join  Sys_User u on u.U_Id=ct.CT_SendUser
+        <where>
+            ct.CT_User=#{params.userId}
+            <if test="params.ctName!=null">
+                and  ct.CT_Name like concat('%',#{params.ctName},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conName!=null">
+                and  con.Con_Name like concat('%',#{params..},'%')
+            </if>
+            <if test="params.ctSendUser!=null">
+                and   u.U_Name like concat('%',#{params.ctSendUser},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and ct.Te_Id = #{params.teId}
+            </if>
+        </where>
+    </select>
+
+
+
+
+
+    <select id="getCoordinationTaskList" resultType="com.jpmsoft.common.model.response.CoordinationTaskResponse">
+        select
+        f.FileTitle as ctFileTitle,
+        t.TaskName as ctTaskName,
+        u.U_Name as ctSendName,
+        u1.U_Name as ctUserName,
+        flow.FlowName as ctFlowName,
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        f.T_Code as tCode,
+        <include refid="CoordinationTaskEntity"/>
+        from  SYS_CoordinationTask ct
+        left join  SYS_Task t on t.TaskID=ct.CT_TaskID
+        left join  SYS_Flow flow on flow.FlowID=ct.CT_FlowID
+        left join  Sys_File f on f.FileID=ct.CT_FileID
+        left join  Sys_User u on u.U_Id=ct.CT_SendUser
+        left join  Sys_User u1 on u1.U_Id=ct.CT_User
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        <where>
+            1=1
+            <if test="params.ctName!=null">
+                and  ct.CT_Name like concat('%',#{params.ctName},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conName!=null">
+                and  con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.ctSendUser!=null">
+                and   u.U_Name like concat('%',#{params.ctSendUser},'%')
+            </if>
+            <if test="params.ctUser!=null">
+                and  u1.U_Name like concat('%',#{params.ctUser},'%')
+            </if>
+            <if test="params.fileId!=null">
+                and   ct.CT_FileID like concat('%',#{params.fileId},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and ct.Te_Id = #{params.teId}
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by ct.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getCoordinationTaskListCount" resultType="java.lang.Integer">
+        select
+          COUNT(1)
+        from  SYS_CoordinationTask ct
+        left join  SYS_Task t on t.TaskID=ct.CT_TaskID
+        left join  SYS_Flow flow on flow.FlowID=ct.CT_FlowID
+        left join  Sys_File f on f.FileID=ct.CT_FileID
+        left join  Sys_User u on u.U_Id=ct.CT_SendUser
+        left join  Sys_User u1 on u1.U_Id=ct.CT_User
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        <where>
+            1=1
+            <if test="params.ctName!=null">
+                and  ct.CT_Name like concat('%',#{params.ctName},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conName!=null">
+                and  con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.ctSendUser!=null">
+                and   u.U_Name like concat('%',#{params.ctSendUser},'%')
+            </if>
+            <if test="params.ctUser!=null">
+                and  u1.U_Name like concat('%',#{params.ctUser},'%')
+            </if>
+            <if test="params.fileId!=null">
+                and   ct.CT_FileID like concat('%',#{params.fileId},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and ct.Te_Id = #{params.teId}
+            </if>
+        </where>
+    </select>
+
+
+
+
+    <sql id="CoordinationTaskEntity">
+        ct.CT_ID as ctId,
+        ct.CT_Name as ctName,
+        ct.CT_User as ctUser,
+        ct.CT_SendUser as ctSenduser,
+        ct.CT_Time as ctTime,
+        ct.CT_TaskID as ctTaskid,
+        ct.CT_ActID as ctActid,
+        ct.CT_FlowID as ctFlowid,
+        ct.CT_FileID as ctFileid,
+        ct.CT_Countersign as ctCountersign,
+        ct.CT_ActName as ctActname
+    </sql>
+
+
+    <select id="statisticsUserAgency" resultType="com.jpmsoft.jpbpm.pojo.vo.AgencyStatisticsVo">
+        select f.T_Code as tCode,
+        count(*)  as total
+        from SYS_CoordinationTask tk
+        left join Sys_File f on f.FileId=tk.CT_FileID
+        where f.T_Code in
+        <foreach collection="params.tCodes" open="(" close=")" separator="," item="code">
+            #{code}
+        </foreach>
+        <if test="params.uId!=null and params.uId!=''">
+            and tk.Ct_User=#{params.uId}
+        </if>
+        <if test="params.teId!=null and params.teId!='All'">
+            and tk.Te_Id = #{params.teId}
+        </if>
+        group by f.T_Code
+    </select>
+</mapper>

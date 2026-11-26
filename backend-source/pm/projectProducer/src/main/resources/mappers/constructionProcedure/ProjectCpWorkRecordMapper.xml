@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.constructionProcedure.ProjectCpWorkRecordMapper">
+
+    <select id="getProCpWorkRecordList" resultType="com.jpmsoft.common.model.response.proCp.ProCpWorkRecordResponse">
+        select
+        (select  count(*) from Sys_FileAnnex fa where fa.File_Relation_Id=f.File_Relation_Id
+         and fa.upload_status=1 and fa.File_Location=0) as fileCount,
+        (select count(*) from Project_Cp_Work_Comment cpwc where cpwc.Cpwr_Id=cpwr.Cpwr_Id) as commentCount,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        <include refid="entityFileds"/>
+        <include refid="projectCpDtlFileds"/>
+        from  Project_Cp_Work_Record cpwr
+        left join  Project_Cp_Dtl cpd on cpd.Cpd_Id=cpwr.Cpd_Id
+        left join  Project_Cp cp on cp.Cp_Id=cpd.Cp_Id
+        left join  Pre_Project pro on pro.P_ID=cp.P_ID
+        left join Sys_File f on f.fileid=cpwr.Cpwr_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        <where>
+            <if test="params.teId!=null">
+                and cpwr.Te_Id = #{params.teId}
+            </if>
+            <if test="params.cpdId!=null">
+                and  cpwr.Cpd_Id=#{params.cpdId}
+            </if>
+            <if test="params.cpwrHomePush!=null">
+                and  cpwr.Cpwr_Home_Push=#{params.cpwrHomePush}
+            </if>
+            <if test="params.pId!=null">
+                and cp.P_ID=#{params.pId}
+            </if>
+            <if test="params.auth!=null and params.auth==true">
+                and (cpwr.Cpwr_Home_Push=true or cpwr.Cpwr_Create_Uid=#{params.authId})
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},cp.P_ID)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.cpdName!=null">
+                and  cpd.Cpd_Name like concat('%',#{params.cpdName},'%')
+            </if>
+            <if test="params.cpwrCreateUname!=null">
+                and  cpwr.Cpwr_Create_Uname like concat('%',#{params.cpwrCreateUname},'%')
+            </if>
+            <if test="params.cpwrRemark!=null">
+                and  cpwr.Cpwr_Remark like concat('%',#{params.cpwrRemark},'%')
+            </if>
+            <if test="params.cpwrCreateTimeStart!=null">
+                and cpwr.Cpwr_Create_Time>=#{params.cpwrCreateTimeStart}
+            </if>
+            <if test="params.cpwrCreateTimeEnd!=null">
+                and cpwr.Cpwr_Create_Time &lt;=#{params.cpwrCreateTimeEnd}
+            </if>
+            <if test="params.cfTimeStart!=null">
+                and cpwr.Cpwr_Filling_Time>=#{params.cfTimeStart}
+            </if>
+            <if test="params.cfTimeEnd!=null">
+                and cpwr.Cpwr_Filling_Time &lt;=#{params.cfTimeEnd}
+            </if>
+            <if test="params.cpdCreateTimeStart!=null">
+                and cpd.Cpd_Create_Time>=#{params.cpdCreateTimeStart}
+            </if>
+            <if test="params.cpdCreateTimeEnd!=null">
+                and cpd.Cpd_Create_Time &lt;=#{params.cpdCreateTimeEnd}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by cpwr.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by cpwr.Cpwr_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <sql id="entityFileds">
+        cpwr.Cpwr_Id as cpwrId,
+        cpwr.Cpd_Id as cpdId,
+        cpwr.Cpwr_Remark as cpwrRemark,
+        cpwr.Cpwr_Create_Uid as cpwrCreateUid,
+        cpwr.Cpwr_Create_Uname as cpwrCreateUname,
+        cpwr.Cpwr_Create_Time as cpwrCreateTime,
+        cpwr.Cpwr_Home_Push as cpwrHomePush,
+        cpwr.Cpwr_Filling_Time as cpwrFillingTime,
+    </sql>
+
+    <sql id="projectCpDtlFileds">
+        cpd.Cp_Id as cpId,
+        cpd.Cpd_Name as cpdName,
+        cpd.Cpd_Code as cpdCode,
+        cpd.Cpd_Parent_Id as cpdParentId,
+        cpd.Cpd_Type as cpdType,
+        cpd.Cpd_Days as cpdDays,
+        cpd.Cpd_Pro_Id as cpdProId,
+        cpd.Cpd_Administration as cpdAdministration,
+        cpd.Cpd_Administration_Url as cpdAdministrationUrl,
+        cpd.Cpd_Remark as cpdRemark,
+        cpd.Cpd_Html as cpdHtml,
+        cpd.Cpd_Plan_Start_Time as cpdPlanStartTime,
+        cpd.Cpd_Plan_End_Time as cpdPlanEndTime,
+        cpd.Cpd_Person_Id as cpdPersonId,
+        cpd.Cpd_Person_Name as cpdPersonName,
+        cpd.Cpd_Start_Time as cpdStartTime,
+        cpd.Cpd_End_Time as cpdEndTime,
+        cpd.Cpd_State as cpdState,
+        cpd.Cpd_Doc as cpdDoc,
+        cpd.Cpd_Create_Uid as cpdCreateUid,
+        cpd.Cpd_Create_Uname as cpdCreateUname,
+        cpd.Cpd_Create_Time as cpdCreateTime
+    </sql>
+
+
+    <select id="getCpWorkRecordCountByCpId" resultType="java.lang.Integer">
+        select count(1)
+        from  Project_Cp_Work_Record cpwr
+        left join  Project_Cp_Dtl cpd on cpd.Cpd_Id=cpwr.Cpd_Id
+        left join  Project_Cp cp on cpd.Cp_Id=cp.Cp_Id
+        where cp.Cp_Id=#{cpId}
+    </select>
+</mapper>

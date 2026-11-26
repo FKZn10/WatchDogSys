@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProjectProfileMapper">
+
+    <select id="getProjectProfileList" resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProjectProfileModel">
+        SELECT
+        mn.id,
+        mn.p_id,
+        mn.pp_type,
+        mn.pp_current,
+        mn.progress,
+        mn.sec_id,
+        mn.p_date,
+        mn.remark,
+        mn.file_status,
+        mn.create_uid,
+        mn.create_time,
+        mn.create_uname,
+        mn.state,
+        mn.state_time,
+        mn.img_show,
+        pre.p_Name AS pName,
+        sf.file_relation_id as fileRelationId
+        FROM project_profile mn
+        INNER JOIN (
+        SELECT p_id, MAX(create_time) AS max_create_time
+        FROM project_profile
+        WHERE 1=1
+        <if test="params.pId!=null">
+            AND p_id = #{params.pId}
+        </if>
+        <if test="params.ppType!=null">
+            AND pp_type = #{params.ppType}
+        </if>
+        <if test="params.ppCurrent!=null">
+            AND pp_current = #{params.ppCurrent}
+        </if>
+        <if test="params.progress!=null">
+            AND progress = #{params.progress}
+        </if>
+        <if test="params.secId!=null">
+            AND sec_id = #{params.secId}
+        </if>
+        <if test="params.pDate!=null">
+            AND p_date = #{params.pDate}
+        </if>
+        <if test="params.remark!=null">
+            AND remark LIKE CONCAT('%', #{params.remark}, '%')
+        </if>
+        <if test="params.fileStatus!=null">
+            AND file_status = #{params.fileStatus}
+        </if>
+        <if test="params.createUid!=null">
+            AND create_uid = #{params.createUid}
+        </if>
+        <if test="params.createUname!=null">
+            AND create_uname LIKE CONCAT('%', #{params.createUname}, '%')
+        </if>
+        <if test="params.state!=null">
+            AND state = #{params.state}
+        </if>
+        <if test="params.stateTime!=null">
+            AND state_time = #{params.stateTime}
+        </if>
+        <if test="params.imgShow!=null">
+            AND img_show = #{params.imgShow}
+        </if>
+        <if test="params.pName!=null">
+            AND p_name LIKE CONCAT('%', #{params.pName}, '%')
+        </if>
+        GROUP BY p_id
+        ) latest
+        ON mn.p_id = latest.p_id
+        AND mn.create_time = latest.max_create_time
+        LEFT JOIN pre_project pre ON mn.p_id = pre.p_id
+        left join Sys_File sf on sf.FileID = mn.id
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            ORDER BY ${params.sortFiled} ${params.sortType}
+        </if>
+    </select>
+
+    <select id="getProjectProfileListByPid" resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProjectProfileModel">
+        select
+            mn.*,
+            pre.P_Name AS pName,
+            sf.file_relation_id as fileRelationId
+        from project_profile mn
+        left join pre_project pre on mn.p_id = pre.p_id
+        left join Sys_File sf on sf.FileID = mn.id
+        where mn.p_id = #{pId}
+    </select>
+
+    <select id="getProjectProfileById" resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProjectProfileModel">
+        select
+            mn.*,
+            pre.P_Name AS pName,
+            sf.file_relation_id as fileRelationId
+        from project_profile mn
+        left join pre_project pre on mn.p_id = pre.p_id
+        left join Sys_File sf on sf.FileID = mn.id
+        where mn.id = #{id}
+    </select>
+</mapper>

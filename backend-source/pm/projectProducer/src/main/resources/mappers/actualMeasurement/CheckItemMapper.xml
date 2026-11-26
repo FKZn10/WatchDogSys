@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.actualMeasurement.CheckItemMapper">
+
+    <select id="selectAll" resultType="com.jpmsoft.common.model.response.ActualMeasurement.CheckItemResponse">
+        SELECT ci.ci_Id as ciId,
+               ci.Ci_Name as ciName,
+               ci.Ci_Parent as ciParent,
+               ci.is_Use_Dynamic as isUseDynamic,
+               ci.dynamic_Id as dynamicId,
+               dc.dc_name as dynamicName
+        FROM Check_Item ci
+        LEFT JOIN Dynamics_Code dc ON dc.id = ci.dynamic_Id
+    </select>
+
+    <update id="refreshFileAnexState">
+
+        update SYS_FileAnnex set upload_status = 1 where file_id in
+        <foreach item="item" index="index" collection="fileIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+
+    </update>
+
+    <select id="getCheckItemList" resultType="com.jpmsoft.common.model.response.ActualMeasurement.CheckItemResponse">
+        SELECT
+            mn.*,
+            dc.dc_name as dynamicName
+        from Check_Item mn
+        left join dynamics_code dc on mn.dynamic_Id = dc.id
+        where 1=1
+        <if test="teId != null and teId != ''">
+            and mn.te_Id = #{teId}
+        </if>
+
+    </select>
+</mapper>

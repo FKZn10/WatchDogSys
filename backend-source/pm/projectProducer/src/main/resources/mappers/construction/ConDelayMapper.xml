@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.construction.ConDelayMapper">
+
+    <select id="getConDelayById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Construction.ConDelayModel">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        f.file_relation_id as fileRelationId,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        mn.*
+        from  Con_Delay mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_File f on f.FileID=mn.De_Id
+        where mn.De_Id=#{deId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.deState!=null">
+            and mn.De_State = #{params.deState}
+        </if>
+        <if test="params.deTitle!=null">
+            and mn.De_Title like concat('%',#{params.deTitle},'%')
+        </if>
+        <if test="params.deReason!=null">
+            and mn.De_Reason like concat('%',#{params.deReason},'%')
+        </if>
+        <if test="params.deRemark!=null">
+            and mn.De_Remark like concat('%',#{params.deRemark},'%')
+        </if>
+        <if test="params.deCreateUname!=null">
+            and mn.De_Create_Uname like concat('%',#{params.deCreateUname},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pNameHistory!=null">
+            and pro.P_Name_History like concat('%',#{params.pNameHistory},'%')
+        </if>
+    </sql>
+
+    <select id="getConDelayList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Construction.ConDelayModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Con_Delay mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sys_File f on f.FileID=mn.De_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.De_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

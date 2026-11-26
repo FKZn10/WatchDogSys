@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.ClaimIncomingFundsMapper">
+    <select id="getClaimIncomingFundsPage"
+            resultType="com.jpmsoft.common.model.response.fund.ClaimIncomingFundsResponse" databaseId="dm">
+        select
+        mn.*,
+        cid.projectName
+        from Claim_Incoming_Funds mn
+        left join (
+        select
+        dtl.cif_Id,
+        LISTAGG(pp.P_Name, '；') WITHIN GROUP (ORDER BY pp.P_ID) as projectName
+        from Claim_Incoming_Funds_Dtl dtl
+        left join pre_project pp on dtl.p_Id = pp.P_ID
+        group by dtl.cif_Id
+        ) cid on mn.id = cid.cif_Id
+        <where>
+            <include refid="queryCondition"/>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getClaimIncomingFundsPage"
+            resultType="com.jpmsoft.common.model.response.fund.ClaimIncomingFundsResponse" databaseId="mysql">
+        select
+        mn.*,
+        cid.projectName
+        from Claim_Incoming_Funds mn
+        left join (
+        select
+        dtl.cif_Id,
+        GROUP_CONCAT(pp.P_Name ORDER BY pp.P_ID SEPARATOR '、') as projectName
+        from Claim_Incoming_Funds_Dtl dtl
+        left join pre_project pp on dtl.p_Id = pp.P_ID
+        group by dtl.cif_Id
+        ) cid on mn.id = cid.cif_Id
+        <where>
+            <include refid="queryCondition"/>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="queryCondition">
+        <if test="params.id != null and params.id != ''">
+            and mn.Id = #{params.id}
+        </if>
+        <if test="params.createUid != null and params.createUid != ''">
+            and mn.Create_Uid = #{params.createUid}
+        </if>
+        <if test="params.createUname != null and params.createUname != ''">
+            and mn.Create_Uname = #{params.createUname}
+        </if>
+        <if test="params.createTime != null and params.createTime != ''">
+            and mn.Create_Time = #{params.createTime}
+        </if>
+        <if test="params.state != null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.stateTime != null and params.stateTime != ''">
+            and mn.State_Time = #{params.stateTime}
+        </if>
+        <if test="params.cifMoney != null">
+            and mn.Cif_Money = #{params.cifMoney}
+        </if>
+        <if test="params.cifMoneyStart != null and params.cifMoneyStart != ''">
+            and mn.Cif_Money &gt;= #{params.cifMoneyStart}
+        </if>
+        <if test="params.cifMoneyEnd != null and params.cifMoneyEnd != ''">
+            and mn.Cif_Money &lt;= #{params.cifMoneyEnd}
+        </if>
+        <if test="params.cifAccount != null and params.cifAccount != ''">
+            and mn.Cif_Account like CONCAT('%',#{params.cifAccount},'%')
+        </if>
+        <if test="params.cifCa != null and params.cifCa != ''">
+            and mn.cif_Ca like CONCAT('%',#{params.cifCa},'%')
+        </if>
+        <if test="params.cifDate != null and params.cifDate != ''">
+            and mn.Cif_Date = #{params.cifDate}
+        </if>
+        <if test="params.cifDateStart != null and params.cifDateStart != ''">
+            and mn.Cif_Date &gt;= #{params.cifDateStart}
+        </if>
+        <if test="params.cifDateEnd != null and params.cifDateEnd != ''">
+            and mn.Cif_Date &lt;= CONCAT(#{params.cifDateEnd}, ' 23:59:59')
+        </if>
+        <if test="params.cifAbstract != null and params.cifAbstract != ''">
+            and mn.Cif_Abstract like CONCAT('%',#{params.cifAbstract},'%')
+        </if>
+        <if test="params.cifPurpose != null and params.cifPurpose != ''">
+            and mn.Cif_Purpose like CONCAT('%',#{params.cifPurpose},'%')
+        </if>
+        <if test="params.cifPostscript != null and params.cifPostscript != ''">
+            and mn.Cif_Postscript like CONCAT('%',#{params.cifPostscript},'%')
+        </if>
+        <if test="params.cifIsReceipt != null and params.cifIsReceipt != ''">
+            and mn.Cif_Is_Receipt = #{params.cifIsReceipt}
+        </if>
+        <if test="params.cifIsWriteOff != null and params.cifIsWriteOff != ''">
+            and mn.Cif_Is_Write_Off = #{params.cifIsWriteOff}
+        </if>
+        <if test="params.cifReceipt != null and params.cifReceipt != ''">
+            and mn.Cif_Receipt like CONCAT('%',#{params.cifReceipt},'%')
+        </if>
+        <if test="params.cifIsIncoming != null and params.cifIsIncoming != ''">
+            and mn.Cif_Is_Incoming = #{params.cifIsIncoming}
+        </if>
+        <if test="params.updateTime != null and params.updateTime != ''">
+            and mn.Update_Time = #{params.updateTime}
+        </if>
+        <if test="params.updateUserId != null and params.updateUserId != ''">
+            and mn.Update_User_Id = #{params.updateUserId}
+        </if>
+        <if test="params.updateUserName != null and params.updateUserName != ''">
+            and mn.Update_User_Name = #{params.updateUserName}
+        </if>
+        <if test="params.cifVerifyState != null and params.cifVerifyState != ''">
+            and mn.Cif_Verify_State = #{params.cifVerifyState}
+        </if>
+        <if test="params.cifCName != null and params.cifCName != ''">
+            and mn.Cif_C_Name like CONCAT('%',#{params.cifCName},'%')
+        </if>
+        <if test="params.cifCId != null and params.cifCId != ''">
+            and mn.Cif_C_Id = #{params.cifCId}
+        </if>
+        <if test="params.projectName != null and params.projectName != ''">
+            and cid.projectName like CONCAT('%',#{params.projectName},'%')
+        </if>
+    </sql>
+
+    <select id="getClaimIncomingFundsByPid"
+            resultType="com.jpmsoft.common.model.requestAndResponse.fund.ClaimIncomingFundsDtlDTO">
+        select
+        mn.*,
+        cif.cif_Date,
+        cif.Update_Time,
+        cif.Update_User_Id,
+        cif.Update_User_Name
+        from Claim_Incoming_Funds_Dtl mn
+        left join Claim_Incoming_Funds cif on mn.cif_Id = cif.id
+        where mn.p_Id = #{params.pId}
+        and (mn.cifd_Is_Receipt = '0' or (mn.cifd_Is_Receipt = '1' and mn.cifd_Verify_State in ('3', '5')))
+        <if test="params.excludeUsed != null and params.excludeUsed != ''">
+            and not exists(
+            select 1
+            from Payment_Receipt_History prh
+            left join Payment_Receipt pr on prh.pr_Id = pr.id
+            where pr.Project_ID = #{params.pId}
+            and pr.pr_Is_Claim = '1'
+            and prh.cifd_Id = mn.id)
+        </if>
+    </select>
+</mapper>

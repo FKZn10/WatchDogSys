@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvControlManageMapper">
+
+    <select id="getInvControlManageById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.InvControlManageModel">
+        select
+        f.file_relation_id as fileRelationId,
+        c1.C_Name as icmLegalPersonCName,
+        c2.C_Name as icmGenerationUnitName,
+        c1.C_Abbreviation as icmLegalPersonAbbName,
+        c2.C_Abbreviation as icmGenerationAbbName,
+        c1.C_Name_History as legalPersonCNameHistory,
+        c2.C_Name_History as generationUnitNameHistory,
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        mn.*
+        from  Inv_Control_Manage mn
+        left join  SYS_Company c1 on mn.Icm_Legal_Person_Cid=c1.C_Id
+        left join  SYS_Company c2 on mn.Icm_Generation_Unit=c2.C_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_File f on f.FileID=mn.Icm_Id
+        where mn.Icm_Id=#{icmId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.icmState!=null">
+            and mn.Icm_State = #{params.icmState}
+        </if>
+        <if test="params.icmPlanType!=null">
+            and mn.Icm_Plan_Type = #{params.icmPlanType}
+        </if>
+        <if test="params.icmMajorType!=null">
+            and mn.Icm_Major_Type = #{params.icmMajorType}
+        </if>
+        <if test="params.icmYear!=null">
+            and mn.Icm_Year = #{params.icmYear}
+        </if>
+        <if test="params.icmLegalPersonName!=null">
+            and mn.Icm_Legal_Person_Name like concat('%',#{params.icmLegalPersonName},'%')
+        </if>
+        <if test="params.icmCreateUname!=null">
+            and mn.Icm_Create_Uname like concat('%',#{params.icmCreateUname},'%')
+        </if>
+        <if test="params.icmPName!=null">
+            and mn.Icm_P_Name like concat('%',#{params.icmPName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="getInvControlManageList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.InvControlManageModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name as icmLegalPersonCName,
+        c2.C_Name as icmGenerationUnitName,
+        c1.C_Name_History as legalPersonCNameHistory,
+        c2.C_Name_History as generationUnitNameHistory,
+        c1.C_Abbreviation as icmLegalPersonAbbName,
+        c2.C_Abbreviation as icmGenerationAbbName,
+        mn.*
+        from Inv_Control_Manage mn
+        left join SYS_Company c1 on mn.Icm_Legal_Person_Cid=c1.C_Id
+        left join SYS_Company c2 on mn.Icm_Generation_Unit=c2.C_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Icm_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

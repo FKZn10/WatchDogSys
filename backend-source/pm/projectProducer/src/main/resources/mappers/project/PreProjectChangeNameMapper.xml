@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectChangeNameMapper">
+
+    <select id="getPreProjectChangeNameById"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectChangeNameResponse">
+        select
+        u.U_Name as pcnUserName,
+        f.file_relation_id as fileRelationId,
+        <include refid="pcnFileds"/>
+        from
+         Pre_ProjectChangeName pcn
+        left join  SYS_User u on u.U_ID=pcn.PCN_User_ID
+        left join  Sys_File f on f.FileID=pcn.PCN_ID
+        where pcn.PCN_Id=#{pcnId}
+    </select>
+
+
+
+    <select id="getPreProjectChangeNameByPage"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectChangeNameResponse">
+        select
+        u.U_Name as pcnUserName,
+        f.file_relation_id as fileRelationId,
+        <include refid="pcnFileds"/>
+        from
+         Pre_ProjectChangeName pcn
+        left join  SYS_User u on u.U_ID=pcn.PCN_User_ID
+        left join  Sys_File f on f.FileID=pcn.PCN_ID
+        <where>
+            <if test="teId!=null">
+                and pcn.Te_Id = #{teId}
+            </if>
+            <if test="pId!=null">
+                and pcn.P_Id=#{pId}
+            </if>
+            <if test="pcnName!=null">
+                pcn.PCN_Old_Name like concat('%',#{pcnName},'%')
+                or
+                pcn.PCN_New_Name like concat('%',#{pcnName},'%')
+            </if>
+        </where>
+        <if test="sortType!=null and sortFiled!=null">
+            order by p.${sortFiled} ${sortType}
+        </if>
+        <if test="sortType == null or sortFiled==null">
+            order by pcn.PCN_Create_Time desc
+        </if>
+        limit #{start},#{size}
+    </select>
+
+
+    <select id="getPreProjectChangeNameCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from
+         Pre_ProjectChangeName pcn
+        left join  SYS_User u on u.U_ID=pcn.PCN_User_ID
+        <where>
+            <if test="teId!=null">
+                and pcn.Te_Id = #{teId}
+            </if>
+            <if test="pId!=null">
+                and pcn.P_Id=#{pId}
+            </if>
+            <if test="pcnName!=null">
+                pcn.PCN_Old_Name like concat('%',#{pcnName},'%')
+                or
+                pcn.PCN_New_Name like concat('%',#{pcnName},'%')
+            </if>
+        </where>
+    </select>
+
+
+    <sql id="pcnFileds">
+       pcn.PCN_ID as pcnId,
+       pcn.P_ID as pId,
+       pcn.PCN_Old_Name as pcnOldName,
+       pcn.PCN_New_Name as pcnNewName,
+       pcn.PCN_User_ID as pcnUserId,
+       pcn.PCN_Create_Time as pcnCreateTime,
+       pcn.PCN_Modify_Reason as pcnModifyReason,
+       pcn.PCN_Attachment as pcnAttachment,
+       pcn.PCN_Create_Uid as pcnCreateUid,
+       pcn.PCN_Create_Uname as pcnCreateUname,
+       pcn.PCN_FlowState as pcnFlowstate,
+       pcn.PCN_FlowDate as pcnFlowdate
+    </sql>
+</mapper>

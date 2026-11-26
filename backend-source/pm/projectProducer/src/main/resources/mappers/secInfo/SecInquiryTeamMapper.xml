@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecInquiryTeamMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecInquiryTeamModel" id="getSecInquiryTeam">
+        <id column="Sit_Id" property="sitId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Sit_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Inquiry_Team sit on sit.Sec_Id=sec.Sec_Id
+        where sit.Sit_Id=#{sitId}
+    </select>
+
+    <select id="getSecInquiryTeamBySitId" resultMap="getSecInquiryTeam">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Bidding_Type as secBiddingType,
+        c2.C_Name as secTendereeName,
+        c2.C_Abbreviation as secTendereeAbbName,
+        sit.*
+        from  Sec_Inquiry_Team sit
+        left join  Sec_Info sec on sec.Sec_Id=sit.Sec_Id
+        left join  SYS_Company c2 on sec.Sec_Tenderee=c2.C_Id
+        where sit.Sit_Id=#{sitId}
+    </select>
+</mapper>

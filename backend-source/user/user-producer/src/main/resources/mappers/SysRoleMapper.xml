@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysRoleMapper">
+
+    <select id="getRoleList" resultType="com.jpmsoft.userProducer.pojo.dto.RoleDto">
+        select
+            c1.C_Name as roleCpyName,
+             mn.*
+        from Sys_Role mn
+        left join SYS_Company c1 on c1.C_Id=mn.Role_Cpy
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id=#{params.teId}
+            </if>
+            <if test="params.roleType!=null">
+                and mn.Role_Type=#{params.roleType}
+            </if>
+            <if test="params.roleCpy!=null">
+                and mn.Role_Cpy=#{params.roleCpy}
+            </if>
+            <if test="params.roleDataauthority!=null">
+                and INSTR(mn.Role_DataAuthority,#{params.roleDataauthority})
+            </if>
+            <if test="params.roleCode!=null">
+                and INSTR(mn.Role_Code,#{params.roleCode})
+            </if>
+            <if test="params.roleName!=null">
+                and INSTR(mn.Role_Name,#{params.roleName})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Role_Sort ASC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

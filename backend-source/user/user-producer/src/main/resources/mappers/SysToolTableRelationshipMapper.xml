@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysToolTableRelationshipMapper">
+
+    <delete id="deleteBath">
+        <foreach collection="sqls" open="" close="" separator="" item="sql">
+            ${sql}
+        </foreach>
+    </delete>
+    <delete id="delete">
+       ${sql}
+    </delete>
+    <select id="querySql" resultType="Map">
+        ${sql}
+    </select>
+
+
+    <select id="queryPageSize" resultType="Integer">
+        ${sql}
+    </select>
+
+    <insert id="insertBatch" >
+        <foreach collection="sqls" open="" close="" separator="" item="sql">
+            ${sql}
+        </foreach>
+    </insert>
+
+
+    <insert id="insertSql" >
+            ${sql}
+    </insert>
+</mapper>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fundPlan.FundPlanDtlMapper">
+
+    <select id="getFundPlanDtlList" resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundPlanDtlVo">
+        select <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+               con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               con.Con_Money_Total as conMoneyTotal,
+               con.Con_Pay_Clause  as conPayClause,
+               fp.Fp_Date          as fpDate,
+               fp.Create_Uname     as createUname,
+               fp.Fp_Code          as fpCode,
+               c1.C_Name           as fpdPayeeName,
+               mn.*
+        from Fund_Plan_Dtl mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+                 left join Con_Contract con on mn.Con_Id = con.Con_Id
+                 left join Fund_Plan fp on fp.id = mn.Fp_Id
+                 left join Sys_Company c1 on c1.C_Name=mn.Fpd_Payee_Id
+        where mn.Con_Id = #{params.conId}
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.teId!=null">
+            and fp.Te_Id = #{params.teId}
+        </if>
+        and fp.State = 7
+        order by fp.Create_Time desc, mn.Fpd_Sort asc
+    </select>
+
+
+    <select id="getAllFundPlanDtlByFpId" resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundPlanDtlVo">
+        select pro.P_Name          as pName,
+               con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               con.Con_Money_Total as conMoneyTotal,
+               con.Con_Pay_Clause  as conPayClause,
+               fp.Fp_Date          as fpDate,
+               fp.Create_Uname     as createUname,
+               c1.C_Name           as fpdPayeeName,
+               mn.*
+        from Fund_Plan_Dtl mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_Id
+                 left join Con_Contract con on mn.Con_Id = con.Con_Id
+                 left join Fund_Plan fp on fp.id = mn.Fp_Id
+                 left join Sys_Company c1 on c1.C_Name=mn.Fpd_Payee_Id
+        where fp.id = #{fpId}
+        order by fp.Create_Time desc, mn.Fpd_Sort asc
+    </select>
+</mapper>

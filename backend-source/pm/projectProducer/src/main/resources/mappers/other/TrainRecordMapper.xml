@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.TrainRecordMapper">
+
+
+    <select id="getTrainStaffAllList" resultType="com.jpmsoft.projectProducer.pojo.dto.other.TrainStaffDTO"
+            parameterType="com.jpmsoft.projectProducer.pojo.entity.other.TrainStaff">
+        select
+        dr.name as region,
+        ts.id,
+        ts.name,
+        ts.unit,
+        ts.job,
+        ts.phone,
+        ts.create_time
+        from train_staff ts
+        left join dic_region dr on dr.id = ts.region
+        where 1=1
+        <if test="params.unit != null and params.unit != ''">
+            and ts.unit like CONCAT("%",#{params.unit},"%")
+        </if>
+        <if test="params.name != null and params.name != ''">
+            and ts.name like CONCAT("%",#{params.name},"%")
+        </if>
+        <if test="params.phone != null and params.phone != ''">
+            and ts.phone like CONCAT("%",#{params.phone},"%")
+        </if>
+    </select>
+    <select id="trainStatistical" resultType="com.jpmsoft.projectProducer.pojo.dto.other.TrainVideoDTO">
+        SELECT tv.*, tr.staff_id
+        FROM train_video tv
+                 left join train_record tr on tr.video_id = tv.id
+    </select>
+    <select id="getTrainVideoAllList" resultType="com.jpmsoft.projectProducer.pojo.dto.other.TrainVideoDTO">
+        SELECT tv.*
+        FROM train_video tv
+        where tv.state = #{state}
+    </select>
+</mapper>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.peInfo.PeFormDetailStandardMapper">
+    <delete id="deletePeFormToDeleteStandard" parameterType="java.util.List">
+        delete
+        from  Pe_Form_Detail_Standard
+        where FD_Id in
+        <foreach item="item" index="index" collection="fdIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <delete id="deletePeFormDetailStandardByfdId">
+        delete from   Pe_Form_Detail_Standard where FD_Id = #{fdId}
+    </delete>
+
+    <select id="getPeFormDetailStandardByFid" resultType="com.jpmsoft.common.model.request.PeInfo.PeFormDetailStandardRequest">
+        select
+        s.S_Id as sId,
+        s.Fd_Id as fdId,
+        s.S_Content as sContent,
+        s.S_Score as sScore,
+        s.S_Order as sOrder,
+        s.S_State as sState,
+        s.S_Remark as sRemark
+        from  Pe_Form_Detail_Standard s
+        left join  Pe_Form_Detail d on d.Fd_Id=s.Fd_Id
+        where d.F_Id=#{fId}
+    </select>
+
+</mapper>

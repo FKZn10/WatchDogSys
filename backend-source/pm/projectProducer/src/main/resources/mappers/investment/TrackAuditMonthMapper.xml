@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.TrackAuditMonthMapper">
+
+    <select id="getTrackAuditMonthListByPId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.TrackAuditMonth">
+        select c1.C_Name                 as trackCName,
+               con.Con_Name              as conName,
+               c2.C_Name                 as sgName,
+               con.Con_Plan_Start_Date   as planStartTime,
+               con.Con_Plan_End_Date     as planEndTime,
+               con.Con_Money_Total     as conTotalAmount,
+               mn.*
+        from Track_Audit_Month mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_ID=mn.P_Id
+                 left join SYS_Company c1 on pro.P_Audit_Unit = c1.C_Id
+                 left join SYS_Company c2 on con.Con_Party_B_Id = c2.C_Id
+        where mn.P_Id = #{pId} and mn.State=7
+    </select>
+</mapper>

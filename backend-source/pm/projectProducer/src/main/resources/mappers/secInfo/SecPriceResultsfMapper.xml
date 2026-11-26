@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecPriceResultsfMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecPriceResultsfModel" id="getSecPriceResultsf">
+        <id column="Spr_Id" property="sprId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Spr_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Price_Resultsf spr on spr.Sec_Id=sec.Sec_Id
+        where spr.Spr_Id=#{sprId}
+    </select>
+
+
+    <select id="getSecPriceResultsfBySprId" resultMap="getSecPriceResultsf">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Type as secType,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Organize_Form as secOrganizeForm,
+        sec.Sec_Start_Time as secStartTime,
+        sec.Sec_Bidding_Cycle as secBiddingCycle,
+        sec.Sec_Place as secPlace,
+        c2.C_Name as secTendereeName,
+        c2.C_Abbreviation as secTendereeAbbName,
+        c3.C_Name as sprCompanyName,
+        c3.C_Abbreviation as sprCompanyAbbName,
+        c6.C_Name as secAgencyName,
+        sit.Sit_Scope as sitScope,
+        spr.*
+        from  Sec_Price_Resultsf spr
+        left join  Sec_Info sec on sec.Sec_Id=spr.Sec_Id
+        left join  Sec_Inquiry_Team sit on sit.Sec_Id=spr.Sec_Id
+        and sit.Sit_Id=(select Sit_Id from Sec_Inquiry_Team where Sec_Id=sec.Sec_Id and State=7 order by State_Time desc limit 1)
+        left join  SYS_Company c2 on sec.Sec_Tenderee=c2.C_Id
+        left join  SYS_Company c3 on spr.Spr_Company=c3.C_Id
+        left join  Sys_Company c6 on c6.C_Id=sec.Sec_Agency
+        where spr.Spr_Id=#{sprId}
+    </select>
+
+    <select id="getSecPriceResultsfList" resultMap="getSecPriceResultsf">
+        select
+            sec.Sec_Name as secName,
+            sec.Sec_Code as secCode,
+            sec.Sec_Type as secType,
+            sec.Sec_Bidding_Type as secBiddingType,
+            sec.Sec_Organize_Form as secOrganizeForm,
+            sec.Sec_Start_Time as secStartTime,
+            sec.Sec_Bidding_Cycle as secBiddingCycle,
+            sec.Sec_Place as secPlace,
+            sec.Sec_Trading_Place as secTradingPlace,
+            c2.C_Name as secTendereeName,
+            c2.C_Abbreviation as secTendereeAbbName,
+            c3.C_Name as sprCompanyName,
+            c3.C_Abbreviation as sprCompanyAbbName,
+            se.Se_Result as seResult,
+            mn.*
+            from  Sec_Price_Resultsf mn
+            left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+            left join  SYS_Company c2 on sec.Sec_Tenderee=c2.C_Id
+            left join  SYS_Company c3 on mn.Spr_Company=c3.C_Id
+            left join  Sec_Entrust se on se.Sec_Id=mn.Sec_Id
+            and se.id=(select id from Sec_Entrust where Sec_Id=sec.Sec_Id and State=7 order by State_Time desc limit 1)
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.secId!=null and params.secId!=''">
+                and sec.Sec_Id=#{params.secId}
+            </if>
+            <if test="params.pId!=null and params.pId!=''">
+                and sec.Sec_Id in (
+                Select sp.Sec_Id from Sec_Project sp
+                left join Pre_Project sppj on sppj.P_ID = sp.P_Id
+                where sppj.P_ID = #{params.pId}
+                )
+            </if>
+            <if test="params.secType!=null">
+                and sec.Sec_Type=#{params.secType}
+            </if>
+            <if test="params.secOrganizeForm!=null">
+                and sec.Sec_Organize_Form=#{params.secOrganizeForm}
+            </if>
+            <if test="params.secBiddingType!=null">
+                and sec.Sec_Bidding_Type=#{params.secBiddingType}
+            </if>
+            <if test="params.state!=null">
+                and mn.State=#{params.state}
+            </if>
+            <if test="params.sprPrerequisites!=null">
+                and INSTR(mn.Spr_Prerequisites,#{params.sprPrerequisites})
+            </if>
+            <if test="params.secName!=null">
+                and INSTR(sec.Sec_Name,#{params.secName})
+            </if>
+            <if test="params.secTendereeName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.secTendereeName},c2.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c2.C_Name,#{params.secTendereeName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.sprCompanyName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.sprCompanyName},c3.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c3.C_Name,#{params.sprCompanyName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.sprCreateUname!=null">
+                and INSTR(mn.Spr_Create_Uname,#{params.sprCreateUname})
+            </if>
+            <if test="params.secPlace!=null">
+                and INSTR(sec.Sec_Place,#{params.secPlace})
+            </if>
+            <if test="params.secTradingPlace!=null">
+                and INSTR(sec.Sec_Trading_Place,#{params.secTradingPlace})
+            </if>
+            <if test="params.seResult!=null">
+                and INSTR(se.Se_Result,#{params.seResult})
+            </if>
+            <if test="params.secStartTimeStart!=null">
+                and sec.Sec_Start_Time>=#{params.secStartTimeStart}
+            </if>
+            <if test="params.secStartTimeEnd!=null">
+                and sec.Sec_Start_Time&lt;=#{params.secStartTimeEnd}
+            </if>
+            <if test="params.secBiddingCycleStart!=null">
+                and sec.Sec_Bidding_Cycle>=#{params.secBiddingCycleStart}
+            </if>
+            <if test="params.secBiddingCycleEnd!=null">
+                and sec.Sec_Bidding_Cycle&lt;=#{params.secBiddingCycleEnd}
+            </if>
+            <if test="params.sprConMoneyStart!=null">
+                and mn.Spr_Con_Money>=#{params.sprConMoneyStart}
+            </if>
+            <if test="params.sprConMoneyEnd!=null">
+                and mn.Spr_Con_Money&lt;=#{params.sprConMoneyEnd}
+            </if>
+            <if test="params.sprPriceCeilingStart!=null">
+                and mn.Spr_Price_Ceiling>=#{params.sprPriceCeilingStart}
+            </if>
+            <if test="params.sprPriceCeilingEnd!=null">
+                and mn.Spr_Price_Ceiling&lt;=#{params.sprPriceCeilingEnd}
+            </if>
+            <if test="params.sprAmtStart!=null">
+                and mn.Spr_Amt>=#{params.sprAmtStart}
+            </if>
+            <if test="params.sprAmtEnd!=null">
+                and mn.Spr_Amt&lt;=#{params.sprAmtEnd}
+            </if>
+            <if test="params.sprCreateTimeStart!=null">
+                and mn.Spr_Create_Time>=#{params.sprCreateTimeStart}
+            </if>
+            <if test="params.sprCreateTimeEnd!=null">
+                and mn.Spr_Create_Time&lt;=#{params.sprCreateTimeEnd}
+            </if>
+            <if test="params.pCompetentDepartmentName!=null or params.pName!=null ">
+                and mn.Sec_Id in (
+                Select sp.Sec_Id from Sec_Project sp
+                left join Pre_Project sppj on sppj.P_ID = sp.P_Id
+                left join SYS_Department dep on sppj.P_Competent_Department = dep.D_Id
+                <where>
+                    <if test="params.pCompetentDepartmentName!=null">
+                        and INSTR(dep.D_Name,#{params.pCompetentDepartmentName})
+                    </if>
+                    <if test="params.pName!=null">
+                        <choose>
+                            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                                and likePname(#{params.pName},sppj.P_Id)=true
+                            </when>
+                            <otherwise>
+                                and INSTR(sppj.P_Name,#{params.pName})
+                            </otherwise>
+                        </choose>
+                    </if>
+                </where>
+                )
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Spr_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecExpertSupplementMapper">
+
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertSupplementVO"
+               id="getSecExpertSupplement">
+        <id column="id" property="id"/>
+        <result column="Sr_Id" property="srId"/>
+        <collection property="secSupplementRecordDtls"
+                    ofType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecSupplementRecordDtlVO"
+                    column="id" select="getSecSupplementRecordDtl">
+        </collection>
+        <collection property="secExpertShields"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecExpertShieldDto"
+                    column="srId" select="getSecExpertShield">
+        </collection>
+    </resultMap>
+
+    <select id="getSecSupplementRecordDtl"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecSupplementRecordDtlVO">
+        select c1.C_Name         as cName,
+               c1.C_Abbreviation as exContrAbbName,
+               c1.C_Name_History as cNameHistory,
+               mn.*,
+               se.*
+        from Sec_Supplement_Record_Dtl mn
+                 left join Sec_Expert se on mn.Ex_Id = se.Ex_Id
+                 left join Sys_Company c1 on c1.C_Id = se.C_Id
+        where mn.Ses_Id = #{id}
+    </select>
+
+    <select id="getSecExpertShield"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecExpertShieldDto">
+        select c1.C_Name         as cName,
+               c1.C_Abbreviation as exContrAbbName,
+               c1.C_Name_History as cNameHistory,
+               mn.*,
+               se.*
+        from Sec_Expert_Shield mn
+                 left join Sec_Expert se on mn.Ex_Id = se.Ex_Id
+                 left join Sys_Company c1 on c1.C_Id = se.C_Id
+        where mn.Sr_Id = #{srId}
+    </select>
+
+    <select id="selectSupplementById" resultMap="getSecExpertSupplement">
+        select es.Es_Technology_Num        as esTechnologyNum,
+               es.Es_Economics_Num         as esEconomicsNum,
+               es.Es_Expert_Num            as esExpertNum,
+               pro.P_Name                  as pName,
+               pro.P_Code                  as pCode,
+               pro.P_Approve_Budget        as pApproveBudget,
+               sec.Sec_Name                as secName,
+               sec.Sec_Bidding_Type        as secBiddingType,
+               sec.Sec_Place               as secPlace,
+               sec.Sec_Remark              as secRemark,
+               sec.Sec_Organize_Form       as secOrganizeForm,
+               sec.Sec_Evaluate_Separation as secEvaluateSeparation,
+               sec.Sec_Quali_Review        as secQualiReview,
+               sec.Sec_Bid_Time            as secBidTime,
+               sec.Sec_Loaction            as secLoaction,
+               sec.Sec_Investors_Quali     as secInvestorsQuali,
+               sec.Sec_Type                as secType,
+               sd.D_Function               as dFunction,
+               sd.D_Scope                  as dScope,
+               sd.D_Executive_Standard     as dExecutiveStandard,
+               sd.D_Amount                 as dAmount,
+               sd.D_Bid_Time               as dBidTime,
+               sd.D_Location               as dLocation,
+               c1.C_Name                   as secTendereeName,
+               c2.C_Name                   as secAgencyName,
+               c3.C_Name                   as esCompanyName,
+               mn.id                       as id,
+               mn.Sr_Id                    as srId,
+               sr.*,
+               es.*,
+               mn.*
+        from Sec_Expert_Supplement mn
+                 left join Sec_Selection_Record sr on mn.Sr_Id = sr.Sr_Id
+                 left join Sec_Expert_Select es on es.id = sr.Es_Id
+                 left join Pre_Project pro on pro.P_Id = es.P_Id
+                 left join Sec_Info sec on sec.Sec_Id = es.Sec_Id
+                 left join SYS_Company c1 on c1.C_Id = sec.Sec_Tenderee
+                 left join SYS_Company c2 on c2.C_Id = sec.Sec_Agency
+                 left join SYS_Company c3 on c3.C_Id = es.Es_Company
+                 left join Sec_Document sd on sd.Sec_Id = sec.Sec_Id and sd.D_State = 7
+        where mn.id = #{id}
+    </select>
+
+    <select id="selectList" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertSupplementVO">
+        select
+        es.Es_Technology_Num as esTechnologyNum,
+        es.Es_Economics_Num as esEconomicsNum,
+        es.Es_Expert_Num as esExpertNum,
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        pro.P_Approve_Budget as pApproveBudget,
+        sec.Sec_Name as secName,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Place as secPlace,
+        sec.Sec_Remark as secRemark,
+        sec.Sec_Organize_Form as secOrganizeForm,
+        sec.Sec_Evaluate_Separation as secEvaluateSeparation,
+        sec.Sec_Quali_Review as secQualiReview,
+        sec.Sec_Bid_Time as secBidTime,
+        sec.Sec_Loaction as secLoaction,
+        sec.Sec_Investors_Quali as secInvestorsQuali,
+        sec.Sec_Type as secType,
+        sd.D_Function as dFunction,
+        sd.D_Scope as dScope,
+        sd.D_Executive_Standard as dExecutiveStandard,
+        sd.D_Amount as dAmount,
+        sd.D_Bid_Time as dBidTime,
+        sd.D_Location as dLocation,
+        c1.C_Name as secTendereeName,
+        c2.C_Name as secAgencyName,
+        c3.C_Name as esCompanyName,
+        mn.id as id,
+        mn.Sr_Id as srId,
+        sr.*,
+        es.*,
+        mn.*
+        from Sec_Expert_Supplement mn
+        left join Sec_Selection_Record sr on mn.Sr_Id=sr.Sr_Id
+        left join Sec_Expert_Select es on es.id = sr.Es_Id
+        left join Pre_Project pro on pro.P_Id = es.P_Id
+        left join Sec_Info sec on sec.Sec_Id = es.Sec_Id
+        left join SYS_Company c1 on c1.C_Id = sec.Sec_Tenderee
+        left join SYS_Company c2 on c2.C_Id = sec.Sec_Agency
+        left join SYS_Company c3 on c3.C_Id = es.Es_Company
+        left join Sec_Document sd on sd.Sec_Id = sec.Sec_Id and sd.D_State = 7
+        <where>
+            <if test="params.srId!=null">
+                and mn.Sr_Id=#{params.srId}
+            </if>
+            <if test="params.sevId!=null">
+                and mn.Sev_Id=#{params.sevId}
+            </if>
+            <if test="params.state!=null">
+                and mn.State=#{params.state}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(pro.P_Name,#{params.pName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.secName!=null">
+                and INSTR(sec.Sec_Name,#{params.secName})
+            </if>
+            <if test="params.createUname!=null">
+                and INSTR(mn.Create_Uname,#{params.createUname})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

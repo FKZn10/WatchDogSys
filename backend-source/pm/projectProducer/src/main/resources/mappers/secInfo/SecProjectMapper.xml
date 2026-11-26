@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecProjectMapper">
+
+    <!-- ******************************** 公共 ******************************** -->
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where sec.Sec_Id=#{secId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.secPid!=null">
+            and pro.P_Id=#{params.secPid}
+        </if>
+        <if test="params.cId!=null">
+            and pro.P_Construction_Unit = #{params.cId}
+        </if>
+        <if test="params.teId!=null">
+            and sec.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secYear!=null">
+            and sec.Sec_Year=#{params.secYear}
+        </if>
+        <if test="params.secBiddingType!=null">
+            and sec.Sec_Bidding_Type=#{params.secBiddingType}
+        </if>
+        <if test="params.secConType!=null">
+            and sec.Sec_Con_Type=#{params.secConType}
+        </if>
+
+        <if test="params.secType!=null">
+            and sec.Sec_Type=#{params.secType}
+        </if>
+        <if test="params.secFlowState!=null">
+            and sec.Sec_Flow_State=#{params.secFlowState}
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.secCode!=null">
+            and sec.Sec_Code like concat('%',#{params.secCode},'%')
+        </if>
+        <if test="params.secCreateUname!=null">
+            and sec.Sec_Create_Uname like concat('%',#{params.secCreateUname},'%')
+        </if>
+        <!--区间查询-->
+        <if test="params.scMoneyStart!=null">
+            and sec.Sec_Money>#{params.scMoneyStart}
+        </if>
+        <if test="params.scMoneyEnd!=null">
+            and sec.Sec_Money &lt; #{params.scMoneyEnd}
+        </if>
+        <if test="params.secStartTimeStart!=null">
+            and sec.Sec_Start_Time>#{params.secStartTimeStart}
+        </if>
+        <if test="params.secStartTimeEnd!=null">
+            and sec.Sec_Start_Time &lt; #{params.secStartTimeEnd}
+        </if>
+        <if test="params.secEndTimeStart!=null">
+            and sec.Sec_End_Time>#{params.secEndTimeStart}
+        </if>
+        <if test="params.secEndTimeEnd!=null">
+            and sec.Sec_End_Time &lt; #{params.secEndTimeEnd}
+        </if>
+        <if test="params.secCreateTimeStart!=null">
+            and sec.Sec_Create_Time>#{params.secCreateTimeStart}
+        </if>
+        <if test="params.secCreateTimeEnd!=null">
+            and sec.Sec_Create_Time &lt; #{params.secCreateTimeEnd}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="getSecInfoListGroupByProject" resultType="Map">
+        select
+        <include refid="groupSecId"/>
+        a.P_name as "pName",
+        a.P_Id as "pId"
+        from(
+        select
+        pro.P_name,
+        mn.P_Id,
+        sec.sec_Id
+        from Sec_Project mn
+        left join Sec_Info sec on mn.Sec_Id= sec.Sec_Id
+        left join Pre_Project pro on mn.P_ID=pro.P_Id
+        left join SYS_Company c on c.C_ID=sec.Sec_Tenderee
+        <include refid="listFilter"/>
+        ) a
+        group by a.P_name, a.P_Id
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getSecInfoListGroupByProjectCount" resultType="java.lang.Integer">
+        select count(1)
+        from (
+        select
+        <include refid="groupSecId"/>
+        a.P_name as pName,
+        a.P_Id as pId
+        from(
+        select
+        pro.P_name,
+        mn.P_Id,
+        sec.sec_Id
+        from Sec_Project mn
+        left join Sec_Info sec on mn.Sec_Id= sec.Sec_Id
+        left join Pre_Project pro on mn.P_ID=pro.P_Id
+        left join SYS_Company c on c.C_ID=sec.Sec_Tenderee
+        <include refid="listFilter"/>
+        ) a
+        group by a.P_name, a.P_Id
+        )b
+    </select>
+
+    <select id="checkSecProjectCp" resultType="Integer">
+        select COUNT(1)
+        from Project_Cp cp
+        left join Project_Cp_Dtl cpd on cp.Cp_Id=cpd.Cp_Id
+        where cp.State=7 and cpd.Cpd_State=7 and cpd.Cpd_Status=1
+        and cpd.Cpd_Code in
+        <foreach collection="cpdCodes" open="(" close=")" separator="," item="cpdCode">
+            #{cpdCode}
+        </foreach>
+        and cp.P_Id in (select P_ID from Sec_Project where Sec_Id=#{secId})
+    </select>
+
+    <select id="havingSecProjectCp" resultType="Integer">
+        select COUNT(1)
+        from Project_Cp cp
+        left join Project_Cp_Dtl cpd on cp.Cp_Id=cpd.Cp_Id
+        where cpd.Cpd_Status=1
+        and cpd.Cpd_Code in
+        <foreach collection="cpdCodes" open="(" close=")" separator="," item="cpdCode">
+            #{cpdCode}
+        </foreach>
+        and cp.P_Id in (select P_ID from Sec_Project where Sec_Id=#{secId})
+    </select>
+
+    <!-- ******************************** dm ******************************** -->
+
+    <sql id="groupSecId" databaseId="dm">
+           wm_concat(a.sec_Id) as "secIds",
+    </sql>
+
+    <sql id="groupSecId" databaseId="postgre">
+        string_agg(a.sec_Id,',') as secIds,
+    </sql>
+
+    <!-- ******************************** mysql ******************************** -->
+
+    <sql id="groupSecId" databaseId="mysql">
+           group_concat(a.sec_Id) as "secIds",
+    </sql>
+
+</mapper>

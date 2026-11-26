@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.NoticeInfoCloseMapper">
+    <select id="getNoticeInfoCloseList" resultType="com.jpmsoft.common.model.NoticeInfoCloseModel">
+        select * from Notice_Info_Close
+        <where>
+            <if test="params.id != null">
+                and id=#{params.id}
+            </if>
+            <if test="params.sourceId != null">
+                and sourceId=#{params.sourceId}
+            </if>
+            <if test="params.sourceCode != null">
+                and sourceCode=#{params.sourceCode}
+            </if>
+            <if test="params.noticeInfoId != null">
+                and noticeInfoId=#{params.noticeInfoId}
+            </if>
+            <if test="params.noticeCloseTime != null">
+                and noticeCloseTime=#{params.noticeCloseTime}
+            </if>
+            <if test="params.noticeCloseFeedback != null">
+                and noticeCloseFeedback LIKE CONCAT('%',#{params.noticeCloseFeedback},'%')
+            </if>
+
+        </where>
+    </select>
+    <select id="getNoticeInfoCloseById" resultType="com.jpmsoft.common.model.NoticeInfoCloseModel">
+        select * from Notice_Info_Close where id=#{id}
+    </select>
+</mapper>

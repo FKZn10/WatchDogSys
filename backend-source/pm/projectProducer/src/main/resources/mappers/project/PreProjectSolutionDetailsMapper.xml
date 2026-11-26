@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectSolutionDetailsMapper">
+
+    <insert id="insertBatch">
+        insert into Pre_Project_Solution_Details(id,solution_id,category_first,category_second,
+        name,description,applications,start_date,end_date,area_used,area_available,score,
+        self_score,score_real,app_stage,responsible_party,del_flag,status)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id},#{item.solutionId},#{item.categoryFirst},#{item.categorySecond},
+            #{item.name},#{item.description},#{item.applications},#{item.startDate},#{item.endDate},#{item.areaUsed},#{item.areaAvailable},#{item.score},
+            #{item.selfScore},#{item.scoreReal},#{item.appStage},#{item.responsibleParty},#{item.delFlag},#{item.status})
+        </foreach>
+    </insert>
+
+    <update id="updateStatusById">
+        update Pre_Project_Solution_Details set status=#{status} where solution_id=#{primaryId}
+    </update>
+
+    <select id="selectBatchId" resultType="com.jpmsoft.projectProducer.pojo.entity.project.PreProjectSolutionDetails">
+        SELECT * FROM Pre_Project_Solution_Details
+        WHERE solution_id =#{primaryId} and del_flag = 1 and status = 1
+    </select>
+    <select id="getZNPJIndicatorInfoTypeConfig"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.other.ZNPJIndicatorInfoTypeConfig">
+        SELECT * FROM znpj_indicator_info_type_config
+        where type_code = #{infoType} and state = 7
+    </select>
+</mapper>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.SysPersonalBpmAuthorizeMapper">
+
+    <!-- *********************************** dm *********************************** -->
+
+    <select id="getCreateUidByAuthorizerUid" resultType="java.lang.String" databaseId="dm">
+        select
+        Ba_Create_Uid
+        from  SysPersonal_Bpm_Authorize
+        where Ba_Authorizer_Uid=#{uId} and Ba_State=7
+        and (to_date(Ba_Start_Time,'yyyy-MM-dd')>= to_date(now(),'yyyy-MM-dd') and  to_date(Ba_End_Time,'yyyy-MM-dd')&lt;=to_date(now(),'yyyy-MM-dd'))
+        <if test="teId!=null and teId!='All'">
+            and Te_Id = #{teId}
+        </if>
+    </select>
+
+    <!-- *********************************** postgre *********************************** -->
+
+    <select id="getCreateUidByAuthorizerUid" resultType="java.lang.String" databaseId="postgre">
+        select
+        Ba_Create_Uid
+        from  SysPersonal_Bpm_Authorize
+        where Ba_Authorizer_Uid=#{uId} and Ba_State=7
+        and (to_char(Ba_Start_Time,'yyyy-MM-dd')>= to_char(now(),'yyyy-MM-dd') and  to_char(Ba_End_Time,'yyyy-MM-dd')&lt;=to_char(now(),'yyyy-MM-dd'))
+        <if test="teId!=null and teId!='All'">
+            and Te_Id = #{teId}
+        </if>
+    </select>
+
+    <!-- *********************************** mysql *********************************** -->
+    <select id="getCreateUidByAuthorizerUid" resultType="java.lang.String" databaseId="mysql">
+    select
+    Ba_Create_Uid
+    from  SysPersonal_Bpm_Authorize
+    where Ba_Authorizer_Uid=#{uId} and Ba_State=7
+    and (
+      date_format(Ba_Start_Time,'%Y-%m-%d')>= date_format(now(),'%Y-%m-%d')
+     and
+      date_format(Ba_End_Time,'%Y-%m-%d')&lt;=date_format(now(),'%Y-%m-%d')
+     )
+        <if test="teId!=null and teId!='All'">
+            and Te_Id = #{teId}
+        </if>
+    </select>
+</mapper>

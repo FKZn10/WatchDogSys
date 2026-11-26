@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.visaChange.ConSvVerifyMapper">
+
+    <select id="getConSvVerifyById" resultType="com.jpmsoft.common.model.response.DesignChange.ConSvVerifyResponse">
+        select con.Con_Name           as conName,
+               con.Con_Code           as conCode,
+               pro.P_Name             as pName,
+               proc.C_Name            as pConstructionUnitName,
+               proc.C_Abbreviation    as pConsAbbName,
+               prod.D_Name            as pCompetentDepartmentName,
+               c1.C_Name              as svvContractorName,
+               c1.C_Abbreviation      as svvContrAbbName,
+               svis.Svis_Project_Name as svisProjectName,
+               svis.Svis_Name         as svisName,
+               f.file_relation_id     as fileRelationId,
+               mn.*
+        from Con_Sv_Verify mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on con.Con_Project_Id = pro.P_ID
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Company c1 on mn.Svv_Contractor_Id = c1.C_Id
+                 left join Con_Svis svis on mn.Svis_Id = svis.Svis_Id
+                 left join Sys_File f on f.FileID = mn.Svv_Id
+        where mn.Svv_Id = #{svvId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.svvContractorId!=null">
+            and mn.Svv_Contractor_Id=#{params.svvContractorId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.svvState!=null">
+            and mn.Svv_State=#{params.svvState}
+        </if>
+        <if test="params.svvCode!=null">
+            and mn.Svv_Code like concat('%',#{params.svvCode},'%')
+        </if>
+        <if test="params.svvProjectName!=null">
+            and mn.Svv_Project_Name like concat('%',#{params.svvProjectName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+    </sql>
+
+    <select id="getConSvVerifyList" resultType="com.jpmsoft.common.model.response.DesignChange.ConSvVerifyResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name_History as svvContractorNameHistory,
+        c1.C_Name as svvContractorName,
+        c1.C_Abbreviation as svvContrAbbName,
+        mn.*
+        from Con_Sv_Verify mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Company c1 on mn.Svv_Contractor_Id=c1.C_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Svv_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getConSvVerifyListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Con_Sv_Verify mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+</mapper>

@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.archive.ArchiveDirectoryMapper">
+
+
+    <!-- 其他数据库沿用聚合后连接的统计方式。 -->
+    <sql id="directoryArchivedStatistics">
+        select
+        a2.Ad_Id,
+        count(*) as archived
+        from Archive_File af
+        inner join Archive a2 on a2.Ap_Id = af.Ap_Id
+        left join SYS_FileAnnex sfa on sfa.file_id = af.Af_Annex_Id
+        left join (
+        select dedup_archive.P_Id as project_id,
+        sfa2.File_MD5_Code as file_md5,
+        max(
+        <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.archiveMd5RankKey">
+            <property name="fileAlias" value="af2"/>
+        </include>
+        ) as max_key
+        from Archive_File af2
+        inner join Archive dedup_archive on dedup_archive.Ap_Id = af2.Ap_Id
+        inner join SYS_FileAnnex sfa2 on sfa2.file_id = af2.Af_Annex_Id
+        where sfa2.File_MD5_Code is not null
+        <if test="params.pId != null">
+            and dedup_archive.P_Id = #{params.pId}
+        </if>
+        group by dedup_archive.P_Id, sfa2.File_MD5_Code
+        ) latest_md5 on sfa.File_MD5_Code = latest_md5.file_md5
+        and (a2.P_Id = latest_md5.project_id
+        or (a2.P_Id is null and latest_md5.project_id is null))
+        and
+        <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.archiveMd5RankKey">
+            <property name="fileAlias" value="af"/>
+        </include>
+        = latest_md5.max_key
+        where a2.Ap_State = 1
+        and af.Af_State = 1
+        <if test="params.teId != null">
+            and af.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId != null">
+            and a2.P_Id = #{params.pId}
+        </if>
+        and (
+        sfa.File_MD5_Code is null
+        or latest_md5.max_key is not null
+        )
+        group by a2.Ad_Id
+    </sql>
+
+    <!-- 达梦：单次关联项目文件，按原排序键求项目内同 MD5 最大值，再过滤状态及租户。 -->
+    <sql id="directoryArchivedStatistics" databaseId="dm">
+        select ranked.Ad_Id, count(*) as archived
+        from (
+        select project_files.*,
+        max(project_files.rank_key) over (
+        partition by project_files.P_Id, project_files.file_md5
+        ) as max_key
+        from (
+        select ar.Ad_Id, ar.P_Id, ar.Ap_State,
+        af.Af_State, af.Te_Id,
+        annex.File_MD5_Code as file_md5,
+        <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.archiveMd5RankKey">
+            <property name="fileAlias" value="af"/>
+        </include>
+        as rank_key
+        from Archive ar
+        inner join Archive_File af on af.Ap_Id = ar.Ap_Id
+        left join SYS_FileAnnex annex on annex.file_id = af.Af_Annex_Id
+        <where>
+            <if test="params.pId != null">
+                ar.P_Id = #{params.pId}
+            </if>
+        </where>
+        ) project_files
+        ) ranked
+        where ranked.Ap_State = 1
+        and ranked.Af_State = 1
+        <if test="params.teId != null">
+            and ranked.Te_Id = #{params.teId}
+        </if>
+        and (ranked.file_md5 is null or ranked.rank_key = ranked.max_key)
+        group by ranked.Ad_Id
+    </sql>
+
+    <select id="getAllArchiveDirectoryByPid"
+            resultType="com.jpmsoft.common.model.response.Archive.ArchiveDirectoryResponse">
+        select
+        c1.C_Name as adRpBuildName,
+        c2.C_Name as adRpConstructionName,
+        c3.C_Name as adRpDesignName,
+        c4.C_Name as adRpSupervisorName,
+        c1.C_Abbreviation as adRpBuildAbbName,
+        c2.C_Abbreviation as adRpConstructionAbbName,
+        c3.C_Abbreviation as adRpDesignAbbName,
+        c4.C_Abbreviation as adRpSupervisorAbbName,
+        ifnull(af_stat.archived, 0) as archived,
+        ifnull(child_stat.childCount, 0) as childCount,
+        mn.*
+        from  Archive_Directory mn
+        left join  SYS_Company c1 on mn.Ad_Rp_Build=c1.C_Id
+        left join  SYS_Company c2 on mn.Ad_Rp_Construction=c2.C_Id
+        left join  SYS_Company c3 on mn.Ad_Rp_Design=c3.C_Id
+        left join  SYS_Company c4 on mn.Ad_Rp_Supervisor=c4.C_Id
+        left join (
+        select ad.Ad_Parent_Id, count(*) as childCount
+        from Archive_Directory ad
+        group by ad.Ad_Parent_Id
+        ) child_stat on child_stat.Ad_Parent_Id = mn.Ad_Id
+        left join (
+        <include refid="directoryArchivedStatistics"/>
+        ) af_stat on af_stat.Ad_Id = mn.Ad_Id
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pId!=null and params.adType==null">
+                and mn.Ad_Type='01'
+            </if>
+            <if test="params.adType!=null">
+                and mn.Ad_Type=#{params.adType}
+            </if>
+        </where>
+        order by Ad_Order asc
+    </select>
+
+
+    <!-- 将原逐目录相关子查询改为一次按项目及目录分组统计。未归档数量不去重。 -->
+    <sql id="directoryProjectFileCounts">
+        select ar.Ad_Id,
+        sum(case when ar.Ap_State = 0 or af.Af_State = 0 then 1 else 0 end) as notArchived,
+        sum(case when ar.Ap_State = 1 and af.Af_State = 1
+        and (sfa.File_MD5_Code is null or latest_md5.max_key is not null)
+        then 1 else 0 end) as archived
+        from Archive ar
+        inner join Archive_File af on af.Ap_Id = ar.Ap_Id
+        left join SYS_FileAnnex sfa on sfa.file_id = af.Af_Annex_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.projectLatestArchiveMd5JoinScoped">
+            <property name="fileAlias" value="af"/>
+            <property name="archiveAlias" value="ar"/>
+            <property name="projectIdParameter" value="pId"/>
+        </include>
+        where ar.P_Id = #{pId}
+        group by ar.Ad_Id
+    </sql>
+
+    <sql id="directoryProjectFileCounts" databaseId="dm">
+        select ranked.Ad_Id,
+        sum(case when ranked.Ap_State = 0 or ranked.Af_State = 0 then 1 else 0 end) as notArchived,
+        sum(case when ranked.Ap_State = 1 and ranked.Af_State = 1
+        and (ranked.file_md5 is null or ranked.rank_key = ranked.max_key)
+        then 1 else 0 end) as archived
+        from (
+        select project_files.*,
+        max(project_files.rank_key) over (
+        partition by project_files.P_Id, project_files.file_md5
+        ) as max_key
+        from (
+        select ar.Ad_Id, ar.P_Id, ar.Ap_State, af.Af_State,
+        annex.File_MD5_Code as file_md5,
+        <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.archiveMd5RankKey">
+            <property name="fileAlias" value="af"/>
+        </include>
+        as rank_key
+        from Archive ar
+        inner join Archive_File af on af.Ap_Id = ar.Ap_Id
+        left join SYS_FileAnnex annex on annex.file_id = af.Af_Annex_Id
+        where ar.P_Id = #{pId}
+        ) project_files
+        ) ranked
+        group by ranked.Ad_Id
+    </sql>
+
+    <select id="getArchiveDirectoryByadIdOrpId"
+            resultType="com.jpmsoft.common.model.response.Archive.ArchiveDirectoryResponse">
+        select
+        c1.C_Name as adRpBuildName,
+        c2.C_Name as adRpConstructionName,
+        c3.C_Name as adRpDesignName,
+        c4.C_Name as adRpSupervisorName,
+        c1.C_Abbreviation as adRpBuildAbbName,
+        c2.C_Abbreviation as adRpConstructionAbbName,
+        c3.C_Abbreviation as adRpDesignAbbName,
+        c4.C_Abbreviation as adRpSupervisorAbbName,
+        <if test="pId!=null">
+            coalesce(file_stat.notArchived, 0) as notArchived,
+            coalesce(file_stat.archived, 0) as archived,
+        </if>
+        coalesce(child_stat.childCount, 0) as childCount,
+        mn.*
+        from  Archive_Directory mn
+        left join  SYS_Company c1 on mn.Ad_Rp_Build=c1.C_Id
+        left join  SYS_Company c2 on mn.Ad_Rp_Construction=c2.C_Id
+        left join  SYS_Company c3 on mn.Ad_Rp_Design=c3.C_Id
+        left join  SYS_Company c4 on mn.Ad_Rp_Supervisor=c4.C_Id
+        left join (
+        select Ad_Parent_Id, count(*) as childCount
+        from Archive_Directory
+        group by Ad_Parent_Id
+        ) child_stat on child_stat.Ad_Parent_Id = mn.Ad_Id
+        <if test="pId!=null">
+            left join (
+            <include refid="directoryProjectFileCounts"/>
+            ) file_stat on file_stat.Ad_Id = mn.Ad_Id
+        </if>
+        <where>
+            <if test="adId!=null">
+             and mn.Ad_Parent_Id=#{adId}
+            </if>
+            <if test="adType!=null">
+                and mn.Ad_Type=#{adType}
+            </if>
+            <if test="adState!=null">
+                and mn.Ad_State=#{adState}
+            </if>
+            <!--不传则默认查询项目目录-->
+            <if test="adType==null">
+                and mn.Ad_Type='01'
+            </if>
+        </where>
+        order by Ad_Order asc
+    </select>
+
+
+    <select id="getAllArchiveDirectory" resultType="com.jpmsoft.common.model.response.Archive.ArchiveDirectoryResponse">
+        select
+        c1.C_Name as adRpBuildName,
+        c2.C_Name as adRpConstructionName,
+        c3.C_Name as adRpDesignName,
+        c4.C_Name as adRpSupervisorName,
+        c1.C_Abbreviation as adRpBuildAbbName,
+        c2.C_Abbreviation as adRpConstructionAbbName,
+        c3.C_Abbreviation as adRpDesignAbbName,
+        c4.C_Abbreviation as adRpSupervisorAbbName,
+        mn.*
+        from  Archive_Directory mn
+        left join  SYS_Company c1 on mn.Ad_Rp_Build=c1.C_Id
+        left join  SYS_Company c2 on mn.Ad_Rp_Construction=c2.C_Id
+        left join  SYS_Company c3 on mn.Ad_Rp_Design=c3.C_Id
+        left join  SYS_Company c4 on mn.Ad_Rp_Supervisor=c4.C_Id
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.adType!=null">
+                and mn.AD_Type=#{params.adType}
+            </if>
+        </where>
+        order by mn.Ad_Order asc
+    </select>
+
+</mapper>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecJGSelectionRecordDtlMapper">
+
+
+    <select id="getSelectionRecordDtlList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecJGSelectionRecordDtlModel">
+        select * from  Sec_JG_Selection_Record_Dtl  ssrd
+        left join  Sec_JG_Selection_Record ssr on ssr.id=ssrd.Sr_Id
+        left join Sec_JG_Expert se on ssrd.Ex_Id = se.id
+        <where>
+            ssr.State!=3
+            <if test="params.exId!=null and params.exId!=''">
+                and ssrd.Ex_Id=#{params.exId}
+            </if>
+            <if test="params.srId!=null and params.srId!=''">
+                and ssrd.Sr_Id=#{params.srId}
+            </if>
+            <if test="params.secId!=null and params.secId!=''">
+                and ssr.Sec_Id=#{params.secId}
+            </if>
+            <if test="params.srdAttend!=null  ">
+                and ssrd.Srd_Attend = #{params.srdAttend}
+            </if>
+            <include refid="sameBidTimeFilter" />
+            <if test="params.notSecIdList!=null and params.notSecIdList.size()>0 ">
+                and ssr.Sec_Id not in
+                <foreach collection="params.notSecIdList"  item="item" index="index"  open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <sql id="sameBidTimeFilter" databaseId="dm">
+        <if test="params.sameBidTime!=null and params.sameBidTime!='' ">
+            and to_char(ssr.Sr_Bid_Time,'yyyy-MM-dd') = to_char(#{params.sameBidTime},'yyyy-MM-dd')
+        </if>
+    </sql>
+
+    <sql id="sameBidTimeFilter" databaseId="mysql">
+        <if test="params.sameBidTime!=null and params.sameBidTime!='' ">
+            and DATE_FORMAT(ssr.Sr_Create_Time,'%Y-%m-%d') = DATE_FORMAT(#{params.sameBidTime},'%Y-%m-%d')
+        </if>
+    </sql>
+</mapper>

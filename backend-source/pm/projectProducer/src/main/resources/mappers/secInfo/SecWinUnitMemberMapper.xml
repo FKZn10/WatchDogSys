@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecWinUnitMemberMapper">
+
+    <select id="getWinUnitMemberList" resultType="com.jpmsoft.common.model.response.SecInfo.SecWinUnitMemberResponse">
+        select
+        wum.*
+        from  Sec_Win_Unit_Member wum
+        <where>
+            1=1
+            <if test="params.wnId!=null">
+                and wum.Wn_Id=#{params.wnId}
+            </if>
+            <if test="params.wumEducation!=null">
+                and wum.Wum_Education=#{params.wumEducation}
+            </if>
+            <if test="params.wumName!=null">
+                and wum.Wum_Name like concat('%',#{params.wumName},'%')
+            </if>
+            <if test="params.wumMobilePhone!=null">
+                and wum.Wum_Mobile_Phone like concat('%',#{params.wumMobilePhone},'%')
+            </if>
+            <if test="params.wumSocialSecurityNum!=null">
+                and wum.Wum_Social_Security_Num like concat('%',#{params.wumSocialSecurityNum},'%')
+            </if>
+            <if test="params.wumCertificateNum!=null">
+                and wum.Wum_Certificate_Num like concat('%',#{params.wumCertificateNum},'%')
+            </if>
+            <if test="params.wumIdCard!=null">
+                and wum.Wum_Id_Card like concat('%',#{params.wumIdCard},'%')
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by wum.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getWinUnitMemberListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  Sec_Win_Unit_Member wum
+        <where>
+            1=1
+            <if test="params.wnId!=null">
+                and wum.Wn_Id=#{params.wnId}
+            </if>
+            <if test="params.wumEducation!=null">
+                and wum.Wum_Education=#{params.wumEducation}
+            </if>
+            <if test="params.wumName!=null">
+                and wum.Wum_Name like concat('%',#{params.wumName},'%')
+            </if>
+            <if test="params.wumMobilePhone!=null">
+                and wum.Wum_Mobile_Phone like concat('%',#{params.wumMobilePhone},'%')
+            </if>
+            <if test="params.wumSocialSecurityNum!=null">
+                and wum.Wum_Social_Security_Num like concat('%',#{params.wumSocialSecurityNum},'%')
+            </if>
+            <if test="params.wumCertificateNum!=null">
+                and wum.Wum_Certificate_Num like concat('%',#{params.wumCertificateNum},'%')
+            </if>
+            <if test="params.wumIdCard!=null">
+                and wum.Wum_Id_Card like concat('%',#{params.wumIdCard},'%')
+            </if>
+        </where>
+    </select>
+</mapper>

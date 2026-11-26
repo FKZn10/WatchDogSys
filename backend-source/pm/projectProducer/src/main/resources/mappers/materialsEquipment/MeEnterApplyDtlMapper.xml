@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MeEnterApplyDtlMapper">
+
+    <!-- *********************************** 公共 *********************************** -->
+
+    <sql id="listFilter">
+        <if test="params.eaDate!=null">
+            <include refid="eaDateFilter"/>
+        </if>
+        <if test="params.eaWitness!=null">
+            and mn.Ea_Witness = #{params.eaWitness}
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.eaState!=null">
+            and mn.Ea_State= #{params.eaState}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and pro.P_Construction_Unit= #{params.pConstructionUnit}
+        </if>
+        <if test="params.conPartyBId!=null">
+            and con.Con_Party_B_Id = #{params.conPartyBId}
+        </if>
+        <if test="params.eaId!=null">
+            and mn.Ea_Id = #{params.eaId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.eaPurchaseContract!=null">
+            and mn.Ea_Purchase_Contract = #{params.eaPurchaseContract}
+        </if>
+        <if test="params.eaCode!=null">
+            and mn.Ea_Code like concat('%',#{params.eaCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.eaPurchaseContractName!=null">
+            and con2.Con_Name like concat('%',#{params.eaPurchaseContractName},'%')
+        </if>
+        <if test="params.eadSupplierCode!=null">
+            and mead.Ead_Supplier_Code like concat('%',#{params.eadSupplierCode},'%')
+        </if>
+        <if test="params.eadSupplierType!=null">
+            and mead.Ead_Supplier_Type like concat('%',#{params.eadSupplierType},'%')
+        </if>
+        <if test="params.enterInspectionStatus!=null">
+            <if test="params.enterInspectionStatus==1">
+                and mead.Ea_Id not in (select Ea_Id from  Me_Enter_Inspection where Ea_Id is not null)
+            </if>
+            <if test="params.enterInspectionStatus==2">
+                and mead.Ea_Id in (select Ea_Id from  Me_Enter_Inspection)
+            </if>
+        </if>
+        <if test="params.inspectionStatus!=null">
+            <if test="params.inspectionStatus==1">
+                and mead.Ea_Id not in (select Ea_Id from  Me_Witness_Inspection where Ea_Id is not null)
+            </if>
+            <if test="params.inspectionStatus==2">
+                and mead.Ea_Id in (select Ea_Id from  Me_Witness_Inspection)
+            </if>
+        </if>
+        <if test="params.useApplyStatus!=null">
+            <if test="params.useApplyStatus==1">
+                and (mead.Ead_Id in
+                ( select mwi.Ead_Id
+                from  Me_Witness_Inspection mwi
+                left join  Me_Inspection_Report mir on mir.Wi_Id=mwi.Wi_Id
+                where mir.Ir_Result=1 and mir.Ir_State!=3
+                )
+                or mead.Ea_Id in (select Ea_Id from  Me_Enter_Apply where Ea_Witness=0)
+                ) and mead.Ea_Id not in (select Ea_Id from  Me_Use_Apply where Ea_Id is not null and Ua_State!=3)
+            </if>
+        </if>
+    </sql>
+
+
+    <select id="getMeEnterApplyDtlList" resultType="com.jpmsoft.common.model.response.MeEnter.MeEnterApplyDtlResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Id as conId,
+        con.Con_Party_B_Id as conPartyBId,
+        con2.Con_Name as eaPurchaseContractName,
+        mtl.Met_Name as metName,
+        c2.C_Name_History as conPartyBNameHistory,
+        c3.C_Name_History as eaSupervisorNameHistory,
+        c4.C_Name_History as eaDesignNameHistory,
+        c2.C_Name as conPartyBName,
+        c3.C_Name as eaSupervisorName,
+        c4.C_Name as eaDesignName,
+        c2.C_Abbreviation as conPartyBAbbName,
+        c3.C_Abbreviation as eaSupervisorAbbName,
+        c4.C_Abbreviation as eaDesignAbbName,
+        mn.Ea_State as eaState,
+        mn.Ea_Code as eaCode,
+        mn.Ea_Date as eaDate,
+        mn.Ea_Supervisor_Id as eaSupervisorId,
+        mn.Ea_Design_Id as eaDesignId,
+        mn.P_Id as pId,
+        <if test="params.uaId!=null">
+            (select Mun_Number from Me_Used_Number mun where mun.Ua_Id=#{params.uaId} and mun.Ead_Id=mead.Ead_Id) as munNumber,
+            (select SUM(Mun_Number) from Me_Used_Number mun where mun.Ua_Id!=#{params.uaId} and mun.Ead_Id=mead.Ead_Id) as munNumberSum,
+        </if>
+        mead.*
+        from  Me_Enter_Apply_Dtl mead
+        left join  Me_Enter_Apply mn on mn.Ea_Id=mead.Ea_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Con_Contract con2 on con2.Con_Id=mn.Ea_Purchase_Contract
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Me_Type_Library mtl on mtl.Met_Id=mead.Met_Id
+        left join  SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+        left join  SYS_Company c3 on mn.Ea_Supervisor_Id=c3.C_Id
+        left join  SYS_Company c4 on mn.Ea_Design_Id=c4.C_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mead.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mead.Ead_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <!-- *********************************** dm *********************************** -->
+    <sql id="eaDateFilter" databaseId="dm">
+        and to_date(mn.Ea_Date,'yyyy-MM-dd') = to_date(#{params.eaDate},'yyyy-MM-dd')
+    </sql>
+
+    <sql id="eaDateFilter" databaseId="postgre">
+        and to_date(to_char(mn.Ea_Date,'yyyy-MM-dd'),'yyyy-MM-dd') = to_date(#{params.eaDate},'yyyy-MM-dd')
+    </sql>
+    <!-- *********************************** mysql *********************************** -->
+
+    <sql id="eaDateFilter" databaseId="mysql">
+        and date_format(mn.Ea_Date,'%Y-%m-%d') = date_format(#{params.eaDate},'%Y-%m-%d')
+    </sql>
+</mapper>

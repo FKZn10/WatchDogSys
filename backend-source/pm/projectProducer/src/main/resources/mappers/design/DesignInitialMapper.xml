@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.design.DesignInitialMapper">
+
+    <select id="getDesignInitialById" resultType="com.jpmsoft.common.model.response.Design.DesignInitialResponse">
+        select c1.C_Name             as diDesignUnitName,
+               c2.C_Name             as conPartyBName,
+               c1.C_Abbreviation     as diDesignUnitAbbName,
+               c2.C_Abbreviation     as conPartyBAbbName,
+               pro.P_Name            as pName,
+               proc.C_Name           as pConstructionUnitName,
+               proc.C_Abbreviation   as pConsAbbName,
+               prod.D_Name           as pCompetentDepartmentName,
+               f.file_relation_id    as fileRelationId,
+               con.Con_Name          as conName,
+               con.Con_Code          as conCode,
+               con.Con_Party_B_Agent as conPartyBAgent,
+               con.Con_Party_B_Pm    as conPartyBPm,
+               sec.Sec_Name          as secName,
+               mn.*
+        from Design_Initial mn
+                 left join SYS_Company c1 on mn.Di_Design_Unit = c1.C_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join Sys_File f on f.FileID = mn.Di_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Sec_Info sec on sec.Sec_Id = con.Con_Section_Id
+                 left join SYS_Company c2 on con.Con_Party_B_Id = c2.C_Id
+        where mn.Di_Id = #{diId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.diState!=null">
+            and mn.Di_State = #{params.diState}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.diDesignUnit!=null">
+            and mn.Di_Design_Unit = #{params.diDesignUnit}
+        </if>
+        <if test="params.diEfs!=null">
+            and mn.Di_Efs = #{params.diEfs}
+        </if>
+        <if test="params.diDesignBrief!=null">
+            and mn.Di_Design_Brief = #{params.diDesignBrief}
+        </if>
+        <if test="params.diGovernment!=null">
+            and mn.Di_Government = #{params.diGovernment}
+        </if>
+        <if test="params.diUserConfirm!=null">
+            and mn.Di_User_Confirm = #{params.diUserConfirm}
+        </if>
+        <if test="params.conPartyBPm!=null">
+            and con.Con_Party_B_Pm like concat('%',#{params.conPartyBPm},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.diCreateUname!=null">
+            and mn.Di_Create_Uname like concat('%',#{params.diCreateUname},'%')
+        </if>
+        <if test="params.diTitle!=null">
+            and mn.Di_Title like concat('%',#{params.diTitle},'%')
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+                <if test="params.diDesignUnitName!=null">
+                    and likeCname(#{params.diDesignUnitName},c1.C_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.pName!=null">
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </if>
+                <if test="params.diDesignUnitName!=null">
+                    and c1.C_Name like concat('%',#{params.diDesignUnitName},'%')
+                </if>
+            </otherwise>
+        </choose>
+        <if test="params.diEstimateStart!=null">
+            and mn.Di_Estimate>#{params.diEstimateStart}
+        </if>
+        <if test="params.diEstimateEnd!=null">
+            and mn.Di_Estimate &lt; #{params.diEstimateEnd}
+        </if>
+        <if test="params.diBudgetStart!=null">
+            and mn.Di_Budget>#{params.diBudgetStart}
+        </if>
+        <if test="params.diBudgetEnd!=null">
+            and mn.Di_Budget &lt; #{params.diBudgetEnd}
+        </if>
+        <if test="params.diCreateTimeStart!=null">
+            and mn.Di_Create_Time>#{params.diCreateTimeStart}
+        </if>
+        <if test="params.diCreateTimeEnd!=null">
+            and mn.Di_Create_Time &lt; #{params.diCreateTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getDesignInitialList" resultType="com.jpmsoft.common.model.response.Design.DesignInitialResponse">
+        select
+        c1.C_Name as diDesignUnitName,
+        c2.C_Name as conPartyBName,
+        c1.C_Abbreviation as diDesignUnitAbbName,
+        c2.C_Abbreviation as conPartyBAbbName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        f.file_relation_id as fileRelationId,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Party_B_Agent as conPartyBAgent,
+        con.Con_Party_B_Pm as conPartyBPm,
+        sec.Sec_Name as secName,
+        mn.*
+        from Design_Initial mn
+        left join SYS_Company c1 on mn.Di_Design_Unit=c1.C_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sys_File f on f.FileID=mn.Di_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Sec_Info sec on sec.Sec_Id=con.Con_Section_Id
+        left join SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Di_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getDesignInitialMoneySum"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.design.DesignInitialMoneySumVo">
+        select
+        SUM(mn.Di_Estimate) as diEstimateSum,
+        SUM(mn.Di_Budget) as diBudgetSum,
+        SUM(mn.Di_Control_Price) as diControlPriceSum,
+        SUM(mn.Di_Estimate_Price) as diEstimatePriceSum
+        from Design_Initial mn
+        left join SYS_Company c1 on mn.Di_Design_Unit=c1.C_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+    </select>
+</mapper>

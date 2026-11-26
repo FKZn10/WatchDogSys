@@ -1,0 +1,15 @@
+Cctransaction
+cctransactionSend
+changeProcessOperator
+initiateCommunication
+returnInitiatorToTask
+sendbackFlow
+skipactivity
+stopCommunicating
+Stopprocess
+submitCommunicate
+submitCommunicatecom
+submitFlow
+supplementaryOpinions
+withdrawalProcess
+createTask

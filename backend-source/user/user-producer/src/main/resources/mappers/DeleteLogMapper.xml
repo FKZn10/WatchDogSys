@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.DeleteLogMapper">
+    <select id="getDeleteLogList" resultType="com.jpmsoft.common.model.requestAndResponse.DeleteLogDto">
+        select mn.*
+        from delete_log mn
+        <where>
+            <if test="params.deleteSourceID!= null and params.deleteSourceID!= ''">
+                and mn.Delete_Source_ID = #{params.deleteSourceID}
+            </if>
+            <if test="params.deleteFunctionCode!= null and params.deleteFunctionCode!= ''">
+                and mn.Delete_Function_Code = #{params.deleteFunctionCode}
+            </if>
+        </where>
+    </select>
+    <select id="getDeleteLogById" resultType="com.jpmsoft.common.model.requestAndResponse.DeleteLogDto">
+        select mn.*
+        from delete_log mn
+        where mn.id = #{id}
+    </select>
+
+</mapper>

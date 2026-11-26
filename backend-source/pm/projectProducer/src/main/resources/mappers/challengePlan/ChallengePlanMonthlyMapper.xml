@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.challengePlan.ChallengePlanMonthlyMapper">
+    <select id="getChallengePlanMonthlyList"
+            resultType="com.jpmsoft.common.model.response.challengePlan.ChallengePlanMonthlyResponse">
+        select
+        mn.*,
+        cpa.order_number,
+        cpa.plan_progress,
+        cpa.problems,
+        cpa.p_id,
+        p.P_Name,
+        d.D_Name as pCompetentDepartmentName,
+        p.P_Build_Year
+        from challenge_plan_monthly mn
+        left join challenge_plan_annual cpa on mn.cpa_id = cpa.id
+        left join pre_project p on cpa.p_id = p.P_ID
+        left join SYS_Department d on p.P_Competent_Department = d.D_ID
+        <include refid="listQueryCriteria"/>
+        limit #{offset},#{params.size}
+    </select>
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select distinct ${selectClause}
+        from challenge_plan_monthly mn
+        left join challenge_plan_annual cpa on mn.cpa_id = cpa.id
+        left join pre_project p on cpa.p_id = p.P_ID
+        left join SYS_Department d on p.P_Competent_Department = d.D_ID
+        <include refid="listQueryCriteria"/>
+    </select>
+
+    <select id="getChallengePlanMonthlyCount" resultType="java.lang.Integer">
+        select distinct count(*)
+        from challenge_plan_monthly mn
+        left join challenge_plan_annual cpa on mn.cpa_id = cpa.id
+        left join pre_project p on cpa.p_id = p.P_ID
+        left join SYS_Department d on p.P_Competent_Department = d.D_ID
+        <include refid="listQueryCriteria"/>
+    </select>
+
+    <sql id="listQueryCriteria">
+        ${authSql}
+        <if test="params.declareYear != null and params.declareYear !=''">
+            and mn.declare_year = #{params.declareYear}
+        </if>
+        <if test="params.declareMonth != null and params.declareMonth !=''">
+            and mn.declare_month = #{params.declareMonth}
+        </if>
+        <if test="params.pName != null and params.pName.size() > 0">
+            <choose>
+                <when test="params.pName.contains('空白数据')">
+                    and (p.P_Name is null or p.P_Name = '')
+                </when>
+                <otherwise>
+                    and p.P_Name in
+                    <foreach item="item" index="index" collection="params.pName" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCompetentDepartmentNames != null and params.pCompetentDepartmentNames.size() > 0">
+            <choose>
+                <when test="params.pCompetentDepartmentNames.contains('空白数据')">
+                    and (d.D_Name is null or d.D_Name = '')
+                </when>
+                <otherwise>
+                    and d.D_Name in
+                    <foreach item="item" index="index" collection="params.pCompetentDepartmentNames" open="("
+                             separator="," close=")">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pBuildYear != null and params.pBuildYear.size() > 0">
+            <choose>
+                <when test="params.pBuildYear.contains('空白数据')">
+                    and (p.P_Build_Year is null or p.P_Build_Year = '')
+                </when>
+                <otherwise>
+                    and p.P_Build_Year in
+                    <foreach item="item" index="index" collection="params.pBuildYear" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createUname != null and params.createUname.size() > 0">
+            <choose>
+                <when test="params.createUname.contains('空白数据')">
+                    and (mn.Create_Uname is null or mn.Create_Uname = '')
+                </when>
+                <otherwise>
+                    and mn.Create_Uname in
+                    <foreach item="item" index="index" collection="params.createUname" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.executionStatus != null and params.executionStatus.size() > 0">
+            <choose>
+                <when test="params.executionStatus.contains('空白数据')">
+                    and (mn.execution_status is null or mn.execution_status = '')
+                </when>
+                <otherwise>
+                    and mn.execution_status in
+                    <foreach item="item" index="index" collection="params.executionStatus" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.state != null and params.state.size() > 0">
+            <choose>
+                <when test="params.state.contains('空白数据')">
+                    and (mn.State is null or mn.State = '')
+                </when>
+                <otherwise>
+                    and mn.State in
+                    <foreach item="item" index="index" collection="params.state" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="getChallengePlanMonthlyById"
+            resultType="com.jpmsoft.common.model.response.challengePlan.ChallengePlanMonthlyResponse">
+        select
+        mn.*,
+        cpa.order_number,
+        cpa.plan_progress,
+        cpa.problems,
+        cpa.p_id,
+        p.P_Name,
+        d.D_Name as pCompetentDepartmentName,
+        p.P_Build_Year
+        from challenge_plan_monthly mn
+        left join challenge_plan_annual cpa on mn.cpa_id = cpa.id
+        left join pre_project p on cpa.p_id = p.P_ID
+        left join SYS_Department d on p.P_Competent_Department = d.D_ID
+        ${authSql}
+        and mn.id = #{id}
+    </select>
+
+    <select id="getLaterChallengePlanMonthly"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.challengePlan.ChallengePlanMonthly">
+        select mn.*
+        from challenge_plan_monthly mn
+        where cpa_id = #{cpaId}
+        and declare_year = #{declareYear}
+        <include refid="monthConditions"/>
+    </select>
+
+    <sql id="monthConditions" databaseId="dm">
+        and TO_NUMBER(declare_month) &gt;= TO_NUMBER(#{declareMonth})
+    </sql>
+
+    <sql id="monthConditions" databaseId="mysql">
+        and CAST(declare_month AS UNSIGNED) &gt;= CAST(#{declareMonth} AS UNSIGNED)
+    </sql>
+</mapper>

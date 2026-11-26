@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecControlPricePleaseReviewMapper">
+
+    <select id="getControlPriceReviewList"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecControlPricePleaseReviewResponse">
+         select * from  Sec_Control_Price_Please_Review
+         <where>
+             <if test="params.cpprReviewMatter != null and params.cpprReviewMatter != ''">
+                 and cppr_review_matter like concat('%',#{params.cpprReviewMatter},'%')
+             </if>
+             <if test="params.cpprApprovalUnit != null and params.cpprApprovalUnit != ''">
+                 and cppr_approval_unit like concat('%',#{params.cpprApprovalUnit},'%')
+             </if>
+             <if test="params.cpprApprovalContent != null and params.cpprApprovalContent != ''">
+                 and cppr_approval_content like concat('%',#{params.cpprApprovalContent},'%')
+             </if>
+             <if test="params.secId != null and params.secId != ''">
+                 and secId = #{params.secId}
+             </if>
+             <if test="params.state != null">
+                 and state = #{params.state}
+             </if>
+             <if test="params.createUname != null and params.createUname != ''">
+                 and create_uname like concat('%',#{params.createUname},'%')
+             </if>
+         </where>
+    </select>
+
+    <select id="getControlPriceReviewById"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecControlPricePleaseReviewResponse">
+        select
+        sec.Sec_Type as secType,
+        sec.Sec_Name as secName,
+        sec.Sec_Other_Valuation as secOtherValuation,
+        sec.Sec_Pricing_Method as secPricingMethod,
+        sec.Sec_Money as secMoney,
+        scppr.*
+        from Sec_Control_Price_Please_Review scppr
+        left join  Sec_Info sec on sec.Sec_Id=scppr.Sec_Id
+        where scppr.cppr_id = #{cpprId}
+    </select>
+
+
+</mapper>

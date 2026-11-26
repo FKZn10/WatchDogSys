@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConPayApplyMapper">
+    <select id="getConPayApplyList" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ConPayApplyDto">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        mn.Cpa_Id as cpaId,
+        con.Con_Id as conId,
+        con.Con_Party_A_Id as conPartyAId,
+        c1.C_Name as conPartyAName,
+        mn.Cpa_Type as cpaType,
+        mn.Cpa_Sources as cpaSources,
+        mn.Cpa_Apply_Date as cpaApplyDate,
+        mn.Cpa_Apply_Uid as cpaApplyUid,
+        u.U_Name as cpaApplyUname,
+        mn.Cpa_Approved_Amount as cpaApprovedAmount,
+        (select sum(cpaf.Cpaf_Application) from Con_Pay_Apply_Flow cpaf where cpaf.Cpa_Id=mn.Cpa_Id and cpaf.State=7 and cpaf.State!=3 ) as
+        cpaPaymentAmount,
+        mn.Cpa_Payment_Proportion as cpaPaymentProportion,
+        mn.Cpa_Remarks as cpaRemarks,
+        mn.Cpa_Create_Time as cpaCreateTime,
+        mn.Cpa_Foreign as cpaForeign,
+        mn.P_Id as pId,
+        u.U_Name as uName
+        from Con_Pay_Apply mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_User u on mn.Cpa_Apply_Uid=u.U_ID
+        left join SYS_Company c1 on con.Con_Party_A_Id=c1.C_Id
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pId!=null">
+                and mn.P_Id = #{params.pId}
+            </if>
+            <if test="params.conId!=null">
+                and mn.Con_Id = #{params.conId}
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.cpaSources!=null">
+                and mn.Cpa_Sources = #{params.cpaSources}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(pro.P_Name,#{params.pName})
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Cpa_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getConPayApplyCount" resultType="int">
+        select
+        count(*)
+        from Con_Pay_Apply mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_User u on mn.Cpa_Apply_Uid=u.U_ID
+        left join SYS_Company c1 on con.Con_Party_A_Id=c1.C_Id
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pId!=null">
+                and mn.P_Id = #{params.pId}
+            </if>
+            <if test="params.conId!=null">
+                and mn.Con_Id = #{params.conId}
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.cpaSources!=null">
+                and mn.Cpa_Sources = #{params.cpaSources}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(pro.P_Name,#{params.pName})
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+
+    <select id="getConPayApplyById" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ConPayApplyDto">
+        select pro.P_Name   as pName,
+               con.Con_Name as conName,
+               mn.*,
+               ue.U_Name   as uName
+        from Con_Pay_Apply mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_ID
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_User ue on mn.Cpa_Apply_Uid = ue.U_ID
+        where mn.Cpa_Id = #{cpaId}
+    </select>
+</mapper>

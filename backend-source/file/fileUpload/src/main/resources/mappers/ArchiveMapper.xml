@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.ArchiveMapper">
+
+    <update id="refreshApStateBath" >
+        update Archive
+        set Ap_State=#{apState}
+        where ap_id in
+        <foreach collection="apIds" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="autoArchiveProCpRprFileInputCode">
+        update Archive_File mn
+            left join sys_fileannex sf
+        on mn.Af_Annex_Id = sf.file_id
+            left join project_cp_rpr pcr on sf.file_relation_id = pcr.pcr_doc
+        set mn.Af_Code = pcr.file_code
+            where (mn.Af_Code is null or mn.Af_Code = '')
+            and pcr.pcr_doc is not null
+    </update>
+</mapper>

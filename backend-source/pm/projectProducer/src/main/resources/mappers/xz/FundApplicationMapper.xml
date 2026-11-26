@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.xz.FundApplicationMapper">
+
+    <select id="queryPage" resultType="com.jpmsoft.common.model.response.xz.FundApplicationVO">
+        SELECT mn.*,
+        (select count(*) from fund_application_detail d where d.fund_application_id = mn.id) as totalNum,
+        (select IFNULL(SUM(general_budget), 0) from project_application pa left join fund_application_detail fad on pa.id = fad.project_application_id  where fad.fund_application_id = mn.id) as totalBudget
+        FROM fund_application mn
+        <where>
+            <if test="fileName!=null and fileName!='' ">
+                and mn.file_name like concat('%',#{fileName},'%')
+            </if>
+            <if test="batchNum!=null and batchNum!='' ">
+                and mn.batch_num like concat('%',#{batchNum},'%')
+            </if>
+            <if test="approveStatus!=null and approveStatus!='' ">
+                and mn.approve_status=#{approveStatus}
+            </if>
+            <if test="planYear!=null and planYear!='' ">
+                and mn.plan_year=#{planYear}
+            </if>
+            <if test="createId!=null and createId!='' ">
+                and ( mn.create_id= #{createId}
+                or mn.id in (select distinct tp_entityid from sys_task_processin where tp_user=#{createId})
+                or mn.id in (select distinct CC_FileID from SYS_CarbonCopy where CC_User=#{createId})
+                )
+            </if>
+        </where>
+        order by mn.create_time desc
+    </select>
+    <select id="queryDetailById" resultType="com.jpmsoft.common.model.response.xz.FundApplicationVO">
+        SELECT mn.*,
+        (select count(*) from fund_application_detail d where d.fund_application_id = mn.id) as totalNum,
+        (select IFNULL(SUM(general_budget), 0) from project_application pa left join fund_application_detail fad on pa.id = fad.project_application_id  where fad.fund_application_id = mn.id) as totalBudget
+        FROM fund_application mn
+        where mn.id = #{id}
+    </select>
+</mapper>

@@ -1,0 +1,1453 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvPlanYearMapper">
+    <!--************************************* 公用 *************************************-->
+    <select id="getInvPlanYearInvStatistics" resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectInvStatisticsVo">
+        select sum(Ipv_Done_Last_Year)     as ipvDoneLastYearTotal,
+               sum(Ipv_Planned_Investment) as ipvPlannedInvTotal
+        from Inv_Plan_Year
+        where Ipv_State = 7
+          and Ipv_Declare_Year = #{year}
+          and P_Id in (select P_Id from Pre_Project where deleted = false and state = 7)
+    </select>
+
+
+    <select id="getInvInfoByTimeYear" resultType="java.math.BigDecimal">
+        select sum(Ipv_Planned_Pay)
+        from Inv_Plan_Year
+        where P_Id = #{pId}
+          and (Ipv_Declare_Year >= #{startYear} and Ipv_Declare_Year &lt;= #{endYear})
+    </select>
+
+    <resultMap type="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse" id="oneInvPlanYear">
+        <id column="Ipv_Id" property="ipvId"/>
+        <collection property="invMonthlySchedules"
+                    ofType="com.jpmsoft.common.model.response.InvestmentControl.InvMonthlyScheduleResponse"
+                    column="Ipv_Id" select="getInvMonthlyScheduleByIpvId">
+        </collection>
+    </resultMap>
+
+    <resultMap type="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse" id="oneInvPlanYearYz">
+        <id column="Ipv_Id" property="ipvId"/>
+        <collection property="invMonthlySchedules"
+                    ofType="com.jpmsoft.common.model.response.InvestmentControl.InvMonthlyScheduleResponse"
+                    column="Ipv_Id" select="getInvMonthlyScheduleByIpvIdXz">
+        </collection>
+    </resultMap>
+
+    <select id="getInvPlanYearByIpvId" resultMap="oneInvPlanYear">
+        select sd.D_Name           as ipvDName,
+               pro.P_Name          as pName,
+               pro.P_Code          as pCode,
+               pro.P_Name_History  as pNameHistory,
+               pro.P_Inv_Total     as pInvTotal,
+               pro.P_Competent_Department as pCompetentDepartment,
+               con.Con_Name as conName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               f.file_relation_id  as fileRelationId,
+               cany.c_name as ipvCName,
+               mn.*
+        from Inv_Plan_Year mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Department sd on mn.Ipv_D_Id = sd.D_ID
+                 left join Sys_File f on f.FileID = mn.Ipv_Id
+                 left join SYS_Company cany on mn.Ipv_C_id = cany.c_Id
+        where mn.Ipv_Id = #{ipvId}
+    </select>
+
+    <select id="getInvPlanYearByIpvIdXz" resultMap="oneInvPlanYearYz">
+        select sd.D_Name           as ipvDName,
+               pro.P_Name          as pName,
+               pro.P_Code          as pCode,
+               pro.P_Name_History  as pNameHistory,
+               pro.P_Inv_Total     as pInvTotal,
+               pro.P_Competent_Department as pCompetentDepartment,
+               con.Con_Name as conName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               f.file_relation_id  as fileRelationId,
+               mn.*
+        from Inv_Plan_Year mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Department sd on mn.Ipv_D_Id = sd.D_ID
+                 left join Sys_File f on f.FileID = mn.Ipv_Id
+        where mn.Ipv_Id = #{ipvId}
+    </select>
+
+    <select id="getInvMonthlyScheduleByIpvId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvMonthlyScheduleResponse">
+        select ims.*
+        from Inv_Monthly_Schedule ims
+        where ims.Ipv_Id = #{ipvId}
+        order by ims.Ims_Month asc
+    </select>
+
+    <select id="getInvMonthlyScheduleByIpvIdXz"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvMonthlyScheduleResponse">
+        select ims.*
+        from Inv_Monthly_Schedule ims
+        where ims.Ipv_Id = #{ipvId}
+        order by ims.ims_year, ims.ims_month
+    </select>
+
+
+
+
+    <select id="getInvPlanYearList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sd.D_Name as ipvDName, con.Con_Name as conName, cany.c_name as ipvCName,
+        depAgg.dep_names as pCompetentDepartmentNames,
+        mn.*
+        from Inv_Plan_Year mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department sd on mn.Ipv_D_Id=sd.D_ID
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company cany on mn.Ipv_C_id = cany.c_Id
+        <include refid="joinPCompetentDepartmentNames"/>
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ipvDId!=null">
+            and mn.Ipv_D_Id = #{params.ipvDId}
+        </if>
+        <if test="params.ipvDeclareYear!=null">
+            and mn.Ipv_Declare_Year = #{params.ipvDeclareYear}
+        </if>
+        <if test="params.ipvConstStatus!=null">
+            and mn.Ipv_Const_Status = #{params.ipvConstStatus}
+        </if>
+        <if test="params.ipvLibrary!=null">
+            and mn.Ipv_Library = #{params.ipvLibrary}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.ipvState!=null">
+            and mn.Ipv_State = #{params.ipvState}
+        </if>
+        <if test="params.ipvCName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ipvCName},cany.C_Id)=true
+                </when>
+                <otherwise>
+                    and cany.c_name like concat('%',#{params.ipvCName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ipvNewly!=null">
+            and mn.Ipv_Newly = #{params.ipvNewly}
+        </if>
+        <if test="params.ipvPType!=null">
+            and mn.Ipv_P_Type = #{params.ipvPType}
+        </if>
+        <if test="params.ipvCompleted!=null">
+            and mn.Ipv_Completed = #{params.ipvCompleted}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.con_name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.projectName != null">
+            and pro.P_Name like concat('%', #{params.projectName}, '%')
+        </if>
+        <if test="params.contractName != null">
+            and con.con_name like concat('%', #{params.contractName}, '%')
+        </if>
+        <if test="params.isLeaderBoard==1">
+            and mn.Ipv_State!=3 and mn.Ipv_State!=0
+        </if>
+        <if test="params.ipvConstructionStatus!=null">
+            and mn.ipv_construction_status = #{params.ipvConstructionStatus}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ipv_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!--************************************* dm *************************************-->
+    <select id="getInvInfoByPid" resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProInvInfoModel"
+            databaseId="dm">
+        select ipy.Ipv_Scheduled_Plan     as ipvScheduledPlan,
+               ipy.Ipv_Planned_Investment as ipvPlannedInvestment,
+               ipy.Ipv_Planned_Pay        as ipvPlannedPay,
+               p.P_Competent_Department   as pCompetentDepartment,
+               proc.C_Name                as pConsName,
+               proc.C_Abbreviation        as pConsAbbName,
+               sd.D_Name                  as pCompetentDepartmentName
+        from Inv_Plan_Year ipy
+                 left join Pre_Project p on p.P_Id = ipy.P_Id
+                 left join SYS_Company proc on proc.C_Id = p.P_Construction_Unit
+                 left join SYS_Department sd on sd.D_Id = p.P_Competent_Department
+        where ipy.P_Id = #{pId}
+          and ipy.Ipv_Declare_Year = to_char(now(), 'yyyy')
+    </select>
+
+    <select id="getInvStatisticsByRanking" resultType="Map" databaseId="dm">
+        select P_Name                 as pName,
+        (case when ipy.Ipv_Budget_Total is null or ipy.Ipv_Budget_Total = 0 then 0 else
+        (select sum(Icm_Monthly_Investment) from Inv_Complete_Month where Ipv_Id = ipy.Ipv_Id) /
+        ipy.Ipv_Budget_Total end) as completeRate
+        from Inv_Plan_Year ipy
+                 left join Pre_Project pro on ipy.P_ID = pro.P_ID
+        where Ipv_State = 7 <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+          and Ipv_Declare_Year = to_char(now(), 'yyyy')
+        order by completeRate desc
+            limit #{size}
+    </select>
+
+    <select id="getInvPlanAmtByMonth" resultType="Map" databaseId="dm">
+        select Ims_Month            as invMonth,
+               sum(Ims_Planned_Inv) as invPlanAmt
+        from Inv_Monthly_Schedule ims
+                 left join Inv_Plan_Year ipy on ipy.Ipv_Id = ims.Ipv_Id
+        where ipy.Ipv_State = 7 <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+          and Ipv_Declare_Year = to_char(now(), 'yyyy')
+        group by Ims_Month
+        order by Ims_Month asc
+    </select>
+
+    <select id="getInvAmtByMonth" resultType="Map" databaseId="dm">
+        select Icm_Reporting_Month         as invMonth,
+               sum(Icm_Monthly_Investment) as invAmt
+        from Inv_Complete_Month ims
+                 left join Inv_Plan_Year ipy on ipy.Ipv_Id = ims.Ipv_Id
+        where ipy.Ipv_State = 7 <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+          and Ipv_Declare_Year = to_char(now(), 'yyyy')
+        group by Icm_Reporting_Month
+        order by Icm_Reporting_Month asc
+    </select>
+
+    <select id="getInvStatisticsGroupDep" resultType="Map" databaseId="dm">
+        select dep.D_Name as dName,
+               res.invMonth,
+               res.invAmt
+        from Sys_Department dep
+                 right join (select pro.P_Competent_Department as dId,
+                                    ims.Ims_Month              as invMonth,
+                                    sum(ims.Ims_Planned_Inv)   as invAmt
+                             from Inv_Monthly_Schedule ims
+                                      left join Inv_Plan_Year ipy on ipy.Ipv_Id = ims.Ipv_Id
+                                      left join Pre_Project pro on pro.P_Id = ipy.P_Id
+                             where ipy.Ipv_State = 7 <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+                               and Ipv_Declare_Year = to_char(now(), 'yyyy')
+                             group by pro.P_Competent_Department, ims.Ims_Month
+                             order by pro.P_Competent_Department, ims.Ims_Month asc) res on res.Did = dep.D_Id
+    </select>
+
+    <select id="getInvStatisticsOverview" resultType="Map" databaseId="dm">
+        select (select sum(Ipv_Planned_Investment)
+                from Inv_Plan_Year
+                where Ipv_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and Ipv_Declare_Year = to_char(now(), 'yyyy')) as yearPlanInv,
+               (select sum(Ims_Planned_Inv)
+                from Inv_Monthly_Schedule ms
+                         left join Inv_Plan_Year py on py.Ipv_Id = ms.Ipv_Id
+                where Ipv_State = 7 <if test="teId!=null"> and py.Te_Id = #{teId} </if>
+                  and Ipv_Declare_Year = to_char(now(), 'yyyy')
+                  and cast(to_char(now(), 'mm') as int) >= Ims_Month)         as currentMonInv,
+               (select sum(Icm_Monthly_Investment)
+                from Inv_Complete_Month ms
+                         left join Inv_Plan_Year py on py.Ipv_Id = ms.Ipv_Id
+                where Ipv_State = 7 <if test="teId!=null"> and py.Te_Id = #{teId} </if>
+                  and Ipv_Declare_Year = to_char(now(), 'yyyy')
+                  and cast(to_char(now(), 'mm') as int) >= Icm_Reporting_Month
+                  and (Icm_State = 7 or cast(transfer_status as int) = 7))                             as completeInv
+    </select>
+
+    <!--************************************* mysql *************************************-->
+
+    <select id="getInvInfoByPid" databaseId="mysql"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProInvInfoModel"
+    >
+        select ipy.Ipv_Scheduled_Plan     as ipvScheduledPlan,
+               ipy.Ipv_Planned_Investment as ipvPlannedInvestment,
+               ipy.Ipv_Planned_Pay        as ipvPlannedPay,
+               p.P_Competent_Department   as pCompetentDepartment,
+               proc.C_Name                as pConsName,
+               proc.C_Abbreviation        as pConsAbbName,
+               sd.D_Name                  as pCompetentDepartmentName
+        from Inv_Plan_Year ipy
+                 left join Pre_Project p on p.P_Id = ipy.P_Id
+                 left join SYS_Company proc on proc.C_Id = p.P_Construction_Unit
+                 left join SYS_Department sd on sd.D_Id = p.P_Competent_Department
+        where ipy.P_Id = #{pId}
+          and ipy.Ipv_Declare_Year = date_format(now(), '%Y')
+    </select>
+
+    <select id="getInvStatisticsByRanking" resultType="Map" databaseId="mysql">
+        select P_Name                 as pName,
+        (case when ipy.Ipv_Budget_Total is null or ipy.Ipv_Budget_Total = 0 then 0 else
+        ((select sum(Icm_Monthly_Investment) from Inv_Complete_Month where Ipv_Id = ipy.Ipv_Id) /
+        ipy.Ipv_Budget_Total) end) as completeRate
+        from Inv_Plan_Year ipy
+                 left join Pre_Project pro on ipy.P_ID = pro.P_ID
+        where Ipv_State = 7 <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+          and Ipv_Declare_Year = date_format(now(), '%Y')
+        order by completeRate desc
+            limit #{size}
+    </select>
+
+    <select id="getInvPlanAmtByMonth" resultType="Map" databaseId="mysql">
+        select Ims_Month            as invMonth,
+               sum(Ims_Planned_Inv) as invPlanAmt
+        from Inv_Monthly_Schedule ims
+                 left join Inv_Plan_Year ipy on ipy.Ipv_Id = ims.Ipv_Id
+        where ipy.Ipv_State = 7 <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+          and Ipv_Declare_Year = date_format(now(), '%Y')
+        group by Ims_Month
+        order by Ims_Month asc
+    </select>
+
+    <select id="getInvAmtByMonth" resultType="Map" databaseId="mysql">
+        select Icm_Reporting_Month         as invMonth,
+               sum(Icm_Monthly_Investment) as invAmt
+        from Inv_Complete_Month ims
+                 left join Inv_Plan_Year ipy on ipy.Ipv_Id = ims.Ipv_Id
+        where ipy.Ipv_State = 7 <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+          and Ipv_Declare_Year = date_format(now(), '%Y')
+        group by Icm_Reporting_Month
+        order by Icm_Reporting_Month asc
+    </select>
+
+    <select id="getInvStatisticsGroupDep" resultType="Map" databaseId="mysql">
+        select dep.D_Name as dName,
+               res.invMonth,
+               res.invAmt
+        from Sys_Department dep
+                 right join (select pro.P_Competent_Department as dId,
+                                    ims.Ims_Month              as invMonth,
+                                    sum(ims.Ims_Planned_Inv)   as invAmt
+                             from Inv_Monthly_Schedule ims
+                                      left join Inv_Plan_Year ipy on ipy.Ipv_Id = ims.Ipv_Id
+                                      left join Pre_Project pro on pro.P_Id = ipy.P_Id
+                             where ipy.Ipv_State = 7    <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+                               and Ipv_Declare_Year = date_format(now(), '%Y')
+                             group by pro.P_Competent_Department, ims.Ims_Month
+                             order by pro.P_Competent_Department, ims.Ims_Month asc) res on res.Did = dep.D_Id
+    </select>
+
+    <select id="getInvStatisticsOverview" resultType="Map" databaseId="mysql">
+        select
+        (select sum(Ipv_Planned_Investment) from Inv_Plan_Year where Ipv_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Ipv_Declare_Year = date_format(now(), '%Y')) as yearPlanInv,
+        (select sum(Ims_Planned_Inv) from Inv_Monthly_Schedule ms left join Inv_Plan_Year py on py.Ipv_Id = ms.Ipv_Id where Ipv_State = 7 <if test="teId!=null"> and py.Te_Id = #{teId} </if> and Ipv_Declare_Year = date_format(now(), '%Y') and cast(date_format(now(), '%c') as unsigned) >= Ims_Month) as currentMonInv,
+        (select sum(Icm_Monthly_Investment) from Inv_Complete_Month ms left join Inv_Plan_Year py on py.Ipv_Id = ms.Ipv_Id where Ipv_State = 7 <if test="teId!=null"> and py.Te_Id = #{teId} </if>  and Ipv_Declare_Year = date_format(now(), '%Y') and cast(date_format(now(), '%c') as unsigned) >= Icm_Reporting_Month and (Icm_State = 7 or cast(transfer_status as unsigned) = 7)) as completeInv
+    </select>
+
+    <select id="mpcProjectInvestmentProgressCount" resultType="com.jpmsoft.projectProducer.pojo.entity.multiproject.MpcProjectInvestmentProgress">
+        SELECT
+	a.YEAR yearTime,
+	a.v totalPayment,
+	b.n planAmount,
+	a.type type
+FROM
+	(
+	SELECT
+		to_char ( Pay_Create_Time, 'yyyy' ) YEAR,
+		sum( pay_apply ) v,
+		'1' type
+	FROM
+		Con_Pay
+	GROUP BY
+		to_char ( Pay_Create_Time, 'yyyy' )
+	) a
+	LEFT JOIN ( SELECT ipv_declare_year, sum( ipv_budget_total ) n, '1' type FROM Inv_Plan_Year b GROUP BY ipv_declare_year ) b ON a.YEAR = b.ipv_declare_year UNION
+SELECT
+	b.ipv_declare_year yearTime,
+	a.v totalPayment,
+	b.n planAmount,
+	b.type type
+FROM
+	(
+	SELECT
+		to_char ( Pay_Create_Time, 'yyyy' ) YEAR,
+		sum( pay_apply ) v,
+		'1' type
+	FROM
+        Con_Pay
+	GROUP BY
+		to_char ( Pay_Create_Time, 'yyyy' )
+	) a
+	RIGHT JOIN ( SELECT ipv_declare_year, sum( ipv_budget_total ) n, '1' type FROM Inv_Plan_Year b GROUP BY ipv_declare_year ) b ON a.YEAR = b.ipv_declare_year
+    </select>
+
+
+
+    <!--************************************* postgre *************************************-->
+    <select id="getInvInfoByPid" resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProInvInfoModel"
+            databaseId="postgre">
+        select ipy.Ipv_Scheduled_Plan     as ipvScheduledPlan,
+               ipy.Ipv_Planned_Investment as ipvPlannedInvestment,
+               ipy.Ipv_Planned_Pay        as ipvPlannedPay,
+               p.P_Competent_Department   as pCompetentDepartment,
+               proc.C_Name                as pConsName,
+               proc.C_Abbreviation        as pConsAbbName,
+               sd.D_Name                  as pCompetentDepartmentName
+        from Inv_Plan_Year ipy
+                 left join Pre_Project p on p.P_Id = ipy.P_Id
+                 left join SYS_Company proc on proc.C_Id = p.P_Construction_Unit
+                 left join SYS_Department sd on sd.D_Id = p.P_Competent_Department
+        where ipy.P_Id = #{pId}
+          and ipy.Ipv_Declare_Year = to_char(now(), 'yyyy')
+    </select>
+
+    <select id="getInvStatisticsByRanking" resultType="Map" databaseId="postgre">
+        select P_Name                 as pName,
+        (case when ipy.Ipv_Budget_Total is null or ipy.Ipv_Budget_Total = 0 then 0 else
+        ((select sum(Icm_Monthly_Investment) from Inv_Complete_Month where Ipv_Id = ipy.Ipv_Id) /
+        ipy.Ipv_Budget_Total) end) as completeRate
+        from Inv_Plan_Year ipy
+                 left join Pre_Project pro on ipy.P_ID = pro.P_ID
+        where Ipv_State = 7 <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+          and Ipv_Declare_Year = to_char(now(), 'yyyy')
+        order by "completeRate" desc
+        limit #{size}
+    </select>
+
+    <select id="getInvPlanAmtByMonth" resultType="Map" databaseId="postgre">
+        select Ims_Month            as invMonth,
+               sum(Ims_Planned_Inv) as invPlanAmt
+        from Inv_Monthly_Schedule ims
+                 left join Inv_Plan_Year ipy on ipy.Ipv_Id = ims.Ipv_Id
+        where ipy.Ipv_State = 7 <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+          and Ipv_Declare_Year = to_char(now(), 'yyyy')
+        group by Ims_Month
+        order by Ims_Month asc
+    </select>
+
+    <select id="getInvAmtByMonth" resultType="Map" databaseId="postgre">
+        select Icm_Reporting_Month         as invMonth,
+               sum(Icm_Monthly_Investment) as invAmt
+        from Inv_Complete_Month ims
+                 left join Inv_Plan_Year ipy on ipy.Ipv_Id = ims.Ipv_Id
+        where ipy.Ipv_State = 7 <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+          and Ipv_Declare_Year = to_char(now(), 'yyyy')
+        group by Icm_Reporting_Month
+        order by Icm_Reporting_Month asc
+    </select>
+
+    <select id="getInvStatisticsGroupDep" resultType="Map" databaseId="postgre">
+        select dep.D_Name as dName,
+               res.invMonth,
+               res.invAmt
+        from Sys_Department dep
+                 right join (select pro.P_Competent_Department as dId,
+                                    ims.Ims_Month              as invMonth,
+                                    sum(ims.Ims_Planned_Inv)   as invAmt
+                             from Inv_Monthly_Schedule ims
+                                      left join Inv_Plan_Year ipy on ipy.Ipv_Id = ims.Ipv_Id
+                                      left join Pre_Project pro on pro.P_Id = ipy.P_Id
+                             where ipy.Ipv_State = 7 <if test="teId!=null"> and ipy.Te_Id = #{teId} </if>
+                               and Ipv_Declare_Year = to_char(now(), 'yyyy')
+                             group by pro.P_Competent_Department, ims.Ims_Month
+                             order by pro.P_Competent_Department, ims.Ims_Month asc) res on res."dId" = dep.D_Id
+    </select>
+
+    <select id="getInvStatisticsOverview" resultType="Map" databaseId="postgre">
+        select (select sum(Ipv_Planned_Investment)
+                from Inv_Plan_Year
+                where Ipv_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and Ipv_Declare_Year = to_char(now(), 'yyyy')) as yearPlanInv,
+               (select sum(Ims_Planned_Inv)
+                from Inv_Monthly_Schedule ms
+                         left join Inv_Plan_Year py on py.Ipv_Id = ms.Ipv_Id
+                where Ipv_State = 7 <if test="teId!=null"> and py.Te_Id = #{teId} </if>
+                  and Ipv_Declare_Year = to_char(now(), 'yyyy')
+                  and cast(to_char(now(), 'mm') as int) >= Ims_Month)         as currentMonInv,
+               (select sum(Icm_Monthly_Investment)
+                from Inv_Complete_Month ms
+                         left join Inv_Plan_Year py on py.Ipv_Id = ms.Ipv_Id
+                where Ipv_State = 7 <if test="teId!=null"> and py.Te_Id = #{teId} </if>
+                  and Ipv_Declare_Year = to_char(now(), 'yyyy')
+                  and cast(to_char(now(), 'mm') as int) >= Icm_Reporting_Month
+                  and (Icm_State = 7 or cast(transfer_status as int) = 7))                             as completeInv
+    </select>
+    <select id="selectInvPlanYear" resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvPlanYear">
+        select * from Inv_Plan_Year ipv
+        <where>
+            ipv.Ipv_State=7
+            <if test="projectId != null and projectId != ''">
+                and ipv.P_id = #{projectId}
+            </if>
+            <if test="contractID != null and contractID != ''">
+                and ipv.Con_Id = #{contractID}
+            </if>
+            <if test="year != null ">
+                and ipv.Ipv_Declare_Year = #{year}
+            </if>
+        </where>
+    </select>
+
+    <select id="getInvPlanYearGroup" resultType="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse">
+        SELECT
+            *
+        FROM
+            (
+                SELECT *, ROW_NUMBER() OVER (PARTITION BY P_Id,Ipv_Declare_Year
+                ORDER BY ipv_State_Time DESC) AS rn
+                FROM Inv_Plan_Year
+                where ipv_State=7
+            ) t
+        WHERE
+            t.rn = 1
+    </select>
+    <select id="getValueByCode" resultType="java.lang.Object">
+        select distinct mn.${value} from Inv_Plan_Year mn where mn.${value} is not null order by mn.${value} asc
+    </select>
+    <select id="getProjectValueByCode" resultType="java.lang.Object">
+        select distinct pp.${value} from Inv_Plan_Year mn
+        left join pre_project pp on mn.p_id = pp.p_id
+        where pp.${value} is not null order by pp.${value} asc
+    </select>
+    <select id="getDepartValueByCode" resultType="java.lang.Object">
+        select distinct prod.${value} from Inv_Plan_Year mn
+        left join pre_project pp on mn.p_id = pp.p_id
+        left join SYS_Department prod on prod.D_Id=pp.P_Competent_Department
+        where prod.${value} is not null order by prod.${value} asc
+    </select>
+    <select id="queryInvPlanYearSearchList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sd.D_Name as ipvDName,
+        depAgg.dep_names as pCompetentDepartmentNames,
+        mn.*
+        from Inv_Plan_Year mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        <include refid="joinPCompetentDepartmentNames"/>
+        left join SYS_Department sd on mn.Ipv_D_Id=sd.D_ID
+        ${authSql}
+        <if test="request.ipvDeclareYear !=null and request.ipvDeclareYear.size()>0">
+            and mn.ipv_declare_year in
+            <foreach collection="request.ipvDeclareYear" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.ipvType !=null and request.ipvType.size()>0">
+            and mn.ipv_p_type in
+            <foreach collection="request.ipvType" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.ipvDoneLastYear !=null and request.ipvDoneLastYear.size()>0">
+            and mn.ipv_done_last_year in
+            <foreach collection="request.ipvDoneLastYear" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.ipvPlannedInvestment !=null and request.ipvPlannedInvestment.size()>0">
+            and mn.ipv_planned_investment in
+            <foreach collection="request.ipvPlannedInvestment" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.ipvNewly !=null and request.ipvNewly.size()>0">
+            and mn.ipv_newly in
+            <foreach collection="request.ipvNewly" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.ipvCompleted !=null and request.ipvCompleted.size()>0">
+            and mn.ipv_completed in
+            <foreach collection="request.ipvCompleted" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.reportTableNum !=null and request.reportTableNum.size()>0">
+            and mn.report_table_num in
+            <foreach collection="request.reportTableNum" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.ipvCreateUname !=null and request.ipvCreateUname.size()>0">
+            and mn.ipv_create_uname in
+            <foreach collection="request.ipvCreateUname" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.ipvState !=null and request.ipvState.size()>0">
+            and mn.ipv_state in
+            <foreach collection="request.ipvState" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.ipvStart !=null and request.ipvStart !='' ">
+            and to_char(mn.ipv_start,'yyyy-MM') = #{request.ipvStart}
+        </if>
+        <if test="request.ipvEnd !=null and request.ipvEnd !='' ">
+            and to_char(mn.ipv_end,'yyyy-MM') = #{request.ipvEnd}
+        </if>
+        <if test="request.ipvCreateTime !=null and request.ipvCreateTime !='' ">
+            and to_char(mn.ipv_create_time,'yyyy-MM-dd') = #{request.ipvCreateTime}
+        </if>
+        <if test="request.projectName !=null and request.projectName.size()>0">
+            and pro.P_Name in
+            <foreach collection="request.projectName" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectCode !=null and request.projectCode.size()>0">
+            and pro.p_code in
+            <foreach collection="request.projectCode" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.invTotal !=null and request.invTotal.size()>0">
+            and pro.p_inv_total in
+            <foreach collection="request.invTotal" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.competentDepartmentName !=null and request.competentDepartmentName.size()>0">
+            and prod.D_Name in
+            <foreach collection="request.competentDepartmentName" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+
+
+    <select id="getInvPlanYearDataList" resultType="com.jpmsoft.projectProducer.pojo.vo.investment.InvPlanYearVo">
+        select yea.*, ment.d_name as dName,pro.P_Project_Stage as projectState,pro.p_name as pName,pro.P_Sec_Type as pSecType
+        from Inv_Plan_Year yea
+        left join pre_project pro on  pro.p_id = yea.p_id
+        left join SYS_Department ment on pro.p_Competent_Department = ment.d_id
+
+        <where>
+
+                <if test="params.pName!=null">
+                    <choose>
+                        <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                            and likePname(#{params.pName},pro.P_Id)=true
+                        </when>
+                        <otherwise>
+                            and pro.P_Name like concat('%',#{params.pName},'%')
+                        </otherwise>
+                    </choose>
+                </if>
+                <if test="strYear!=null and strYear!='' ">
+                    AND
+                    EXTRACT(YEAR FROM yea.ipv_start) &lt;= #{strYear} and EXTRACT(YEAR FROM yea.ipv_end) &gt;= #{strYear}
+                </if>
+
+                <if test="pCompetentDepartment!=null and pCompetentDepartment!=''">
+                    and pro.p_Competent_Department  = #{pCompetentDepartment}
+                </if>
+                <if test="pSecType!=null and pSecType!=''">
+                    and pro.P_Sec_Type  = #{pSecType}
+                </if>
+                <if test="projectState!=null and projectState!=''">
+                    and pro.P_Project_Stage  = #{projectState}
+                </if>
+            </where>
+
+    </select>
+
+    <select id="getComMonthvalueoCode" resultType="java.lang.Object">
+        select distinct ${value} as dbValue
+        from Inv_Complete_Month mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Department psd on psd.D_Id=pro.P_Department
+        left join SYS_Department sd on mn.Icm_D_Id=sd.D_ID
+        left join Inv_Plan_Year ipv on ipv.Ipv_Id=mn.Ipv_Id
+        left join Inv_Monthly_Schedule ims on ims.Ipv_Id=ipv.Ipv_Id and ims.Ims_Month=mn.Icm_Reporting_Month
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinPCompetentDepartmentNames"/>
+        </if>
+        <if test="params.jbr!=null and params.cjJbrList!=null and params.cjJbrList.size()>0">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinJbrHit"/>
+        </if>
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+    <sql id="actualTimeFilter" databaseId="dm">
+        <if test="params.actualStartTimes != null and params.actualStartTimes.size() > 0">
+            and (
+                <choose>
+                    <when test="params.actualStartTimes.size() == 1 and params.actualStartTimes.contains('未开工')">
+                        (
+                            (case
+                                when ipv.ipv_construction_status = '03' then ipv.Ipv_Start
+                                else mn.actual_start_time
+                             end) is null
+                            or
+                            (case
+                                when ipv.ipv_construction_status = '03' then ipv.Ipv_Start
+                                else mn.actual_start_time
+                             end) = ''
+                        )
+                    </when>
+                    <otherwise>
+                        TO_CHAR(
+                            case
+                                when ipv.ipv_construction_status = '03' then ipv.Ipv_Start
+                                else mn.actual_start_time
+                            end, 'YYYY-MM'
+                        ) in
+                        <trim prefix="(" suffix=")" suffixOverrides=",">
+                            <foreach collection="params.actualStartTimes" item="actualStartTime">
+                                <if test="actualStartTime != '未开工'">
+                                    #{actualStartTime},
+                                </if>
+                            </foreach>
+                        </trim>
+                        <if test="params.actualStartTimes.contains('未开工')">
+                            or (
+                                (case
+                                    when ipv.ipv_construction_status = '03' then ipv.Ipv_Start
+                                    else mn.actual_start_time
+                                 end) is null
+                                or
+                                (case
+                                    when ipv.ipv_construction_status = '03' then ipv.Ipv_Start
+                                    else mn.actual_start_time
+                                 end) = ''
+                            )
+                        </if>
+                    </otherwise>
+                </choose>
+            )
+        </if>
+        <if test="params.actualEndTimes != null and params.actualEndTimes.size() > 0">
+            and (
+            <choose>
+                <when test="params.actualEndTimes.size() == 1 and params.actualEndTimes.contains('未完工')">
+                    (mn.actual_end_time is null or mn.actual_end_time = '')
+                </when>
+                <otherwise>
+                    TO_CHAR(mn.actual_end_time, 'YYYY-MM') in
+                    <trim prefix="(" suffix=")" suffixOverrides=",">
+                        <foreach collection="params.actualEndTimes" item="actualEndTime">
+                            <if test="actualEndTime != '未完工'">
+                                #{actualEndTime},
+                            </if>
+                        </foreach>
+                    </trim>
+                    <if test="params.actualEndTimes.contains('未完工')">
+                        or (mn.actual_end_time is null or mn.actual_end_time = '')
+                    </if>
+                </otherwise>
+            </choose>
+            )
+        </if>
+    </sql>
+
+    <sql id="actualTimeFilter" databaseId="mysql">
+        <if test="params.actualStartTimes != null and params.actualStartTimes.size() > 0">
+            and (
+            <choose>
+                <when test="params.actualStartTimes.size() == 1 and params.actualStartTimes.contains('未开工')">
+                    (
+                    (case
+                    when ipv.ipv_construction_status = '03' then ipv.Ipv_Start
+                    else mn.actual_start_time
+                    end) is null
+                    or
+                    (case
+                    when ipv.ipv_construction_status = '03' then ipv.Ipv_Start
+                    else mn.actual_start_time
+                    end) = ''
+                    )
+                </when>
+                <otherwise>
+                    DATE_FORMAT(
+                    case
+                    when ipv.ipv_construction_status = '03' then ipv.Ipv_Start
+                    else mn.actual_start_time
+                    end, '%Y-%m'
+                    ) in
+                    <trim prefix="(" suffix=")" suffixOverrides=",">
+                        <foreach collection="params.actualStartTimes" item="actualStartTime">
+                            <if test="actualStartTime != '未开工'">
+                                #{actualStartTime},
+                            </if>
+                        </foreach>
+                    </trim>
+                    <if test="params.actualStartTimes.contains('未开工')">
+                        or (
+                        (case
+                        when ipv.ipv_construction_status = '03' then ipv.Ipv_Start
+                        else mn.actual_start_time
+                        end) is null
+                        or
+                        (case
+                        when ipv.ipv_construction_status = '03' then ipv.Ipv_Start
+                        else mn.actual_start_time
+                        end) = ''
+                        )
+                    </if>
+                </otherwise>
+            </choose>
+            )
+        </if>
+        <if test="params.actualEndTimes != null and params.actualEndTimes.size() > 0">
+            and (
+            <choose>
+                <when test="params.actualEndTimes.size() == 1 and params.actualEndTimes.contains('未完工')">
+                    (mn.actual_end_time is null or mn.actual_end_time = '')
+                </when>
+                <otherwise>
+                    DATE_FORMAT(mn.actual_end_time, '%Y-%m') in
+                    <trim prefix="(" suffix=")" suffixOverrides=",">
+                        <foreach collection="params.actualEndTimes" item="actualEndTime">
+                            <if test="actualEndTime != '未完工'">
+                                #{actualEndTime},
+                            </if>
+                        </foreach>
+                    </trim>
+                    <if test="params.actualEndTimes.contains('未完工')">
+                        or (mn.actual_end_time is null or mn.actual_end_time = '')
+                    </if>
+                </otherwise>
+            </choose>
+            )
+        </if>
+    </sql>
+
+    <sql id="listFilter">
+        <if test="params.pCompetentDepartment!=null">
+            and pro.p_Competent_Department=#{params.pCompetentDepartment}
+        </if>
+        <if test="params.icmReportingMonth!=null">
+            and mn.icm_Reporting_Month = #{params.icmReportingMonth}
+        </if>
+        <if test="params.icmReportingYear!=null">
+            and mn.icm_Reporting_Year = #{params.icmReportingYear}
+        </if>
+        <if test="params.pId!=null">
+            and pro.P_Id =#{params.pId}
+        </if>
+        <if test="params.actualStartTime != null and params.actualStartTime != ''">
+            and mn.actual_start_time = #{params.actualStartTime}
+        </if>
+        <if test="params.actualEndTime != null and params.actualEndTime != ''">
+            and mn.actual_end_time = #{params.actualEndTime}
+        </if>
+        <include refid="actualTimeFilter"/>
+        <if test="params.pTypeList!=null and params.pTypeList.size()>0">
+            and (
+            ipv.ipv_p_type in
+            <foreach collection="params.pTypeList" open="(" close=")" separator="," item="type">
+                #{type}
+            </foreach>
+            <if test="params.pTypeList.contains('空白数据')">
+                or ipv.ipv_p_type is null or ipv.ipv_p_type = ''
+            </if>
+            )
+        </if>
+        <if test="params.ipvConstructionStage!=null and params.ipvConstructionStage.size()>0">
+            and ipv.Ipv_Construction_stage in
+            <foreach collection="params.ipvStageList" open="(" close=")" separator="," item="stage">
+                #{ipvConstructionStage}
+            </foreach>
+        </if>
+<!--        <if test="params.pCompetentDepartment!=null">
+            and pro.p_Competent_Department=#{params.pCompetentDepartment}
+        </if>-->
+<!--        <if test="params.icmState!=null">
+            and mn.icm_State = #{params.icmState}
+        </if>-->
+        <if test="params.pNameList!=null and params.pNameList.size()>0">
+            and (
+            pro.p_name in
+            <foreach collection="params.pNameList" open="(" close=")" separator="," item="pName">
+                #{pName}
+            </foreach>
+            <if test="params.pNameList.contains('空白数据')">
+                or (pro.p_name is null or pro.p_name = '')
+            </if>
+            )
+        </if>
+        <if test="params.pDepartmentNameList != null and params.pDepartmentNameList.size() > 0">
+            and (psd.D_Name in
+            <foreach collection="params.pDepartmentNameList" open="(" close=")" separator="," item="pDepartmentName">
+                #{pDepartmentName}
+            </foreach>
+            <if test="params.pDepartmentNameList.contains('空白数据')">
+                or (psd.D_Name is null or psd.D_Name = '')
+            </if>
+            )
+        </if>
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            and (depAgg.dep_names in
+            <foreach collection="params.pCompetentDepartmentNameList" open="(" close=")" separator="," item="pCompetentDepartmentName">
+                #{pCompetentDepartmentName}
+            </foreach>
+            <if test="params.pCompetentDepartmentNameList.contains('空白数据')">
+                or (depAgg.dep_names is null or depAgg.dep_names = '')
+            </if>
+            )
+        </if>
+        <if test="params.transferStatusList!=null and params.transferStatusList.size()>0 ">
+            and (mn.transfer_Status in
+            <foreach collection="params.transferStatusList" open="(" close=")" separator="," item="state">
+                #{state}
+            </foreach>
+            <if test="params.transferStatusList.contains('空白数据')">
+                or (mn.transfer_Status is null or mn.transfer_Status = '')
+            </if>
+            )
+        </if>
+        <if test="params.createUnameList!=null and params.createUnameList.size()>0 ">
+            and (mn.icm_Create_Uname  in
+            <foreach collection="params.createUnameList" open="(" close=")" separator="," item="createUname">
+                #{createUname}
+            </foreach>
+            <if test="params.createUnameList.contains('空白数据')">
+                or (mn.icm_Create_Uname is null or mn.icm_Create_Uname = '')
+            </if>
+            )
+        </if>
+        <if test="params.planCompleteResultList!= null and params.planCompleteResultList.size()>0">
+            and mn.plan_complete_result IN
+            <foreach collection="params.planCompleteResultList" separator="," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.completeResultList!= null and params.completeResultList.size()>0">
+            and mn.complete_result IN
+            <foreach collection="params.completeResultList" separator="," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.monthCumulativeInvProportion!= null">
+            <choose>
+                <when test="params.monthCumulativeInvProportion == 100">
+                    and ((mn.month_cumulative_inv_proportion &lt; 100 or mn.month_cumulative_inv_proportion is null) and mn.Icm_Monthly_Investment != ims.Ims_Planned_Inv and ims.Ims_Planned_Inv != 0)
+                </when>
+                <otherwise>
+                    and mn.month_cumulative_inv_proportion &lt; #{params.monthCumulativeInvProportion}
+                </otherwise>
+            </choose>
+
+        </if>
+        <if test="params.ipvStageList!=null and params.ipvStageList.size()>0">
+            and (
+            <if test="params.ipvStageList.contains('空白数据')">
+                (ipv.Ipv_Construction_stage is null or ipv.Ipv_Construction_stage = '')
+            </if>
+            <if test="params.ipvStageList.contains('空白数据') and params.ipvStageList.size() > 1">
+                or
+            </if>
+            <if test="!params.ipvStageList.contains('空白数据') or params.ipvStageList.size() > 1">
+                <trim prefix="(" suffix=")" prefixOverrides="OR">
+                    <foreach collection="params.ipvStageList" item="ipvStaqe">
+                        <if test="ipvStaqe != '空白数据'">
+                            OR INSTR(ipv.Ipv_Construction_stage, #{ipvStaqe}) > 0
+                        </if>
+                    </foreach>
+                </trim>
+            </if>
+            )
+        </if>
+        <if test="params.userDepIds!=null and params.userDepIds.size()>0">
+            and ( pro.p_Competent_Department in
+            <foreach collection="params.userDepIds" open="(" close=")" index="dep" separator=",">
+                #{dep}
+            </foreach>
+            or
+            pro.P_Department in
+            <foreach collection="params.userDepIds" open="(" close=")" index="dep" separator=",">
+                #{dep}
+            </foreach>
+            )
+        </if>
+        <if test="params.cjJbrList!=null and params.cjJbrList.size()>0 ">
+            and ((
+            jbrHit.p_id is not null
+            or exists (
+            select 1
+            from sys_user engineer
+            where engineer.u_id = pro.P_Engineer
+            and engineer.u_name in
+            <foreach collection="params.cjJbrList" open="(" close=")" separator="," item="jbr">
+                #{jbr}
+            </foreach>
+            ))
+            <if test="params.cjJbrList.contains('空白数据')">
+                or (
+                jbrAgg.p_id is null
+                and pro.P_Engineer is null
+                )
+            </if>
+            )
+        </if>
+        <if test="params.ipvConstructionStatusList != null and params.ipvConstructionStatusList.size()>0 ">
+            and (ipv.ipv_construction_status in
+            <foreach collection="params.ipvConstructionStatusList" open="(" close=")" separator="," item="status">
+                #{status}
+            </foreach>
+            <if test="params.ipvConstructionStatusList.contains('空白数据')">
+                or (ipv.ipv_construction_status is null or ipv.ipv_construction_status = '')
+            </if>
+            )
+        </if>
+        <if test="params.warningFilter != null and params.warningFilter != ''">
+            <include refid="warningScreening"/>
+        </if>
+    </sql>
+
+    <sql id="warningScreening" databaseId="mysql">
+        <!--开工预警-->
+        <if test="params.warningFilter == '01'">
+            AND DATE_FORMAT(ipv.Ipv_Start,'%Y%m') &lt;= CONCAT(icm_Reporting_Year, LPAD(icm_Reporting_Month, 2, '0'))
+            AND mn.actual_start_time IS NULL
+        </if>
+        <!--完工预警-->
+        <if test="params.warningFilter == '02'">
+            AND ipv.Ipv_End IS NOT NULL
+            AND DATE_FORMAT(ipv.Ipv_End,'%Y%m') &lt;= CONCAT(icm_Reporting_Year, LPAD(icm_Reporting_Month, 2, '0'))
+            AND mn.actual_end_time IS NULL
+        </if>
+    </sql>
+
+    <sql id="warningScreening" databaseId="dm">
+        <!--开工预警-->
+        <if test="params.warningFilter == '01'">
+            AND TO_CHAR(ipv.Ipv_Start,'YYYYMM') &lt;= TO_CHAR(icm_Reporting_Year) || LPAD(TO_CHAR(icm_Reporting_Month), 2, '0')
+            AND mn.actual_start_time IS NULL
+        </if>
+        <!--完工预警-->
+        <if test="params.warningFilter == '02'">
+            AND ipv.Ipv_End IS NOT NULL
+            AND TO_CHAR(ipv.Ipv_End,'YYYYMM') &lt;= TO_CHAR(icm_Reporting_Year) || LPAD(TO_CHAR(icm_Reporting_Month), 2, '0')
+            AND mn.actual_end_time IS NULL
+        </if>
+    </sql>
+
+    <select id="getCjJbr" resultType="String">
+        select distinct up.u_name
+        from sys_user up
+        left join SYS_Position_User_P pup on pup.u_id=up.u_id
+        left join SYS_Position_P pp on pp.pp_id=pup.pp_id
+        left join SYS_Department_P dp on dp.pd_id=pp.pd_id
+        where pp.PP_Code=#{params.jbr}
+        and dp.p_id in (
+        select mn.P_Id
+        from Inv_Complete_Month mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Department psd on psd.D_Id=pro.P_Department
+        left join SYS_Department sd on mn.Icm_D_Id=sd.D_ID
+        left join Inv_Plan_Year ipv on ipv.Ipv_Id=mn.Ipv_Id
+        left join Inv_Monthly_Schedule ims on ims.Ipv_Id=ipv.Ipv_Id and ims.Ims_Month=mn.Icm_Reporting_Month
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinPCompetentDepartmentNames"/>
+        </if>
+        <if test="params.jbr!=null and params.cjJbrList!=null and params.cjJbrList.size()>0">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinJbrHit"/>
+        </if>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        )
+        UNION
+        select distinct u.u_name
+        from sys_user u
+        where u.u_id in (
+        select pro.P_Engineer
+        from Inv_Complete_Month mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Department psd on psd.D_Id=pro.P_Department
+        left join SYS_Department sd on mn.Icm_D_Id=sd.D_ID
+        left join Inv_Plan_Year ipv on ipv.Ipv_Id=mn.Ipv_Id
+        left join Inv_Monthly_Schedule ims on ims.Ipv_Id=ipv.Ipv_Id and ims.Ims_Month=mn.Icm_Reporting_Month
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinPCompetentDepartmentNames"/>
+        </if>
+        <if test="params.jbr!=null and params.cjJbrList!=null and params.cjJbrList.size()>0">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinJbrHit"/>
+        </if>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        and pro.P_Engineer is not null
+        )
+    </select>
+
+    <select id="getMonthplanList" resultType="com.jpmsoft.common.model.response.InvestmentControl.InvCompleteMonthResponse" databaseId="mysql">
+        select
+        mn.*,
+        sd.D_Name as pConstructionUnitName,
+        pro.P_Competent_Department  as pCompetentDepartment,
+        pro.P_Department as pDepartment,
+        prod.D_Name as pCompetentDepartmentName,
+        psd.d_name as pDepartmentName,
+        con.Con_id as conId,
+        pro.p_Name as pName,
+        ipv.Ipv_P_Type as ipvPType,
+        ipv.report_table_num as reportTableNum,
+        ipv.Ipv_Construction_stage as ipvConstructionStage,
+        ipv.ipv_construction_status as ipvConstructionStatus,
+        ipv.Ipv_Planned_Investment as ipvPlannedInvestment,
+        ipv.Ipv_Start as planStartTime,
+        ipv.Ipv_End as planEndTime,
+        ipv.p_competent_departments as pCompetentDepartments,
+        ipv.Ipv_Completed as ipvCompleted,
+        pro.P_Build_Model as pBuildModel,
+        <if test="params.jbr!=null">
+            NVL(jbrAgg.all_names, u.u_name) as cjJbr,
+        </if>
+        (
+        select sum(icm.Icm_Budget_Investment) from Inv_Complete_Month icm
+        where icm.Icm_Reporting_Year &lt; mn.Icm_Reporting_Year
+        and icm.Icm_Reporting_Month='12'
+        ) as icmAllBudgetInv,
+        depAgg.dep_names as pCompetentDepartmentNames
+        from Inv_Complete_Month mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        <if test="params.jbr!=null">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinJbr"/>
+        </if>
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Department psd on psd.D_Id=pro.P_Department
+        left join SYS_Department sd on mn.Icm_D_Id=sd.D_ID
+        left join Inv_Plan_Year ipv on ipv.Ipv_Id=mn.Ipv_Id
+        left join Inv_Monthly_Schedule ims on ims.Ipv_Id=ipv.Ipv_Id and ims.Ims_Month=mn.Icm_Reporting_Month
+        <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinPCompetentDepartmentNames"/>
+        <if test="params.jbr!=null and params.cjJbrList!=null and params.cjJbrList.size()>0">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinJbrHit"/>
+        </if>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <if test="params.ipvConstructionStatus!=null">
+            and ipv.ipv_construction_status = #{params.ipvConstructionStatus}
+        </if>
+        <choose>
+            <when test="params.sortType != null and params.sortFiled != null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType != null and params.sortSideFiled != null">
+                <if test="params.sortSideFiled == 'reportTableNum'">
+                    order by CAST(ipv.report_table_num AS UNSIGNED) ${params.sortType}
+                </if>
+                <if test="params.sortSideFiled != 'reportTableNum'">
+                    order by ${params.sortSideFiled} ${params.sortType}
+                </if>
+            </when>
+            <otherwise>
+                ORDER BY
+                CASE mn.icm_state
+                WHEN 3 THEN 99
+                ELSE mn.icm_state
+                END,
+                CASE
+                WHEN mn.icm_state = 0 THEN mn.icm_create_time
+                ELSE mn.icm_state_time
+                END DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getMonthplanList" resultType="com.jpmsoft.common.model.response.InvestmentControl.InvCompleteMonthResponse" databaseId="dm">
+        select
+        mn.*,
+        sd.D_Name as pConstructionUnitName,
+        pro.P_Competent_Department as pCompetentDepartment,
+        pro.P_Department as pDepartment,
+        prod.D_Name as pCompetentDepartmentName,
+        psd.d_name as pDepartmentName,
+        con.Con_id as conId,
+        pro.p_Name as pName,
+        ipv.Ipv_P_Type as ipvPType,
+        ipv.report_table_num as reportTableNum,
+        ipv.Ipv_Construction_stage as ipvConstructionStage,
+        ipv.ipv_construction_status as ipvConstructionStatus,
+        ipv.Ipv_Planned_Investment as ipvPlannedInvestment,
+        ipv.Ipv_Start as planStartTime,
+        ipv.Ipv_End as planEndTime,
+        ipv.p_competent_departments as pCompetentDepartments,
+        ipv.Ipv_Completed as ipvCompleted,
+        pro.P_Build_Model as pBuildModel,
+        <if test="params.jbr!=null">
+            NVL(jbrAgg.all_names, u.u_name) as cjJbr,
+        </if>
+        (
+        select sum(icm.Icm_Budget_Investment) from Inv_Complete_Month icm
+        where icm.Icm_Reporting_Year &lt; mn.Icm_Reporting_Year
+        and icm.Icm_Reporting_Month='12'
+        ) as icmAllBudgetInv,
+        depAgg.dep_names as pCompetentDepartmentNames
+        from Inv_Complete_Month mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        <if test="params.jbr!=null">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinJbr"/>
+        </if>
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Department psd on psd.D_Id=pro.P_Department
+        left join SYS_Department sd on mn.Icm_D_Id=sd.D_ID
+        left join Inv_Plan_Year ipv on ipv.Ipv_Id=mn.Ipv_Id
+        left join Inv_Monthly_Schedule ims on ims.Ipv_Id=ipv.Ipv_Id and ims.Ims_Month=mn.Icm_Reporting_Month
+        <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinPCompetentDepartmentNames"/>
+        <if test="params.jbr!=null and params.cjJbrList!=null and params.cjJbrList.size()>0">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinJbrHit"/>
+        </if>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <if test="params.ipvConstructionStatus!=null">
+            and ipv.ipv_construction_status = #{params.ipvConstructionStatus}
+        </if>
+        <choose>
+            <when test="params.sortType != null and params.sortFiled != null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType != null and params.sortSideFiled != null">
+                <if test="params.sortSideFiled == 'reportTableNum'">
+                    order by TO_NUMBER(ipv.report_table_num) ${params.sortType}
+                </if>
+                <if test="params.sortSideFiled != 'reportTableNum'">
+                    order by ${params.sortSideFiled} ${params.sortType}
+                </if>
+            </when>
+            <otherwise>
+                ORDER BY
+                CASE mn.icm_state
+                WHEN 3 THEN 99
+                ELSE mn.icm_state
+                END,
+                CASE
+                WHEN mn.icm_state = 0 THEN mn.icm_create_time
+                ELSE mn.icm_state_time
+                END DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getCjZrdw" resultType="String">
+        select
+        depAgg.dep_names as pCompetentDepartmentNames
+        from Inv_Complete_Month mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Department psd on psd.D_Id=pro.P_Department
+        left join SYS_Department sd on mn.Icm_D_Id=sd.D_ID
+        left join Inv_Plan_Year ipv on ipv.Ipv_Id=mn.Ipv_Id
+        left join Inv_Monthly_Schedule ims on ims.Ipv_Id=ipv.Ipv_Id and ims.Ims_Month=mn.Icm_Reporting_Month
+        <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinPCompetentDepartmentNames"/>
+        <if test="params.jbr!=null and params.cjJbrList!=null and params.cjJbrList.size()>0">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinJbrHit"/>
+        </if>
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+    <select id="getInvPlanYearStatisticsOverviewList" resultType="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sd.D_Name as ipvDName, con.Con_Name as conName, cany.c_name as ipvCName,
+        depAgg.dep_names as pCompetentDepartmentNames,
+        mn.*
+        from Inv_Plan_Year mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        <include refid="joinPCompetentDepartmentNames"/>
+        left join SYS_Department sd on mn.Ipv_D_Id=sd.D_ID
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company cany on mn.Ipv_C_id = cany.c_Id
+        <where>
+            <if test="params.type != null and params.type != ''">
+                <include refid="invPlanYearStatisticsOverviewListFilter"/>
+            </if>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.ipvDId!=null">
+                and mn.Ipv_D_Id = #{params.ipvDId}
+            </if>
+            <if test="params.ipvDeclareYear!=null">
+                and mn.Ipv_Declare_Year = #{params.ipvDeclareYear}
+            </if>
+            <if test="params.ipvConstStatus!=null">
+                and mn.Ipv_Const_Status = #{params.ipvConstStatus}
+            </if>
+            <if test="params.ipvLibrary!=null">
+                and mn.Ipv_Library = #{params.ipvLibrary}
+            </if>
+            <if test="params.pId!=null">
+                and mn.P_Id = #{params.pId}
+            </if>
+            <if test="params.ipvState!=null">
+                and mn.Ipv_State = #{params.ipvState}
+            </if>
+            <if test="params.ipvCName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.ipvCName},cany.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and cany.c_name like concat('%',#{params.ipvCName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.ipvNewly!=null">
+                and mn.Ipv_Newly = #{params.ipvNewly}
+            </if>
+            <if test="params.ipvPType!=null">
+                and mn.Ipv_P_Type = #{params.ipvPType}
+            </if>
+            <if test="params.ipvCompleted!=null">
+                and mn.Ipv_Completed = #{params.ipvCompleted}
+            </if>
+            <if test="params.pCompetentDepartment!=null">
+                and pro.P_Competent_Department = #{params.pCompetentDepartment}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conName!=null">
+                and con.con_name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.projectName != null">
+                and pro.P_Name like concat('%', #{params.projectName}, '%')
+            </if>
+            <if test="params.contractName != null">
+                and con.con_name like concat('%', #{params.contractName}, '%')
+            </if>
+            <if test="params.isLeaderBoard==1">
+                and mn.Ipv_State!=3 and mn.Ipv_State!=0
+            </if>
+            <if test="params.ipvConstructionStatus!=null">
+                and mn.ipv_construction_status = #{params.ipvConstructionStatus}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ipv_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="invPlanYearStatisticsOverviewListFilter" databaseId="dm">
+        <choose>
+            <when test="params.type == 'planAmt'">
+                and mn.Ipv_State = 7
+                and Ipv_Declare_Year = to_char(now(), 'yyyy')
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="invPlanYearStatisticsOverviewListFilter" databaseId="mysql">
+        <choose>
+            <when test="params.type == 'planAmt'">
+                and mn.Ipv_State = 7
+                and mn.Ipv_Declare_Year = date_format(now(), '%Y')
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="joinPCompetentDepartmentNames" databaseId="dm">
+        left join (
+        select ipv2.Ipv_Id,
+        LISTAGG(d.D_Name, ',') WITHIN GROUP (ORDER BY d.D_Id) as dep_names
+        from Inv_Plan_Year ipv2
+        join SYS_Department d
+        on INSTR(',' || ipv2.p_competent_departments || ',', ',' || d.D_Id || ',') > 0
+        group by ipv2.Ipv_Id
+        ) depAgg on depAgg.Ipv_Id = mn.Ipv_Id
+    </sql>
+
+    <sql id="joinPCompetentDepartmentNames" databaseId="mysql">
+        left join (
+        select
+        ipv2.Ipv_Id,
+        GROUP_CONCAT(d.D_Name ORDER BY d.D_Id SEPARATOR ',') as dep_names
+        from Inv_Plan_Year ipv2
+        join SYS_Department d
+        on FIND_IN_SET(d.D_Id, ipv2.p_competent_departments)
+        group by ipv2.Ipv_Id
+        ) depAgg on depAgg.Ipv_Id = mn.Ipv_Id
+    </sql>
+
+    <select id="getActualTime" resultType="java.lang.Object">
+        select distinct
+        <choose>
+            <when test="value != null and value.trim() == 'mn.actual_start_time'">
+                case
+                when ipv.ipv_construction_status = '03' then ipv.Ipv_Start
+                else mn.actual_start_time
+                end as dbValue
+            </when>
+            <otherwise>
+                ${value} as dbValue
+            </otherwise>
+        </choose>
+        from Inv_Complete_Month mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Department psd on psd.D_Id=pro.P_Department
+        left join SYS_Department sd on mn.Icm_D_Id=sd.D_ID
+        left join Inv_Plan_Year ipv on ipv.Ipv_Id=mn.Ipv_Id
+        left join Inv_Monthly_Schedule ims on ims.Ipv_Id=ipv.Ipv_Id and ims.Ims_Month=mn.Icm_Reporting_Month
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinPCompetentDepartmentNames"/>
+        </if>
+        <if test="params.jbr!=null and params.cjJbrList!=null and params.cjJbrList.size()>0">
+            <include refid="com.jpmsoft.projectProducer.mapper.investment.InvCompleteMonthMapper.joinJbrHit"/>
+        </if>
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+</mapper>

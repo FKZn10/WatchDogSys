@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecPublicityResultsMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecPublicityResultsResponse"
+               id="SecPublicityResults">
+        <id column="Pr_Id" property="prId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Pr_Id" select="getSecInfoProject">
+        </collection>
+        <collection property="secPublicityCpys" ofType="com.jpmsoft.common.model.request.SecInfo.SecPublicityCpyDto"
+                    column="Pr_Id" select="getSecPublicityCpy">
+        </collection>
+    </resultMap>
+
+    <select id="getSecPublicityCpy" resultType="com.jpmsoft.common.model.request.SecInfo.SecPublicityCpyDto">
+        select mn.*
+        from Sec_Publicity_Cpy mn
+        where mn.Pr_Id = #{prId}
+    </select>
+
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join Sec_Publicity_Results sd on sd.Sec_Id = sec.Sec_Id
+        where sd.Pr_Id = #{prId}
+    </select>
+
+
+    <select id="getSecPublicityResultsById" resultMap="SecPublicityResults">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Type as secType,
+        sec.Sec_Organize_Form as secOrganizeForm,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Start_Time as secStartTime,
+        sec.Sec_Bidding_Cycle as secBiddingCycle,
+        sec.Sec_Place as secPlace,
+        sec.Sec_Other_Valuation as secOtherValuation,
+        sec.Sec_Pricing_Method as secPricingMethod,
+        sec.Sec_Money as secMoney,
+        c1.C_Name as prTendereeName,
+        c2.C_Name as prBidWinnerName,
+        c4.C_Name as tendereeName,
+        c6.C_Name as secAgencyName,
+        c1.C_Abbreviation as prTendereeAbbName,
+        c2.C_Abbreviation as prBidWinAbbName,
+        c4.C_Abbreviation as tendereeAbbName,
+        sd.D_Amount as dAmount,
+        <include refid="getProCompetentDepartment"/>
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from Sec_Publicity_Results mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Pr_Tenderee=c1.C_Id
+        left join SYS_Company c2 on mn.Pr_Bid_Winner=c2.C_Id
+        left join Sys_File f on f.FileID=mn.Pr_Id
+        left join SYS_Company c4 on c4.C_ID=sec.Sec_Tenderee
+        left join Sys_Company c6 on c6.C_Id=sec.Sec_Agency
+        left join Sec_Document sd on mn.Sec_Id=sd.Sec_Id and sd.D_State=7
+        where mn.Pr_Id=#{prId}
+        order by sd.D_Create_Time desc limit 1
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+        <if test="params.prTenderee!=null">
+            and mn.Pr_Tenderee = #{params.prTenderee}
+        </if>
+        <if test="params.prBidWinner!=null">
+            and mn.Pr_Bid_Winner = #{params.prBidWinner}
+        </if>
+        <if test="params.prState!=null">
+            and mn.Pr_State = #{params.prState}
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.prTendereeName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.prTendereeName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.prTendereeName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.prTendereeTelephone!=null">
+            and mn.Pr_Tenderee_Telephone like concat('%',#{params.prTendereeTelephone},'%')
+        </if>
+        <if test="params.prTitle!=null">
+            and mn.Pr_Title like concat('%',#{params.prTitle},'%')
+        </if>
+        <if test="params.prTendereeAddress!=null">
+            and mn.Pr_Tenderee_Address like concat('%',#{params.prTendereeAddress},'%')
+        </if>
+        <if test="params.prCreateUname!=null">
+            and mn.Pr_Create_Uname like concat('%',#{params.prCreateUname},'%')
+        </if>
+        <if test="params.prBidWinnerName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.prBidWinnerName},c2.C_Id)=true
+                </when>
+                <otherwise>
+                    and c2.C_Name like concat('%',#{params.prBidWinnerName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.prBidAmountStart!=null">
+            and mn.Pr_Bid_Amount > #{params.prBidAmountStart}
+        </if>
+        <if test="params.prBidAmountEnd!=null">
+            and mn.Pr_Bid_Amount &lt; #{params.prBidAmountEnd}
+        </if>
+        <if test="params.prCreateTimeStart!=null">
+            and mn.Pr_Create_Time > #{params.prCreateTimeStart}
+        </if>
+        <if test="params.prCreateTimeEnd!=null">
+            and mn.Pr_Create_Time &lt; #{params.prCreateTimeEnd}
+        </if>
+        <if test="params.prStartTimeStart!=null">
+            and mn.Pr_Start_Time > #{params.prStartTimeStart}
+        </if>
+        <if test="params.prStartTimeEnd!=null">
+            and mn.Pr_Start_Time &lt; #{params.prStartTimeEnd}
+        </if>
+        <if test="params.prEndTimeStart!=null">
+            and mn.Pr_End_Time > #{params.prEndTimeStart}
+        </if>
+        <if test="params.prEndTimeEnd!=null">
+            and mn.Pr_End_Time &lt; #{params.prEndTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getSecPublicityResultsList" resultMap="SecPublicityResults">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        c1.C_Name_History as prTendereeNameHistory,
+        c2.C_Name_History as prBidWinnerNameHistory,
+        c1.C_Name as prTendereeName,
+        c2.C_Name as prBidWinnerName,
+        c1.C_Abbreviation as prTendereeAbbName,
+        c2.C_Abbreviation as prBidWinAbbName,
+        mn.*
+        from Sec_Publicity_Results mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Pr_Tenderee=c1.C_Id
+        left join SYS_Company c2 on mn.Pr_Bid_Winner=c2.C_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecPublicityResultsListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Publicity_Results mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Pr_Tenderee=c1.C_Id
+        left join SYS_Company c2 on mn.Pr_Bid_Winner=c2.C_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+
+
+    <select id="getSecPublicityResultsListOne2Many"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecPublicityResultsResponse">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        c1.C_Name_History as prTendereeNameHistory,
+        c2.C_Name_History as prBidWinnerNameHistory,
+        c1.C_Name as prTendereeName,
+        c2.C_Name as prBidWinnerName,
+        c1.C_Abbreviation as prTendereeAbbName,
+        c2.C_Abbreviation as prBidWinAbbName,
+        <include refid="projectInfo"/>
+        mn.*
+        from Sec_Publicity_Results mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Pr_Tenderee=c1.C_Id
+        left join SYS_Company c2 on mn.Pr_Bid_Winner=c2.C_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="pNameFilter"/>
+        order by pId asc
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecPublicityResultsListOne2ManyCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Publicity_Results mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Pr_Tenderee=c1.C_Id
+        left join SYS_Company c2 on mn.Pr_Bid_Winner=c2.C_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="pNameFilter"/>
+    </select>
+
+    <sql id="getProCompetentDepartment">
+        (select sd.D_Name
+         from Pre_Project pro
+                  left join Sec_Project sp on pro.P_Id = sp.P_Id
+                  left join Sys_Department sd on sd.D_Id = pro.P_Competent_Department
+         where sd.D_Name is not null
+           and sp.Sec_Id = mn.Sec_Id limit 1)
+        as pCompetentDepartmentName,
+    </sql>
+    <!--************************************* dm *************************************-->
+    <sql id="projectInfo" databaseId="dm">
+            (select wm_concat(P_Id) from Sec_Project where Sec_Id = mn.Sec_Id)
+            as pId,
+      (select wm_concat(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="dm">
+        <if test="params.pName!=null">
+            and (select wm_concat(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=mn.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+
+    <!--************************************* postgre *************************************-->
+    <sql id="projectInfo" databaseId="postgre">
+        (select string_agg(P_Id,',') from Sec_Project where Sec_Id = mn.Sec_Id)
+        as pId,
+      (select string_agg(pro.P_Name,',') from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="postgre">
+        <if test="params.pName!=null">
+            and (select string_agg(pro.P_Name,',') from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=mn.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+
+    <!--************************************* mysql *************************************-->
+    <sql id="projectInfo" databaseId="mysql">
+            (select GROUP_CONCAT(P_Id) from Sec_Project where Sec_Id = mn.Sec_Id)
+            as pId,
+      (select GROUP_CONCAT(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="mysql">
+        <if test="params.pName!=null">
+            and (select GROUP_CONCAT(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=mn.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+</mapper>

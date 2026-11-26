@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.FlowActivityMapper">
+    <select id="getPersonnelSettings" databaseId="dm" resultType="com.jpmsoft.jpbpm.pojo.vo.UserInfoVo">
+        select
+        u.U_ID as uId,
+        u.U_Name as uName,
+        u.U_Code as uCode,
+        u.U_Account as uAccount,
+        u.U_Sex as uSex,
+        u.U_Type as uType,
+        com.C_ID as cId,
+        com.C_Name as cName,
+        com.C_Code as cCode,
+        com.C_Type as cType,
+        com.C_CreditCode as cCreditCode,
+        com.C_MDM_NO as cMDMNO,
+        com.C_Solution as cSolution,
+        com.C_Abbreviation as cAbbreviation,
+        com.C_Group_Code as cGroupCode,
+        wm_concat(distinct po.P_ID) as poPid,
+        wm_concat(distinct po.P_Name) as poPname,
+        wm_concat(distinct po.P_Code) as poPcode,
+        wm_concat(distinct po.P_MDM_NO) as poPmdmno,
+        wm_concat(d.D_ID) as dDid,
+        wm_concat(d.D_Name) as dDname,
+        wm_concat(d.D_Code) as dDcode,
+        wm_concat(d.D_ParentID) as dDparentId,
+        wm_concat(d.D_Solution) as dDsolution,
+        wm_concat(d.D_Company_ID) as dDcId,
+        wm_concat(rd.Role_Name) as rdRname,
+        wm_concat(rd.Role_ID) as rdRid,
+        wm_concat(rd.Role_Code) as rdRcode,
+        wm_concat(rd.Role_Type) as rdRtype,
+        wm_concat(rd.Role_Solution) as rdRsolution,
+        wm_concat(pop.PP_Name) as popPPname,
+        wm_concat(pop.PP_Code) as popPPcode,
+        wm_concat(pop.PP_MDM_NO) as popPPmdmno,
+        wm_concat(rp.Role_Name) as rpRname,
+        wm_concat(rp.Role_ID) as rpRid,
+        wm_concat(rp.Role_Code) as rpRcode,
+        wm_concat(rp.Role_Type) as rpRtype,
+        wm_concat(rp.Role_Solution) as rpRsolution,
+        wm_concat(dp.PD_Name) as dpPDName,
+        wm_concat(dp.PD_Code) as dpPDCode,
+        wm_concat(dp.PD_ID) as dpPDID,
+        wm_concat(dp.PD_ParentID) as dpPDParentID,
+        wm_concat(dp.PD_Type) as dpPDType,
+        wm_concat(dp.PD_MDM_NO) as dpPDMDMNO,
+        wm_concat(dp.P_ID) as dpPID,
+        wm_concat(dp.PD_Solution) as dpPDSolution
+        from SYS_User u
+        left join SYS_PositionLV plv on u.PL_ID=plv.PL_ID
+        left join SYS_Company com on u.C_ID=com.C_ID
+        left join SYS_Position_User pu on u.U_ID=pu.U_ID
+        left join SYS_Position po on po.P_ID=pu.P_ID
+        left join SYS_Department d on d.D_ID=po.D_ID
+        left join SYS_Position_Role pr on pr.P_ID=po.P_ID
+        left join SYS_Role rd on pr.Role_ID=rd.Role_ID
+        left join SYS_Position_User_P pup on pup.U_ID=u.U_ID
+        left join SYS_Position_P pop on pop.PP_ID=pup.PP_ID
+        left join SYS_PositionP_Role ppr on ppr.PP_ID=pop.PP_ID
+        left join SYS_Role rp on rp.Role_ID=ppr.Role_ID
+        left join SYS_Department_P dp on dp.PD_ID=pop.PD_ID
+        group by u.U_ID,
+        u.U_Name,
+        u.U_Code,
+        u.U_Account,
+        u.U_Sex,
+        u.U_Type,
+        com.C_ID,
+        com.C_Name,
+        com.C_Code,
+        com.C_Type,
+        com.C_CreditCode,
+        com.C_MDM_NO,
+        com.C_Solution,
+        com.C_Abbreviation,
+        com.C_Group_Code,
+        u.Te_Id
+        having
+        1=1
+        <if test="uIds!=null">
+            and u.U_ID in
+            <foreach collection="uIds" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="teId!=null and teId!='All'">
+            and u.Te_Id = #{teId}
+        </if>
+    </select>
+
+
+
+    <select id="getPersonnelSettings" databaseId="postgre" resultType="com.jpmsoft.jpbpm.pojo.vo.UserInfoVo">
+        select
+        u.U_ID as "uId",
+        u.U_Name as "uName",
+        u.U_Code as "uCode",
+        u.U_Account as "uAccount",
+        u.U_Sex as "uSex",
+        u.U_Type as "uType",
+        com.C_ID as "cId",
+        com.C_Name as "cName",
+        com.C_Code as "cCode",
+        com.C_Type as "cType",
+        com.C_CreditCode as "cCreditCode",
+        com.C_MDM_NO as "cMDMNO",
+        com.C_Solution as "cSolution",
+        com.C_Abbreviation as "cAbbreviation",
+        com.C_Group_Code as "cGroupCode",
+        string_agg(po.P_ID,',') as poPid,
+        string_agg(po.P_Name,',') as "poPname",
+        string_agg(po.P_Code,',') as "poPcode",
+        string_agg(po.P_MDM_NO,',') as "poPmdmno",
+        string_agg(d.D_ID,',') as "dDid",
+        string_agg(d.D_Name,',') as "dDname",
+        string_agg(d.D_Code,',') as "dDcode",
+        string_agg(d.D_ParentID,',') as "dDparentId",
+        string_agg(d.D_Solution,',') as "dDsolution",
+        string_agg(d.D_Company_ID,',') as "dDcId",
+        string_agg(rd.Role_Name,',') as "rdRname",
+        string_agg(rd.Role_ID,',') as "rdRid",
+        string_agg(rd.Role_Code,',') as "rdRcode",
+        string_agg(rd.Role_Type,',') as "rdRtype",
+        string_agg(rd.Role_Solution,',') as "rdRsolution",
+        string_agg(pop.PP_Name,',') as "popPPname",
+        string_agg(pop.PP_Code,',') as "popPPcode",
+        string_agg(pop.PP_MDM_NO,',') as "popPPmdmno",
+        string_agg(rp.Role_Name,',') as "rpRname",
+        string_agg(rp.Role_ID,',') as "rpRid",
+        string_agg(rp.Role_Code,',') as "rpRcode",
+        string_agg(rp.Role_Type,',') as "rpRtype",
+        string_agg(rp.Role_Solution,',') as "rpRsolution",
+        string_agg(dp.PD_Name,',') as "dpPDName",
+        string_agg(dp.PD_Code,',') as "dpPDCode",
+        string_agg(dp.PD_ID,',') as "dpPDID",
+        string_agg(dp.PD_ParentID,',') as "dpPDParentID",
+        string_agg(dp.PD_Type,',') as "dpPDType",
+        string_agg(dp.PD_MDM_NO,',') as "dpPDMDMNO",
+        string_agg(dp.P_ID,',') as "dpPID",
+        string_agg(dp.PD_Solution,',') as "dpPDSolution"
+        from SYS_User u
+        left join SYS_PositionLV plv on u.PL_ID=plv.PL_ID
+        left join SYS_Company com on u.C_ID=com.C_ID
+        left join SYS_Position_User pu on u.U_ID=pu.U_ID
+        left join SYS_Position po on po.P_ID=pu.P_ID
+        left join SYS_Department d on d.D_ID=po.D_ID
+        left join SYS_Position_Role pr on pr.P_ID=po.P_ID
+        left join SYS_Role rd on pr.Role_ID=rd.Role_ID
+        left join SYS_Position_User_P pup on pup.U_ID=u.U_ID
+        left join SYS_Position_P pop on pop.PP_ID=pup.PP_ID
+        left join SYS_PositionP_Role ppr on ppr.PP_ID=pop.PP_ID
+        left join SYS_Role rp on rp.Role_ID=ppr.Role_ID
+        left join SYS_Department_P dp on dp.PD_ID=pop.PD_ID
+        group by u.U_ID,
+        u.U_Name,
+        u.U_Code,
+        u.U_Account,
+        u.U_Sex,
+        u.U_Type,
+        com.C_ID,
+        com.C_Name,
+        com.C_Code,
+        com.C_Type,
+        com.C_CreditCode,
+        com.C_MDM_NO,
+        com.C_Solution,
+        com.C_Abbreviation,
+        com.C_Group_Code,
+        u.Te_Id
+        having
+        1=1
+        <if test="uIds!=null">
+            and u.U_ID in
+            <foreach collection="uIds" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="teId!=null and teId!='All'">
+            and u.Te_Id = #{teId}
+        </if>
+    </select>
+
+    <select id="getPersonnelSettings" databaseId="mysql" resultType="com.jpmsoft.jpbpm.pojo.vo.UserInfoVo">
+        select
+        u.U_ID as uId,
+        u.U_Name as uName,
+        u.U_Code as uCode,
+        u.U_Account as uAccount,
+        u.U_Sex as uSex,
+        u.U_Type as uType,
+        com.C_ID as cId,
+        com.C_Name as cName,
+        com.C_Code as cCode,
+        com.C_Type as cType,
+        com.C_CreditCode as cCreditCode,
+        com.C_MDM_NO as cMDMNO,
+        com.C_Solution as cSolution,
+        com.C_Abbreviation as cAbbreviation,
+        com.C_Group_Code as cGroupCode,
+        GROUP_CONCAT(po.P_ID) as poPid,
+        GROUP_CONCAT(po.P_Name) as poPname,
+        GROUP_CONCAT(po.P_Code) as poPcode,
+        GROUP_CONCAT(po.P_MDM_NO) as poPmdmno,
+        GROUP_CONCAT(d.D_ID) as dDid,
+        GROUP_CONCAT(d.D_Name) as dDname,
+        GROUP_CONCAT(d.D_Code) as dDcode,
+        GROUP_CONCAT(d.D_ParentID) as dDparentId,
+        GROUP_CONCAT(d.D_Solution) as dDsolution,
+        GROUP_CONCAT(d.D_Company_ID) as dDcId,
+        GROUP_CONCAT(rd.Role_Name) as rdRname,
+        GROUP_CONCAT(rd.Role_ID) as rdRid,
+        GROUP_CONCAT(rd.Role_Code) as rdRcode,
+        GROUP_CONCAT(rd.Role_Type) as rdRtype,
+        GROUP_CONCAT(rd.Role_Solution) as rdRsolution,
+        GROUP_CONCAT(pop.PP_Name) as popPPname,
+        GROUP_CONCAT(pop.PP_Code) as popPPcode,
+        GROUP_CONCAT(pop.PP_MDM_NO) as popPPmdmno,
+        GROUP_CONCAT(rp.Role_Name) as rpRname,
+        GROUP_CONCAT(rp.Role_ID) as rpRid,
+        GROUP_CONCAT(rp.Role_Code) as rpRcode,
+        GROUP_CONCAT(rp.Role_Type) as rpRtype,
+        GROUP_CONCAT(rp.Role_Solution) as rpRsolution,
+        GROUP_CONCAT(dp.PD_Name) as dpPDName,
+        GROUP_CONCAT(dp.PD_Code) as dpPDCode,
+        GROUP_CONCAT(dp.PD_ID) as dpPDID,
+        GROUP_CONCAT(dp.PD_ParentID) as dpPDParentID,
+        GROUP_CONCAT(dp.PD_Type) as dpPDType,
+        GROUP_CONCAT(dp.PD_MDM_NO) as dpPDMDMNO,
+        GROUP_CONCAT(dp.P_ID) as dpPID,
+        GROUP_CONCAT(dp.PD_Solution) as dpPDSolution
+        from SYS_User u
+        left join SYS_PositionLV plv on u.PL_ID=plv.PL_ID
+        left join SYS_Company com on u.C_ID=com.C_ID
+        left join SYS_Position_User pu on u.U_ID=pu.U_ID
+        left join SYS_Position po on po.P_ID=pu.P_ID
+        left join SYS_Department d on d.D_ID=po.D_ID
+        left join SYS_Position_Role pr on pr.P_ID=po.P_ID
+        left join SYS_Role rd on pr.Role_ID=rd.Role_ID
+        left join SYS_Position_User_P pup on pup.U_ID=u.U_ID
+        left join SYS_Position_P pop on pop.PP_ID=pup.PP_ID
+        left join SYS_PositionP_Role ppr on ppr.PP_ID=pop.PP_ID
+        left join SYS_Role rp on rp.Role_ID=ppr.Role_ID
+        left join SYS_Department_P dp on dp.PD_ID=pop.PD_ID
+        group by u.U_ID,
+        u.U_Name,
+        u.U_Code,
+        u.U_Account,
+        u.U_Sex,
+        u.U_Type,
+        com.C_ID,
+        com.C_Name,
+        com.C_Code,
+        com.C_Type,
+        com.C_CreditCode,
+        com.C_MDM_NO,
+        com.C_Solution,
+        com.C_Abbreviation,
+        com.C_Group_Code,
+        u.Te_Id
+        having
+        1=1
+        <if test="uIds!=null">
+            and u.U_ID in
+            <foreach collection="uIds" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="teId!=null and teId!='All'">
+            and u.Te_Id = #{teId}
+        </if>
+    </select>
+
+    <select id="getSecInfoById" resultType="java.util.Map">
+        select  *  from Sec_Info  where  Sec_Id=#{id}
+    </select>
+
+    <select id="getPreProjectById" resultType="java.util.Map">
+        select  * from  Pre_Project where P_ID=#{id}
+    </select>
+
+    <select id="getConContractById" resultType="java.util.Map">
+    select  *  from  Con_Contract where Con_Id=#{id}
+    </select>
+
+</mapper>

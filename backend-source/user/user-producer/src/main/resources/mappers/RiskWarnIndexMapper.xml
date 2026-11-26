@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.RiskWarnIndexMapper">
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.rwiType!=null">
+            and mn.Rwi_Type = #{params.rwiType}
+        </if>
+        <if test="params.rwiBasis!=null">
+            and mn.Rwi_Basis = #{params.rwiBasis}
+        </if>
+        <if test="params.rwiLevel!=null">
+            and mn.Rwi_Level = #{params.rwiLevel}
+        </if>
+        <if test="params.rwiState!=null">
+            and mn.Rwi_State = #{params.rwiState}
+        </if>
+        <if test="params.dName!=null">
+            and d.D_Name like concat('%',#{params.dName},'%')
+        </if>
+        <if test="params.rwiPersonUname!=null">
+            and mn.Rwi_Person_UName like concat('%',#{params.rwiPersonUname},'%')
+        </if>
+        <if test="params.rwiName!=null">
+            and mn.Rwi_Name like concat('%',#{params.rwiName},'%')
+        </if>
+    </sql>
+    <select id="getRiskWarnIndexList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.RiskWarn.RiskWarnIndexModel">
+        select
+        d.D_Name as dName,
+        mn.*
+        from  Risk_Warn_Index mn
+        left join  SYS_Department d on d.D_Id=mn.D_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Rwi_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getRiskWarnIndexListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  Risk_Warn_Index mn
+        left join  SYS_Department d on d.D_Id=mn.D_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+</mapper>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecExpertCheckDtlMapper">
+
+
+
+    <select id="getExpertCheckDtlList" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertCheckDtlVO">
+        select
+            ec.State_Time as ecStateTime,
+            mn.*
+        from Sec_Expert_Check_Dtl mn
+        left join Sec_Expert_Check ec on ec.id=mn.Ec_Id
+        left join Sec_Expert ex on ex.Ex_Id=ec.Ex_Id
+        where mn.Secd_Result=1 and ec.State=7 and ec.Sec_Id=#{secId}
+        and ex.Ex_Plaintext_Num=#{uPlaintextNum}
+        and ec.State_Time>=#{latestTime}
+        order by mn.Secd_Sort asc
+    </select>
+
+
+    <update id="updateResultByIds">
+        update Sec_Expert_Check_Dtl set Secd_Result=#{res}
+        where id in
+        <foreach collection="ids" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </update>
+
+</mapper>

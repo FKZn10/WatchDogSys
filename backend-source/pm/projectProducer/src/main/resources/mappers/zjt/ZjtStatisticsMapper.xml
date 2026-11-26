@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.zjt.ZjtStatisticsMapper">
+
+    <sql id="timeExp" databaseId="mysql">
+        and  DATE_FORMAT(pp.P_Create_Time,'%Y-%m')=CONCAT(#{params.yearFilter},'-',#{params.monthFt})
+    </sql>
+
+    <sql id="timeExp" databaseId="dm">
+        and  TO_CHAR(pp.P_Create_Time,'yyyy-MM')=CONCAT(#{params.yearFilter},'-',#{params.monthFt})
+    </sql>
+
+
+    <select id="getProjectUpStatisticsTotal" resultType="com.jpmsoft.common.model.requestAndResponse.zjt.ProjectUpStatisticsParentDTO">
+       select
+        COUNT(*) as fillingTotal,
+        COUNT(DISTINCT tf.P_Id) as projectTotal,
+        COUNT(DISTINCT pro.p_Construction_Unit) as cpyTotal
+        from
+        t_information_filling  tf
+        LEFT join pre_project pro on pro.p_id=tf.P_Id
+        left join sys_company cpy on cpy.c_id=pro.p_Construction_Unit
+        where pro.p_Construction_Unit is not null
+        <if test="params.pConstructionUnitName!=null and params.pConstructionUnitName!=''">
+            and INSTR(cpy.c_name,#{params.pConstructionUnitName})
+        </if>
+        <if test="params.pConstructionUnitType!=null and params.pConstructionUnitType!=''">
+            and cpy.c_type=#{params.pConstructionUnitType}
+        </if>
+        <if test="params.yearFilter!=null and params.yearFilter!=''">
+            and tf.reporting_Year=#{params.yearFilter}
+        </if>
+        <if test="params.monthFilter!=null and params.monthFilter!=''">
+            and tf.reporting_Month=#{params.monthFilter}
+        </if>
+        <if test="params.province!=null and params.province!=''">
+            and pro.province=#{params.province}
+        </if>
+        <if test="params.city!=null and params.city!=''">
+            and pro.city=#{params.city}
+        </if>
+        <if test="params.pEachDistrict!=null and params.pEachDistrict!=''">
+            and pro.P_Each_District=#{params.pEachDistrict}
+        </if>
+    </select>
+
+    <select id="getProjectUpCpyInfo" resultType="com.jpmsoft.common.model.requestAndResponse.zjt.ProjectUpStatisticsDTO">
+        select
+        DISTINCT
+        cpy.c_name as pConstructionUnitName,
+        cpy.c_type as pConstructionUnitType
+        from
+        t_information_filling  tf
+        LEFT join pre_project pro on pro.p_id=tf.P_Id
+        left join sys_company cpy on cpy.c_id=pro.p_Construction_Unit
+        where pro.p_Construction_Unit is not null
+        <if test="params.pConstructionUnitName!=null and params.pConstructionUnitName!=''">
+            and INSTR(cpy.c_name,#{params.pConstructionUnitName})
+        </if>
+        <if test="params.pConstructionUnitType!=null and params.pConstructionUnitType!=''">
+            and cpy.c_type=#{params.pConstructionUnitType}
+        </if>
+        <if test="params.yearFilter!=null and params.yearFilter!=''">
+            and tf.reporting_Year=#{params.yearFilter}
+        </if>
+        <if test="params.monthFilter!=null and params.monthFilter!=''">
+            and tf.reporting_Month=#{params.monthFilter}
+        </if>
+        <if test="params.province!=null and params.province!=''">
+            and pro.province=#{params.province}
+        </if>
+        <if test="params.city!=null and params.city!=''">
+            and pro.city=#{params.city}
+        </if>
+        <if test="params.pEachDistrict!=null and params.pEachDistrict!=''">
+            and pro.P_Each_District=#{params.pEachDistrict}
+        </if>
+    </select>
+
+    <select id="getProjectUpStatistics" resultType="com.jpmsoft.common.model.requestAndResponse.zjt.ProjectUpStatisticsDTO" databaseId="dm">
+        WITH project_stat AS (
+        SELECT
+        pp.p_Construction_Unit,
+        COUNT(CASE WHEN pp.State=7 THEN 1 END) AS projectAddNew  -- 仅统计State=7的项目
+        FROM pre_project pp
+        WHERE 1=1
+        <if test="params.province!=null and params.province!=''">
+            AND pp.province=#{params.province}
+        </if>
+        <if test="params.city!=null and params.city!=''">
+            AND pp.city=#{params.city}
+        </if>
+        <if test="params.pEachDistrict!=null and params.pEachDistrict!=''">
+            AND pp.P_Each_District=#{params.pEachDistrict}
+        </if>
+        <if test="params.yearFilter!=null and params.yearFilter!='' and params.monthFilter!=null and params.monthFilter!=''">
+            AND TO_CHAR(pp.P_Create_Time,'yyyy-MM')=CONCAT(#{params.yearFilter},'-',#{params.monthFilter})
+        </if>
+        GROUP BY pp.p_Construction_Unit
+        ),
+        filling_stat AS (
+        SELECT
+        pp.p_Construction_Unit,
+        COUNT(DISTINCT tif.p_id) AS projectCount,
+        COUNT(*) AS fillingCount,
+        COUNT(CASE
+        WHEN tif.reporting_Year=#{params.lastYear} AND tif.reporting_Month=#{params.lastMonth} THEN 1
+        END) AS lastFillingCount
+        FROM t_information_filling tif
+        LEFT JOIN pre_project pp ON pp.p_id=tif.P_Id
+        WHERE 1=1
+        <if test="params.province!=null and params.province!=''">
+            AND pp.province=#{params.province}
+        </if>
+        <if test="params.city!=null and params.city!=''">
+            AND pp.city=#{params.city}
+        </if>
+        <if test="params.pEachDistrict!=null and params.pEachDistrict!=''">
+            AND pp.P_Each_District=#{params.pEachDistrict}
+        </if>
+        GROUP BY pp.p_Construction_Unit
+        ),
+        base_data AS (
+        SELECT DISTINCT
+        p.p_Construction_Unit,
+        c.c_name,
+        c.c_type
+        FROM t_information_filling tf
+        LEFT JOIN pre_project p ON p.p_id=tf.P_Id
+        LEFT JOIN sys_company c ON c.c_id=p.p_Construction_Unit
+        WHERE p.p_Construction_Unit IS NOT NULL
+        <if test="params.pConstructionUnitType!=null and params.pConstructionUnitType!=''">
+            AND c.c_type=#{params.pConstructionUnitType}
+        </if>
+        <if test="params.yearFilter!=null and params.yearFilter!=''">
+            AND tf.reporting_Year=#{params.yearFilter}
+        </if>
+        <if test="params.monthFilter!=null and params.monthFilter!=''">
+            AND tf.reporting_Month=#{params.monthFilter}
+        </if>
+        <if test="params.province!=null and params.province!=''">
+            AND p.province=#{params.province}
+        </if>
+        <if test="params.city!=null and params.city!=''">
+            AND p.city=#{params.city}
+        </if>
+        <if test="params.pEachDistrict!=null and params.pEachDistrict!=''">
+            AND p.P_Each_District=#{params.pEachDistrict}
+        </if>
+        <if test="params.pConstructionUnitName!=null and params.pConstructionUnitName!=''">
+            AND c.c_name LIKE CONCAT('%',#{params.pConstructionUnitName},'%')
+        </if>
+        )
+        SELECT
+        bd.p_Construction_Unit AS pConstructionUnit,
+        bd.c_name AS pConstructionUnitName,
+        bd.c_type AS pConstructionUnitType,
+        NVL(ps.projectAddNew, 0) AS projectAddNew,
+        NVL(fs.projectCount, 0) AS projectCount,
+        NVL(fs.fillingCount, 0) AS fillingCount,
+        NVL(fs.lastFillingCount, 0) AS lastFillingCount
+        FROM base_data bd
+        LEFT JOIN project_stat ps ON bd.p_Construction_Unit = ps.p_Construction_Unit
+        LEFT JOIN filling_stat fs ON bd.p_Construction_Unit = fs.p_Construction_Unit
+        ORDER BY bd.p_Construction_Unit
+        OFFSET #{start} ROWS FETCH NEXT #{limit} ROWS ONLY;
+    </select>
+    <select id="getProjectUpStatistics" resultType="com.jpmsoft.common.model.requestAndResponse.zjt.ProjectUpStatisticsDTO" databaseId="mysql">
+        select
+            DISTINCT
+            pro.p_Construction_Unit as pConstructionUnit,
+            cpy.c_name as pConstructionUnitName,
+            cpy.c_type as pConstructionUnitType,
+            (select Count(*) from pre_project pp where pp.p_Construction_Unit=pro.p_Construction_Unit and pp.State=7
+                <if test="params.province!=null and params.province!=''">
+                    and pp.province=#{params.province}
+                </if>
+                <if test="params.city!=null and params.city!=''">
+                    and pp.city=#{params.city}
+                </if>
+                <if test="params.pEachDistrict!=null and params.pEachDistrict!=''">
+                    and pp.P_Each_District=#{params.pEachDistrict}
+                </if>
+                <if test="params.yearFilter!=null and params.yearFilter!='' and params.monthFilter!=null and params.monthFilter!=''">
+                    and  TO_CHAR(pp.P_Create_Time,'yyyy-MM')=CONCAT(#{params.yearFilter},'-',#{params.monthFt})
+                </if>
+            ) as projectAddNew,
+            (select  count(DISTINCT tif.p_id) from t_information_filling tif left join pre_project pp
+                on pp.p_id=tif.P_Id where pp.p_Construction_Unit=pro.p_Construction_Unit
+                <if test="params.yearFilter!=null and params.yearFilter!=''">
+                    and tif.reporting_Year=#{params.yearFilter}
+                </if>
+                <if test="params.monthFilter!=null and params.monthFilter!=''">
+                    and tif.reporting_Month=#{params.monthFilter}
+                </if>
+                <if test="params.province!=null and params.province!=''">
+                    and pp.province=#{params.province}
+                </if>
+                <if test="params.city!=null and params.city!=''">
+                    and pp.city=#{params.city}
+                </if>
+                <if test="params.pEachDistrict!=null and params.pEachDistrict!=''">
+                    and pp.P_Each_District=#{params.pEachDistrict}
+                </if>
+            ) as projectCount,
+            (select count(*) from t_information_filling tif left join pre_project pp
+            on pp.p_id=tif.P_Id where pp.p_Construction_Unit=pro.p_Construction_Unit
+            <if test="params.yearFilter!=null and params.yearFilter!=''">
+                and tif.reporting_Year=#{params.yearFilter}
+            </if>
+            <if test="params.monthFilter!=null and params.monthFilter!=''">
+                and tif.reporting_Month=#{params.monthFilter}
+            </if>
+            <if test="params.province!=null and params.province!=''">
+                and pp.province=#{params.province}
+            </if>
+            <if test="params.city!=null and params.city!=''">
+                and pp.city=#{params.city}
+            </if>
+            <if test="params.pEachDistrict!=null and params.pEachDistrict!=''">
+                and pp.P_Each_District=#{params.pEachDistrict}
+            </if>
+            ) as fillingCount,
+            (select count(*) from t_information_filling tif left join pre_project pp
+            on pp.p_id=tif.P_Id where pp.p_Construction_Unit=pro.p_Construction_Unit
+            <if test="params.lastYear!=null and params.lastYear!=''">
+                and tif.reporting_Year=#{params.lastYear}
+            </if>
+            <if test="params.lastMonth!=null and params.lastMonth!=''">
+                and tif.reporting_Month=#{params.lastMonth}
+            </if>
+            <if test="params.province!=null and params.province!=''">
+                and pp.province=#{params.province}
+            </if>
+            <if test="params.city!=null and params.city!=''">
+                and pp.city=#{params.city}
+            </if>
+            <if test="params.pEachDistrict!=null and params.pEachDistrict!=''">
+                and pp.P_Each_District=#{params.pEachDistrict}
+            </if>
+            ) as lastFillingCount
+        from
+            t_information_filling  tf
+                LEFT join pre_project pro on pro.p_id=tf.P_Id
+                left join sys_company cpy on cpy.c_id=pro.p_Construction_Unit
+        where pro.p_Construction_Unit is not null
+        <if test="params.pConstructionUnitType!=null and params.pConstructionUnitType!=''">
+            and cpy.c_type=#{params.pConstructionUnitType}
+        </if>
+        <if test="params.yearFilter!=null and params.yearFilter!=''">
+            and tf.reporting_Year=#{params.yearFilter}
+        </if>
+        <if test="params.monthFilter!=null and params.monthFilter!=''">
+            and tf.reporting_Month=#{params.monthFilter}
+        </if>
+        <if test="params.province!=null and params.province!=''">
+            and pro.province=#{params.province}
+        </if>
+        <if test="params.city!=null and params.city!=''">
+            and pro.city=#{params.city}
+        </if>
+        <if test="params.pEachDistrict!=null and params.pEachDistrict!=''">
+            and pro.P_Each_District=#{params.pEachDistrict}
+        </if>
+        <if test="params.pConstructionUnitName!=null and params.pConstructionUnitName!=''">
+            and INSTR(cpy.c_name,#{params.pConstructionUnitName})
+        </if>
+        limit #{start},#{limit}
+    </select>
+
+
+    <select id="exportProject" resultType="com.jpmsoft.projectProducer.pojo.vo.zjt.ZjtExportDataVO">
+        select mn.p_name,mn.P_Longitude,mn.P_Latitude,
+               mn.p_type as pType,
+               mn.p_Professional_Type as pProfessionalType,
+               mn.p_Build_Model as pBuildModel,
+               mn.p_Construction_Area,
+               mn.p_Building_Unit as pBuildingUnit,
+               mn.p_Total_Duration,
+               mn.p_Scale_Describe,
+               mn.p_Calculate_Roughly_Amount,
+               mn.p_Estimate_Amount,
+               mn.p_Approve_Budget,
+               mn.p_Plan_Start_Date,
+               mn.p_Actual_Start_Time,
+               mn.p_Plan_Complete_Date,
+               (case WHEN mn.p_Bim=1 then 'V' else 'X' end) as pBim,
+               (case WHEN mn.p_Smart_Site=1 then 'V' else 'X' end) as pSmartSite,
+               (case WHEN mn.p_Management_System=1 then 'V' else 'X' end) as pManagementSystem,
+               (case WHEN mn.p_New_Technology=1 then 'V' else 'X' end) as pNewTechnology,
+               (case WHEN mn.p_New_Material=1 then 'V' else 'X' end) as pNewMaterial,
+               (case WHEN mn.p_New_Craft=1 then 'V' else 'X' end) as pNewCraft,
+               (case WHEN mn.p_Save_Energy=1 then 'V' else 'X' end) as pSaveEnergy,
+               (case WHEN mn.p_Save_Land=1 then 'V' else 'X' end) as pSaveLand,
+               (case WHEN mn.p_Save_Water=1 then 'V' else 'X' end) as pSaveWater,
+               (case WHEN mn.p_Save_Material=1 then 'V' else 'X' end) as pSaveMaterial,
+               (case WHEN mn.p_Is_Prefabricated=1 then 'V' else 'X' end) as pIsPrefabricated,
+               (case WHEN mn.p_Digital_Construction=1 then 'V' else 'X' end) as pDigitalConstruction,
+               mn.p_Green_Construction as pGreenConstruction,
+               (case WHEN mn.p_Centralized_Construction=1 then 'V' else 'X' end) as pCentralizedConstruction,
+               mn.p_Contracting_Mode as pContractingMode,
+               (case WHEN mn.p_Process_Consulting=1 then 'V' else 'X' end) as pProcessConsulting,
+               (case WHEN mn.p_Engineer_Responsible=1 then 'V' else 'X' end) as pEngineerResponsible
+        from pre_project mn
+        ${params.authSql}
+        <if test="params.pType!=null">
+            and mn.p_type=#{params.pType}
+        </if>
+        <if test="params.pProfessionalType!=null">
+            and mn.p_Professional_Type=#{params.pProfessionalType}
+        </if>
+        <if test="params.state!=null">
+            and mn.state=#{params.state}
+        </if>
+        <if test="params.pName!=null">
+            and INSTR(mn.p_name,#{params.pName})
+        </if>
+        <if test="params.pCreateUserName!=null">
+            and INSTR(mn.P_Create_User_Name,#{params.pCreateUserName})
+        </if>
+        <if test="params.pCreateTimeStart!=null">
+            and mn.p_create_time>=#{params.pCreateTimeStart}
+        </if>
+        <if test="params.pCreateTimeEnd!=null">
+            and mn.p_create_time &lt;=#{params.pCreateTimeEnd}
+        </if>
+    </select>
+</mapper>

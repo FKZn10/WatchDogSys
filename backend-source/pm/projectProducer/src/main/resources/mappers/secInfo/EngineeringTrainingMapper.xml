@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.EngineeringTrainingMapper">
+    <select id="getEngineeringTrainingList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.EngineeringTrainingModel">
+        select et.*
+        from Engineering_Training et
+        <where>
+            et.state != 3
+            <if test="params.etCompanyName != null and params.etCompanyName != ''">
+                and et.Et_Company_Name like concat('%',#{params.etCompanyName},'%')
+            </if>
+            <if test="params.etType != null and params.etType != ''">
+                and et.Et_Type=#{params.etType}
+            </if>
+            <if test="params.etCompanyId != null and params.etCompanyId != ''">
+                and et.Et_Company_Id=#{params.etCompanyId}
+            </if>
+            <if test="params.etForm != null and params.etForm != ''">
+                and et.Et_Form=#{params.etForm}
+            </if>
+            order by et.Create_Time desc
+        </where>
+    </select>
+    <select id="getEngineeringTrainingById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.EngineeringTrainingModel">
+        select et.*,com.C_Name as etCompanyName
+        from Engineering_Training et
+        left join sys_company com on com.C_ID = et.Et_Company_Id
+        where et.id = #{id}
+    </select>
+</mapper>

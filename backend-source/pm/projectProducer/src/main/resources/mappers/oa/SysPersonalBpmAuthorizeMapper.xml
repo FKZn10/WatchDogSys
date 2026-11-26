@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.SysPersonalBpmAuthorizeMapper">
+
+    <select id="getPersonalBpmAuthorizeById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.SysPersonalBpmAuthorizeModel">
+        select
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  SysPersonal_Bpm_Authorize mn
+        left join  Sys_File f on f.FileID=mn.Ba_Id
+        where mn.Ba_Id=#{baId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.currentUid!=null">
+            and mn.Ba_Create_Uid = #{params.currentUid}
+        </if>
+        <if test="params.baState!=null">
+            and mn.Ba_State = #{params.baState}
+        </if>
+        <if test="params.baPromoter!=null">
+            and mn.Ba_Promoter = #{params.baPromoter}
+        </if>
+        <if test="params.baTcode!=null">
+            and mn.Ba_Tcode like concat('%',#{params.baTcode},'%')
+        </if>
+        <if test="params.baAuthorizerUname!=null">
+            and mn.Ba_Authorizer_Uname like concat('%',#{params.baAuthorizerUname},'%')
+        </if>
+        <if test="params.baRemark!=null">
+            and mn.Ba_Remark like concat('%',#{params.baRemark},'%')
+        </if>
+        <if test="params.baCreateUname!=null">
+            and mn.Ba_Create_Uname like concat('%',#{params.baCreateUname},'%')
+        </if>
+        <include refid="datetimeFilter" />
+    </sql>
+
+    <sql id="datetimeFilter" databaseId="dm">
+        <if test="params.baCreateTime!=null">
+            and to_date(#{params.baCreateTime},'yyyy-MM-dd')=to_date(mn.Ba_Create_Time,'yyyy-MM-dd')
+        </if>
+        <if test="params.baStartTime!=null">
+            and to_date(#{params.baStartTime},'yyyy-MM-dd')=to_date(mn.Ba_Start_Time,'yyyy-MM-dd')
+        </if>
+        <if test="params.baEndTime!=null">
+            and to_date(#{params.baEndTime},'yyyy-MM-dd')=to_date(mn.Ba_End_Time,'yyyy-MM-dd')
+        </if>
+    </sql>
+
+
+    <sql id="datetimeFilter" databaseId="mysql">
+        <if test="params.baCreateTime!=null">
+            and date_format(#{params.baCreateTime},'%Y-%m-%d') = date_format(mn.Ba_Create_Time,'%Y-%m-%d')
+        </if>
+        <if test="params.baStartTime!=null">
+            and date_format(#{params.baStartTime},'%Y-%m-%d') = date_format(mn.Ba_Start_Time,'%Y-%m-%d')
+        </if>
+        <if test="params.baEndTime!=null">
+            and date_format(#{params.baEndTime},'%Y-%m-%d') = date_format(mn.Ba_End_Time,'%Y-%m-%d')
+        </if>
+    </sql>
+
+    <sql id="datetimeFilter" databaseId="postgre">
+        <if test="params.baCreateTime!=null">
+            and to_char(#{params.baCreateTime},'yyyy-MM-dd') = to_char(mn.Ba_Create_Time,'yyyy-MM-dd')
+        </if>
+        <if test="params.baStartTime!=null">
+            and to_char(#{params.baStartTime},'yyyy-MM-dd') = to_char(mn.Ba_Start_Time,'yyyy-MM-dd')
+        </if>
+        <if test="params.baEndTime!=null">
+            and to_char(#{params.baEndTime},'yyyy-MM-dd') = to_char(mn.Ba_End_Time,'yyyy-MM-dd')
+        </if>
+    </sql>
+
+    <select id="getPersonalBpmAuthorizeList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.SysPersonalBpmAuthorizeModel">
+        select
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  SysPersonal_Bpm_Authorize mn
+        left join  Sys_File f on f.FileID=mn.Ba_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getPersonalBpmAuthorizeListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  SysPersonal_Bpm_Authorize mn
+        left join  Sys_File f on f.FileID=mn.Ba_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+</mapper>

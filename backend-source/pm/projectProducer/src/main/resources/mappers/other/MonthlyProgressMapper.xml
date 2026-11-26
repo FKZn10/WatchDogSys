@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.MonthlyProgressMapper">
+    <select id="getProgressStatisticsList"
+            resultType="com.jpmsoft.common.model.response.ProgressStatisticsResponse">
+        select
+        pp.P_Id as pId,
+        pp.P_Name as pName,
+        concat(pp.province, pp.city) as affiliatedArea,
+        pp.P_Type as pType,
+        pp.P_Build_Model as pBuildModel,
+        pp.P_Total_Duration as pTotalDuration,
+        pp.P_Scale_Describe as pScaleDescribe,
+        pp.P_Actual_Start_Time as pActualStartTime,
+        pp.P_Plan_Complete_Date as pPlanCompleteDate,
+        pp.P_Competent_Department as pCompetentDepartment,
+        coalesce(invAgg.plannedForLastQuarter, 0) as plannedForLastQuarter,
+        coalesce(invAgg.plannedForThisQuarter, 0) as plannedForThisQuarter,
+        mn.completedlastquarter as completedLastQuarter,
+        coalesce(tifAgg.completedThisQuarter, 0) as completedThisQuarter,
+        mn.paylastquarter as payLastQuarter,
+        coalesce(tifAgg.payThisQuarter, 0) as payThisQuarter,
+        mn.imageprogress as imageProgress,
+        coalesce(invAgg.firstQuarterTarget, 0) as firstQuarterTarget,
+        coalesce(invAgg.secondQuarterTarget, 0) as secondQuarterTarget,
+        coalesce(invAgg.thirdQuarterTarget, 0) as thirdQuarterTarget,
+        coalesce(invAgg.fourthQuarterTarget, 0) as fourthQuarterTarget
+        from t_information_filling mn
+        left join pre_project pp ON mn.P_Id = pp.P_Id
+        left join (
+        select
+        ipv.P_Id,
+        ipv.Ipv_Declare_Year as ipvDeclareYear,
+        sum(case when ims.Ims_Month in
+        <foreach item="month" index="index" collection="params.monthCumulative" open="(" separator="," close=")">
+            #{month}
+        </foreach>
+        then ims.Ims_Planned_Inv else 0 END) as plannedForLastQuarter,
+        sum(case when ims.Ims_Month in
+        <foreach item="month" index="index" collection="params.months" open="(" separator="," close=")">
+            #{month}
+        </foreach>
+        then ims.Ims_Planned_Inv else 0 END) as plannedForThisQuarter,
+        sum(case when ims.Ims_Month in (1,2,3) then ims.Ims_Planned_Inv else 0 END) as firstQuarterTarget,
+        sum(case when ims.Ims_Month in (4,5,6) then ims.Ims_Planned_Inv else 0 END) as secondQuarterTarget,
+        sum(case when ims.Ims_Month in (7,8,9) then ims.Ims_Planned_Inv else 0 END) as thirdQuarterTarget,
+        sum(case when ims.Ims_Month in (10,11,12) then ims.Ims_Planned_Inv else 0 END) as fourthQuarterTarget
+        from inv_plan_year ipv
+        left join inv_monthly_schedule ims on ipv.ipv_id = ims.ipv_id
+        group by ipv.P_Id, ipv.Ipv_Declare_Year
+        ) invAgg on mn.P_Id = invAgg.P_Id and mn.Reporting_Year = invAgg.ipvDeclareYear
+        left join (
+        select
+        tif.P_Id,
+        tif.Reporting_Year,
+        sum(tif.completethequarter) as completedThisQuarter,
+        sum(tif.payforthequarter) as payThisQuarter
+        from t_information_filling tif
+        where tif.Reporting_Month in
+        <foreach item="month" index="index" collection="params.months" open="(" separator="," close=")">
+            #{month}
+        </foreach>
+        group by tif.P_Id, tif.Reporting_Year
+        ) tifAgg on tifAgg.P_Id = mn.P_Id and mn.Reporting_Year = tifAgg.Reporting_Year
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.creattime desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getProgressStatisticsListCount" resultType="java.lang.Integer">
+        select count(1)
+        from t_information_filling mn
+        left join pre_project pp ON mn.P_Id = pp.P_Id
+        <include refid="listFilter"/>
+    </select>
+
+    <sql id="listFilter">
+        <where>
+            <if test="params.pId != null and params.pId != ''">
+                and pp.P_Id = #{params.pId}
+            </if>
+            <if test="params.pName != null and params.pName != ''">
+                and pp.P_Name like concat('%', #{params.pName}, '%')
+            </if>
+            <if test="params.pType != null and params.pType != ''">
+                and pp.P_Type = #{params.pType}
+            </if>
+            <if test="params.pBuildModel != null and params.pBuildModel != ''">
+                and pp.P_Build_Model = #{params.pBuildModel}
+            </if>
+            <if test="params.pTotalDuration != null and params.pTotalDuration != ''">
+                and pp.P_Total_Duration = #{params.pTotalDuration}
+            </if>
+            <if test="params.pScaleDescribe != null and params.pScaleDescribe != ''">
+                and pp.P_Scale_Describe like concat('%', #{params.pScaleDescribe}, '%')
+            </if>
+            <if test="params.pActualStartTime != null and params.pActualStartTime != ''">
+                and pp.P_Actual_Start_Time = #{params.pActualStartTime}
+            </if>
+            <if test="params.pPlanCompleteDate != null and params.pPlanCompleteDate != ''">
+                and pp.P_Plan_Complete_Date = #{params.pPlanCompleteDate}
+            </if>
+            <if test="params.pCompetentDepartment != null and params.pCompetentDepartment != ''">
+                and pp.P_Competent_Department = #{params.pCompetentDepartment}
+            </if>
+            <if test="params.imageProgress != null and params.imageProgress != ''">
+                and mn.imageprogress = #{params.imageProgress}
+            </if>
+            <if test="params.year != null and params.year != ''">
+                and mn.Reporting_Year = #{params.year}
+            </if>
+            <if test="params.month != null and params.month != ''">
+                and mn.Reporting_Month = #{params.month}
+            </if>
+            <if test="params.state != null">
+                and mn.State = #{params.state}
+            </if>
+        </where>
+    </sql>
+</mapper>

@@ -1,0 +1,54 @@
+package com.jpmsoft.gmgws.config;
+
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * @Author: 李文涛 aaron
+ * @date: 2023/3/9 11:07
+ */
+@Configuration
+public class ShiroConfig {
+//    @Bean
+//    public UserRealm userRealm() {
+//        return new UserRealm();
+//    }
+//
+//    @Bean
+//    public DefaultWebSecurityManager securityManager() {
+//        DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
+//        securityManager.setRealm(userRealm());
+//        return securityManager;
+//    }
+//
+//    /**
+//     * 路径过滤规则
+//     * @return
+//     */
+//    @Bean
+//    public ShiroFilterFactoryBean shiroFilter(DefaultWebSecurityManager securityManager) {
+//        ShiroFilterFactoryBean shiroFilterFactoryBean = new ShiroFilterFactoryBean();
+//        shiroFilterFactoryBean.setSecurityManager(securityManager);
+//
+//        shiroFilterFactoryBean.setLoginUrl("/login");
+//        shiroFilterFactoryBean.setSuccessUrl("/");
+//        Map<String, String> map = new LinkedHashMap<>();
+//        // 有先后顺序
+//        map.put("/login", "anon");      // 允许匿名访问
+//        map.put("/**", "authc");        // 进行身份认证后才能访问
+//        shiroFilterFactoryBean.setFilterChainDefinitionMap(map);
+//        return shiroFilterFactoryBean;
+//    }
+//
+//    /**
+//     * 开启Shiro注解模式，可以在Controller中的方法上添加注解
+//     * @param securityManager
+//     * @return
+//     */
+//    @Bean
+//    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(@Qualifier("securityManager") DefaultSecurityManager securityManager) {
+//        AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor = new AuthorizationAttributeSourceAdvisor();
+//        authorizationAttributeSourceAdvisor.setSecurityManager(securityManager);
+//        return authorizationAttributeSourceAdvisor;
+//    }
+
+}

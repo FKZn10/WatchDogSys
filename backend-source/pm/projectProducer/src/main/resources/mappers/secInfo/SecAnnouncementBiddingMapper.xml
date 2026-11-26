@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecAnnouncementBiddingMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecAnnouncementBiddingModel"
+               id="getSecAnnouncementBidding">
+        <id column="Sab_Id" property="sabId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Sab_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Announcement_Bidding sab on sab.Sec_Id=sec.Sec_Id
+        where sab.Sab_Id=#{sabId}
+    </select>
+
+
+    <select id="getSecAnnouncementBiddingById" resultMap="getSecAnnouncementBidding">
+        select
+        f.file_relation_id as fileRelationId,
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        mn.*
+        from  Sec_Announcement_Bidding mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sys_File f on f.FileID=mn.Sab_Id
+        where mn.Sab_Id=#{sabId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id=#{params.secId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.sabCreateUname!=null">
+            and mn.Sab_Create_Uname like concat('%',#{params.sabCreateUname},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.secCode!=null">
+            and sec.Sec_Code like concat('%',#{params.secCode},'%')
+        </if>
+        <if test="params.sabAnnouncementTimeStart!=null">
+            and mn.Sab_Announcement_Time>#{params.sabAnnouncementTimeStart}
+        </if>
+        <if test="params.sabAnnouncementTimeEnd!=null">
+            and mn.Sab_Announcement_Time &lt; #{params.sabAnnouncementTimeEnd}
+        </if>
+        <if test="params.sabClosBidTimeStart!=null">
+            and mn.Sab_Clos_Bid_Time>#{params.sabClosBidTimeStart}
+        </if>
+        <if test="params.sabClosBidTimeEnd!=null">
+            and mn.Sab_Clos_Bid_Time &lt; #{params.sabClosBidTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getSecAnnouncementBiddingList" resultMap="getSecAnnouncementBidding">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        mn.*
+        from Sec_Announcement_Bidding mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sab_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecAnnouncementBiddingListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Announcement_Bidding mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+
+</mapper>

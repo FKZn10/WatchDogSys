@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecBiddingProjectMapper">
+
+    <select id="haveSBPCount" resultType="java.lang.Integer">
+        select count(1)
+        from Sec_Bidding_Project sbp
+        left join Sec_Bidding_Plan bp on bp.Bp_Id=sbp.Bp_Id
+        where bp.State!=3 and bp.State!=7
+        and sbp.P_Id in
+        <foreach collection="pIds" separator="," item="pId" open="(" close=")">
+            #{pId}
+        </foreach>
+        <if test="bpId!=null">
+            and bp.Bp_Id!=#{bpId}
+        </if>
+    </select>
+
+</mapper>

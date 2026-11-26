@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvAdjustmentTemplateMapper">
+    <select id="getAdjustmentTemplateList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvAdjustmentTemplateResponse">
+        select
+            mn.*
+        from Inv_Adjustment_Template mn
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.atType!=null">
+            and mn.At_Type = #{params.atType}
+        </if>
+        <if test="params.atTitle!=null">
+            and mn.At_Title = #{params.atTitle}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.nostate!=null">
+            and mn.State != #{params.nostate}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getAdjustmentTemplateByAtId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvAdjustmentTemplateResponse">
+        select
+            mn.*
+        from  Inv_Adjustment_Template mn
+        where mn.At_Id=#{atId}
+    </select>
+</mapper>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecOpenComplaintsMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecOpenComplaintsVo"
+               id="getSecOpenComplaints">
+        <id column="id" property="id"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join Sec_Open_Complaints soc on soc.Sec_Id=sec.Sec_Id
+        where soc.id=#{id}
+    </select>
+
+    <select id="getSecOpenComplaintsById" resultMap="getSecOpenComplaints">
+        select sec.Sec_Name       as secName,
+               sec.Sec_Code       as secCode,
+               sec.Sec_Type       as secType,
+               f.file_relation_id as fileRelationId,
+               mn.*
+        from Sec_Open_Complaints mn
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join Sys_File f on f.FileID = mn.id
+        where mn.id = #{id}
+    </select>
+
+
+    <select id="getSecOpenComplaintsList" resultMap="getSecOpenComplaints">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Type as secType,
+        mn.*
+        from Sec_Open_Complaints mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.socQuestion!=null">
+                and mn.Soc_Question = #{params.socQuestion}
+            </if>
+            <if test="params.secId!=null">
+                and mn.Sec_Id = #{params.secId}
+            </if>
+            <if test="params.secBiddingType!=null">
+                and sec.Sec_Bidding_Type = #{params.secBiddingType}
+            </if>
+            <if test="params.secName!=null">
+                and sec.Sec_Name like concat('%',#{params.secName},'%')
+            </if>
+            <if test="params.socQuestionerTelephone!=null">
+                and mn.Soc_Questioner_Telephone like concat('%',#{params.socQuestionerTelephone},'%')
+            </if>
+            <if test="params.socQuestionQuestion!=null">
+                and mn.Soc_Question_Question like concat('%',#{params.socQuestionQuestion},'%')
+            </if>
+            <if test="params.socRespondent!=null">
+                and mn.Soc_Respondent like concat('%',#{params.socRespondent},'%')
+            </if>
+            <if test="params.socReplyContent!=null">
+                and mn.Soc_Reply_Content like concat('%',#{params.socReplyContent},'%')
+            </if>
+            <if test="params.socRemarks!=null">
+                and mn.Soc_Remarks like concat('%',#{params.socRemarks},'%')
+            </if>
+            <if test="params.createUname!=null">
+                and mn.Create_Uname like concat('%',#{params.createUname},'%')
+            </if>
+            <if test="params.createTimeStart!=null">
+                and mn.create_Time > #{params.createTimeStart}
+            </if>
+            <if test="params.createTimeEnd!=null">
+                and mn.create_Time &lt; #{params.createTimeEnd}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

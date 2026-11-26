@@ -1,0 +1,820 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysUserMapper">
+
+    <select id="getUesrInfoByIds" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select
+        p.PL_Name as plName,
+        c.C_Name as cName,
+        <include refid="sqlFileds"/>
+        from SYS_User u
+        left join SYS_PositionLV p on u.PL_ID=p.PL_ID
+        left join SYS_Company c on u.C_ID=c.C_ID
+        <where>
+            u.U_Id in
+            <foreach collection="uIds" item="uId" separator="," open="(" close=")">
+                #{uId}
+            </foreach>
+        </where>
+    </select>
+
+
+    <select id="getUserInfoById" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select
+        c.C_Name_History as cNameHistory,
+        c.C_Name as cName,
+        c.C_CreditCode as cCreditCode,
+        c.c_type as cType,
+        <include refid="sqlFileds"/>
+        from
+        SYS_User u
+        left join SYS_Company c on c.C_ID=u.C_ID
+        where u.U_Id=#{uId}
+    </select>
+
+    <sql id="listFilter">
+        <where>
+            <if test="params.pdType != null and params.pdType != ''">
+                and exists (
+                select 1
+                from SYS_Position_User_P pup
+                left join SYS_Position_P pp on pup.PP_ID = pp.PP_ID
+                left join SYS_Department_P dp on pp.PD_ID = dp.PD_ID
+                where pup.U_Id = u.U_Id
+                and dp.PD_Type = #{params.pdType}
+                )
+            </if>
+            <if test="params.pdCode != null and params.pdCode != ''">
+                and exists (
+                select 1
+                from SYS_Position_User_P pup
+                left join SYS_Position_P pp on pup.PP_ID = pp.PP_ID
+                left join SYS_Department_P dp on pp.PD_ID = dp.PD_ID
+                where pup.U_Id = u.U_Id
+                and dp.PD_Code = #{params.pdCode}
+                )
+            </if>
+            <if test="params.projectId != null and params.projectId != ''">
+                and exists (
+                select 1
+                from SYS_Position_User_P pup
+                left join SYS_Position_P pp on pup.PP_ID = pp.PP_ID
+                left join SYS_Department_P dp on pp.PD_ID = dp.PD_ID
+                where pup.U_Id = u.U_Id
+                and dp.P_Id = #{params.projectId}
+                )
+            </if>
+            <if test="params.teId != null">
+                and u.Te_Id=#{params.teId}
+            </if>
+            <if test="params.pId != null and params.pId != ''">
+                AND EXISTS (
+                SELECT 1 FROM SYS_Participant_Unit spu
+                WHERE spu.C_Id = u.C_ID AND spu.P_Id = #{params.pId}
+                )
+            </if>
+            <if test="params.uState != null">
+                and u.U_State=#{params.uState}
+            </if>
+            <if test="params.uType != null">
+                and u.U_Type=#{params.uType}
+            </if>
+            <if test="params.cId != null">
+                and u.C_ID=#{params.cId}
+            </if>
+            <if test="params.plId != null">
+                and p.PL_ID = #{params.plId}
+            </if>
+            <if test="params.uId!=null">
+                and INSTR(u.U_ID,#{params.uId})
+            </if>
+            <if test="params.uMdmNo!=null">
+                and INSTR(u.U_MDM_NO,#{params.uMdmNo})
+            </if>
+            <if test="params.timeStart!=null and params.timeEnd!=null">
+                and u.U_CreateTime between #{params.timeStart} and #{params.timeEnd}
+            </if>
+            <if test="params.uName != null">
+                and u.U_Name like concat('%',#{params.uName},'%')
+            </if>
+            <if test="params.cName != null">
+                and c.C_Name like concat('%',#{params.cName},'%')
+            </if>
+            <if test="params.uAccount != null">
+                and u.U_Account like concat('%',#{params.uAccount},'%')
+            </if>
+            <if test="params.uCode != null">
+                and u.U_Code like concat('%',#{params.uCode},'%')
+            </if>
+            <if test="params.uMtel != null">
+                and u.U_MTel like concat('%',#{params.uMtel},'%')
+            </if>
+            <if test="params.excludeClass!=null">
+                and (u.u_class is null or u.u_class not in
+                <foreach collection="params.excludeClass" open="(" close=")" item="item" separator=",">
+                    #{item}
+                </foreach>)
+            </if>
+            <if test="params.uIdList != null and params.uIdList.size() > 0">
+                and u.U_ID in
+                <foreach collection="params.uIdList" open="(" close=")" item="uIdItem" separator=",">
+                    #{uIdItem}
+                </foreach>
+            </if>
+        </where>
+    </sql>
+
+    <select id="GetUserList" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select
+        p.PL_Name as plName,
+        c.C_Name as cName,
+        <include refid="sqlFileds"/>
+        from SYS_User u
+        left join SYS_PositionLV p on u.PL_ID=p.PL_ID
+        left join SYS_Company c on u.C_ID=c.C_ID
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortFiled=='PL_NAME'">
+                order by p.PL_Name ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by u.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by u.U_CreateTime DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="GetUserListCount" resultType="java.lang.Integer">
+        select
+        count(*)
+        from SYS_User u
+        left join SYS_PositionLV p on u.PL_ID=p.PL_ID
+        left join SYS_Company c on u.C_ID=c.C_ID
+        <include refid="listFilter"/>
+    </select>
+
+    <sql id="userPdCodeField">
+        (select group_concat(distinct dp.PD_Code order by dp.PD_Code separator ',')
+         from SYS_Position_User_P pup
+                  left join SYS_Position_P pp on pp.PP_ID = pup.PP_ID
+                  left join SYS_Department_P dp on dp.PD_ID = pp.PD_ID
+         where pup.U_ID = u.U_ID
+           and dp.PD_Code is not null) as pdCode,
+    </sql>
+
+    <sql id="userPdCodeField" databaseId="mysql">
+        (select group_concat(distinct dp.PD_Code order by dp.PD_Code separator ',')
+         from SYS_Position_User_P pup
+                  left join SYS_Position_P pp on pp.PP_ID = pup.PP_ID
+                  left join SYS_Department_P dp on dp.PD_ID = pp.PD_ID
+         where pup.U_ID = u.U_ID
+           and dp.PD_Code is not null) as pdCode,
+    </sql>
+
+    <sql id="userPdCodeField" databaseId="dm">
+        (
+        select LISTAGG(t.PD_Code, ',') WITHIN GROUP (ORDER BY t.PD_Code)
+        from (
+        select distinct dp.PD_Code
+        from SYS_Position_User_P pup
+        left join SYS_Position_P pp on pp.PP_ID = pup.PP_ID
+        left join SYS_Department_P dp on dp.PD_ID = pp.PD_ID
+        where pup.U_ID = u.U_ID
+        and dp.PD_Code is not null
+        ) t
+        ) as pdCode,
+    </sql>
+
+    <sql id="userPdCodeField" databaseId="postgre">
+        (
+        select string_agg(t.PD_Code, ',' order by t.PD_Code)
+        from (
+        select distinct dp.PD_Code
+        from SYS_Position_User_P pup
+        left join SYS_Position_P pp on pp.PP_ID = pup.PP_ID
+        left join SYS_Department_P dp on dp.PD_ID = pp.PD_ID
+        where pup.U_ID = u.U_ID
+        and dp.PD_Code is not null
+        ) t
+        ) as pdCode,
+    </sql>
+
+    <select id="getUserListByUnitPid" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select
+        p.PL_Name as plName,
+        c.C_Name as cName,
+        <include refid="userPdCodeField"/>
+        <include refid="sqlFileds"/>
+        from SYS_User u
+        left join SYS_PositionLV p on u.PL_ID=p.PL_ID
+        left join SYS_Company c on u.C_ID=c.C_ID
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortFiled=='PL_NAME'">
+                order by p.PL_Name ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by u.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by u.U_CreateTime DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getUserListByUnitPidCount" resultType="java.lang.Integer">
+        select
+        count(*)
+        from SYS_User u
+        left join SYS_PositionLV p on u.PL_ID=p.PL_ID
+        left join SYS_Company c on u.C_ID=c.C_ID
+        <include refid="listFilter"/>
+    </select>
+
+    <sql id="conditionFilter">
+        <if test="params.teId!=null">
+            and u.Te_ID=#{params.teId}
+        </if>
+        <if test="params.uState != null">
+            and u.U_State=#{params.uState}
+        </if>
+        <if test="params.uType != null">
+            and u.U_Type=#{params.uType}
+        </if>
+        <if test="params.uId != null">
+            and u.U_Id=#{params.uId}
+        </if>
+        <if test="params.cId != null">
+            and u.C_ID=#{params.cId}
+        </if>
+        <if test="params.dId!=null">
+            and d.D_ID=#{params.dId}
+        </if>
+        <if test="params.dId==null or params.all!=null and params.all==true">
+            and d.D_ID is not null
+        </if>
+        <if test="params.plId != null">
+            and plv.PL_ID = #{params.plId}
+        </if>
+        <if test="params.timeStart!=null and params.timeEnd!=null">
+            and u.U_CreateTime between #{params.timeStart} and #{params.timeEnd}
+        </if>
+        <if test="params.uName != null">
+            and u.U_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test="params.pName != null">
+            and p.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.cName != null">
+            <choose>
+                <when test="@com.jpmsoft.userProducer.config.XmlConfig@hsEnable()">
+                    and vc.C_Name like concat('%',#{params.cName},'%')
+                </when>
+                <otherwise>
+                    and c.C_Name like concat('%',#{params.cName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.uAccount != null">
+            and u.U_Account like concat('%',#{params.uAccount},'%')
+        </if>
+        <if test="params.uCode != null">
+            and u.U_Code like concat('%',#{params.uCode},'%')
+        </if>
+        <if test="params.uMtel != null">
+            and u.U_MTel like concat('%',#{params.uMtel},'%')
+        </if>
+        <if test="params.depIds!=null and params.depIds.size()>0">
+            and d.D_Id in
+            <foreach collection="params.depIds" open="(" close=")" item="depId" separator=",">
+                #{depId}
+            </foreach>
+        </if>
+    </sql>
+    <select id="getUserListByMoreCondition" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select
+        p.P_ID as pId,
+        p.D_ID as dId,
+        p.P_Name as pName,
+        d.D_Name as dName,
+        c.C_Name as cName,
+        plv.PL_Name as plName,
+        pu.Pu_Id as puId,
+        pu.PU_Sort as puSort,
+        pu.PU_Main_Duty as puMainDuty,
+        pu.Pu_Duty as puDuty,
+        pu.Pu_Main_Dep as puMainDep,
+        d.D_ParentID as dParentId,
+        <include refid="sqlFileds"/>
+        from
+        SYS_User u
+        left join SYS_Position_User pu on u.U_ID=pu.U_ID
+        left join SYS_Position p on pu.P_ID=p.P_ID
+        left join SYS_Department d on d.D_ID=p.D_ID
+        left join SYS_Company c on c.C_ID=u.C_ID
+        left join SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        where 1=1
+        <include refid="conditionFilter"/>
+        <choose>
+            <when test="params.sortFiled=='PL_NAME'">
+                order by plv.PL_Name ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by u.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType==null and params.sortFiled==null and params.sortSideFiled==null and params.dId!=null">
+                order by puSort ASC
+            </when>
+            <otherwise>
+                order by u.U_CreateTime DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getUserListByMoreConditionCount" resultType="java.lang.Integer">
+        select
+        count(*)
+        from
+        SYS_User u
+        left join SYS_Position_User pu on u.U_ID=pu.U_ID
+        left join SYS_Position p on pu.P_ID=p.P_ID
+        left join SYS_Department d on d.D_ID=p.D_ID
+        left join SYS_Company c on c.C_ID=u.C_ID
+        left join SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        where 1=1
+        <include refid="conditionFilter"/>
+    </select>
+
+    <select id="GetUserListByDId" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select
+        p.P_ID as pId,
+        p.D_ID as dId,
+        p.P_Name as pName,
+        d.D_Name as dName,
+        c.C_Name as cName,
+        plv.PL_Name as plName,
+        pu.Pu_Id as puId,
+        pu.Pu_Sort as puSort,
+        <include refid="sqlFileds"/>
+        from
+        SYS_User u
+        left join SYS_Position_User pu on u.U_ID=pu.U_ID
+        left join SYS_Position p on pu.P_ID=p.P_ID
+        left join SYS_Department d on d.D_ID=p.D_ID
+        left join SYS_Company c on c.C_ID=u.C_ID
+        left join SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        <where>
+            <if test="params.teId!=null">
+                and u.Te_ID=#{params.teId}
+            </if>
+            <if test="params.dId!=null">
+                and d.D_ID=#{params.dId}
+            </if>
+            <if test="params.uId!=null">
+                and u.U_ID=#{params.uId}
+            </if>
+            <if test="params.filterPosition==true">
+                and pu.Pu_ID is not null
+            </if>
+            <if test="params.uName!=null">
+                and INSTR(u.U_Name,#{params.uName})
+            </if>
+            <if test="params.uAccount!=null">
+                and INSTR(u.U_Account,#{params.uAccount})
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by u.${sortFiled} ${sortType}
+        </if>
+        <if test="(params.sortType==null or params.sortFiled==null) and params.dId!=null">
+            order by pu.Pu_Sort ASC
+        </if>
+        <if test="(params.sortType==null or params.sortFiled==null) and params.dId==null">
+            order by u.U_Sort ASC
+        </if>
+    </select>
+
+
+    <select id="GetUserListByPDP" resultType="com.jpmsoft.userProducer.pojo.vo.UserPDPVo">
+        select
+        pro.p_Project_Stage as  pProjectStage,
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        pup.PUP_ID as pupId,
+        dp.PD_ID as pdId,
+        dp.PD_Name as pdName,
+        dp.PD_Code as pdCode,
+        pp.PP_Name as ppName,
+        pp.PP_Code as ppCode,
+        pp.PP_ID as ppId,
+        <include refid="sqlFileds"/>
+        from SYS_Position_User_P pup
+        left join Sys_User u on u.U_Id=pup.U_Id
+        left join SYS_Position_P pp on pp.PP_ID=pup.PP_ID
+        left join SYS_Department_P dp on dp.PD_ID=pp.PD_ID
+        left join Pre_Project pro on pro.P_Id=dp.P_ID
+        <where>
+            <if test="params.teId!=null">
+                and u.Te_ID=#{params.teId}
+            </if>
+            <if test="params.pdId!=null">
+                and dp.PD_ID=#{params.pdId}
+            </if>
+            <if test="params.uId!=null">
+                and u.U_ID=#{params.uId}
+            </if>
+            <if test="params.pdName!=null">
+                and INSTR(dp.PD_Name,#{params.pdName})
+            </if>
+            <if test="params.pdCode!=null">
+                and INSTR(dp.PD_Code,#{params.pdCode})
+            </if>
+            <if test="params.ppName!=null">
+                and INSTR(pp.PP_Name,#{params.ppName})
+            </if>
+            <if test="params.ppCode!=null">
+                and INSTR(pp.PP_Code,#{params.ppCode})
+            </if>
+            <if test="params.uName!=null">
+                and INSTR(u.U_Name,#{params.uName})
+            </if>
+            <if test="params.uAccount!=null">
+                and INSTR(u.U_Account,#{params.uAccount})
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.userProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(pro.P_Name,#{params.pName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.pCode!=null">
+                and INSTR(pro.P_Code,#{params.pCode})
+            </if>
+        </where>
+    </select>
+
+    <select id="getDepBatchUser" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select
+        p.PP_ID as ppId,
+        p.PD_ID as pdId,
+        p.PP_Name as ppName,
+        c.C_Name as cName,
+        plv.PL_Name as plName,
+        d.PD_Name as pdName,
+        d.P_Id as projectId,
+        pu.Pup_Id as pupId,
+        pu.Pup_Sort as pupSort,
+        <include refid="sqlFileds"/>
+        from
+        SYS_User u
+        left join SYS_Position_User_P pu on u.U_ID=pu.U_ID
+        left join SYS_Position_P p on pu.PP_ID=p.PP_ID
+        left join SYS_Department_P d on d.PD_ID=p.PD_ID
+        left join SYS_Company c on c.C_ID=u.C_ID
+        left join SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        <where>
+            <if test="params.teId!=null">
+                and u.Te_Id = #{params.teId}
+            </if>
+            <if test="params.projectIds!=null and params.projectIds.size()>0">
+                and d.P_Id in
+                <foreach collection="params.projectIds" item="projectId" open="(" close=")" separator=",">
+                    #{projectId}
+                </foreach>
+            </if>
+            <if test="params.ppNames!=null and params.ppNames.size()>0">
+                and p.PP_Name in
+                <foreach collection="params.ppNames" item="ppName" open="(" close=")" separator=",">
+                    #{ppName}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="GetUserListByDPId" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select
+        p.PP_ID as ppId,
+        p.PD_ID as pdId,
+        p.PP_Name as ppName,
+        c.C_Name as cName,
+        c.C_Type as cType,
+        plv.PL_Name as plName,
+        d.PD_Name as pdName,
+        d.PD_Code as pdCode,
+        pu.Pup_Id as pupId,
+        pu.Pup_Sort as pupSort,
+        pro.P_Name as projectName,
+        <include refid="sqlFileds"/>
+        from
+        SYS_User u
+        left join SYS_Position_User_P pu on u.U_ID=pu.U_ID
+        left join SYS_Position_P p on pu.PP_ID=p.PP_ID
+        left join SYS_Department_P d on d.PD_ID=p.PD_ID
+        left join SYS_Company c on c.C_ID=u.C_ID
+        left join SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        left join Pre_Project pro on pro.P_Id= d.P_Id
+        <where>
+            <include refid="dPIdListFilter"/>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by u.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="(params.sortType==null or params.sortFiled==null) and params.pdId!=null">
+                order by pu.Pup_Sort asc
+            </when>
+            <when test="(params.sortType==null or params.sortFiled==null) and params.pdId==null">
+                order by u.U_sort asc
+            </when>
+            <otherwise>
+                order by u.U_CreateTime DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="dPIdListFilter">
+        <if test="params.pdCode != null and params.pdCode != ''">
+            and d.PD_Code = #{params.pdCode}
+        </if>
+        <if test="params.pdType != null and params.pdType != ''">
+            and d.PD_Type = #{params.pdType}
+        </if>
+        <if test="params.pdId!=null">
+            and d.PD_ID=#{params.pdId}
+        </if>
+        <if test="params.pId!=null">
+            and d.P_Id=#{params.pId}
+        </if>
+        <if test="params.pIds!=null and params.pIds.size() > 0">
+            and d.P_Id in
+            <foreach collection="params.pIds" open="(" close=")" item="pId" separator=",">
+                #{pId}
+            </foreach>
+        </if>
+        <if test="params.teId!=null">
+            and u.Te_ID=#{params.teId}
+        </if>
+        <if test="params.uState!=null">
+            and u.U_State=#{params.uState}
+        </if>
+        <if test="params.uType!=null">
+            and u.U_Type=#{params.uType}
+        </if>
+        <if test="params.cId!=null">
+            and u.C_ID=#{params.cId}
+        </if>
+        <if test="params.ppId!=null">
+            and p.PP_ID=#{params.ppId}
+        </if>
+        <if test="params.filterPosition==true">
+            and pu.Pup_Id is not null
+        </if>
+        <if test="params.pdName!=null">
+            and INSTR(d.PD_Name,#{params.pdName})
+        </if>
+        <if test="params.projectName!=null">
+            <choose>
+                <when test="@com.jpmsoft.userProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.projectName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.projectName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ppName!=null">
+            and INSTR(p.PP_Name,#{params.ppName})
+        </if>
+        <if test="params.ppCode!=null">
+            and INSTR(p.PP_Code,#{params.ppCode})
+        </if>
+        <if test="params.cName!=null">
+            <choose>
+                <when test="@com.jpmsoft.userProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.cName},c.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c.C_Name,#{params.cName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.uName!=null">
+            and INSTR(u.U_Name,#{params.uName})
+        </if>
+        <if test="params.uAccount!=null">
+            and INSTR(u.U_Account,#{params.uAccount})
+        </if>
+        <if test="params.uCode!=null">
+            and INSTR(u.U_Code,#{params.uCode})
+        </if>
+        <if test="params.uMtel!=null">
+            and INSTR(u.U_MTel,#{params.uMtel})
+        </if>
+    </sql>
+
+    <sql id="sqlFileds">
+        u.U_ID as uId,
+        u.PL_ID as plID,
+        u.C_ID as cID,
+        u.U_Name as uName,
+        u.U_Code as uCode,
+        u.U_MTel as uMtel,
+        u.U_Tel as uTel,
+        u.U_Email as uEmail,
+        u.U_Account as uAccount,
+        u.U_PassWord as uPassword,
+        u.U_Sex as uSex,
+        u.U_Birthday as uBirthday,
+        u.U_State as uState,
+        u.U_MDM_NO as uMdmNo,
+        u.U_CreateTime as uCreatetime,
+        u.U_CreateU_ID as uCreateuID,
+        u.U_CreateU_Name as uCreateuName,
+        u.U_Type  as uType,
+        u.U_Office as uOffice,
+        u.U_Cornet as uCornet,
+        u.U_IdCard as uIdcard,
+        u.U_Sort as uSort,
+        u.U_Push_Id as uPushId,
+        u.Open_Id as openId,
+        u.U_Signature as uSignature,
+        u.U_Qualification as uQualification,
+        u.sign as sign,
+        u.u_class as uClass,
+        u.u_key as uKey
+    </sql>
+
+
+    <select id="getAllHaveContractTable" resultType="String" databaseId="dm">
+        select TABLE_NAME
+        from all_tab_columns
+        where table_name IN (select TABLE_NAME from dba_tables)
+          and COLUMN_NAME = 'Con_Id';
+    </select>
+
+    <select id="getAllHaveContractTable" resultType="String" databaseId="mysql">
+        select table_name
+        from information_schema.columns
+        where column_name = 'Con_Id';
+    </select>
+
+    <select id="getAllHaveContractTable" resultType="String" databaseId="postgre">
+        select table_name
+        from information_schema.columns
+        where column_name = 'Con_Id';
+    </select>
+
+    <select id="havingPmUserInProjectDep" resultType="int">
+        select
+        count(*)
+        from SYS_User u
+        left join SYS_Position_User_P up on up.U_ID=u.U_ID
+        left join SYS_Position_P pp on up.PP_ID=pp.PP_ID
+        left join SYS_Department_P dp on dp.PD_ID=pp.PD_ID
+        where dp.P_Id=#{pId} and pp.PP_Name in
+        <foreach collection="positionName" open="(" close=")" separator="," item="posName">
+            #{posName}
+        </foreach>
+    </select>
+
+
+    <select id="getPmUserInProjectDep" resultType="com.jpmsoft.userProducer.pojo.entity.SysUser">
+        select
+        u.*
+        from SYS_User u
+        left join SYS_Position_User_P up on up.U_ID=u.U_ID
+        left join SYS_Position_P pp on up.PP_ID=pp.PP_ID
+        left join SYS_Department_P dp on dp.PD_ID=pp.PD_ID
+        where dp.P_Id=#{pId} and pp.PP_Name in
+        <foreach collection="positionName" open="(" close=")" separator="," item="posName">
+            #{posName}
+        </foreach>
+    </select>
+
+
+    <select id="getProjectDepUserByPpName" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select
+        dp.P_Id as projectId,
+        pp.PP_Name as ppName,
+        u.*
+        from SYS_User u
+        left join SYS_Position_User_P up on up.U_ID=u.U_ID
+        left join SYS_Position_P pp on up.PP_ID=pp.PP_ID
+        left join SYS_Department_P dp on dp.PD_ID=pp.PD_ID
+        where 1=1
+        <if test="teId!=null">
+            and u.Te_Id = #{teId}
+        </if>
+        <if test="projectIds!=null and projectIds.size()>0">
+            and dp.P_Id in
+            <foreach collection="projectIds" open="(" close=")" separator="," item="projectId">
+                #{projectId}
+            </foreach>
+        </if>
+        and pp.PP_Name in
+        <foreach collection="positionName" open="(" close=")" separator="," item="posName">
+            #{posName}
+        </foreach>
+    </select>
+
+    <select id="getUserInfoByPositionNames" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select
+        mn.*,
+        c.C_Name as cName
+        from SYS_User mn
+        left join SYS_Position_User pu on mn.U_ID=pu.U_ID
+        left join SYS_Position p on pu.P_ID=p.P_ID
+        left join SYS_Company c on mn.C_ID=c.C_ID
+        where p.P_Name in
+        <foreach collection="positionNames" open="(" close=")" separator="," item="posName">
+            #{posName}
+        </foreach>
+    </select>
+
+    <select id="GetUserListByDPIdDistinct" resultType="com.jpmsoft.userProducer.pojo.vo.SysUserVo">
+        select
+        MAX(p.PP_ID) as ppId,
+        MAX(p.PD_ID) as pdId,
+        MAX(p.PP_Name) as ppName,
+        MAX(c.C_Name) as cName,
+        MAX(c.C_Type) as cType,
+        MAX(plv.PL_Name) as plName,
+        MAX(d.PD_Name) as pdName,
+        MAX(pu.Pup_Id) as pupId,
+        MAX(pu.Pup_Sort) as pupSort,
+        MAX(pro.P_Name) as projectName,
+        <include refid="sqlFileds"/>
+        from SYS_User u
+        left join SYS_Position_User_P pu on u.U_ID=pu.U_ID
+        left join SYS_Position_P p on pu.PP_ID=p.PP_ID
+        left join SYS_Department_P d on d.PD_ID=p.PD_ID
+        left join SYS_Company c on c.C_ID=u.C_ID
+        left join SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        left join Pre_Project pro on pro.P_Id= d.P_Id
+        <where>
+            <include refid="dPIdListFilter"/>
+        </where>
+        GROUP BY
+        u.U_ID,
+        u.PL_ID,
+        u.C_ID,
+        u.U_Name,
+        u.U_Code,
+        u.U_MTel,
+        u.U_Tel,
+        u.U_Email,
+        u.U_Account,
+        u.U_PassWord,
+        u.U_Sex,
+        u.U_Birthday,
+        u.U_State,
+        u.U_MDM_NO,
+        u.U_CreateTime,
+        u.U_CreateU_ID,
+        u.U_CreateU_Name,
+        u.U_Type,
+        u.U_Office,
+        u.U_Cornet,
+        u.U_IdCard,
+        u.U_Sort,
+        u.U_Push_Id,
+        u.Open_Id,
+        u.U_Signature,
+        u.U_Qualification,
+        u.sign,
+        u.u_class,
+        u.u_key
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by u.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="(params.sortType==null or params.sortFiled==null) and params.pdId!=null">
+                order by pu.Pup_Sort asc
+            </when>
+            <when test="(params.sortType==null or params.sortFiled==null) and params.pdId==null">
+                order by u.U_sort asc
+            </when>
+            <otherwise>
+                order by u.U_CreateTime DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

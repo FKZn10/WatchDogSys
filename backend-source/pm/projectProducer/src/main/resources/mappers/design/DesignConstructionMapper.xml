@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.design.DesignConstructionMapper">
+
+    <select id="getDesignConstructionById"
+            resultType="com.jpmsoft.common.model.response.Design.DesignConstructionResponse">
+        select
+        pro.P_Name as pName,
+        pro.P_Type pType,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Party_B_Agent as conPartyBAgent,
+        con.Con_Party_B_Pm as conPartyBPm,
+        c2.C_Name as conPartyBName,
+        c2.C_Abbreviation as conPartyBAbbName,
+        c3.C_Name as dcDesignUnitName,
+        sec.Sec_Name as secName,
+        sec1.Sec_Name as secCurrentName,
+        mn.*
+        from  Design_Construction mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_File f on f.FileID=mn.Dc_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Sec_Info sec on sec.Sec_Id=con.Con_Section_Id
+        left join Sec_Info sec1 on sec1.Sec_Id=mn.Sec_Id
+        left join SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Dc_Design_Unit=c3.C_Id
+        where mn.Dc_Id=#{dcId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.dcState!=null">
+            and mn.Dc_State = #{params.dcState}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.dcSunshine!=null">
+            and mn.Dc_Sunshine = #{params.dcSunshine}
+        </if>
+        <if test="params.dcSpecialty!=null">
+            and mn.Dc_Specialty = #{params.dcSpecialty}
+        </if>
+        <if test="params.dcFps!=null">
+            and mn.Dc_Fps = #{params.dcFps}
+        </if>
+        <if test="params.dcGovernment!=null">
+            and mn.Dc_Government = #{params.dcGovernment}
+        </if>
+        <if test="params.dcUserConfirm!=null">
+            and mn.Dc_User_Confirm = #{params.dcUserConfirm}
+        </if>
+        <if test="params.dcDesignUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.dcDesignUnitName},c3.C_Id)=true
+                </when>
+                <otherwise>
+                    and c3.C_Name like concat('%',#{params.dcDesignUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.dcCreateUname!=null">
+            and mn.Dc_Create_Uname like concat('%',#{params.dcCreateUname},'%')
+        </if>
+        <if test="params.dcName!=null">
+            and mn.Dc_Name like concat('%',#{params.dcName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.secCurrentName!=null">
+            and sec1.Sec_Name like concat('%',#{params.secCurrentName},'%')
+        </if>
+        <if test="params.dcBudgetStart!=null">
+            and mn.Dc_Budget>#{params.dcBudgetStart}
+        </if>
+        <if test="params.dcBudgetEnd!=null">
+            and mn.Dc_Budget &lt; #{params.dcBudgetEnd}
+        </if>
+        <if test="params.dcPlanStartStart!=null">
+            and mn.Dc_Plan_Start>#{params.dcPlanStartStart}
+        </if>
+        <if test="params.dcPlanStartEnd!=null">
+            and mn.Dc_Plan_Start &lt; #{params.dcPlanStartEnd}
+        </if>
+        <if test="params.dcPlanEndStart!=null">
+            and mn.Dc_Plan_End>#{params.dcPlanEndStart}
+        </if>
+        <if test="params.dcPlanEndEnd!=null">
+            and mn.Dc_Plan_End &lt; #{params.dcPlanEndEnd}
+        </if>
+        <if test="params.dcCreateStart!=null">
+            and mn.Dc_Create_Time>#{params.dcCreateStart}
+        </if>
+        <if test="params.dcCreateEnd!=null">
+            and mn.Dc_Create_Time &lt; #{params.dcCreateEnd}
+        </if>
+    </sql>
+
+    <select id="getDesignConstructionList"
+            resultType="com.jpmsoft.common.model.response.Design.DesignConstructionResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Party_B_Agent as conPartyBAgent,
+        con.Con_Party_B_Pm as conPartyBPm,
+        c2.C_Name as conPartyBName,
+        c2.C_Abbreviation as conPartyBAbbName,
+        c3.C_Name as dcDesignUnitName,
+        sec.Sec_Name as secName,
+        sec1.Sec_Name as secCurrentName,
+        mn.*
+        from Design_Construction mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sys_File f on f.FileID=mn.Dc_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Sec_Info sec on sec.Sec_Id=con.Con_Section_Id
+        left join Sec_Info sec1 on sec1.Sec_Id=mn.Sec_Id
+        left join SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Dc_Design_Unit=c3.C_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Dc_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getDcBudgetSum" resultType="BigDecimal">
+        select
+        SUM(mn.Dc_Budget)
+        from Design_Construction mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company c3 on mn.Dc_Design_Unit=c3.C_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+    </select>
+</mapper>

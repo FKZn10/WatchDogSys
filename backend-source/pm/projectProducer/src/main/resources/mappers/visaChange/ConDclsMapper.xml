@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.visaChange.ConDclsMapper">
+
+
+    <select id="getConDclsById" resultType="com.jpmsoft.projectProducer.pojo.vo.visaChange.ConDclsVO">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Name as dcoName,
+        mn.*
+        from Con_Dcls mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        where mn.Dcls_Id = #{id}
+    </select>
+
+    <select id="getConDclsList" resultType="com.jpmsoft.projectProducer.pojo.vo.visaChange.ConDclsVO">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Name as dcoName,
+        mn.*
+        from Con_Dcls mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

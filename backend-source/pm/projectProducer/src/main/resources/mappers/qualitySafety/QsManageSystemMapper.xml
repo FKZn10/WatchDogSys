@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.qualitySafety.QsManageSystemMapper">
+
+
+    <select id="getQsManageSystemList"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.qualitySafety.QsManageSystemDto">
+        select *,pp.P_Name pName,sd.D_Name pCompetentDepartmentName from Qs_Manage_System  qms
+        left join Pre_Project pp on qms.p_id = pp.P_Id
+        left join SYS_Department sd on pp.P_Competent_Department = sd.D_Id
+        <where>
+            <if test="params.teId!=null">
+                and qms.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pId!=null">
+                and qms.p_id = #{params.pId}
+            </if>
+            <if test="params.pCompetentDepartment!=null">
+                and pp.p_competent_department = #{params.pCompetentDepartment}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pp.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pp.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.pCode!=null">
+                and pp.P_Code = #{params.pCode}
+            </if>
+            <if test="params.state!=null">
+                and qms.state = #{params.state}
+            </if>
+            <if test="params.isType">
+                and qms.Create_Uid = #{params.uId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getQsManageSystemById"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.qualitySafety.QsManageSystemDto">
+        select *,pp.P_Name pName,sd.D_Name pCompetentDepartmentName
+        from Qs_Manage_System  qms left join Pre_Project pp on qms.p_id = pp.P_Id
+        left join SYS_Department sd on pp.P_Competent_Department = sd.D_Id
+        where qms.id = #{id}
+    </select>
+
+
+
+    <select id="selectConfigByCode" resultType="java.lang.String">
+        select Con_Value from SYS_Config where Con_Code = #{postDes}
+    </select>
+
+
+
+    <select id="getQsNodePersonByPosition" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsNodePerson">
+        select su.U_ID,su.U_Name
+        from sys_position_user spu
+        left join sys_user su on spu.U_ID = su.U_ID
+        where spu.P_ID in
+        <foreach collection="positions" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="getPositionsByMarkAndDId" resultType="java.lang.String">
+        select P_Id from sys_position
+        where D_ID = #{dId}
+          and P_Remark=#{mark}
+    </select>
+
+    <select id="getDIdByPId" resultType="java.lang.String">
+            select P_Department from pre_project where P_Id=#{pId}
+    </select>
+
+
+</mapper>

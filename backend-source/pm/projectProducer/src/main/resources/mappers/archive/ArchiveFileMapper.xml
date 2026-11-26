@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper">
+
+    <!-- 项目内按 MD5 去重。缺失时间、序号使用固定占位；Af_Id 仅用于同优先级记录的稳定取一。 -->
+    <sql id="archiveMd5RankKey">
+        concat(coalesce(concat(${fileAlias}.Af_Create_Time, ''), '0000-00-00 00:00:00'),
+               lpad(coalesce(${fileAlias}.Af_Order, 0), 10, '0'), '|', ${fileAlias}.Af_Id)
+    </sql>
+
+    <!-- 只按项目隔离去重范围，目录、状态和权限条件仍由调用方在外层应用。 -->
+    <sql id="projectLatestArchiveMd5Join">
+        left join (
+            select dedup_archive.P_Id as project_id,
+                   sfa2.File_MD5_Code as file_md5,
+                   max(<include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.archiveMd5RankKey">
+                       <property name="fileAlias" value="af2"/>
+                   </include>) as max_key
+            from Archive_File af2
+            left join Archive dedup_archive on dedup_archive.Ap_Id = af2.Ap_Id
+            left join SYS_FileAnnex sfa2 on sfa2.file_id = af2.Af_Annex_Id
+            where sfa2.File_MD5_Code is not null
+            group by dedup_archive.P_Id, sfa2.File_MD5_Code
+        ) latest_md5 on sfa.File_MD5_Code = latest_md5.file_md5
+        and (${archiveAlias}.P_Id = latest_md5.project_id
+             or (${archiveAlias}.P_Id is null and latest_md5.project_id is null))
+        and <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.archiveMd5RankKey"/> = latest_md5.max_key
+    </sql>
+
+
+    <!-- 显式传入项目参数名，避免改变其他接口使用的通用去重片段。 -->
+    <sql id="projectLatestArchiveMd5JoinScoped">
+        left join (
+        select dedup_archive.P_Id as project_id,
+        sfa2.File_MD5_Code as file_md5,
+        max(
+        <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.archiveMd5RankKey">
+            <property name="fileAlias" value="af2"/>
+        </include>
+        ) as max_key
+        from Archive_File af2
+        left join Archive dedup_archive on dedup_archive.Ap_Id = af2.Ap_Id
+        inner join SYS_FileAnnex sfa2 on sfa2.file_id = af2.Af_Annex_Id
+        where sfa2.File_MD5_Code is not null
+        <if test="${projectIdParameter} != null">
+            and dedup_archive.P_Id = #{${projectIdParameter}}
+        </if>
+        group by dedup_archive.P_Id, sfa2.File_MD5_Code
+        ) latest_md5 on sfa.File_MD5_Code = latest_md5.file_md5
+        and (${archiveAlias}.P_Id = latest_md5.project_id
+        or (${archiveAlias}.P_Id is null and latest_md5.project_id is null))
+        and
+        <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.archiveMd5RankKey"/>
+        = latest_md5.max_key
+    </sql>
+
+    <select id="getArchiveFileByApIds" resultType="com.jpmsoft.common.model.response.Archive.ArchiveFileResponse">
+        select
+        fa.file_name as afAnnexName,
+        fa.File_Input_Version as fileInputVersion,
+        fa.file_create_u_id as fileCreateUid,
+        fa.file_create_u_name as fileCreateUname,
+        mn.*,
+        ar.Ap_State as apState
+        from Archive_File mn
+        left join SYS_FileAnnex fa on mn.Af_Annex_Id=fa.file_id
+        left join Archive ar on ar.Ap_Id=mn.Ap_Id
+        where mn.Ap_Id in
+        <foreach item="item" index="index" collection="apIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+
+    <sql id="getArchiveFileStatisticsFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.afFrom!=null">
+            and mn.Af_From=#{params.afFrom}
+        </if>
+        <if test="params.afType!=null">
+            and mn.Af_Type=#{params.afType}
+        </if>
+        <if test="params.afState!=null">
+            and mn.Af_State=#{params.afState}
+        </if>
+        <if test="params.apState!=null">
+            and ap.Ap_State=#{params.apState}
+        </if>
+        <if test="params.pBuildModel!=null">
+            and pro.P_Build_Model=#{params.pBuildModel}
+        </if>
+        <if test="params.pId!=null">
+            and pro.P_Id=#{params.pId}
+        </if>
+        <if test="params.adType!=null">
+            and ad.Ad_Type=#{params.adType}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type=#{params.pType}
+        </if>
+        <if test="params.adId!=null and params.adId != ''">
+            and (ad.Ad_Id = #{params.adId}
+            or ad.Ad_Link like concat((select Ad_Link from Archive_Directory where Ad_Id = #{params.adId}), '/%'))
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department=#{params.pCompetentDepartment}
+        </if>
+        <if test="params.pUseUnit!=null">
+            and (pro.P_Use_Unit like concat('%',#{params.pUseUnit},'%')
+            or c11.C_Name like concat('%',#{params.pUseUnit},'%'))
+        </if>
+        <if test="params.pImpCompany!=null">
+            and pro.P_Imp_Company like concat('%',#{params.pImpCompany},'%')
+        </if>
+        <if test="params.afCode!=null">
+            and mn.Af_Code like concat('%',#{params.afCode},'%')
+        </if>
+        <if test="params.afName!=null">
+            and mn.Af_Name like concat('%',#{params.afName},'%')
+        </if>
+        <if test="params.adCode!=null">
+            and ad.Ad_Code like concat('%',#{params.adCode},'%')
+        </if>
+        <if test="params.adName!=null">
+            and ad.Ad_Name like concat('%',#{params.adName},'%')
+        </if>
+        <if test="params.adLink!=null">
+            and ad.Ad_Link like concat('%',#{params.adLink},'%')
+        </if>
+        <if test="params.apIssueCompany!=null">
+            and ap.Ap_Issue_Company like concat('%',#{params.apIssueCompany},'%')
+        </if>
+        <if test="params.apTitle!=null">
+            and ap.Ap_Title like concat('%',#{params.apTitle},'%')
+        </if>
+        <if test="params.apAuthor!=null">
+            and ap.Ap_Author like concat('%',#{params.apAuthor},'%')
+        </if>
+        <if test="params.apKeyword!=null">
+            and ap.Ap_Keyword like concat('%',#{params.apKeyword},'%')
+        </if>
+        <if test="params.apPosition!=null">
+            and ap.Ap_Position like concat('%',#{params.apPosition},'%')
+        </if>
+        <if test="params.apDocumentNo!=null">
+            and ap.Ap_Document_No like concat('%',#{params.apDocumentNo},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},ap.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and pro.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.afFileSizeStart!=null">
+            and mn.Af_File_Size > #{params.afFileSizeStart}
+        </if>
+        <if test="params.afFileSizeEnd!=null">
+            and mn.Af_File_Size &lt; #{params.afFileSizeEnd}
+        </if>
+        <if test="params.apApprovalDateStart!=null">
+            and ap.Ap_Approval_Date >= #{params.apApprovalDateStart}
+        </if>
+        <if test="params.apApprovalDateEnd!=null">
+            and ap.Ap_Approval_Date &lt;= #{params.apApprovalDateEnd}
+        </if>
+        <if test="params.apReceiptTimeStart!=null">
+            and ap.Ap_Receipt_Time >= #{params.apReceiptTimeStart}
+        </if>
+        <if test="params.apReceiptTimeEnd!=null">
+            and ap.Ap_Receipt_Time &lt;= #{params.apReceiptTimeEnd}
+        </if>
+        <if test="params.afCreateTimeStart!=null">
+            and mn.Af_Create_Time >= #{params.afCreateTimeStart}
+        </if>
+        <if test="params.afCreateTimeEnd!=null">
+            and mn.Af_Create_Time &lt;= #{params.afCreateTimeEnd}
+        </if>
+        <include refid="constructionFilter"/>
+        <include refid="retrievalFile" />
+    </sql>
+
+    <sql id="statisticsFileSource">
+            Archive_File mn
+    </sql>
+
+    <sql id="statisticsFileSource" databaseId="dm">
+        (
+        select ranked.*
+        from (
+        select project_files.*,
+        max(project_files.archive_rank_key) over (
+        partition by project_files.archive_project_id, project_files.archive_md5
+        ) as archive_max_key
+        from (
+        select af.*,
+        source_archive.P_Id as archive_project_id,
+        source_annex.File_MD5_Code as archive_md5,
+        <include refid="archiveMd5RankKey">
+            <property name="fileAlias" value="af"/>
+        </include>
+        as archive_rank_key
+        from Archive_File af
+        left join Archive source_archive on source_archive.Ap_Id = af.Ap_Id
+        left join SYS_FileAnnex source_annex on source_annex.file_id = af.Af_Annex_Id
+        <where>
+            <if test="params.pId != null">
+                source_archive.P_Id = #{params.pId}
+            </if>
+        </where>
+        ) project_files
+        ) ranked
+        where ranked.archive_md5 is null or ranked.archive_rank_key = ranked.archive_max_key
+        ) mn
+    </sql>
+
+    <sql id="statisticsMd5Join">
+        <include refid="projectLatestArchiveMd5JoinScoped">
+            <property name="fileAlias" value="mn"/>
+            <property name="archiveAlias" value="ap"/>
+            <property name="projectIdParameter" value="params.pId"/>
+        </include>
+    </sql>
+
+    <sql id="statisticsMd5Join" databaseId="dm">
+        <!-- 达梦已在基础数据集中完成去重。 -->
+    </sql>
+
+    <sql id="statisticsMd5Filter">
+            and (sfa.File_MD5_Code is null or latest_md5.max_key is not null)
+    </sql>
+
+    <sql id="statisticsMd5Filter" databaseId="dm">
+        <!-- 达梦在基础数据集中完成原统计接口的去重。 -->
+    </sql>
+
+    <sql id="statisticsFileFrom">
+        from
+        <choose>
+            <when test="params.wzUser != null">Archive_File mn</when>
+            <otherwise>
+                <include refid="statisticsFileSource"/>
+            </otherwise>
+        </choose>
+        left join Archive ap on mn.Ap_Id=ap.Ap_Id
+        left join Archive_Directory ad on ap.Ad_Id=ad.Ad_Id
+        left join Pre_Project pro on pro.P_Id=ap.P_Id
+        left join SYS_Company c11 on c11.C_Id=pro.P_Use_Unit
+        left join SYS_FileAnnex sfa on sfa.file_id=mn.Af_Annex_Id
+        <if test="params.wzUser == null">
+            <include refid="statisticsMd5Join"/>
+        </if>
+    </sql>
+
+    <!-- 同一查询读取父节点和本级授权，供 Java 沿目录树计算可见范围。 -->
+    <select id="getWzDirectoryAccess"
+            resultType="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper$DirectoryAccess">
+        select dir.Ad_Id as adId, dir.Ad_Parent_Id as parentId,
+        case
+        when exists (
+        select 1
+        from Archive_Directory_Group adg
+        inner join SYS_Department dep on dep.D_Id = adg.Adg_Group_Id
+        inner join SYS_Position pos on pos.D_Id = dep.D_Id
+        inner join SYS_Position_User pu on pu.P_Id = pos.P_Id
+        inner join SYS_User usr on usr.U_Id = pu.U_Id
+        where adg.Ad_Id = dir.Ad_Id
+        and adg.Adg_Type in ('01', '02')
+        and not exists (
+        select 1 from SYS_User grantee where grantee.U_Id = adg.Adg_Group_Id
+        )
+        and usr.U_Id = #{user.id}
+        <if test="user.enableTenant">
+            and adg.Te_Id = #{user.teId}
+            and usr.Te_Id = #{user.teId}
+        </if>
+        ) then 2
+        <if test="user.enableTenant">
+            when dir.Te_Id is null or dir.Te_Id != #{user.teId} then 1
+        </if>
+        when exists (
+        select 1
+        from Archive_Directory_Group local_config
+        where local_config.Ad_Id = dir.Ad_Id
+        <if test="user.enableTenant">
+            and local_config.Te_Id = #{user.teId}
+        </if>
+        ) then 1
+        else 0
+        end as accessState
+        from Archive_Directory dir
+    </select>
+
+    <sql id="statisticsWZDirectoryFilter">
+        <choose>
+            <when test="params.wzDirectoryIds != null and !params.wzDirectoryIds.isEmpty()">
+                and (ap.Ad_Id in
+                <foreach collection="params.wzDirectoryIds" item="directoryId" index="index" open="(" close=")">
+                    <if test="index > 0">
+                        <choose>
+                            <when test="index % 500 == 0">) or ap.Ad_Id in (</when>
+                            <otherwise>,</otherwise>
+                        </choose>
+                    </if>
+                    #{directoryId}
+                </foreach>
+                )
+            </when>
+            <otherwise>and 1 = 0</otherwise>
+        </choose>
+        <!-- 目录授权通过后，还须和附件创建人同属至少一个实际部门。 -->
+        and exists (
+        select 1
+        from SYS_Position_User reader_assignment
+        inner join SYS_Position reader_position on reader_position.P_Id = reader_assignment.P_Id
+        inner join SYS_Department shared_department on shared_department.D_Id = reader_position.D_Id
+        inner join SYS_Position creator_position on creator_position.D_Id = shared_department.D_Id
+        inner join SYS_Position_User creator_assignment on creator_assignment.P_Id = creator_position.P_Id
+        inner join SYS_User creator on creator.U_Id = creator_assignment.U_Id
+        where reader_assignment.U_Id = #{params.wzUser.id}
+        and creator.U_Id = mn.Af_Create_Uid
+        <if test="params.wzUser.enableTenant">
+            and creator.Te_Id = #{params.wzUser.teId}
+        </if>
+        )
+    </sql>
+
+    <sql id="statisticsFileWhere">
+        <choose>
+            <when test="params.wzUser != null">
+                where 1 = 1
+                <include refid="statisticsWZDirectoryFilter"/>
+            </when>
+            <otherwise>
+                ${params.authSql}
+            </otherwise>
+        </choose>
+        <if test="params.wzUser == null">
+            <include refid="statisticsMd5Filter"/>
+        </if>
+        <include refid="getArchiveFileStatisticsFilter"/>
+    </sql>
+
+    <!-- 总数只关联筛选所需表，避免模板及项目名称展示关联进入 COUNT。 -->
+    <select id="getArchiveFileStatisticsCount" resultType="java.lang.Long">
+        select count(*)
+        <include refid="statisticsFileFrom"/>
+        <include refid="statisticsFileWhere"/>
+    </select>
+
+    <select id="getArchiveFileStatistics"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Archive.ArchiveStatisticsModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Construction_Start as pConstructionStart,
+        pro.P_Construction_End as pConstructionEnd,
+        pro.P_Id as pId,
+        ad.Ad_Id as adId,
+        ad.Ad_Code as adCode,
+        ad.Ad_Name as adName,
+        ad.Ad_Link as adLink,
+        ap.Ap_Title as apTitle,
+        ap.Ap_Author as apAuthor,
+        ap.Ap_Keyword as apKeyword,
+        ap.Ap_Position as apPosition,
+        ap.Ap_Document_No as apDocumentNo,
+        ap.Ap_Written_Date as apWrittenDate,
+        ap.Ap_Issue_Company as apIssueCompany,
+        ap.Ap_Approval_Date as apApprovalDate,
+        ap.Ap_Receipt_Time as apReceiptTime,
+        ap.Ap_State as apState,
+        sfa.File_Input_Version as fileInputVersion,
+        sfa.file_create_u_id as fileCreateUid,
+        sfa.file_create_u_name as fileCreateUname,
+        st.t_name as tempName,
+        ifnull(c11.C_Name, pro.P_Use_Unit) as pUseUnitName,
+        mn.*
+        <include refid="statisticsFileFrom"/>
+        left join sys_file sf2 on sf2.fileid = sfa.File_Entity_Id
+        left join SYS_FileTemplate st on st.t_id = sf2.t_id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        <include refid="statisticsFileWhere"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Af_Create_Time desc, ad.Ad_Name desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <!--************************************* 检索SQL *************************************-->
+    <sql id="retrievalFile">
+        <if test="params.retrieval!=null">
+            and (INSTR(pro.P_Name,#{params.retrieval}) or INSTR(pro.P_Code,#{params.retrieval})
+            or INSTR(mn.Af_Code,#{params.retrieval})  or INSTR(mn.Af_Name,#{params.retrieval})
+            or INSTR(ad.Ad_Code,#{params.retrieval}) or INSTR(ad.Ad_Name,#{params.retrieval})
+            or INSTR(ad.Ad_Link,#{params.retrieval}) or INSTR(ad.Ad_No,#{params.retrieval})
+            or INSTR(ad.Ad_Person_Uname,#{params.retrieval}) or INSTR(ad.Ad_Version,#{params.retrieval})
+            or INSTR(ap.Ap_Issue_Company,#{params.retrieval}) or INSTR(ap.Ap_Title,#{params.retrieval})
+            or INSTR(ap.Ap_Author,#{params.retrieval}) or INSTR(ap.Ap_Keyword,#{params.retrieval})
+            or INSTR(ap.Ap_Position,#{params.retrieval}) or INSTR(ap.Ap_Document_No,#{params.retrieval})
+            or INSTR(ap.Ap_Remark,#{params.retrieval}) or INSTR(ap.Ap_Person_Uname,#{params.retrieval})
+            or INSTR(ap.Ap_Receipt_No,#{params.retrieval}) or INSTR(ap.Ap_Transfer_Uname,#{params.retrieval})
+            or INSTR(ap.Ap_Receiver_Uname,#{params.retrieval})
+            )
+        </if>
+    </sql>
+
+    <!--************************************* dm *************************************-->
+
+    <sql id="constructionFilter" databaseId="dm">
+        <if test="params.pConstructionStartStart!=null and params.pConstructionStartEnd!=null">
+            and (months_between(to_date(pro.P_Construction_Start,'yyyy-mm-dd') ,
+            to_date(#{params.pConstructionStartStart},'yyyy-mm-dd'))>=0
+            and months_between(to_date(#{params.pConstructionStartEnd},'yyyy-mm-dd') ,
+            to_date(pro.P_Construction_Start,'yyyy-mm-dd'))>=0
+            )
+        </if>
+        <if test="params.pConstructionEndStart!=null and params.pConstructionEndEnd!=null">
+            and (months_between(to_date(pro.P_Construction_End,'yyyy-mm-dd') ,
+            to_date(#{params.pConstructionEndStart},'yyyy-mm-dd'))>=0
+            and months_between(to_date(#{params.pConstructionEndEnd},'yyyy-mm-dd') ,
+            to_date(pro.P_Construction_End,'yyyy-mm-dd'))>=0
+            )
+        </if>
+    </sql>
+
+    <!--************************************* mysql *************************************-->
+
+    <sql id="constructionFilter" databaseId="mysql">
+        <if test="params.pConstructionStartStart!=null and params.pConstructionStartEnd!=null">
+            and (DATE_FORMAT(pro.P_Construction_Start,'%Y-%m') >= DATE_FORMAT(#{params.pConstructionStartStart},'%Y-%m')
+            and DATE_FORMAT(#{params.pConstructionStartEnd},'%Y-%m') >= DATE_FORMAT(pro.P_Construction_Start,'%Y-%m')
+            )
+        </if>
+        <if test="params.pConstructionEndStart!=null and params.pConstructionEndEnd!=null">
+            and (DATE_FORMAT(pro.P_Construction_End,'%Y-%m') >= DATE_FORMAT(#{params.pConstructionEndStart},'%Y-%m')
+            and DATE_FORMAT(#{params.pConstructionEndEnd},'%Y-%m') >= DATE_FORMAT(pro.P_Construction_End,'%Y-%m')
+            )
+        </if>
+    </sql>
+
+    <sql id="constructionFilter" databaseId="postgre">
+        <if test="params.pConstructionStartStart!=null and params.pConstructionStartEnd!=null">
+            and (to_char(pro.P_Construction_Start,'yyyy-MM') >= to_char(#{params.pConstructionStartStart},'yyyy-MM')
+            and to_char(#{params.pConstructionStartEnd},'yyyy-MM') >= to_char(pro.P_Construction_Start,'yyyy-MM')
+            )
+        </if>
+        <if test="params.pConstructionEndStart!=null and params.pConstructionEndEnd!=null">
+            and (to_char(pro.P_Construction_End,'yyyy-MM') >= to_char(#{params.pConstructionEndStart},'yyyy-MM')
+            and to_char(#{params.pConstructionEndEnd},'yyyy-MM') >= to_char(pro.P_Construction_End,'yyyy-MM')
+            )
+        </if>
+    </sql>
+
+</mapper>

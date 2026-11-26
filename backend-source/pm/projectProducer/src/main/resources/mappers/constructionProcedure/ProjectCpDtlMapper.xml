@@ -1,0 +1,599 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.constructionProcedure.ProjectCpDtlMapper">
+
+
+    <select id="updateFileTypeBath" resultType="Integer">
+        update Project_Cp_Dtl set Cpd_File_Type=#{type}
+        where cpd_id in
+        <foreach collection="cpdIds" separator="," item="id" close=")" open="(">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="notPersonIdData" resultType="String">
+        select Cpd_Id from Project_Cp_Dtl
+        where   Cp_Id=#{cpId} and Cpd_Person_Id is null
+    </select>
+
+    <select id="notCreateUidData" resultType="String">
+        select Cpd_Id from Project_Cp_Dtl
+        where  Cp_Id=#{cpId} and Cpd_Create_Uid is null
+    </select>
+
+    <update id="batchUpdateCpDtlPerson">
+        update Project_Cp_Dtl set Cpd_Person_Id=#{model.personId},Cpd_Person_Name=#{model.personName}
+        where Cpd_Id in
+        <foreach collection="model.allIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="batchUpdateCpDtlCreateUser">
+        update Project_Cp_Dtl set Cpd_Create_Uid=#{model.personId},Cpd_Create_Uname=#{model.personName}
+        where Cpd_Id in
+        <foreach collection="model.allIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="getProCpDtlByCpId" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpDtlResponse">
+        select cpl.Cpl_Sort                 as cpdSort,
+               cpl.Cpl_Parent_Id            as cpdParentId,
+               cpl.Cpl_Administration_Url   as cpdAdministrationUrl,
+               cpl.Cpl_Administration_Url_H as cpdAdministrationUrlH,
+               cpl.Cpl_File_Expiain         as cplFileExpiain,
+               cpl.Cpl_Achievement_Type     as cplAchievementType,
+               cpl.T_Code                   as tCode,
+               (select count(*) from Project_Cp_Dtl_Cancel cdc where cdc.cpd_id=wn.cpd_id and cdc.state!=3 and cdc.state!=7) approveCpCancel,
+               wn.*
+        from Project_Cp_Dtl wn
+                 left join Project_Cp_Library cpl on cpl.Cpl_Id = wn.Cpd_Cpl_Id
+        where wn.Cp_Id = #{cpId}
+        order by cpl.Cpl_Sort asc
+    </select>
+
+    <select id="getProCpDtlIdListByPid" resultType="java.lang.String">
+        select distinct mn.Cpd_Cpl_Id
+        from Project_Cp_Dtl mn
+                 left join Project_Cp cp on cp.Cp_Id = mn.Cp_Id
+        where cp.P_Id = #{pId}
+    </select>
+
+    <select id="getProCpDtlByPid"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.constructionProcedure.ProjectCpDtl">
+        select cpl.Cpl_Sort                 as cpdSort,
+               cpl.Cpl_Parent_Id            as cpdParentId,
+               cpl.Cpl_Administration_Url   as cpdAdministrationUrl,
+               cpl.Cpl_Administration_Url_H as cpdAdministrationUrlH,
+               dtl.*
+        from Project_Cp_Dtl dtl
+                 left join Project_Cp cp on cp.Cp_Id = dtl.Cp_Id
+                 left join Project_Cp_Library cpl on cpl.Cpl_Id = dtl.Cpd_Cpl_Id
+        where cp.P_Id = #{pId}
+        order by dtl.Cpd_Sort asc
+    </select>
+
+
+    <select id="getProCpDtlListByCpId" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpDtlResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        cpl.Cpl_Sort as cpdSort,
+        cpl.Cpl_Parent_Id as cpdParentId,
+        cpl.Cpl_Administration_Url as cpdAdministrationUrl,
+        cpl.Cpl_Administration_Url_H as cpdAdministrationUrlH,
+        cpl.Cpl_File_Expiain as cplFileExpiain,
+        cpl.Cpl_Achievement_Type as cplAchievementType,
+        dtl.*
+        from Project_Cp_Dtl dtl
+        left join Project_Cp cp on cp.Cp_Id=dtl.Cp_Id
+        left join Pre_Project pro on pro.P_Id=cp.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join Project_Cp_Library cpl on cpl.Cpl_Id=dtl.Cpd_Cpl_Id
+        <where>
+            <if test="params.cpdStatus!=null">
+                and dtl.Cpd_Status = #{params.cpdStatus}
+            </if>
+            <if test="params.cpId!=null">
+                and dtl.Cp_Id = #{params.cpId}
+            </if>
+            <if test="params.teId!=null">
+                and dtl.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pId!=null">
+                and pro.P_Id = #{params.pId}
+            </if>
+            <if test="params.statisticalType!=null">
+                <if test="params.statisticalType==2">
+                    and dtl.Cpd_State = 7
+                </if>
+                <if test="params.statisticalType==3">
+                    and dtl.Cpd_State != 7
+                </if>
+                <if test="params.statisticalType==4">
+                    and ( dtl.Cpd_State != 7 and dtl.Cpd_Plan_End_Time &lt; now() )
+                </if>
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by dtl.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by dtl.Cpd_End_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getProCpDtlByUser" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpDtlResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        cpl.Cpl_Sort as cpdSort,
+        cpl.Cpl_Parent_Id as cpdParentId,
+        cpl.Cpl_Administration_Url as cpdAdministrationUrl,
+        cpl.Cpl_Administration_Url_H as cpdAdministrationUrlH,
+        dtl.*
+        from Project_Cp_Dtl dtl
+        left join Project_Cp cp on cp.Cp_Id=dtl.Cp_Id
+        left join Pre_Project pro on pro.P_Id=cp.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join Project_Cp_Library cpl on cpl.Cpl_Id=dtl.Cpd_Cpl_Id
+        <where>
+            <if test="params.cpdStatus!=null">
+                and dtl.Cpd_Status = #{params.cpdStatus}
+            </if>
+            <if test="params.cpdPersonId!=null">
+                and dtl.Cpd_Person_Id = #{params.cpdPersonId}
+            </if>
+            <if test="params.teId!=null">
+                and dtl.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pId!=null">
+                and pro.P_Id = #{params.pId}
+            </if>
+            <if test="params.statisticalType!=null">
+                <if test="params.statisticalType==2">
+                    and dtl.Cpd_State = 7
+                </if>
+                <if test="params.statisticalType==3">
+                    and dtl.Cpd_State != 7
+                </if>
+                <if test="params.statisticalType==4">
+                    and ((dtl.Cpd_End_Time is null and dtl.Cpd_Plan_End_Time&lt;now()) or (dtl.Cpd_End_Time is not null and
+                    dtl.Cpd_Plan_End_Time &lt;= dtl.Cpd_End_Time) )
+                </if>
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by dtl.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by dtl.Cpd_End_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getProCpDtlComplateList" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpDtlResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        cp.P_Id as pId,
+        cpl.Cpl_Sort as cpdSort,
+        cpl.Cpl_Parent_Id as cpdParentId,
+        cpl.Cpl_Administration_Url as cpdAdministrationUrl,
+        cpl.Cpl_Administration_Url_H as cpdAdministrationUrlH,
+        dtl.*
+        from Project_Cp_Dtl dtl
+        left join Project_Cp cp on cp.Cp_Id=dtl.Cp_Id
+        left join Pre_Project pro on pro.P_Id=cp.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join Project_Cp_Library cpl on cpl.Cpl_Id=dtl.Cpd_Cpl_Id
+        where dtl.Cpd_State=7 and dtl.Cpd_Status=1
+        and dtl.Cpd_End_Time is not null
+        <if test="params.teId!=null">
+            and dtl.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type = #{params.pType}
+        </if>
+        <if test="params.pRegion!=null">
+            and pro.P_Region = #{params.pRegion}
+        </if>
+        <if test="params.pProjectStage!=null">
+            and pro.P_Project_Stage = #{params.pProjectStage}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and pro.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by dtl.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by dtl.Cpd_End_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="statisticalProCpAndDtl"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.constructionProcedure.StatisticalProCpAndDtlVo">
+        select
+        (select count(1) from (
+        (select distinct cpd.Cpd_Id from Project_Cp_Dtl cpd
+        left join Project_Cp cp on cpd.CP_Id=cpd.CP_Id
+        left join Pre_Project pro on cp.P_Id=pro.P_Id where cpd.Cpd_Status=1
+        <include refid="statisticalProCpAndDtlFilter"/>
+        ) )a ) as cpDtlCount,
+        (select count(1) from Project_Cp cp
+        left join Pre_Project pro on cp.P_Id=pro.P_Id where 1=1
+        <include refid="statisticalProCpAndDtlFilter"/>
+        ) as cpCount,
+        (select count(1) from Project_Cp_Dtl where Cpd_State=7 and Cpd_Status=1
+        <if test="params.teId!=null">
+            and Te_Id = #{params.teId}
+        </if>) as completeCpDtlCount,
+        (select count(1) from Pre_Project pro where 1=1
+        <include refid="statisticalProCpAndDtlFilter"/>
+        ) as projectCount,
+        (select count(1) from (select Cpd_Create_Uid from Project_Cp_Dtl cpd
+        left join Project_Cp cp on cpd.CP_Id=cpd.CP_Id
+        left join Pre_Project pro on cp.P_Id=pro.P_Id
+        where cpd.Cpd_Status=1
+        and cpd.Cpd_Create_Uid is not null
+        <include refid="statisticalProCpAndDtlFilter"/>
+        group by Cpd_Create_Uid) a ) as
+        cpDtlCreateUserCount
+    </select>
+
+    <sql id="statisticalProCpAndDtlFilter">
+        and pro.deleted=FALSE
+        <if test="params.teId!=null">
+            and pro.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type = #{params.pType}
+        </if>
+        <if test="params.pRegion!=null">
+            and pro.P_Region = #{params.pRegion}
+        </if>
+        <if test="params.state!=null">
+            and pro.State = #{params.state}
+        </if>
+        <if test="params.pStatus!=null">
+            and pro.P_Status = #{params.pStatus}
+        </if>
+        <if test="params.pProjectStage!=null">
+            and pro.P_Project_Stage = #{params.pProjectStage}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and pro.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            and pro.P_Name like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+
+    <select id="getProCpDtlTemporaryListByuid"
+            resultType="com.jpmsoft.common.model.response.proCp.ProCpDtlTemporaryResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        cpl.Cpl_Sort as cpdSort,
+        cpl.Cpl_Parent_Id as cpdParentId,
+        cpl.Cpl_Administration_Url as cpdAdministrationUrl,
+        cpl.Cpl_Administration_Url_H as cpdAdministrationUrlH,
+        dtl.*
+        from Project_Cp_Dtl dtl
+        left join Project_Cp cp on cp.Cp_Id=dtl.Cp_Id
+        left join Pre_Project pro on pro.P_Id=cp.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join Project_Cp_Library cpl on cpl.Cpl_Id=dtl.Cpd_Cpl_Id
+        where
+        dtl.Cpd_Plan_End_Time is not null
+        <if test="params.teId!=null">
+            and dtl.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pName!=null">
+            and pro.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.cpdName!=null">
+            and dtl.Cpd_Name like concat('%',#{params.cpdName},'%')
+        </if>
+        <if test="params.cpdPersonId!=null">
+            and dtl.Cpd_Person_Id=#{params.cpdPersonId}
+        </if>
+        <if test="params.temporaryTime!=null">
+            and dtl.Cpd_Plan_End_Time &lt;= #{params.temporaryTime}
+        </if>
+        <if test="params.pending!=null">
+            <if test="params.pending==0">
+                and dtl.Cpd_State!=7
+            </if>
+        </if>
+        <if test="params.pId!=null">
+            and cp.P_Id=#{params.pId}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by dtl.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by dtl.Cpd_Plan_End_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="statisticalProCpDtlByTimeFrame" resultType="Map">
+        select
+        (select count(1) from Project_Cp_Dtl cpd
+        left join Project_Cp cp on cp.Cp_Id=cpd.Cp_Id
+        left join Pre_Project pro on pro.P_Id=cp.P_Id
+        where cpd.Cpd_Status=1
+        <if test="params.teId!=null">
+            and cpd.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type = #{params.pType}
+        </if>
+        <if test="params.pRegion!=null">
+            and pro.P_Region = #{params.pRegion}
+        </if>
+        <if test="params.pProjectStage!=null">
+            and pro.P_Project_Stage = #{params.pProjectStage}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and pro.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.startTime!=null">
+            and cpd.Cpd_Plan_End_Time > #{params.startTime}
+        </if>
+        <if test="params.endTime!=null">
+            and cpd.Cpd_Plan_End_Time &lt; #{params.endTime}
+        </if>
+        ) as "planComplete",
+        (select count(1) from Project_Cp_Dtl cpd
+        left join Project_Cp cp on cp.Cp_Id=cpd.Cp_Id
+        left join Pre_Project pro on pro.P_Id=cp.P_Id
+        where cpd.Cpd_Status=1
+        <if test="params.teId!=null">
+            and cpd.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type = #{params.pType}
+        </if>
+        <if test="params.pRegion!=null">
+            and pro.P_Region = #{params.pRegion}
+        </if>
+        <if test="params.pProjectStage!=null">
+            and pro.P_Project_Stage = #{params.pProjectStage}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and pro.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.cpdState!=null">
+            and cpd.Cpd_State = #{params.cpdState}
+        </if>
+        <if test="params.startTime!=null">
+            and cpd.Cpd_Plan_End_Time > #{params.startTime}
+        </if>
+        <if test="params.endTime!=null">
+            and cpd.Cpd_Plan_End_Time &lt; #{params.endTime}
+        </if>
+        ) as "actualComplete"
+    </select>
+
+    <select id="getCpDtlById" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpDtlResponse">
+        select pro.P_Name                   as pName,
+               proc.C_Name                  as pConstructionUnitName,
+               proc.C_Abbreviation          as pConsAbbName,
+               prod.D_Name                  as pCompetentDepartmentName,
+               cpl.Cpl_Sort                 as cpdSort,
+               cpl.Cpl_Parent_Id            as cpdParentId,
+               cpl.Cpl_Administration_Url   as cpdAdministrationUrl,
+               cpl.Cpl_Administration_Url_H as cpdAdministrationUrlH,
+               cpl.Cpl_Achievement_Type     as cplAchievementType,
+               f.File_Relation_Id           as fileRelationId,
+               dtl.*
+        from Project_Cp_Dtl dtl
+                 left join Project_Cp cp on cp.Cp_Id = dtl.Cp_Id
+                 left join Pre_Project pro on pro.P_Id = cp.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join Project_Cp_Library cpl on cpl.Cpl_Id = dtl.Cpd_Cpl_Id
+                 left join Sys_File f on f.FileId = dtl.Cpd_Id
+        where dtl.Cpd_Id = #{cpdId}
+    </select>
+
+
+    <select id="getProjectCpDtlByCpIds" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpDtlResponse">
+        select
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        cpl.Cpl_Sort as cpdSort,
+        cpl.Cpl_Parent_Id as cpdParentId,
+        cpl.Cpl_Administration_Url as cpdAdministrationUrl,
+        cpl.Cpl_Administration_Url_H as cpdAdministrationUrlH,
+        f.File_Relation_Id as fileRelationId,
+        dtl.*
+        from Project_Cp_Dtl dtl
+        left join Project_Cp cp on cp.Cp_Id=dtl.Cp_Id
+        left join Pre_Project pro on pro.P_Id=cp.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join Project_Cp_Library cpl on cpl.Cpl_Id=dtl.Cpd_Cpl_Id
+        left join Sys_File f on f.FileId=dtl.Cpd_Id
+        where dtl.Cp_Id in
+        <foreach collection="cpIds" open="(" close=")" separator="," item="cpId">
+            #{cpId}
+        </foreach>
+    </select>
+
+    <select id="qryProjectCpDtlByCpIds"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.multiproject.ProjectCpDtlVo">
+        SELECT
+            pp.p_id pId,
+            pp.p_name PName,
+            cpd.cpd_code CpdCode,
+            cpd.cpd_name CpdName
+        FROM
+            Project_Cp cp
+            LEFT JOIN Project_Cp_Dtl cpd ON cp.cp_id = cpd.cp_id
+            LEFT JOIN Pre_Project pp ON cp.p_id = pp.p_id
+        WHERE cpd.cpd_state != 0
+            AND cpd.cpd_state != 3
+            AND cpd.cpd_code IN
+        <foreach collection="codes" open="(" close=")" separator="," item="code">
+            #{code}
+        </foreach>
+    </select>
+
+
+    <select id="getProjectInfo" resultType="com.jpmsoft.projectProducer.pojo.dto.other.ProjectInfoDTO">
+        select
+        f.file_relation_id as fileRelationId,
+        mn.id as pcrId,
+        mn.Pcr_Doc as pcrDoc,
+        pp.P_Name as pName,
+        pcd.Cpd_Name as cpdName,
+        mn.file_name as fileName,
+        mn.file_approval_time as fileApprovalTime,
+        sd1.D_Name as pCompetentDepartmentName,
+        sd2.D_Name as pDepartmentName,
+        pp.P_Build_Model as pBuildModel,
+        mn.Create_Uname,
+        mn.Create_Time,
+        pp.P_Category as pCategory,
+        mn.file_Expire as fileExpire,
+        mn.file_expiration_date as fileExpirationDate
+        from Project_Cp_Rpr mn
+        left join Project_Cp_Dtl pcd on mn.Cpd_Id = pcd.Cpd_Id
+        left join Project_Cp pc on pc.Cp_Id = pcd.Cp_Id
+        left join Pre_Project pp on pp.P_Id = pc.P_Id
+        left join sys_department sd1 on sd1.D_Id = pp.p_Competent_Department
+        left join sys_department sd2 on sd2.D_Id = pp.P_Department
+        left join Sys_File f on f.fileid=mn.id
+        <if test="request.authSql != null and request.authSql != ''">
+            ${request.authSql}
+        </if>
+        <if test="request.authSql == null or request.authSql == ''">
+            where 1 = 1
+        </if>
+            and mn.operation_Type !='cancel'
+            <if test="request.pCategory != null and request.pCategory != ''">
+                and pp.P_Category=#{request.pCategory}
+            </if>
+            <if test="request.cpdId != null and request.cpdId != ''">
+                and  mn.Cpd_Id=#{request.cpdId}
+            </if>
+            <if test="request.cplIds != null">
+                <choose>
+                    <when test="request.cplIds.size() > 0">
+                        and pcd.Cpd_Cpl_Id in
+                        <foreach collection="request.cplIds" item="id" open="(" close=")" separator=",">
+                            #{id}
+                        </foreach>
+                    </when>
+                    <otherwise>
+                        and 1=0
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="request.pName != null and request.pName != ''">
+                and INSTR(pp.P_Name,#{request.pName})
+            </if>
+            <if test="request.pDepartmentName != null and request.pDepartmentName != ''">
+                and INSTR(sd2.D_Name,#{request.pDepartmentName})
+            </if>
+            <if test="request.pCompetentDepartmentName != null and request.pCompetentDepartmentName != ''">
+                and INSTR(sd1.D_Name,#{request.pCompetentDepartmentName})
+            </if>
+            <if test="request.cpdName != null and request.cpdName != ''">
+                and INSTR(pcd.Cpd_Name,#{request.cpdName})
+            </if>
+            <if test="request.fileName != null and request.fileName != ''">
+                and INSTR(mn.file_name,#{request.fileName})
+            </if>
+            <if test="request.pBuildModel != null and request.pBuildModel != ''">
+                and pp.P_Build_Model=#{request.pBuildModel}
+            </if>
+            <if test="request.createUname != null and request.createUname != ''">
+                and INSTR(mn.Create_Uname,#{request.createUname})
+            </if>
+            <if test="request.fileApprovalTime != null and request.fileApprovalTime != ''">
+                and DATE_FORMAT(mn.file_approval_time, '%Y-%m-%d') like concat('%',#{request.fileApprovalTime},'%')
+            </if>
+            <if test="request.fileExpirationDate != null and request.fileExpirationDate != ''">
+                and DATE_FORMAT(mn.file_expiration_date, '%Y-%m-%d') like concat('%',#{request.fileExpirationDate},'%')
+            </if>
+            <if test="request.createTime != null and request.createTime != ''">
+                and DATE_FORMAT(mn.Create_Time, '%Y-%m-%d') like concat('%',#{request.createTime},'%')
+            </if>
+
+    </select>
+
+
+    <select  id="selectProjectCpRprByCpdId" resultType="com.jpmsoft.projectProducer.pojo.response.ProjectCpRprResponse">
+        select *  from  Project_Cp_Rpr mn
+        <if test="authSql != null and authSql != ''">
+            ${authSql}
+        </if>
+        <if test="authSql == null or authSql == ''">
+            where 1 = 1
+        </if>
+        <if test="cpdId != null and cpdId != ''">
+            and  mn.Cpd_Id=#{cpdId}
+        </if>
+    </select>
+
+    <select id="getGantSectionListByPid" resultType="com.jpmsoft.common.model.request.Plan.GantSectionDTO">
+        select mn.*
+        from gant_section mn
+        left join Gantt_Plan gp on gp.Plan_Id = mn.Plan_Id
+        where gp.Plan_State = 7 and gp.P_Id = #{pId}
+    </select>
+
+    <select id="getAllCpDtlList" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpDtlResponse">
+        select
+        pro.P_Name as pName,
+        cpd.*
+        from Project_Cp_Dtl cpd
+        left join Project_Cp cp on cp.CP_Id = cpd.CP_Id
+        left join Pre_Project pro on cp.P_Id = pro.P_Id
+        where cpd.Cpd_Status = 1
+        <if test="params.cpdState != null">
+            and cpd.Cpd_State = #{params.cpdState}
+        </if>
+        <if test="params.startTime!=null">
+            and cpd.Cpd_Plan_End_Time > #{params.startTime}
+        </if>
+        <if test="params.endTime!=null">
+            and cpd.Cpd_Plan_End_Time &lt; #{params.endTime}
+        </if>
+        <include refid="statisticalProCpAndDtlFilter"/>
+    </select>
+</mapper>

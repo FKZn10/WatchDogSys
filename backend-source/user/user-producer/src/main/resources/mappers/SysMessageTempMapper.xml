@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysMessageTempMapper">
+
+    <select id="getSysMessageTempByCode" resultType="com.jpmsoft.userProducer.pojo.vo.SysMessageTempVo">
+        select
+            u1.U_Name as createUname,
+            u2.U_Name as updateUname,
+            sc.Ssc_Json as sscJson,
+            sc.Ssc_Content as sscContent,
+            mn.*
+        from  Sys_Message_Temp mn
+                  left join SYS_User u1 on u1.U_Id=mn.Create_Uid
+                  left join SYS_User u2 on u2.U_Id=mn.Update_Uid
+                  left join Sys_Sms_Conf sc on sc.Ssc_Temp_Code=mn.Smt_Sm_Code
+        where mn.Smt_Code=#{code}
+        order by mn.Create_Time Desc
+        limit 1
+    </select>
+
+    <select id="getSysMessageTempById" resultType="com.jpmsoft.userProducer.pojo.vo.SysMessageTempVo">
+        select
+            u1.U_Name as createUname,
+            u2.U_Name as updateUname,
+            mn.*
+        from  Sys_Message_Temp mn
+                  left join SYS_User u1 on u1.U_Id=mn.Create_Uid
+                  left join SYS_User u2 on u2.U_Id=mn.Update_Uid
+        where mn.id=#{id}
+    </select>
+
+    <select id="getSysMessageTempList" resultType="com.jpmsoft.userProducer.pojo.vo.SysMessageTempVo">
+        select
+            u1.U_Name as createUname,
+            u2.U_Name as updateUname,
+            mn.*
+        from  Sys_Message_Temp mn
+                  left join SYS_User u1 on u1.U_Id=mn.Create_Uid
+                  left join SYS_User u2 on u2.U_Id=mn.Update_Uid
+        <where>
+            <if test="params.smtName!=null">
+                and INSTR(mn.Smt_Name,#{params.smtName})
+            </if>
+            <if test="params.smtCode!=null">
+                and INSTR(mn.Smt_Code,#{params.smtCode})
+            </if>
+            <if test="params.smtType!=null">
+                and INSTR(mn.Smt_Type,#{params.smtType})
+            </if>
+            <if test="params.smtContent!=null">
+                and INSTR(mn.Smt_Content,#{params.smtContent})
+            </if>
+            <if test="params.createUname!=null">
+                and INSTR(u1.U_Name,#{params.createUname})
+            </if>
+            <if test="params.updateUname!=null">
+                and INSTR(u2.U_Name,#{params.updateUname})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

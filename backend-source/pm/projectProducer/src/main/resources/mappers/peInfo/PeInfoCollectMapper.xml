@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.peInfo.PeInfoCollectMapper">
+
+    <select id="getPeInfoCollectByPecId" resultType="com.jpmsoft.common.model.response.PeInfoCollectResponse">
+        select
+        c1.C_Name as pecConstructionUnitName,
+        c2.C_Name as pecUnitName,
+        sd.D_Name as pecDepartmentName,
+        c1.C_Abbreviation as pecConstructionAbbName,
+        f.file_relation_id as fileRelationId,
+        <include refid="entityFileds"/>
+        from  Pe_Info_Collect pec
+        left join  Sys_Company c1 on pec.pec_Construction_Unit_Id=c1.C_Id
+        left join  Sys_Company c2 on pec.Pec_Unit_Id=c2.C_Id
+        left join  Sys_Department sd on pec.Pec_Department=sd.D_Id
+        left join  Sys_File f on f.FileID=pec.pec_Id
+        where pec.Pec_Id=#{pecId}
+    </select>
+
+
+    <select id="getPeInfoCollectList" resultType="com.jpmsoft.common.model.response.PeInfoCollectResponse">
+        select
+        c1.C_Name_History as pecConstructionUnitNameHistory,
+        c1.C_Name as pecConstructionUnitName,
+        c2.C_Name as pecUnitName,
+        sd.D_Name as pecDepartmentName,
+        c1.C_Abbreviation as pecConstructionAbbName,
+        f.file_relation_id as fileRelationId,
+        <include refid="entityFileds"/>
+        from  Pe_Info_Collect pec
+        left join  Sys_Company c1 on pec.pec_Construction_Unit_Id=c1.C_Id
+        left join  Sys_Company c2 on pec.Pec_Unit_Id=c2.C_Id
+        left join  Sys_Department sd on pec.Pec_Department=sd.D_Id
+        left join  Sys_File f on f.FileID=pec.pec_Id
+        <where>
+            <if test="params.teId!=null">
+                and pec.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pecYear!=null">
+                and pec.Pec_Year=#{params.pecYear}
+            </if>
+            <if test="params.pecQuarter!=null">
+                and pec.Pec_Quarter=#{params.pecQuarter}
+            </if>
+            <if test="params.pecType!=null">
+                and pec.Pec_Type=#{params.pecType}
+            </if>
+            <if test="params.pecConstructionUnitId!=null">
+                and pec.pec_Construction_Unit_Id=#{params.pecConstructionUnitId}
+            </if>
+            <if test="params.pecUnitId!=null">
+                and pec.Pec_Unit_Id=#{params.pecUnitId}
+            </if>
+            <if test="params.pecUname!=null">
+                and pec.Pec_Uname=#{params.pecUname}
+            </if>
+            <if test="params.pecConstructionUnitName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and  likeCname(#{params.pecConstructionUnitName},c1.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and  c1.C_Name  like concat('%',#{params.pecConstructionUnitName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.pecDepartment!=null">
+                and pec.Pec_Department=#{params.pecDepartment}
+            </if>
+
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by pec.${params.sortFiled} ${params.sortType}
+        </if>
+        <if test="params.sortType==null or params.sortFiled==null">
+            order by pec.pec_Date desc
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getPeInfoCollectListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  Pe_Info_Collect pec
+        left join  Sys_Company c1 on pec.pec_Construction_Unit_Id=c1.C_Id
+        left join  Sys_Department sd on pec.Pec_Unit_Id=sd.D_Id
+        <where>
+            <if test="params.teId!=null">
+                and pec.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pecYear!=null">
+                and pec.Pec_Year=#{params.pecYear}
+            </if>
+            <if test="params.pecQuarter!=null">
+                and pec.Pec_Quarter=#{params.pecQuarter}
+            </if>
+            <if test="params.pecType!=null">
+                and pec.Pec_Type=#{params.pecType}
+            </if>
+            <if test="params.pecConstructionUnitId!=null">
+                and pec.pec_Construction_Unit_Id=#{params.pecConstructionUnitId}
+            </if>
+            <if test="params.pecUnitId!=null">
+                and pec.Pec_Unit_Id=#{params.pecUnitId}
+            </if>
+            <if test="params.pecUname!=null">
+                and pec.Pec_Uname=#{params.pecUname}
+            </if>
+            <if test="params.pecConstructionUnitName!=null">
+                and  c1.C_Name  like concat('%',#{params.pecConstructionUnitName},'%')
+            </if>
+            <if test="params.pecDepartment!=null">
+                and pec.Pec_Department=#{params.pecDepartment}
+            </if>
+        </where>
+    </select>
+
+    <sql id="entityFileds">
+     pec.pec_Id as pecId,
+     pec.pec_Date as pecDate,
+     pec.pec_Uid as pecUid,
+     pec.pec_Uname as pecUname,
+     pec.pec_Construction_Unit_Id as pecConstructionUnitId,
+     pec.Pec_Unit_Id as pecUnitId,
+     pec.Pec_Flow_Date as pecFlowDate,
+     pec.Pec_Flow_State as pecFlowState,
+     pec.Pec_Remark as pecRemark,
+     pec.Pec_Year as pecYear,
+     pec.Pec_Quarter as pecQuarter,
+     pec.Pec_Type as pecType,
+     pec.Pec_Department as pecDepartment
+    </sql>
+</mapper>

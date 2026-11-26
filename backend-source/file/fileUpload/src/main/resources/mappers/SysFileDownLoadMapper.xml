@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.SysFileDownloadMapper">
+
+    <resultMap id="FileDownloadEntity" type="com.jpmsoft.fileUpload.pojo.entity.SysFileDownload">
+        <id column="downId" jdbcType="VARCHAR" property="downId"/>
+        <result column="filePath" jdbcType="VARCHAR" property="filePath"/>
+        <result column="fileIds" jdbcType="LONGVARCHAR" property="fileIds"/>
+        <result column="downCreateTime" jdbcType="TIMESTAMP" property="downCreateTime"/>
+    </resultMap>
+
+    <select id="getSysFileDownload" resultMap="FileDownloadEntity">
+        SELECT
+            down_id as downId,
+            file_path as filePath,
+            file_ids as fileIds,
+            down_create_time as downCreateTime
+        FROM  Sys_File_Download
+        WHERE file_ids =  '${ids}'
+    </select>
+
+    <select id="getSysFileDownloadBath" resultMap="FileDownloadEntity">
+        SELECT
+            down_id as downId,
+            file_path as filePath,
+            file_ids as fileIds,
+            down_create_time as downCreateTime
+        FROM  Sys_File_Download
+        <where>
+            file_ids in
+            <foreach collection="ids" item="id" open="(" close=")" separator="," >
+                '${id}'
+            </foreach>
+        </where>
+    </select>
+
+</mapper>

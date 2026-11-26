@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.FundPlanModifyMapper">
+    <select id="getFundPlanModifyList"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.investment.FundPlanModifyDto">
+        select
+        mn.P_ID as pId,
+        mn.P_Name as pName,
+        mn.P_Project_Code as pProjectCode,
+        mn.P_Code as pCode,
+        mn.P_Construction_Unit as pConstructionUnit,
+        c1.C_Name as pConstructionUnitName,
+        mn.P_Use_Unit as pUseUnit,
+        mn.P_Type as pType,
+        mn.P_Create_Time as pCreateTime
+        from Pre_Project mn
+        left join SYS_Company c1 on mn.P_Construction_Unit=c1.C_ID
+        ${params.authSql}
+        and mn.P_Id in (select P_Id from Fund_Plan_Modify)
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_ID)=true
+                </when>
+                <otherwise>
+                    and mn.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.P_Create_Time DESC
+            </otherwise>
+        </choose>
+        <if test="params.needPage == null or params.needPage">
+            limit #{params.start},#{params.size}
+        </if>
+    </select>
+
+    <select id="getFundPlanModifyListCount" resultType="java.lang.Integer">
+        select
+        count(*)
+        from Pre_Project mn
+        left join SYS_Company c1 on mn.P_Construction_Unit=c1.C_ID
+        ${params.authSql}
+        and mn.P_Id in (select P_Id from Fund_Plan_Modify)
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pName!=null">
+            and mn.P_Name like concat('%',#{params.pName},'%')
+        </if>
+    </select>
+
+    <select id="getFundPlanModifyByPidsAndYears"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.investment.FundPlanModifyDto">
+        select pro.P_Name as pName,
+        pro.P_Project_Code as pProjectCode,
+        pro.P_Code as pCode,
+        pro.P_Construction_Unit as pConstructionUnit,
+        c1.C_Name as pConstructionUnitName,
+        pro.P_Use_Unit as pUseUnit,
+        c2.C_Name as pUseUnitName,
+        pro.P_Type as pType,* from Fund_Plan_Modify mn
+        left join Pre_Project pro on mn.P_Id=pro.P_Id
+        left join SYS_Company c1 on pro.P_Construction_Unit=c1.C_ID
+        left join SYS_Company c2 on pro.P_Use_Unit=c2.C_ID
+        where mn.P_Id in
+        <foreach collection="params.pIds" open="(" close=")" item="pId" separator=",">
+            #{pId}
+        </foreach>
+        <if test="params.fpmYears!=null">
+            and mn.Fpm_Year in
+            <foreach collection="params.fpmYears" open="(" close=")" item="fpmYear" separator=",">
+                #{fpmYear}
+            </foreach>
+        </if>
+    </select>
+</mapper>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.FundNumberInfoMapper">
+
+    <select id="selectFundNumberInfoById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.FundNumberInfoVo">
+        select *,pp.P_Name as pname,pr.Pr_Code as prCode
+        from Fund_Number_Info fni
+        left join Pre_Project pp on fni.P_Id = pp.P_ID
+        left join Payment_Receipt pr on fni.Pr_ID = pr.id
+        where fni.state !=3 and fni.id = #{id}
+    </select>
+    <select id="getFundNumberInfoList" resultType="com.jpmsoft.projectProducer.pojo.vo.fund.FundNumberInfoVo">
+        select *,pp.P_Name as pname,pr.Pr_Code as prCode
+        from Fund_Number_Info fni
+        left join Pre_Project pp on fni.P_Id = pp.P_ID
+        left join Payment_Receipt pr on fni.pr_id = pr.id
+        <where>
+            fni.state !=3
+            <if test="params.pId!= null and params.pId != '' " >
+                and fni.p_id = #{params.pId}
+            </if>
+            <if test="params.pName!=null and params.pName!='' ">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pp.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pp.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.fnName!=null and params.fnName!='' ">
+                and fni.fn_name like concat('%',#{params.fnName},'%')
+            </if>
+            <if test="params.fnCode!= null and params.fnCode != '' " >
+                and fni.fn_code = #{params.fnCode}
+            </if>
+        </where>
+    </select>
+    <select id="selectByPId" resultType="com.jpmsoft.projectProducer.pojo.vo.fund.FundNumberInfoVo">
+        select *,pp.P_Name as pname,pr.Pr_Code as prCode
+        from Fund_Number_Info fni
+        left join Pre_Project pp on fni.P_Id = pp.P_ID
+        left join Payment_Receipt pr on fni.pr_id = pr.id
+        where fni.P_Id = #{pId} and fni.state =7 and fni.Fn_Amount>0
+    </select>
+</mapper>

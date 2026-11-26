@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectReserveDtlMapper">
+
+    <select id="getpreProjectReservePprByIdData" resultType="com.jpmsoft.projectProducer.pojo.dto.project.PreProjectReserveChangeDTO">
+    select
+    c2.c_name as pprBusinessUnitName,
+    c3.c_name as pprReserveCpyName,
+    ppr.ppr_Type as pprType,
+    mn.*,
+    d1.d_name as pprManagerUnitName,
+    d2.d_name as pprManagerDepName,
+    u1.U_Name as pprProjectManagerName,
+    u2.U_Name as pprProjectLeaderName,
+    u3.U_Name as pprEngineerName,
+    u4.U_Name as pprEngineerLeaderName
+    from Pre_Project_Reserve_dtl mn
+    left join sys_department d1 on d1.d_id=mn.ppr_manager_unit
+    left join sys_department d2 on d2.d_id=mn.ppr_Manager_Dep
+    left join sys_company c2 on c2.c_id=mn.ppr_business_unit
+    left join sys_company c3 on c3.c_id=mn.ppr_Reserve_cpy
+    left join Pre_Project_Reserve ppr on ppr.id=mn.ppr_id
+    left join SYS_User u1 on u1.u_id=mn.ppr_project_manager
+    left join SYS_User u2 on u2.u_id=mn.ppr_project_leader
+    left join SYS_User u3 on u3.u_id=mn.ppr_engineer
+    left join SYS_User u4 on u4.u_id=mn.ppr_engineer_leader
+    where mn.ppr_id=#{id}
+    </select>
+
+</mapper>

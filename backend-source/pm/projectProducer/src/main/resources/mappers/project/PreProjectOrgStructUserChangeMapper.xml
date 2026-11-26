@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectOrgStructUserChangeMapper">
+
+    <select id="getByOrgStructUnitChangeIdList"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectOrgStructUserResponse">
+        select * from pre_project_org_struct_user_change pposu
+        <where>
+            <if test="orgStructUnitIdList!=null and orgStructUnitIdList.size()>0 ">
+                pposu.org_struct_unit_change_id  in
+                <foreach collection="orgStructUnitIdList" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getByOrgStructUnitChangeIdsList"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectOrgStructUserResponse">
+        select * from pre_project_org_struct_user_change pposu
+        <where>
+            <if test="orgStructUnitIdList!=null and orgStructUnitIdList.size()>0 ">
+                pposu.org_struct_unit_change_id  in
+                <foreach collection="orgStructUnitIdList" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+
+                or pposu.change_type = #{id}
+            </if>
+
+
+        </where>
+    </select>
+</mapper>
+

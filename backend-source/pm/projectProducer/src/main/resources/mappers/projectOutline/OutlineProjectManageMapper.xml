@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.projectOutline.OutlineProjectManageMapper">
+    <select id="getOutlineProjectManagePage"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectManageResponse">
+        select
+        mn.*,
+        p.P_Name,
+        osm.Osm_Name,
+        osm.Osm_Project_Type,
+        osm.Osm_Department_Id
+        from Outline_Project_Manage mn
+        left join Pre_Project p on p.P_ID = mn.p_id
+        left join Outline_System_Manage osm on osm.id = mn.osm_id
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilter">
+        <where>
+            <if test="params.id != null and params.id != ''">
+                and mn.id = #{params.id}
+            </if>
+            <if test="params.ids != null and !params.ids.isEmpty()">
+                and mn.id in
+                <foreach item="item" index="index" collection="params.ids" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.pId != null and params.pId != ''">
+                and p.p_id = #{params.pId}
+            </if>
+            <if test="params.pIds != null and !params.pIds.isEmpty()">
+                and p.p_id in
+                <foreach item="item" index="index" collection="params.pIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.osmId != null and params.osmId != ''">
+                and mn.Osm_Id = #{params.osmId}
+            </if>
+            <if test="params.createTime != null and params.createTime != ''">
+                and DATE(mn.Create_Time) = #{params.createTime}
+            </if>
+            <if test="params.pNameList != null and !params.pNameList.isEmpty()">
+                and p.P_Name in
+                <foreach item="item" index="index" collection="params.pNameList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.pName != null and params.pName != ''">
+                and p.P_Name like concat('%',#{params.pName},'%')
+            </if>
+            <if test="params.createUid != null and params.createUid != ''">
+                and mn.Create_Uid = #{params.createUid}
+            </if>
+            <if test="params.state != null">
+                and mn.State = #{params.state}
+            </if>
+            <if test="params.stateList != null and !params.stateList.isEmpty()">
+                and mn.State in
+                <foreach item="item" index="index" collection="params.stateList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <include refid="FormatFilter"/>
+            <if test="params.opmCode != null and params.opmCode != ''">
+                and mn.Opm_Code = #{params.opmCode}
+            </if>
+        </where>
+    </sql>
+
+    <sql id="FormatFilter" databaseId="mysql">
+        <if test="params.createTime != null">
+            and DATE_FORMAT(mn.Create_Time, '%Y-%m-%d') = DATE_FORMAT(#{params.createTime}, '%Y-%m-%d')
+        </if>
+        <if test="params.osmName != null and params.osmName != ''">
+            and osm.Osm_Name like concat('%',#{params.osmName},'%')
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            and p.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.createUname != null and params.createUname != ''">
+            and mn.Create_Uname like concat('%',#{params.createUname},'%')
+        </if>
+    </sql>
+
+    <sql id="FormatFilter" databaseId="dm">
+        <if test="params.createTime != null">
+            and TO_CHAR(mn.Create_Time, 'YYYY-MM-DD') = TO_CHAR(#{params.createTime}, 'YYYY-MM-DD')
+        </if>
+        <if test="params.osmName != null and params.osmName != ''">
+            and osm.Osm_Name like '%' || #{params.osmName} || '%'
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            and p.P_Name like '%' || #{params.pName} || '%'
+        </if>
+        <if test="params.createUname != null and params.createUname != ''">
+            and mn.Create_Uname like '%' || #{params.createUname} || '%'
+        </if>
+    </sql>
+
+    <select id="getOutlineProjectManageById"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectManageResponse">
+        select
+        mn.*,
+        p.P_Name,
+        osm.Osm_Name,
+        osm.Osm_Project_Type,
+        osm.Osm_Department_Id
+        from Outline_Project_Manage mn
+        left join Pre_Project p on p.P_ID = mn.p_id
+        left join Outline_System_Manage osm on osm.id = mn.osm_id
+        where mn.id = #{id}
+    </select>
+
+    <select id="getOutlineProjectManageByPid"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectManageResponse">
+        select mn.*,
+        p.P_Name
+        from Outline_Project_Manage mn
+        left join Pre_Project p on p.P_ID = mn.p_id
+        where mn.p_id = #{pId}
+        and mn.state != 3
+        and mn.Opm_Code = #{opmCode}
+    </select>
+
+    <select id="getOutlineProjectManageByPidList"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectManageResponse">
+        select mn.*,
+        p.P_Name
+        from Outline_Project_Manage mn
+        left join Pre_Project p on p.P_ID = mn.p_id
+        where mn.p_id = #{pId}
+        and mn.state != 3
+    </select>
+
+    <select id="getTNamesByTCodes" resultType="java.lang.String">
+        select
+        T_Name
+        from SYS_FileTemplate
+        where T_Code in
+        <foreach item="item" index="index" collection="tCodes" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="getOutlineProjectLedgerCount" resultType="java.util.Map">
+        select ifnull(count(1), 0)                 as total,
+               ifnull(count(distinct rw.Rw_Id), 0) as warning
+        from Outline_Project_Manage mn
+                 left join Risk_Warn rw on rw.P_Id = mn.P_Id
+        where mn.state = 7
+    </select>
+
+    <select id="getOutlineProjectLedgerPage"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectManageResponse">
+        select mn.*,
+        p.P_Name,
+        osm.Osm_Name,
+        osm.Osm_Project_Type,
+        osm.Osm_Department_Id
+        from Outline_Project_Manage mn
+        left join Pre_Project p on p.P_ID = mn.p_id
+        left join Outline_System_Manage osm on osm.id = mn.osm_id
+        where mn.state = 7
+        <if test="params.opmCode != null and params.opmCode != ''">
+            and mn.Opm_Code = #{params.opmCode}
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            and p.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        order by mn.Create_Time desc
+    </select>
+</mapper>

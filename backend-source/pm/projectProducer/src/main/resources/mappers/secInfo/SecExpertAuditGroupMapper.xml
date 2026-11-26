@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecExpertAuditGroupMapper">
+    <select id="getSecExpertAuditGroupList"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.secInfo.SecExpertAuditGroupDTO">
+        select
+        mn.*,
+        ifnull(detail.detailCount, 0) as detailCount
+        from Sec_Expert_Audit_Group mn
+        left join (
+        select
+        seagd.Sea_id,
+        count(1) as detailCount
+        from Sec_Expert_Audit_Group_Detail seagd
+        group by seagd.Sea_id
+        ) detail on detail.Sea_id = mn.id
+        <where>
+            <if test="params.year != null">
+                and mn.year=#{params.year}
+            </if>
+            <if test="params.state != null and params.state != ''">
+                and mn.state = #{params.state}
+            </if>
+            <if test="params.seaName != null and params.seaName != ''">
+                and mn.sea_name like concat('%', #{params.seaName}, '%')
+            </if>
+            <if test="params.createUname != null and params.createUname != ''">
+                and mn.create_uname like concat('%', #{params.createUname}, '%')
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

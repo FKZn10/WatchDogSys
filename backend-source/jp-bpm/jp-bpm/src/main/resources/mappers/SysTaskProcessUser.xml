@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.TaskProcessUserMapper">
+
+    <select id="selectTpuUserInfo" resultType="com.jpmsoft.jpbpm.pojo.vo.SysTaskProcessUserVo">
+        select
+        uer.U_Name,
+        uer.U_Type,
+        uer.U_Account,
+        sa.ActID as actid,
+        sa.ActName as actname,
+        sa.ActType as acttype,
+        sa.ActHour as actHour,
+        sc.C_Name,
+        sc.C_ID,
+        tpu.*   from ${tableCode} tpu
+        left join SYS_User uer on uer.U_ID=tpu.Tpu_User
+        left join SYS_FlowActivity sa on sa.ActID=tpu.tpu_Send_Activityid
+        left join SYS_Company sc on sc.C_ID=uer.C_ID
+        where tpu.Tpu_Tp_Id in
+            <foreach collection="tpIds" open="(" close=")" item="tpId" separator=",">
+                    #{tpId}
+            </foreach>
+        <if test="teId!=null and teId!='All'">
+            and tpu.Te_Id = #{teId}
+        </if>
+    </select>
+
+</mapper>

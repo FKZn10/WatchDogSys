@@ -1,0 +1,9 @@
+ARG VIDEO_JAVA8_IMAGE=eclipse-temurin@sha256:48a8129eda9d0c8a81c86d1837c125b63a5ee8558ba9565b6066516ae72a8d47
+FROM ${VIDEO_JAVA8_IMAGE}
+
+WORKDIR /app
+COPY --chown=10001:10001 target/video-access-service-0.1.0-SNAPSHOT.jar /app/service.jar
+USER 10001:10001
+ENV VIDEO_BIND_ADDRESS=0.0.0.0 VIDEO_PORT=18090
+EXPOSE 18090/tcp
+ENTRYPOINT ["java", "-jar", "/app/service.jar"]

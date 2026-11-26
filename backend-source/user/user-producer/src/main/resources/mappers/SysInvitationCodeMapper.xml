@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysInvitationCodeMapper">
+    <select id="lockInvitationCodeCreator" resultType="java.lang.String">
+        select U_Id from SYS_User where U_Id = #{userId} for update
+    </select>
+
+    <select id="countUnexpiredInvitationCodes" resultType="java.lang.Long">
+        select count(*) from sys_invitation_code
+        where create_uid = #{userId}
+        and (expired_time is null or expired_time &gt; CURRENT_TIMESTAMP)
+    </select>
+
+    <select id="getInvitationCodeCurrentTime" resultType="java.util.Date">
+        select CURRENT_TIMESTAMP
+        from dual
+    </select>
+
+    <select id="getInvitationCodeList" resultType="com.jpmsoft.userProducer.pojo.dto.SysInvitationCodeDTO">
+        select ic.*, p.P_Name as p_name,
+        case when ic.expired_time &lt;= CURRENT_TIMESTAMP then 1 else 0 end as expired
+        from sys_invitation_code ic
+        left join Pre_Project p on p.P_Id = ic.p_id
+        <where>
+            and ic.create_uid = #{request.createUid}
+            <if test="request.pId != null and request.pId.trim() != ''">
+                and ic.p_id = #{request.pId}
+            </if>
+            <if test="request.pName != null and request.pName.trim() != ''">
+                and INSTR(p.P_Name, #{request.pName}) &gt; 0
+            </if>
+            <if test="request.id != null and request.id.trim() != ''">
+                and ic.id = #{request.id}
+            </if>
+            <if test="request.code != null and request.code.trim() != ''">
+                and INSTR(ic.code, #{request.code}) &gt; 0
+            </if>
+            <if test="request.createUname != null and request.createUname.trim() != ''">
+                and INSTR(ic.create_uname, #{request.createUname}) &gt; 0
+            </if>
+            <if test="request.createTime != null">
+                and ic.create_time = #{request.createTime}
+            </if>
+            <if test="request.expiredTime != null">
+                and ic.expired_time = #{request.expiredTime}
+            </if>
+            <if test="request.createTimeStart != null">
+                and ic.create_time &gt;= #{request.createTimeStart}
+            </if>
+            <if test="request.createTimeEnd != null">
+                and ic.create_time &lt;= #{request.createTimeEnd}
+            </if>
+            <if test="request.expiredTimeStart != null">
+                and ic.expired_time &gt;= #{request.expiredTimeStart}
+            </if>
+            <if test="request.expiredTimeEnd != null">
+                and ic.expired_time &lt;= #{request.expiredTimeEnd}
+            </if>
+            <if test="request.expired != null">
+                <choose>
+                    <when test="request.expired">
+                        and ic.expired_time &lt;= CURRENT_TIMESTAMP
+                    </when>
+                    <otherwise>
+                        and (ic.expired_time is null or ic.expired_time &gt; CURRENT_TIMESTAMP)
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        order by ic.create_time desc, ic.id desc
+    </select>
+</mapper>

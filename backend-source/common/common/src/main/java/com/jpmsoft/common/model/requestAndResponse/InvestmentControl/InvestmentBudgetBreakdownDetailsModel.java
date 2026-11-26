@@ -1,0 +1,80 @@
+package com.jpmsoft.common.model.requestAndResponse.InvestmentControl;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/**
+ * @author yb.Sun
+ * @date 2024/11/1 14:49
+ */
+@Data
+public class InvestmentBudgetBreakdownDetailsModel {
+    private String id;
+    //投资估算分解ID
+    private String isbId;
+    //费用类型名称
+    private String isbdFeeTypeName;
+    //类目
+    private String isbdType;
+    //标段类型
+    private String isbdSectionType;
+    //标段名称/费用名称
+    private String isbdSectionName;
+    //金额
+    private BigDecimal isbdAmount;
+    //备注
+    private String isbdRemark;
+    private Integer actionDisplay;
+    private BigDecimal sort;
+
+    private String changeType;
+    // 序号
+    private String levelCode;
+
+    //
+    @JsonProperty("ParentId")
+    private String parentId;
+
+    //估算详情表id
+    private String ieDetailId;
+    //投资概算分解-概算价（万元）
+    private BigDecimal isbdBudgetAmount;
+    //投资概算分解-概算备注
+    private String isbdBudgetRemark;
+
+
+
+    // 工程量
+    private Double workMeasure;
+
+    // 单位
+    private String unit;
+
+    // 单价
+    private String unitPrice;
+
+    private List<InvestmentBudgetBreakdownDetailsModel> childNodes;
+
+    private Integer depth;
+
+    // 占用金额
+    private BigDecimal amountOccupied;
+    // 余额
+    private BigDecimal amountBalance;
+
+    // 估算概算标识
+    private String estimateBudgetFlag;
+
+    /**
+     * 来源标识：01估概算，02扩展
+     */
+    private String subjectSourceFlag;
+
+    /**
+     * 低代码使用
+     */
+    private List<InvestmentBudgetBreakdownDetailsModel> children;
+}

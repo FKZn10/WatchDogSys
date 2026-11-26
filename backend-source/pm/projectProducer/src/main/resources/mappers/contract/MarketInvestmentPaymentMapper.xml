@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.MarketInvestmentPaymentMapper">
+    <select id="getMarketInvestmentPaymentList" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.MarketInvestmentPaymentDto">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        mn.Id as id,
+        mn.Pay_Id as payId,
+        mn.Con_Id as conId,
+        mn.P_Id as pId,
+        mn.Mip_Is_Con as mipIsCon,
+        mn.Mip_Con_Id as mipConId,
+        mn.State as state,
+        mn.State_Time as stateTime,
+        mn.Create_Uid as createUid,
+        u.U_Name as createUname,
+        mn.Create_Time as createTime,
+        mn.Mip_Construction_Unit as mipConstructionUnit,
+        mn.Mip_Source_Funds as mipSourceFunds,
+        mn.Mip_Investment_Last as mipInvestmentLast,
+        mn.Mip_Approve_Loan as mipApproveLoan,
+        mn.Mip_Cumulative_Release as mipCumulativeRelease,
+        mn.Mip_Con_Money as mipConMoney,
+        mn.Mip_Consignee as mipConsignee,
+        mn.Mip_Bank as mipBank,
+        mn.Mip_Account_Number as mipAccountNumber,
+        mn.Mip_Applied_Amount as mipAppliedAmount,
+        mn.Mip_Progress_Funds as mipProgressFunds,
+        mn.Mip_Investment_Total as mipInvestmentTotal,
+        mn.Mip_Code as mipCode,
+        pay.pay_Type as markType,
+        pay.pay_Type as payType,
+        pay.pay_Application_Date as payApplicationDate,
+        pay.pay_Create_Uid as payCreateUid,
+        pay.pay_Create_Uname as payCreateUname
+        from Market_Investment_Payment mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_User u on mn.Create_Uid=u.U_ID
+        left join con_pay pay on pay.pay_id = mn.pay_id
+        <where>
+            <if test="params.pId!=null">
+                and mn.P_Id = #{params.pId}
+            </if>
+            <if test="params.conId!=null">
+                and mn.Con_Id = #{params.conId}
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(pro.P_Name,#{params.pName})
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getMarketInvestmentPaymentCount" resultType="int">
+        select
+        count(*)
+        from Market_Investment_Payment mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_User u on mn.Create_Uid=u.U_ID
+        <where>
+            <if test="params.pId!=null">
+                and mn.P_Id = #{params.pId}
+            </if>
+            <if test="params.conId!=null">
+                and mn.Con_Id = #{params.conId}
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(pro.P_Name,#{params.pName})
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+</mapper>

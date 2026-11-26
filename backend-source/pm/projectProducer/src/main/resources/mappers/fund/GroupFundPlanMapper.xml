@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.GroupFundPlanMapper">
+     <resultMap type="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanVo" id="selectGroupFundPlan">
+        <id column="id" property="id"/>
+        <collection property="detailDtos" ofType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanDetailVo"
+                    column="id" select="getGroupFundPlanDetailVoList">
+        </collection>
+    </resultMap>
+    <select id="getGroupFundPlanList"
+            resultMap="selectGroupFundPlan">
+        select mn.*, pp.P_Name as projectName,pp.P_Competent_Department as projectCompetentDepartmentId,sd.D_Name as projectCompetentDepartmentName,
+               pp.P_Inv_Total as projectInvTotal,pp.P_Approve_Budget_Code as projectApproveBudgetCode,
+               pp.P_Approve_Budget as projectApproveBudget,ibd.bd_approval_num as bdApprovalNum,
+        sc.C_Name as gfpApplicationCidName,
+        pp.P_Department as projectDepartmentId,
+        sd2.D_Name as projectDepartmentName
+        from Group_Fund_Plan mn
+        left join Pre_Project pp on mn.Project_ID = pp.P_ID
+        left join SYS_Department sd on pp.P_Competent_Department = sd.D_ID
+        left join Inv_Budget_Declare ibd on pp.P_ID = ibd.P_ID
+        left join SYS_Company sc on mn.gfp_Application_Cid = sc.C_ID
+        left join SYS_Department sd2 on pp.P_Department = sd2.D_ID
+        ${params.authSql}
+        and mn.del_flag = 0
+        <if test="params.projectName != null and params.projectName != ''">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.projectName},pp.P_Id)=true
+                </when>
+                <otherwise>
+                    and pp.P_Name like concat('%',#{params.projectName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.projectId != null and params.projectId != ''">
+            and mn.Project_ID = #{params.projectId}
+        </if>
+        <if test="params.groupType != null and params.groupType != ''">
+            and mn.group_Type = #{params.groupType}
+        </if>
+        <if test="params.usaId != null and params.usaId != ''">
+            and mn.usa_Id = #{params.usaId}
+        </if>
+        <if test="params.gfpApplicationCid != null and params.gfpApplicationCid != ''">
+            and mn.gfp_Application_Cid = #{params.gfpApplicationCid}
+        </if>
+        <if test="params.gfpApplicationCidName != null and params.gfpApplicationCidName != ''">
+            and sc.C_Name like concat('%',#{params.gfpApplicationCidName},'%')
+        </if>
+        <if test="params.gfpFundDemandAmountStart != null and params.gfpFundDemandAmountStart != ''">
+            and mn.Gfp_Fund_Demand_Amount &gt;= #{params.gfpFundDemandAmountStart}
+        </if>
+        <if test="params.gfpFundDemandAmountEnd != null and params.gfpFundDemandAmountEnd != ''">
+            and mn.Gfp_Fund_Demand_Amount &lt;= #{params.gfpFundDemandAmountEnd}
+        </if>
+        <if test="params.createTimeStart != null and params.createTimeStart != ''">
+            and mn.Create_Time &gt;= #{params.createTimeStart}
+        </if>
+        <if test="params.createTimeEnd != null and params.createTimeEnd != ''">
+            and mn.Create_Time &lt;= #{params.createTimeEnd}
+        </if>
+        <if test="params.groupId != null and params.groupId != ''">
+            and mn.Group_Id = #{params.groupId}
+        </if>
+        <if test="params.groupMainType != null and params.groupMainType != ''">
+            and mn.Group_Main_Type = #{params.groupMainType}
+        </if>
+        <choose>
+            <when test="params.state != null">
+                and mn.state = #{params.state}
+            </when>
+            <otherwise>
+                and mn.state != 3
+            </otherwise>
+        </choose>
+        <if test="params.createUname != null and params.createUname != ''">
+            and mn.Create_Uname like concat('%',#{params.createUname},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getGroupFundPlanDetailVoList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanDetailVo">
+        select gfpd.*, con.Con_Name as gfpdContractName
+        ,con.Con_Money_Total as gfpdContractAmount
+        ,con.Con_Party_B_Id as gfpdContractCompanyId
+        ,sc1.C_Name as gfpdContractCompanyName,
+        sc2.C_Name as payCompanyName,
+        con.Con_Type as conType,
+        con.Con_Money_Total as conMoneyTotal
+        from Group_Fund_Plan_Detail gfpd
+        left join Group_Fund_Plan gfp on gfpd.Gfp_Id = gfp.id
+        left join Con_Contract con on gfpd.Gfpd_Contract_Id = con.Con_Id
+        left join SYS_Company sc1 on con.Con_Party_B_Id = sc1.C_ID
+        left join SYS_Company sc2 on gfpd.pay_Company = sc2.C_ID
+        where gfpd.Gfp_Id = #{id}
+        and gfp.del_flag = 0
+    </select>
+    <select id="getGroupFundPlanById"
+            resultMap="selectGroupFundPlan">
+        select gfp.*, pp.P_Name as projectName,pp.P_Competent_Department as projectCompetentDepartmentId,sd.D_Name as projectCompetentDepartmentName,
+               pp.P_Inv_Total as projectInvTotal,pp.P_Approve_Budget_Code as projectApproveBudgetCode,
+               ibd.bd_approval_num as bdApprovalNum,sc.C_Name as gfpApplicationCidName
+        from Group_Fund_Plan gfp
+        left join Pre_Project pp on gfp.Project_ID = pp.P_ID
+        left join SYS_Department sd on pp.P_Competent_Department = sd.D_ID
+        left join Inv_Budget_Declare ibd on pp.P_ID = ibd.P_ID
+        left join SYS_Company sc on gfp.gfp_Application_Cid = sc.C_ID
+        where gfp.id = #{id}
+        and gfp.del_flag = 0
+    </select>
+    <select id="getEngineeringFundApplicationByPId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.fund.EngineeringFundApplication">
+        select * from Engineering_Fund_Application efa
+        where efa.P_Id = #{projectId} and efa.State = 7 and efa.Efa_Pay_State = 1
+    </select>
+    <select id="getFundPlanInfo" resultType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanVo">
+        select gfp.*, pp.P_Name as projectName,pp.P_Competent_Department as projectCompetentDepartmentId,sd.D_Name as projectCompetentDepartmentName,
+               pp.P_Inv_Total as projectInvTotal,pp.P_Approve_Budget_Code as projectApproveBudgetCode,
+               pp.P_Approve_Budget as projectApproveBudget,ibd.bd_approval_num as bdApprovalNum
+        from Group_Fund_Plan gfp
+        left join Pre_Project pp on gfp.Project_ID = pp.P_ID
+        left join SYS_Department sd on pp.P_Competent_Department = sd.D_ID
+        left join Inv_Budget_Declare ibd on pp.P_ID = ibd.P_ID
+        <where>
+            gfp.state !=3
+            and gfp.del_flag = 0
+            <if test="params.projectId != null and params.projectId != ''">
+                and gfp.Project_ID = #{params.projectId}
+            </if>
+            <if test="params.gfpYear != null ">
+                and gfp.Gfp_Year = #{params.gfpYear}
+            </if>
+            <if test="params.gfpMonth != null ">
+                and gfp.Gfp_Month = #{params.gfpMonth}
+            </if>
+        </where>
+    </select>
+    <select id="getGroupFundPlans" resultType="com.jpmsoft.projectProducer.pojo.entity.fund.GroupFundPlan">
+        select * from Group_Fund_Plan gfp
+        where gfp.Project_ID = #{projectId} and gfp.State = 7 and gfp.del_flag = 0
+    </select>
+
+    <select id="getProjectInfo" resultType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanVo">
+        select
+        case when mn.P_Project_Form_Type = '01' then mn.P_Approve_Budget
+        when mn.P_Project_Form_Type = '02' then mn.P_Record_Amount
+        when mn.P_Project_Form_Type = '03' then mn.P_Approval_Amount
+        end as projectInvTotal,
+        ibb.Project_Budget_Investment_Amount as projectApproveBudget,
+        icm.Icm_Image_Progress as gfpProjectProgress
+        from Pre_Project mn
+        left join (
+        select ibb.project_id, ibb.Project_Budget_Investment_Amount
+        from Investment_Budget_Breakdown ibb
+        where ibb.State = 7
+        and ibb.Project_ID = #{pId}
+        order by Create_Time desc
+        limit 1
+        ) ibb on mn.P_ID = ibb.Project_ID
+        left join (
+        select mn.p_id, mn.Icm_Image_Progress
+        from Inv_Complete_Month mn
+        inner join (select p_id,
+        MAX(CONCAT(Icm_Reporting_Year, LPAD(Icm_Reporting_Month, 2, '0'))) as maxYm
+        from Inv_Complete_Month
+        where Icm_Image_Progress is not null
+        and Icm_Image_Progress != ''
+        group by p_id) t on t.p_id = mn.p_id
+        and t.maxYm = CONCAT(mn.Icm_Reporting_Year, LPAD(mn.Icm_Reporting_Month, 2, '0'))
+        order by mn.Icm_Reporting_Year + 0 desc, mn.Icm_Reporting_Month + 0 desc
+        ) icm on mn.P_ID = icm.P_ID
+        where mn.P_ID = #{pId}
+    </select>
+
+    <select id="getGroupFundPlanDetail"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanDetailVo">
+        select
+        mn.*,
+        con.Con_Name as gfpdContractName,
+        CONCAT(gfp.Gfp_Year, '-', LPAD(gfp.Gfp_Month, 2, '0'), '-01') as gfpDate,
+        sc.C_Name as payCompanyName,
+        CASE WHEN gfpds.Ibb_Id IS NOT NULL THEN ibbd.Isbd_Fee_Type_Name ELSE iebd.Isbd_Fee_Type_Name END as
+        budgetSubjectsName,
+        CASE WHEN gfpds.Ibb_Id IS NOT NULL THEN ibbd.Isb_ID ELSE iebd.Isb_ID END as budgetSubjectsId
+        from Group_Fund_Plan_Detail mn
+        left join Group_Fund_Plan gfp on mn.Gfp_Id = gfp.id
+        left join Con_Contract con on mn.Gfpd_Contract_Id = con.Con_Id
+        left join sys_company sc on mn.pay_Company = sc.C_ID
+        left join Group_Fund_Plan_Detail_Subject gfpds on mn.id = gfpds.gfpd_Id
+        left join Investment_Budget_Breakdown_Details ibbd on gfpds.Ibb_Id = ibbd.id
+        left join Investment_Estimate_Breakdown_Details iebd on gfpds.ieb_Id = iebd.id
+        where
+        gfp.State = 7
+        and gfp.del_flag = 0
+        and gfp.Group_Main_Type = '1'
+        <if test="params.projectId != null and params.projectId != ''">
+            and gfp.Project_ID = #{params.projectId}
+        </if>
+        <if test="params.contractId != null and params.contractId != ''">
+            and mn.Gfpd_Contract_Id = #{params.contractId}
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and con.Con_Name like concat('%',#{params.pId},'%')
+        </if>
+        <if test="params.contractId != null and params.contractId != ''">
+            and mn.Gfpd_Contract_Id = #{params.contractId}
+        </if>
+        <if test="params.gfpdType != null and params.gfpdType != ''">
+            and mn.Gfpd_Type = #{params.gfpdType}
+        </if>
+        <if test="params.payCompany != null and params.payCompany != ''">
+            and mn.pay_Company = #{params.payCompany}
+        </if>
+        <if test="params.groupType != null and params.groupType != ''">
+            and gfp.group_Type = #{params.groupType}
+        </if>
+        <if test="params.cmpId != null and params.cmpId != ''">
+            and mn.cmp_Id = #{params.cmpId}
+        </if>
+        order by gfp.Create_Time desc
+    </select>
+
+     <delete id="deleteUseSealApplycationByUsaId">
+        delete from use_seal_applycation where object_id = #{usaId}
+     </delete>
+
+    <select id="existConMeasurePrice" resultType="java.lang.Integer">
+        select count(1)
+        from (select 1
+        from Con_Pay cp
+        where cp.cmp_Id = #{cmpId}
+        and cp.Pay_State != 3
+        union all
+        select 1
+        from Group_Fund_Plan_Detail gfpd
+        left join Group_Fund_Plan gfp on gfpd.gfp_id = gfp.id
+        where gfp.State != 3
+        and gfp.del_flag = 0
+        and gfpd.cmp_Id = #{cmpId}
+        <if test="gfpId != null and gfpId != ''">
+            and gfp.id != #{gfpId}
+        </if>) temp
+    </select>
+</mapper>

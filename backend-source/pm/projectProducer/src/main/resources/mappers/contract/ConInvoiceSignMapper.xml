@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConInvoiceSignMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.dto.contract.ConInvoiceSignDTO" id="selectConInvoiceSign">
+        <id column="id" property="id"/>
+        <collection property="conInvoiceInfos" ofType="com.jpmsoft.projectProducer.pojo.dto.contract.ConInvoiceInfoDTO"
+                    column="id" select="selectConInvoiceInfos">
+        </collection>
+    </resultMap>
+    <select id="selectConInvoiceInfos" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ConInvoiceInfoDTO">
+        select mn.*
+        from Con_Invoice_Info mn
+        where mn.Is_Id = #{id}
+        order by mn.Ci_Sort asc
+    </select>
+
+    <select id="getConInvoiceSignById" resultMap="selectConInvoiceSign">
+        select con.Con_Name as conName,
+               con.Con_Code as conCode,
+               con.Con_Money_Total as conMoneyTotal,
+               pre.P_Name   as pName,
+               pre.P_Code   as pCode,
+               c1.C_Name as isIssuingName,
+               mn.*
+        from Con_Invoice_Sign mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pre on pre.P_Id = mn.P_Id
+                 left join Sys_Company c1 on c1.C_Id=mn.Is_Issuing_Unit
+        where mn.id = #{id}
+    </select>
+
+
+    <select id="getConInvoiceSignList" resultMap="selectConInvoiceSign">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        pre.P_Name as pName,
+        pre.P_Code as pCode,
+        c1.C_Name as isIssuingName,
+        mn.*
+        from Con_Invoice_Sign mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on pre.P_Id=mn.P_Id
+        left join Sys_Company c1 on c1.C_Id=mn.Is_Issuing_Unit
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.isIssuingUnit!=null">
+            and mn.Is_Issuing_Unit=#{params.isIssuingUnit}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_ID = #{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_ID = #{params.conId}
+        </if>
+        <if test="params.isCollectName!=null">
+            and INSTR(mn.Is_Collect_Name,#{params.isCollectName})
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+                <if test="params.isIssuingName!=null">
+                    and likeCname(#{params.isIssuingName},c1.C_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.pName!=null">
+                    and INSTR(pro.P_Name,#{params.pName})
+                </if>
+                <if test="params.isIssuingName!=null">
+                    and INSTR(c1.C_Name,#{params.isIssuingName})
+                </if>
+            </otherwise>
+        </choose>
+        <if test="params.pCode!=null">
+            and INSTR(pro.P_Code,#{params.pCode})
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.conCode!=null">
+            and INSTR(con.Con_Code,#{params.conCode})
+        </if>
+    </sql>
+</mapper>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConPayMultiMapper">
+    <select id="getContractMultiPage" databaseId="dm"
+            resultType="com.jpmsoft.common.model.response.Contract.ConPayMultiResponse">
+        select
+        mn.*,
+        sc1.C_Name as payeeUnitName,
+        (select REPLACE(WM_CONCAT(pp.P_Name), ',', '；')
+        from Con_Pay_Multi_Project cpmp
+        left join Pre_Project pp on cpmp.p_Id = pp.P_ID
+        where cpmp.cpm_Id = mn.id
+        ) as pNames
+        from Con_Pay_Multi mn
+        left join SYS_Company sc1 on mn.payee_Unit = sc1.C_ID
+        <include refid="listFilter"/>
+        order by mn.Create_Time desc
+    </select>
+
+    <select id="getContractMultiPage" databaseId="mysql"
+            resultType="com.jpmsoft.common.model.response.Contract.ConPayMultiResponse">
+        select
+        mn.*,
+        sc1.C_Name as payeeUnitName,
+        (select GROUP_CONCAT(pp.P_Name SEPARATOR '；')
+        from Con_Pay_Multi_Project cpmp
+        left join Pre_Project pp on cpmp.p_Id = pp.P_ID
+        where cpmp.cpm_Id = mn.id
+        ) as pNames
+        from Con_Pay_Multi mn
+        left join SYS_Company sc1 on mn.payee_Unit = sc1.C_ID
+        <include refid="listFilter"/>
+        order by mn.Create_Time desc
+    </select>
+
+    <sql id="listFilter">
+        <where>
+            <if test="params.name != null and params.name != ''">
+                and mn.name like concat('%', #{params.name}, '%')
+            </if>
+            <if test="params.code != null and params.code != ''">
+                and mn.code like concat('%', #{params.code}, '%')
+            </if>
+            <if test="params.paymentType != null and params.paymentType != ''">
+                and mn.payment_Type = #{params.paymentType}
+            </if>
+            <if test="params.paymentName != null and params.paymentName != ''">
+                and mn.payment_Name = #{params.paymentName}
+            </if>
+            <if test="params.payeeUnit != null and params.payeeUnit != ''">
+                and mn.payee_Unit = #{params.payeeUnit}
+            </if>
+            <if test="params.payeeUnitName != null and params.payeeUnitName != ''">
+                and sc1.C_Name like concat('%', #{params.payeeUnitName}, '%')
+            </if>
+            <if test="params.state != null">
+                and mn.state = #{params.state}
+            </if>
+            <if test="params.createUname != null and params.createUname != ''">
+                and mn.Create_Uname like concat('%', #{params.createUname}, '%')
+            </if>
+        </where>
+    </sql>
+</mapper>

@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaAttendanceMapper">
+    <!--************************************* 公用 *************************************-->
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.cId!=null">
+            and mn.C_Id = #{params.cId}
+        </if>
+        <if test="params.aResult!=null">
+            and mn.A_Result = #{params.aResult}
+        </if>
+        <if test="params.aWay!=null">
+            and mn.A_Way = #{params.aWay}
+        </if>
+        <if test="params.aWeek!=null">
+            and mn.A_Week = #{params.aWeek}
+        </if>
+        <if test="params.aType!=null">
+            and mn.A_Type = #{params.aType}
+        </if>
+        <if test="params.aIsFieid!=null">
+            and mn.A_Is_Fieid = #{params.aIsFieid}
+        </if>
+        <if test="params.aUid!=null">
+            and mn.A_Uid = #{params.aUid}
+        </if>
+        <if test="params.agName!=null">
+            and ag.Ag_Name like concat('%',#{params.agName},'%')
+        </if>
+        <if test="params.aUname!=null">
+            and mn.A_Unamelike concat('%',#{params.aUname},'%')
+        </if>
+    </sql>
+
+    <!--************************************* dm *************************************-->
+
+    <select id="getAttendanceList" databaseId="dm"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceModel">
+        select
+        ag.Ag_Name as agName,
+        c.C_Name as cName,
+        c.C_Name as cAbbName,
+        mn.*
+        from Oa_Attendance mn
+        left join Sys_Company c on c.C_Id=mn.C_Id
+        left join OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        left join Pre_Project pro on pro.P_Id=ag.P_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.aCreateTime != null">
+            and to_char(mn.A_Create_Time, 'yyyy-MM-dd') = substr(#{params.aCreateTime,jdbcType=VARCHAR}, 1, 10)
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.A_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getAttendanceListCount" resultType="java.lang.Integer" databaseId="dm">
+        select
+        count(1)
+        from Oa_Attendance mn
+        left join OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        left join Pre_Project pro on pro.P_Id=ag.P_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.aCreateTime!=null">
+            and to_char(mn.A_Create_Time, 'yyyy-MM-dd') = substr(#{params.aCreateTime,jdbcType=VARCHAR}, 1, 10)
+        </if>
+    </select>
+
+    <!--************************************* mysql *************************************-->
+
+    <select id="getAttendanceList" databaseId="mysql"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceModel">
+        select
+        ag.Ag_Name as agName,
+        c.C_Name as cName,
+        c.C_Name as cAbbName,
+        mn.*
+        from Oa_Attendance mn
+        left join Sys_Company c on c.C_Id=mn.C_Id
+        left join OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        left join Pre_Project pro on pro.P_Id=ag.P_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.aCreateTime!=null">
+            and date_format(mn.A_Create_Time,'%Y-%m-%d')= date_format(#{params.aCreateTime},'%Y-%m-%d')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.A_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getAttendanceListCount" resultType="java.lang.Integer" databaseId="mysql">
+        select
+        count(1)
+        from Oa_Attendance mn
+        left join OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        left join Pre_Project pro on pro.P_Id=ag.P_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.aCreateTime!=null">
+            and date_format(mn.A_Create_Time,'%Y-%m-%d')= date_format(#{params.aCreateTime},'%Y-%m-%d')
+        </if>
+    </select>
+    <!--************************************* postgre *************************************-->
+
+    <select id="getAttendanceList" databaseId="postgre"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceModel">
+        select
+        ag.Ag_Name as agName,
+        c.C_Name as cName,
+        c.C_Name as cAbbName,
+        mn.*
+        from Oa_Attendance mn
+        left join Sys_Company c on c.C_Id=mn.C_Id
+        left join OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        left join Pre_Project pro on pro.P_Id=ag.P_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.aCreateTime!=null">
+            and to_char(mn.A_Create_Time,'yyyy-MM-dd') = to_char(#{params.aCreateTime},'yyyy-MM-dd')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.A_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getAttendanceListCount" resultType="java.lang.Integer" databaseId="postgre">
+        select
+        count(1)
+        from Oa_Attendance mn
+        left join OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        left join Pre_Project pro on pro.P_Id=ag.P_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.aCreateTime!=null">
+            and to_char(mn.A_Create_Time,'yyyy-MM-dd') = to_char(#{params.aCreateTime},'yyyy-MM-dd')
+        </if>
+    </select>
+
+</mapper>

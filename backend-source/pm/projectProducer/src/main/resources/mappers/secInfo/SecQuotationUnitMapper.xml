@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecQuotationUnitMapper">
+
+    <select id="getSecQuotationUnitBySecId" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecQuotationUnitVo">
+        select c1.C_Name         as cName,
+               c1.C_Abbreviation as cAbbName,
+               mn.*
+        from Sec_Quotation_Unit mn
+                 left join SYS_Company c1 on mn.C_Id = c1.C_Id
+                 left join Sec_Inquiry_Record sir on sir.id = mn.Sir_Id
+        where sir.Sec_Id = #{secId}
+          and sir.State = 7
+        order by mn.Squ_Sort ASC
+    </select>
+</mapper>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysTPositionMapper">
+
+    <select id="GetT_PositionList" resultType="com.jpmsoft.userProducer.pojo.vo.SysTPositionVo">
+        select
+        d.TD_Name as tdName,
+        <include refid="tpFileds"/>
+        from SYS_T_Position p
+        left join SYS_T_Department d on p.TD_ID=d.TD_ID
+        <where>
+            1=1
+            <if test="tdId!=null">
+                and p.TD_ID=#{tdId}
+            </if>
+            <if test="tpName!=null">
+                and p.TP_Name like concat('%',#{tpName},'%')
+            </if>
+            <if test="toId!=null">
+                and d.TO_ID=#{toId}
+            </if>
+        </where>
+        <choose>
+            <when test="sortType!=null and sortFiled!=null">
+                order by p.${sortFiled} ${sortType}
+            </when>
+            <otherwise>
+                order by p.TP_Sort
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="tpFileds">
+        p
+        .
+        TP_ID
+        as tpId,
+        p.TD_ID as tdId,
+        p.TP_Name as tpName,
+        p.TP_Code as tpCode,
+        p.TP_Remark as tpRemark,
+        p.TP_Sort as tpSort,
+        p.TP_Status as tpStatus
+    </sql>
+
+    <select id="getPositionCountByTOrgan" resultType="Integer">
+        select
+        count(*)
+        from SYS_T_Position mn
+        left join SYS_T_Department td on td.Td_Id=mn.Td_Id
+        <where>
+            mn.TP_Code=#{tpCode}
+            <if test="tpId!=null and tpId!=''">
+                and mn.TP_ID!=#{tpId}
+            </if>
+            and td.To_Id in (
+            select To_Id from SYS_T_Department where Td_Id=#{tdId}
+            )
+        </where>
+    </select>
+</mapper>

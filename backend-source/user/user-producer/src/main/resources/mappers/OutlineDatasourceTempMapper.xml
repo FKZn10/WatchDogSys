@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.OutlineDatasourceTempMapper">
+    <select id="getDatasourceTempPage"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineDatasourceTempResponse">
+        select
+        mn.*,
+        sf.T_Name as tName
+        from Outline_Datasource_Temp mn
+        left join SYS_FileTemplate sf on mn.T_Code = sf.T_Code
+        <where>
+            <if test="params.id != null and params.id != ''">
+                and mn.id = #{params.id}
+            </if>
+            <if test="params.odId != null and params.odId != ''">
+                and mn.Od_Id = #{params.odId}
+            </if>
+            <if test="params.tCode != null and params.tCode != ''">
+                and mn.T_Code = #{params.tCode}
+            </if>
+            <if test="params.tName != null and params.tName != ''">
+                and mn.T_Name = #{params.tName}
+            </if>
+        </where>
+    </select>
+
+    <select id="getDatasourceTempByOdIds"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineDatasourceTempResponse">
+        select
+        mn.*,
+        sf.T_Name as tName
+        from Outline_Datasource_Temp mn
+        left join SYS_FileTemplate sf on mn.T_Code = sf.T_Code
+        where Od_Id in
+        <foreach item="item" collection="list" separator="," open="(" close=")" index="">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

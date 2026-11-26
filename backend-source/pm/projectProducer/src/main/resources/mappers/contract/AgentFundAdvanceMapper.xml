@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.AgentFundAdvanceMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.Contract.AgentFundAdvanceModel"
+               id="selectAgentFundAdvanceById">
+        <id column="Afa_Id" property="afaId"/>
+        <collection property="fundAdvanceLists"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Contract.AgentFundAdvanceListModel"
+                    column="Afa_Id" select="getFundAdvanceLists">
+        </collection>
+    </resultMap>
+
+    <select id="getFundAdvanceLists"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Contract.AgentFundAdvanceListModel">
+        select
+        sr.Sc_Title as scTitle,
+        sr.Sc_Name as scName,
+        sr.Sc_Money as scMoney,
+        sr.Sc_Code as scCode,
+        mn.*
+        from  Agent_Fund_Advance_List mn
+        left join  Subcontract_Record sr on sr.Sc_Id=mn.Afal_Con_Id
+        where mn.Afa_Id=#{afaId}
+    </select>
+    <select id="getFundAdvanceNotConPayApply"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.contract.AgentFundAdvance">
+        select
+         *
+        from  Agent_Fund_Advance
+        where Afa_State=7
+        <if test="teId!=null">
+            and Te_Id = #{teId}
+        </if>
+        and   Afa_Id not in  (select   Cpa_Foreign  from  Con_Pay_Apply where  Cpa_Sources='02' and Cpa_Foreign is not null)
+    </select>
+
+    <select id="getAgentFundAdvanceById" resultMap="selectAgentFundAdvanceById">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        c1.C_Name as applyCName,
+        c1.C_Abbreviation as applyCAbbName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Agent_Fund_Advance mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_Company c1 on c1.C_Id=mn.Afa_Application_Department
+        left join  Sys_File f on f.FileID=mn.Afa_Id
+        where mn.Afa_Id=#{afaId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.afaState!=null">
+            and mn.Afa_State=#{params.afaState}
+        </if>
+        <if test="params.afaCreateUname!=null">
+            and mn.Afa_Create_Uname like concat('%',#{params.afaCreateUname},'%')
+        </if>
+        <if test="params.conContractCode!=null">
+            and mn.Con_Contract_Code like concat('%',#{params.conContractCode},'%')
+        </if>
+        <if test="params.afaApplicationBatch!=null">
+            and mn.Afa_Application_Batch like concat('%',#{params.afaApplicationBatch},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and pro.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.conCode!=null">
+            and con.Con_Code like concat('%',#{params.conCode},'%')
+        </if>
+        <if test="params.applyCName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.applyCName},mn.Afa_Application_Department)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.applyCName},'%')
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="getAgentFundAdvanceList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Contract.AgentFundAdvanceModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name as applyCName,
+        c1.C_Abbreviation as applyCAbbName,
+        mn.*
+        from Agent_Fund_Advance mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Sys_Company c1 on c1.C_Id=mn.Afa_Application_Department
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Afa_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

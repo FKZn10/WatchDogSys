@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.ganttPlan.GanttPlanChangeMapper">
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.planState!=null">
+            and mn.Plan_State=#{params.planState}
+        </if>
+        <if test="params.planDId!=null">
+            and mn.Plan_D_Id=#{params.planDId}
+        </if>
+        <if test="params.planType!=null">
+            and mn.Plan_Type=#{params.planType}
+        </if>
+        <if test="params.planSource!=null">
+            and mn.Plan_Source=#{params.planSource}
+        </if>
+        <if test="params.pId!=null">
+            and pro.P_Id=#{params.pId}
+        </if>
+        <if test="params.planName!=null">
+            and mn.Plan_Name like concat('%',#{params.planName},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="selectGanttPlanChangeById" resultType="com.jpmsoft.common.model.response.Plan.GanttPlanChangeVO">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Category as pCategory,
+        pmu.u_name as pProjectManagerName,
+        pmu.u_id as pProjectManager,
+        con.Con_Name as conName,
+        dep.D_Name as dName,
+        sec.Sec_Name as secName,
+        gpt.Pt_Name as ptName,
+        mn.*
+        from Gantt_Plan_Change mn
+        left join Gantt_Plan_Template gpt on gpt.Pt_Id=mn.Pt_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Department dep on dep.D_ID=mn.Plan_D_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  sys_user pmu on pmu.u_id=pro. p_Project_Manager
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where mn.Plan_Id=#{id}
+    </select>
+
+    <select id="getGanttPlanChangeList" resultType="com.jpmsoft.common.model.response.Plan.GanttPlanChangeVO">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        dep.D_Name as dName,
+        sec.Sec_Name as secName,
+        gpt.Pt_Name as ptName,
+        mn.*
+        from Gantt_Plan_Change mn
+        left join Gantt_Plan_Template gpt on gpt.Pt_Id=mn.Pt_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Department dep on dep.D_ID=mn.Plan_D_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Plan_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+</mapper>

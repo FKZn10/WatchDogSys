@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaAttendanceLeaveMapper">
+
+    <select id="getAttendanceLeaveById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceLeaveModel">
+        select
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  OA_Attendance_Leave mn
+        left join  Sys_File f on f.FileID=mn.Al_Id
+        where mn.Al_Id=#{alId}
+    </select>
+
+
+    <select id="getAttendanceLeaveList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceLeaveModel">
+        select
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  OA_Attendance_Leave mn
+        left join  Sys_File f on f.FileID=mn.Al_Id
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.alType!=null">
+            and mn.Al_Type = #{params.alType}
+        </if>
+        <if test="params.alState!=null">
+            and mn.Al_State = #{params.alState}
+        </if>
+        <if test="params.alUname!=null">
+            and mn.Al_Uname like concat('%',#{params.alUname},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Al_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getAttendanceLeaveListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  OA_Attendance_Leave mn
+        left join  Sys_File f on f.FileID=mn.Al_Id
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.alType!=null">
+            and mn.Al_Type = #{params.alType}
+        </if>
+        <if test="params.alState!=null">
+            and mn.Al_State = #{params.alState}
+        </if>
+        <if test="params.alUname!=null">
+            and mn.Al_Uname like concat('%',#{params.alUname},'%')
+        </if>
+    </select>
+</mapper>

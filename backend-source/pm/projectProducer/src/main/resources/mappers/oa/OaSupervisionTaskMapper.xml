@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaSupervisionTaskMapper">
+    <!--************************************* 公用 *************************************-->
+    <select id="exportOaSupervisionTaskStatistics"
+            resultType="com.jpmsoft.common.model.response.Oa.OaSupervisionTaskResponse">
+        select
+        sd.D_Name as stDName,
+        mn.*
+        from OA_Supervision_Task mn
+        left join OA_Supervision_Task_Department std on mn.St_Id=std.St_Id
+        left join SYS_Department sd on std.Std_Did=sd.D_Id
+        where
+        mn.St_State!=3 and
+        <include refid="stTermFilter"/>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.stDId!=null">
+            and mn.St_D_Id = #{params.stDId}
+        </if>
+        <if test="params.stType!=null">
+            and mn.St_Type = #{params.stType}
+        </if>
+        <if test="params.stHandleType!=null">
+            and mn.St_Handle_Type = #{params.stHandleType}
+        </if>
+    </select>
+
+    <select id="getOaSupervisionTaskByStId"
+            resultType="com.jpmsoft.common.model.response.Oa.OaSupervisionTaskResponse">
+        select
+        sd.D_Name as stDName,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  OA_Supervision_Task mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  SYS_Department sd on mn.St_D_Id=sd.D_Id
+        left join  Sys_File f on f.FileID=mn.St_Id
+        where mn.St_Id=#{stId}
+    </select>
+
+    <select id="getOaSupervisionTaskList"
+            resultType="com.jpmsoft.common.model.response.Oa.OaSupervisionTaskResponse">
+        select
+        sd.D_Name as stDName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from OA_Supervision_Task mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department sd on mn.St_D_Id=sd.D_Id
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.stDId!=null">
+            and mn.St_D_Id = #{params.stDId}
+        </if>
+        <if test="params.stCode!=null">
+            and mn.St_Code like concat('%',#{params.stCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.St_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getOaSupervisionTaskListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from OA_Supervision_Task mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.stDId!=null">
+            and mn.St_D_Id = #{params.stDId}
+        </if>
+        <if test="params.stCode!=null">
+            and mn.St_Code like concat('%',#{params.stCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            and pro.P_Name like concat('%',#{params.pName},'%')
+        </if>
+    </select>
+
+    <!--************************************* dm *************************************-->
+
+    <sql id="stTermFilter" databaseId="dm">
+        to_char(mn.St_Term,'yyyy') = #{params.year}
+    </sql>
+
+    <sql id="stTermFilter" databaseId="postgre">
+        to_char(mn.St_Term,'yyyy') = #{params.year}
+    </sql>
+    <!--************************************* mysql *************************************-->
+
+    <sql id="stTermFilter" databaseId="mysql">
+        date_format(mn.St_Term,'%Y')= #{params.year}
+    </sql>
+
+</mapper>

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.audit.AuditSettlementMapper">
+
+
+    <select id="getApproveAuditSettlementByConId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Audit.AuditSettlementModel">
+        select
+            f.file_relation_id as fileRelationId,
+            c1.C_Name as cName,
+            c2.C_Name as asAuditUnitName,
+            c1.C_Name_History as cNameHistory,
+            c1.C_Abbreviation as cAbbName,
+            pro.P_Name as pName,
+            pro.P_Name_History as pNameHistory,
+            pro.P_Code as pCode,
+            proc.C_Name as pConstructionUnitName,
+            proc.C_Abbreviation as pConsAbbName,
+            prod.D_Name as pCompetentDepartmentName,
+            sec.Sec_Name as secName,
+            sec.Sec_Code as secCode,
+            con.Con_Name as conName,
+            con.Con_Code as conCode,
+            con.Con_Money_Total as conMoneyTotal,
+            mn.*
+        from  Audit_Settlement mn
+                  left join  Sys_Company c1 on c1.C_Id=mn.As_Create_Cid
+                  left join  Sys_Company c2 on c2.C_Id=mn.As_Audit_Unit
+                  left join  Pre_Project pro on pro.P_Id=mn.P_Id
+                  left join  SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+                  left join  SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+                  left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+                  left join  Con_Contract con on con.Con_Id=mn.Con_Id
+                  left join  Sys_File f on f.FileID=mn.As_Id
+        where mn.Con_Id=#{conId}   and mn.as_state=7
+        order by mn.as_create_time desc
+        limit 1
+    </select>
+
+
+
+    <select id="getAuditSettlementById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Audit.AuditSettlementModel">
+        select
+        f.file_relation_id as fileRelationId,
+        c1.C_Name as cName,
+        c2.C_Name as asAuditUnitName,
+        c1.C_Name_History as cNameHistory,
+        c1.C_Abbreviation as cAbbName,
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        pro.P_Code as pCode,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        mn.*
+        from  Audit_Settlement mn
+        left join  Sys_Company c1 on c1.C_Id=mn.As_Create_Cid
+        left join  Sys_Company c2 on c2.C_Id=mn.As_Audit_Unit
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join  SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join  SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Sys_File f on f.FileID=mn.As_Id
+        where mn.As_Id=#{asId}
+    </select>
+
+    <select id="getAuditSettlementConId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Audit.AuditSettlementModel">
+        select
+
+            mn.*
+        from  Audit_Settlement mn
+
+        where mn.con_id=#{conId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+        <if test="params.asState!=null">
+            and mn.As_State = #{params.asState}
+        </if>
+        <if test="params.asCreateCid!=null">
+            and mn.As_Create_Cid = #{params.asCreateCid}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.asType!=null">
+            and mn.As_Type = #{params.asType}
+        </if>
+        <if test="params.asNeedMoney!=null">
+            and mn.As_Need_Money = #{params.asNeedMoney}
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.cName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.cName},mn.As_Create_Cid)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.cName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.asContactTel!=null">
+            and mn.As_Contact_Tel like concat('%',#{params.asContactTel},'%')
+        </if>
+        <if test="params.asContactName!=null">
+            and mn.As_Contact_Name like concat('%',#{params.asContactName},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+    </sql>
+
+    <select id="getAuditSettlementList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Audit.AuditSettlementModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name as cName,
+        c2.C_Name as asAuditUnitName,
+        c1.C_Name_History as cNameHistory,
+        c1.C_Abbreviation as cAbbName,
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        mn.*
+        from  Audit_Settlement mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sys_Company c1 on c1.C_Id=mn.As_Create_Cid
+        left join  Sys_Company c2 on c2.C_Id=mn.As_Audit_Unit
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.As_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

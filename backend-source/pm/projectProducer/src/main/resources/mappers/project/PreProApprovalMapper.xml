@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProApprovalMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.Project.PreProApprovalModel"
+               id="getPreProApproval">
+        <id column="Pa_Id" property="paId"/>
+        <collection property="proFundingSources"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Project.ProFundingSourceModel"
+                    column="Pa_Id" select="getProFundingSource">
+        </collection>
+        <collection property="preProApprovalDtl"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Project.PreProApprovalDtlModel"
+                    column="Pr_Id" select="getgetPreProApprovalDtl">
+        </collection>
+    </resultMap>
+
+    <select id="getProFundingSource"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProFundingSourceModel">
+        select psf.*
+        from Pro_Funding_Source psf
+        where psf.Pa_Id = #{paId}
+        order by Fs_Sort asc
+    </select>
+
+    <select id="getgetPreProApprovalDtl"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProApprovalDtlModel">
+        select
+            psf.*
+        from   Pre_ProApproval_Dtl psf
+        where psf.Pad_Parenet_Id=#{prId}
+        order by Pad_Order asc
+    </select>
+
+    <select id="getPreProApprovalByPid" resultMap="getPreProApproval">
+        select f.file_relation_id  as fileRelationId,
+               c1.C_Name           as paConstructionUnitName,
+               c1.C_Abbreviation   as paConsAbbName,
+               c1.C_Name_History   as paConstructionUnitNameHistory,
+               pro.P_Name          as pName,
+               pro.P_Name_History  as pNameHistory,
+               pro.P_Code          as pCode,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               mn.*
+        from Pre_Pro_Approval mn
+                 left join Sys_Company c1 on c1.C_Id = mn.Pa_Construction_Unit_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join Sys_File f on f.FileID = mn.Pa_Id
+        where mn.P_Id = #{pId} limit 1
+    </select>
+
+    <select id="getPreProApprovalById" resultMap="getPreProApproval">
+        select f.file_relation_id  as fileRelationId,
+               c1.C_Name           as paConstructionUnitName,
+               c1.C_Abbreviation   as paConsAbbName,
+               c1.C_Name_History   as paConstructionUnitNameHistory,
+               pro.P_Name          as pName,
+               pro.P_Name_History  as pNameHistory,
+               pro.P_Code          as pCode,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               mn.*
+        from Pre_Pro_Approval mn
+                 left join Sys_Company c1 on c1.C_Id = mn.Pa_Construction_Unit_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join Sys_File f on f.FileID = mn.Pa_Id
+        where mn.Pa_Id = #{paId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.paType!=null">
+            and mn.Pa_Type = #{params.paType}
+        </if>
+        <if test="params.paConstructionUnitId!=null">
+            and mn.Pa_Construction_Unit_Id = #{params.paConstructionUnitId}
+        </if>
+        <if test="params.paState!=null">
+            and mn.Pa_State = #{params.paState}
+        </if>
+        <if test="params.paPmId!=null">
+            and mn.Pa_Pm_Id = #{params.paPmId}
+        </if>
+        <if test="params.paIsParticipate!=null">
+            and mn.Pa_Is_Participate = #{params.paIsParticipate}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and pro.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.paCode!=null">
+            and mn.Pa_Code like concat('%',#{params.paCode},'%')
+        </if>
+        <if test="params.paName!=null">
+            and mn.Pa_Name like concat('%',#{params.paName},'%')
+        </if>
+        <if test="params.paConstructionUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.paConstructionUnitName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.paConstructionUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.paPmName!=null">
+            and mn.Pa_Pm_Name like concat('%',#{params.paPmName},'%')
+        </if>
+        <if test="params.paPmTel!=null">
+            and mn.Pa_Pm_Tel like concat('%',#{params.paPmTel},'%')
+        </if>
+        <if test="params.paNature!=null">
+            and mn.Pa_Nature like concat('%',#{params.paNature},'%')
+        </if>
+        <if test="params.paCreateUname!=null">
+            and mn.Pa_Create_Uname like concat('%',#{params.paCreateUname},'%')
+        </if>
+        <if test="params.paTotalInvStart!=null">
+            and mn.Pa_Total_Inv > #{params.paTotalInvStart}
+        </if>
+        <if test="params.paTotalInvEnd!=null">
+            and mn.Pa_Total_Inv &lt; #{params.paTotalInvEnd}
+        </if>
+        <include refid="paCreateTimeFilter"/>
+    </sql>
+
+    <select id="getPreProApprovalList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProApprovalModel">
+        select
+        c1.C_Name as paConstructionUnitName,
+        c1.C_Abbreviation as paConsAbbName,
+        c1.C_Name_History as paConstructionUnitNameHistory,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Pre_Pro_Approval mn
+        left join Sys_Company c1 on c1.C_Id=mn.Pa_Construction_Unit_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Pa_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getPaTotalInvSum" resultType="com.jpmsoft.projectProducer.pojo.vo.project.PreProApprovalStatisticsVo">
+        select
+        sum(mn.Pa_Total_Inv) as paTotalInvSum
+        from Pre_Pro_Approval mn
+        left join Sys_Company c1 on c1.C_Id=mn.Pa_Construction_Unit_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+
+    <!-- *********************************** dm *********************************** -->
+    <sql id="paCreateTimeFilter" databaseId="dm">
+        <if test="params.paCreateTimeStart!=null">
+            and to_date(mn.Pa_Create_Time,'yyyy-MM-dd') >= to_date(#{params.paCreateTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.paCreateTimeEnd!=null">
+            and to_date(mn.Pa_Create_Time,'yyyy-MM-dd') &lt;= to_date(#{params.paCreateTimeEnd},'yyyy-MM-dd')
+        </if>
+    </sql>
+
+    <sql id="paCreateTimeFilter" databaseId="postgre">
+        <if test="params.paCreateTimeStart!=null">
+            and to_char(mn.Pa_Create_Time,'yyyy-MM-dd') >= to_char(#{params.paCreateTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.paCreateTimeEnd!=null">
+            and to_char(mn.Pa_Create_Time,'yyyy-MM-dd') &lt;= to_char(#{params.paCreateTimeEnd},'yyyy-MM-dd')
+        </if>
+    </sql>
+
+    <!-- *********************************** mysql *********************************** -->
+    <sql id="paCreateTimeFilter" databaseId="mysql">
+        <if test="params.paCreateTimeStart!=null">
+            and date_format(mn.Pa_Create_Time,'%Y-%m-%d') >= date_format(#{params.paCreateTimeStart},'%Y-%m-%d')
+        </if>
+        <if test="params.paCreateTimeEnd!=null">
+            and date_format(mn.Pa_Create_Time,'%Y-%m-%d') &lt;= date_format(#{params.paCreateTimeEnd},'%Y-%m-%d')
+        </if>
+    </sql>
+</mapper>

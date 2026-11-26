@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreCommandPostMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.Project.PreCommandPostModel"
+               id="getPreCommandPost">
+        <id column="Com_Id" property="comId"/>
+        <collection property="preCommandPostDtls"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Project.PreCommandPostDtlModel"
+                    column="Com_Id" select="getCommandPostDtls">
+        </collection>
+    </resultMap>
+
+    <select id="getCommandPostDtls"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreCommandPostDtlModel">
+        select c1.C_Name         as cName,
+               c1.C_Abbreviation as cAbbName,
+               c1.C_Name_History as cNameHistory,
+               cpd.*
+        from Pre_Command_Post_Dtl cpd
+                 left join Sys_Company c1 on c1.C_Id = cpd.Comd_Cid
+        where cpd.Com_Id = #{comId}
+        order by cpd.Comd_Order asc
+    </select>
+
+
+    <select id="getPreCommandPostById" resultMap="getPreCommandPost">
+        select f.file_relation_id  as fileRelationId,
+               c1.C_Name           as comCreateCName,
+               c1.C_Abbreviation   as comCreateCAbbName,
+               c1.C_Name_History   as comCreateCNameHistory,
+               pro.P_Name          as pName,
+               pro.P_Name_History  as pNameHistory,
+               pro.P_Code          as pCode,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               mn.*
+        from Pre_Command_Post mn
+                 left join Sys_Company c1 on c1.C_Id = mn.Com_Create_Cid
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join Sys_File f on f.FileID = mn.Com_Id
+        where mn.Com_Id = #{comId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.comState!=null">
+            and mn.Com_State = #{params.comState}
+        </if>
+        <if test="params.comCreateCid!=null">
+            and mn.Com_Create_Cid = #{params.comCreateCid}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.comOverview!=null">
+            and mn.Com_Overview like concat('%',#{params.comOverview},'%')
+        </if>
+        <if test="params.comCreateUname!=null">
+            and mn.Com_Create_Uname like concat('%',#{params.comCreateUname},'%')
+        </if>
+        <if test="params.comCreateCName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.comCreateCName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.comCreateCName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <include refid="comCreateTimeFilter"/>
+    </sql>
+
+    <select id="getPreCommandPostList" resultMap="getPreCommandPost">
+        select
+        c1.C_Name as comCreateCName,
+        c1.C_Name_History as comCreateCNameHistory,
+        c1.C_Abbreviation as comCreateCAbbName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Pre_Command_Post mn
+        left join Sys_Company c1 on c1.C_Id=mn.Com_Create_Cid
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Com_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getComInvestmentSum" resultType="com.jpmsoft.projectProducer.pojo.vo.project.ComInvestmentSumVo">
+        select
+        SUM(mn.Com_Investment) as comInvestmentSum
+        from Pre_Command_Post mn
+        left join Sys_Company c1 on c1.C_Id=mn.Com_Create_Cid
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+    <!-- *********************************** dm *********************************** -->
+    <sql id="comCreateTimeFilter" databaseId="dm">
+        <if test="params.comCreateTimeStart!=null">
+            and to_date(mn.Com_Create_Time,'yyyy-MM-dd') >= to_date(#{params.comCreateTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.comCreateTimeEnd!=null">
+            and to_date(mn.Com_Create_Time,'yyyy-MM-dd') &lt;= to_date(#{params.comCreateTimeEnd},'yyyy-MM-dd')
+        </if>
+    </sql>
+
+    <sql id="comCreateTimeFilter" databaseId="postgre">
+        <if test="params.comCreateTimeStart!=null">
+            and to_char(mn.Com_Create_Time,'yyyy-MM-dd') >= to_char(#{params.comCreateTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.comCreateTimeEnd!=null">
+            and to_char(mn.Com_Create_Time,'yyyy-MM-dd') &lt;= to_char(#{params.comCreateTimeEnd},'yyyy-MM-dd')
+        </if>
+    </sql>
+
+    <!-- *********************************** mysql *********************************** -->
+    <sql id="comCreateTimeFilter" databaseId="mysql">
+        <if test="params.comCreateTimeStart!=null">
+            and date_format(mn.Com_Create_Time,'%Y-%m-%d') >= date_format(#{params.comCreateTimeStart},'%Y-%m-%d')
+        </if>
+        <if test="params.comCreateTimeEnd!=null">
+            and date_format(mn.Com_Create_Time,'%Y-%m-%d') &lt;= date_format(#{params.comCreateTimeEnd},'%Y-%m-%d')
+        </if>
+    </sql>
+</mapper>

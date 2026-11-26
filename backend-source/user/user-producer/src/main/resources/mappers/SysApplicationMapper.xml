@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysApplicationMapper">
+
+<!--    <resultMap type="com.jpmsoft.userProducer.pojo.vo.SysApplicationVO" id="getSysApplication">-->
+<!--        <id column="App_Id" property="appId"/>-->
+<!--        <collection property="sysApplicationPowers"-->
+<!--                    ofType="com.jpmsoft.userProducer.pojo.dto.SysApplicationPowerDTO"-->
+<!--                    column="App_Id" select="getSysApplicationPower">-->
+<!--        </collection>-->
+<!--    </resultMap>-->
+
+<!--    <select id="getSysApplicationPower" resultType="com.jpmsoft.userProducer.pojo.dto.SysApplicationPowerDTO">-->
+<!--        select-->
+<!--            *-->
+<!--        from SYS_Application_Power-->
+<!--        where App_Id=#{appId}-->
+<!--    </select>-->
+
+    <select id="getSysApplicationList" resultType="com.jpmsoft.userProducer.pojo.vo.SysApplicationVO">
+        select
+             mn.*
+        from Sys_Application mn
+        <where>
+            <if test="params.appType!=null">
+                and mn.App_Type=#{params.appType}
+            </if>
+            <if test="params.appStatus!=null">
+                and mn.App_Status=#{params.appStatus}
+            </if>
+            <if test="params.state!=null">
+                and mn.State=#{params.state}
+            </if>
+            <if test="params.appName!=null">
+                and INSTR(mn.App_Name,#{params.appName})
+            </if>
+            <if test="params.appCode!=null">
+                and INSTR(mn.App_Code,#{params.appCode})
+            </if>
+            <if test="params.appRemark!=null">
+                and INSTR(mn.App_Remark,#{params.appRemark})
+            </if>
+            <if test="params.createUname!=null">
+                and INSTR(mn.Create_Uname,#{params.createUname})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

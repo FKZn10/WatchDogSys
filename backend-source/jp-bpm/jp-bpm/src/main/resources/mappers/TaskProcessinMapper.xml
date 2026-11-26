@@ -1,0 +1,1034 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.TaskProcessinMapper">
+
+    <select id="getUserTaskProcessList" resultType="com.jpmsoft.common.model.response.TaskProcessResponse">
+        select
+        f.FileTitle as tpFileTitle,
+        f.FileCreateUser as fileCreateUser,
+        f.FileCreateUserName as fileCreateUserName,
+
+        flow.FlowName as tpFlowName,
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        f.T_Code as tCode,
+        <include refid="TaskProcessinEntity"/>
+        from ${tableCodes.stp} tp
+        left join ${tableCodes.sf} f on f.FileID=tp.tp_entityid
+        left join SYS_Flow flow on flow.FlowID=tp.tp_flowid
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        <where>
+            1=1
+            <if test="params.userId!=null">
+                and tp.tp_user=#{params.userId}
+            </if>
+
+            <if test="params.tpStarttime!=null and params.tpEndtime!=null">
+                and tp.tp_dotime between #{params.tpStarttime} and #{params.tpEndtime}
+            </if>
+            <if test="params.tpName!=null">
+                and tp.tp_name like concat('%',#{params.tpName},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.tpFileTitle!=null">
+                and f.FileTitle like concat('%',#{params.tpFileTitle},'%')
+            </if>
+            <if test="params.flowRecallRecord!=null">
+                and tp.tp_type !=#{params.flowRecallRecord}
+            </if>
+            <if test="params.approvalRecordGateway!=null">
+                and tp.tp_acttype not like concat('%',#{params.approvalRecordGateway},'%')
+            </if>
+            <if test="params.teId!=null">
+                and tp.Te_Id = #{params.teId}
+            </if>
+            <if test="params.tpSendName!=null">
+                and   tp.tp_id in (select distinct tpu.Tpu_Tp_Id from ${tableCodes.stpu} tpu left join Sys_User u on u.U_Id=tpu.Tpu_User where       u.U_Name like concat('%',#{params.tpSendName},'%') )
+            </if>
+
+            <if test="params.minType!=null">
+                <if test="params.minDids!=null">
+                    and (pro.P_Competent_Department in
+                    <foreach collection="params.minDids" open="(" close=")" separator="," item="code">
+                        #{code}
+                    </foreach>
+
+                    <if test="params.minUids">
+                        or ( pro.P_Id is null and
+                        tp.tp_user in
+                        <foreach collection="params.minUids" open="(" close=")" separator="," item="userId">
+                            #{userId}
+                        </foreach>
+                        )
+                    </if>
+                    )
+                </if>
+                <if test="params.timeStartMin!=null">
+                    and tp.tp_dotime >= #{params.timeStartMin}
+                </if>
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by tp.${params.sortFiled} ${params.sortType}
+        </if>
+        <if test="params.sortType==null or params.sortFiled==null">
+            order by tp.tp_dotime desc
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getUserTaskProcessListCount" resultType="java.lang.Integer">
+        select
+        count( tp.tp_id)
+        from ${tableCodes.stp} tp
+        left join ${tableCodes.sf} f on f.FileID=tp.tp_entityid
+        left join SYS_Flow flow on flow.FlowID=tp.tp_flowid
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join Con_Contract con on con.Con_Id=f.FileContract
+
+        <where>
+            1=1
+
+            <if test="params.userId!=null">
+                and tp.tp_user=#{params.userId}
+            </if>
+
+            <if test="params.tpStarttime!=null and params.tpEndtime!=null">
+                and tp.tp_dotime between #{params.tpStarttime} and #{params.tpEndtime}
+            </if>
+            <if test="params.tpSendName!=null">
+                and u.U_Name like concat('%',#{params.tpSendName},'%')
+            </if>
+            <if test="params.tpName!=null">
+                and tp.tp_name like concat('%',#{params.tpName},'%')
+            </if>
+            <if test="params.pName!=null">
+                and pro.P_Name like concat('%',#{params.pName},'%')
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.tpFileTitle!=null">
+                and f.FileTitle like concat('%',#{params.tpFileTitle},'%')
+            </if>
+            <if test="params.flowRecallRecord!=null">
+                and tp.tp_type !=#{params.flowRecallRecord}
+            </if>
+            <if test="params.approvalRecordGateway!=null">
+                and tp.tp_acttype not like concat('%',#{params.approvalRecordGateway},'%')
+            </if>
+            <if test="params.teId!=null">
+                and tp.Te_Id = #{params.teId}
+            </if>
+            <if test="params.tpSendName!=null">
+                and   tp.tp_id in (select distinct tpu.Tpu_Tp_Id from ${tableCodes.stpu} tpu left join Sys_User u on u.U_Id=tpu.Tpu_User where       u.U_Name like concat('%',#{params.tpSendName},'%') )
+            </if>
+            <if test="params.minType!=null">
+                <if test="params.minDids!=null">
+                    and (pro.P_Competent_Department in
+                    <foreach collection="params.minDids" open="(" close=")" separator="," item="code">
+                        #{code}
+                    </foreach>
+
+                    <if test="params.minUids">
+                        or ( pro.P_Id is null and
+                        tp.tp_user in
+                        <foreach collection="params.minUids" open="(" close=")" separator="," item="userId">
+                            #{userId}
+                        </foreach>
+                        )
+                    </if>
+                    )
+                </if>
+                <if test="params.timeStartMin!=null">
+                    and tp.tp_dotime >= #{params.timeStartMin}
+                </if>
+            </if>
+        </where>
+    </select>
+
+    <!-- 用户已办任务列表（去重版）- 对同一tp_user和tp_entityid只保留最新一条记录 -->
+    <select id="getUserTaskProcessListDistinct" resultType="com.jpmsoft.common.model.response.TaskProcessResponse">
+        SELECT
+            f.FileTitle AS tpFileTitle,
+            f.FileCreateUser AS fileCreateUser,
+            f.FileCreateUserName AS fileCreateUserName,
+            flow.FlowName AS tpFlowName,
+            pro.P_Name AS pName,
+            sec.Sec_Name AS secName,
+            con.Con_Name AS conName,
+            f.T_Code AS tCode,
+            <include refid="TaskProcessinEntity"/>
+        FROM sys_task_processin tp
+        -- 使用子查询去重:按tp_entityid分组,取tp_dotime最大且tp_id最大的记录
+        INNER JOIN (
+            SELECT tp_entityid, MAX(tp_dotime) AS max_dotime
+            FROM sys_task_processin
+            GROUP BY tp_entityid
+        ) tp_latest ON tp.tp_entityid = tp_latest.tp_entityid AND tp.tp_dotime = tp_latest.max_dotime
+        LEFT JOIN sys_task_processin tp_dup
+            ON tp.tp_entityid = tp_dup.tp_entityid
+            AND tp.tp_dotime = tp_dup.tp_dotime
+            AND tp.tp_id &lt; tp_dup.tp_id
+        INNER JOIN sys_file f ON f.FileID = tp.tp_entityid
+        LEFT JOIN SYS_Flow flow ON flow.FlowID = tp.tp_flowid
+        LEFT JOIN Pre_Project pro ON pro.P_ID = f.FileProject
+        LEFT JOIN Sec_Info sec ON sec.Sec_Id = f.FileSectionID
+        LEFT JOIN Con_Contract con ON con.Con_Id = f.FileContract
+        <where>tp_dup.tp_id IS NULL
+
+            <if test="params.userId != null">
+                AND tp.tp_user = #{params.userId}
+            </if>
+
+            <if test="params.tpStarttime != null and params.tpEndtime != null">
+                AND tp.tp_dotime BETWEEN #{params.tpStarttime} AND #{params.tpEndtime}
+            </if>
+
+            <if test="params.tpName != null">
+                AND tp.tp_name LIKE CONCAT('%', #{params.tpName}, '%')
+            </if>
+
+            <if test="params.pName != null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        AND likePname(#{params.pName}, pro.P_Id) = true
+                    </when>
+                    <otherwise>
+                        AND pro.P_Name LIKE CONCAT('%', #{params.pName}, '%')
+                    </otherwise>
+                </choose>
+            </if>
+
+            <if test="params.conName != null">
+                AND con.Con_Name LIKE CONCAT('%', #{params.conName}, '%')
+            </if>
+
+            <if test="params.tpFileTitle != null">
+                AND f.FileTitle LIKE CONCAT('%', #{params.tpFileTitle}, '%')
+            </if>
+
+            <if test="params.flowRecallRecord != null">
+                AND tp.tp_type != #{params.flowRecallRecord}
+            </if>
+
+            <if test="params.approvalRecordGateway != null">
+                AND tp.tp_acttype NOT LIKE CONCAT('%', #{params.approvalRecordGateway}, '%')
+            </if>
+
+            <if test="params.teId != null">
+                AND tp.Te_Id = #{params.teId}
+            </if>
+
+            <if test="params.tpSendName != null">
+                AND tp.tp_id IN (
+                    SELECT DISTINCT tpu.Tpu_Tp_Id
+                    FROM ${tableCodes.stpu} tpu
+                    LEFT JOIN Sys_User u ON u.U_Id = tpu.Tpu_User
+                    WHERE u.U_Name LIKE CONCAT('%', #{params.tpSendName}, '%')
+                )
+            </if>
+
+            <if test="params.minType != null">
+                <if test="params.minDids != null">
+                    AND (
+                        pro.P_Competent_Department IN
+                        <foreach collection="params.minDids" open="(" close=")" separator="," item="code">
+                            #{code}
+                        </foreach>
+                        <if test="params.minUids != null and params.minUids.size() > 0">
+                            OR (
+                                pro.P_Id IS NULL
+                                AND tp.tp_user IN
+                                <foreach collection="params.minUids" open="(" close=")" separator="," item="userId">
+                                    #{userId}
+                                </foreach>
+                            )
+                        </if>
+                    )
+                </if>
+                <if test="params.timeStartMin != null">
+                    AND tp.tp_dotime &gt;= #{params.timeStartMin}
+                </if>
+            </if>
+        </where>
+        <if test="params.sortType != null and params.sortFiled != null">
+            ORDER BY tp.${params.sortFiled} ${params.sortType}
+        </if>
+        <if test="params.sortType == null or params.sortFiled == null">
+            ORDER BY tp.tp_dotime DESC
+        </if>
+        LIMIT #{params.start}, #{params.size}
+    </select>
+
+    <!-- 用户已办任务列表总数(去重版) -->
+    <select id="getUserTaskProcessListDistinctCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM (
+            SELECT tp.tp_entityid
+            FROM sys_task_processin tp
+            INNER JOIN (
+                SELECT tp_entityid, MAX(tp_dotime) AS max_dotime
+                FROM sys_task_processin
+                GROUP BY tp_entityid
+            ) tp_latest ON tp.tp_entityid = tp_latest.tp_entityid AND tp.tp_dotime = tp_latest.max_dotime
+            LEFT JOIN sys_task_processin tp_dup
+                ON tp.tp_entityid = tp_dup.tp_entityid
+                AND tp.tp_dotime = tp_dup.tp_dotime
+                AND tp.tp_id &lt; tp_dup.tp_id
+            INNER JOIN sys_file f ON f.FileID = tp.tp_entityid
+            LEFT JOIN SYS_Flow flow ON flow.FlowID = tp.tp_flowid
+            LEFT JOIN Pre_Project pro ON pro.P_ID = f.FileProject
+            LEFT JOIN Sec_Info sec ON sec.Sec_Id = f.FileSectionID
+            LEFT JOIN Con_Contract con ON con.Con_Id = f.FileContract
+            <where>
+                tp_dup.tp_id IS NULL
+
+            <if test="params.userId != null">
+                AND tp.tp_user = #{params.userId}
+            </if>
+
+            <if test="params.tpStarttime != null and params.tpEndtime != null">
+                AND tp.tp_dotime BETWEEN #{params.tpStarttime} AND #{params.tpEndtime}
+            </if>
+
+            <if test="params.tpName != null">
+                AND tp.tp_name LIKE CONCAT('%', #{params.tpName}, '%')
+            </if>
+
+            <if test="params.pName != null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        AND likePname(#{params.pName}, pro.P_Id) = true
+                    </when>
+                    <otherwise>
+                        AND pro.P_Name LIKE CONCAT('%', #{params.pName}, '%')
+                    </otherwise>
+                </choose>
+            </if>
+
+            <if test="params.conName != null">
+                AND con.Con_Name LIKE CONCAT('%', #{params.conName}, '%')
+            </if>
+
+            <if test="params.tpFileTitle != null">
+                AND f.FileTitle LIKE CONCAT('%', #{params.tpFileTitle}, '%')
+            </if>
+
+            <if test="params.flowRecallRecord != null">
+                AND tp.tp_type != #{params.flowRecallRecord}
+            </if>
+
+            <if test="params.approvalRecordGateway != null">
+                AND tp.tp_acttype NOT LIKE CONCAT('%', #{params.approvalRecordGateway}, '%')
+            </if>
+
+            <if test="params.teId != null">
+                AND tp.Te_Id = #{params.teId}
+            </if>
+
+            <if test="params.tpSendName != null">
+                AND tp.tp_id IN (
+                    SELECT DISTINCT tpu.Tpu_Tp_Id
+                    FROM ${tableCodes.stpu} tpu
+                    LEFT JOIN Sys_User u ON u.U_Id = tpu.Tpu_User
+                    WHERE u.U_Name LIKE CONCAT('%', #{params.tpSendName}, '%')
+                )
+            </if>
+
+            <if test="params.minType != null">
+                <if test="params.minDids != null">
+                    AND (
+                        pro.P_Competent_Department IN
+                        <foreach collection="params.minDids" open="(" close=")" separator="," item="code">
+                            #{code}
+                        </foreach>
+                        <if test="params.minUids != null and params.minUids.size() > 0">
+                            OR (
+                                pro.P_Id IS NULL
+                                AND tp.tp_user IN
+                                <foreach collection="params.minUids" open="(" close=")" separator="," item="userId">
+                                    #{userId}
+                                </foreach>
+                            )
+                        </if>
+                    )
+                </if>
+                <if test="params.timeStartMin != null">
+                    AND tp.tp_dotime &gt;= #{params.timeStartMin}
+                </if>
+            </if>
+        </where>
+        ) AS distinct_count
+    </select>
+
+
+    <select id="getTaskProcessList" resultType="com.jpmsoft.common.model.response.TaskProcessResponse">
+        select
+        f.FileTitle as tpFileTitle,
+        flow.FlowName as tpFlowName,
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        f.T_Code as tCode,
+        ft.T_Name as tName,
+        u1.U_Name as tpUserName,
+        <include refid="TaskProcessinEntity"/>
+        from ${tableCodes.stp} tp
+        <!--        FORCE INDEX (idx_tp_dotime_cover)  todo 华润要去掉注释-->
+        left join ${tableCodes.sf} f on f.FileID=tp.tp_entityid
+        left join SYS_Flow flow on flow.FlowID=tp.tp_flowid
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        left join ${tableCodes.stpu} tpu on tpu.Tpu_Tp_Id=tp.tp_id
+        left join Sys_User u on u.U_Id=tpu.Tpu_User
+        left join Sys_User u1 on u1.U_Id=tp.tp_user
+        left join SYS_FileTemplate ft on ft.T_ID=flow.T_ID
+        <where>
+            1=1
+            <if test="params.userId!=null">
+                tp.tp_user=#{params.userId}
+            </if>
+
+            <if test="params.tpStarttime!=null and params.tpEndtime!=null">
+                and tp.tp_dotime between #{params.tpStarttime} and #{params.tpEndtime}
+            </if>
+            <if test="params.tpSendName!=null">
+                and u.U_Name like concat('%',#{params.tpSendName},'%')
+            </if>
+            <if test="params.tpDoUserName!=null">
+                and u1.U_Name like concat('%',#{params.tpDoUserName},'%')
+            </if>
+            <if test="params.tpName!=null">
+                and tp.tp_name like concat('%',#{params.tpName},'%')
+            </if>
+            <if test="params.pName!=null">
+                and pro.P_Name like concat('%',#{params.pName},'%')
+            </if>
+            <if test="params.secName!=null">
+                and sec.Sec_Name like concat('%',#{params.secName},'%')
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.tpFileTitle!=null">
+                and f.FileTitle like concat('%',#{params.tpFileTitle},'%')
+            </if>
+
+            <if test="params.tpExplain!=null">
+                and tp.tp_explain like concat('%',#{params.tpExplain},'%')
+            </if>
+
+            <if test="params.actName!=null">
+                and tp.ActName like concat('%',#{params.actName},'%')
+            </if>
+            <if test="params.fileId!=null">
+                and tp.tp_entityid = #{params.fileId}
+            </if>
+
+            <if test="params.flowName!=null">
+                and flow.FlowName like concat('%',#{params.flowName},'%')
+            </if>
+            <if test="params.tName!=null">
+                and ft.T_Name like concat('%',#{params.tName},'%')
+            </if>
+            <if test="params.flowRecallRecord!=null">
+                and tp.tp_type !=#{params.flowRecallRecord}
+            </if>
+            <if test="params.starTime!=null">
+                and
+                <include refid="dateFormatFilterDoTime"/> &gt;= #{params.starTime}
+            </if>
+            <if test="params.endTime!=null">
+                and<include refid="dateFormatFilterDoTime"/>&lt;= #{params.endTime}
+            </if>
+            <if test="params.approvalRecordGateway!=null">
+                and tp.tp_acttype not like concat('%',#{params.approvalRecordGateway},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and tp.Te_Id = #{params.teId}
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by tp.${params.sortFiled} ${params.sortType}
+        </if>
+        <if test="params.sortType==null or params.sortFiled==null">
+            order by tp.tp_dotime desc
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getTaskProcessListCount" resultType="java.lang.Integer">
+        select
+        count( tp.tp_id)
+        from ${tableCodes.stp} tp
+        left join ${tableCodes.sf} f on f.FileID=tp.tp_entityid
+        left join SYS_Flow flow on flow.FlowID=tp.tp_flowid
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        left join ${tableCodes.stpu} tpu on tpu.Tpu_Tp_Id=tp.tp_id
+        left join Sys_User u on u.U_Id=tpu.Tpu_User
+        left join Sys_User u1 on u1.U_Id=tp.tp_user
+        left join SYS_FileTemplate ft on ft.T_ID=flow.T_ID
+        <where>
+            1=1
+            <if test="params.userId!=null">
+                tp.tp_user=#{params.userId}
+            </if>
+
+            <if test="params.tpStarttime!=null and params.tpEndtime!=null">
+                and tp.tp_dotime between #{params.tpStarttime} and #{params.tpEndtime}
+            </if>
+            <if test="params.tpSendName!=null">
+                and u.U_Name like concat('%',#{params.tpSendName},'%')
+            </if>
+            <if test="params.tpDoUserName!=null">
+                and u1.U_Name like concat('%',#{params.tpDoUserName},'%')
+            </if>
+            <if test="params.tpName!=null">
+                and tp.tp_name like concat('%',#{params.tpName},'%')
+            </if>
+            <if test="params.pName!=null">
+                and pro.P_Name like concat('%',#{params.pName},'%')
+            </if>
+            <if test="params.secName!=null">
+                and sec.Sec_Name like concat('%',#{params.secName},'%')
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.tpFileTitle!=null">
+                and f.FileTitle like concat('%',#{params.tpFileTitle},'%')
+            </if>
+            <if test="params.fileId!=null">
+                and tp.tp_entityid = #{params.fileId}
+            </if>
+            <if test="params.tpExplain!=null">
+                and tp.tp_explain like concat('%',#{params.tpExplain},'%')
+            </if>
+
+            <if test="params.actName!=null">
+                and tp.ActName like concat('%',#{params.actName},'%')
+            </if>
+
+            <if test="params.flowName!=null">
+                and flow.FlowName like concat('%',#{params.flowName},'%')
+            </if>
+            <if test="params.tName!=null">
+                and ft.T_Name like concat('%',#{params.tName},'%')
+            </if>
+            <if test="params.flowRecallRecord!=null">
+                and tp.tp_type !=#{params.flowRecallRecord}
+            </if>
+            <if test="params.starTime!=null">
+                and
+                <include refid="dateFormatFilterDoTime"/> &gt;= #{params.starTime}
+            </if>
+            <if test="params.endTime!=null">
+                and<include refid="dateFormatFilterDoTime"/>&lt;= #{params.endTime}
+            </if>
+            <if test="params.approvalRecordGateway!=null">
+                and tp.tp_acttype not like concat('%',#{params.approvalRecordGateway},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and tp.Te_Id = #{params.teId}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="getContractInfoByIds"  resultType="java.util.Map">
+
+      select  Con_Id as  conId,Con_Name as conName from  Con_Contract  where   Con_Id  in
+        <foreach collection="conIds" open="(" close=")" separator="," item="code">
+            #{code}
+        </foreach>
+    </select>
+
+
+    <select id="getApprovalDuration" resultType="com.jpmsoft.jpbpm.pojo.vo.ApprovalDurationVo">
+    select   max(tp_dotime) as maxDoTime,min(tp_dotime)as minDoTime   from  ${tableCode}  where tp_entityid=#{tpEntityid}
+        <if test="teId!=null and teId!='All'">
+            and Te_Id = #{teId}
+        </if>
+     ;
+</select>
+
+    <select id="getApprovalTask" resultType="com.jpmsoft.jpbpm.pojo.vo.TaskStepsVo">
+        select ActID,ActName,U_Name,U_ID,TaskSendTime from SYS_Task t left join SYS_FlowActivity a on a.ActID=t.TaskCurrentActID
+        left join SYS_User u on u.U_ID=t.TaskUser where TaskEntityID=#{tpEntityid}
+        <if test="teId!=null and teId!='All'">
+          and u.Te_Id = #{teId}
+        </if>;
+    </select>
+
+    <sql id="TaskProcessinEntity">
+        tp.tp_id as tpId,
+        tp.tp_flowid as tpFlowid,
+        tp.tp_actid as tpActid,
+        tp.tp_ruleid as tpRuleid,
+        tp.tp_entityid as tpEntityid,
+        tp.tp_dotime as tpDotime,
+        tp.tp_user as tpUser,
+        tp.tp_result as tpResult,
+        tp.tp_explain as tpExplain,
+        tp.tp_vote as tpVote,
+        tp.tp_project as tpProject,
+        tp.tp_name as tpName,
+        tp.tp_type as tpType,
+        tp.tp_skip as tpSkip,
+        tp.tp_skipuser as tpSkipuser,
+        tp.tp_signtime as tpSigntime,
+        tp.ActName as actname,
+        tp.tp_CountersignTitle as tpCountersigntitle,
+        tp.tp_StartTime as tpStarttime,
+        tp.tp_EndTime as tpEndtime,
+        tp.tp_taskid as tpTaskid,
+        tp.tp_taskrb as tpTaskrb,
+        tp.tp_from as tpFrom,
+        tp.tp_send as tpSend,
+        tp.tp_fileid as tpFileid,
+        tp.tp_templateCode as tpTemplatecode,
+        tp.tp_templateCodeO as tpTemplatecodeo,
+        tp.tp_person as tpPerson,
+        tp.tp_actname as tpActname,
+        tp.tp_acttype as tpActtype,
+        tp.tp_acthour as tpActhour,
+        tp.tp_section as tpSection,
+        tp.tp_contract as tpContract,
+        tp.tp_Client as tpClient
+    </sql>
+
+
+    <sql id="explainStr" databaseId="dm">
+        wm_concat(tp_explain) as explainStr
+    </sql>
+
+    <sql id="explainStr" databaseId="postgre">
+        string_agg(tp_explain,',') as explainStr
+    </sql>
+
+    <sql id="explainStr" databaseId="mysql">
+          GROUP_CONCAT(tp_explain Separator '    ') as explainStr
+    </sql>
+
+
+    <sql id="dateFormatFilterSendTime" databaseId="dm">
+        to_char(TaskSendTime,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterSendTime" databaseId="postgre">
+        to_char(TaskSendTime,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterSendTime" databaseId="mysql">
+         date_format(TaskSendTime,'%Y-%m-%d')
+    </sql>
+
+    <sql id="dateFormatFilterTpStartTime" databaseId="dm">
+        to_char(tp_StartTime,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterTpStartTime" databaseId="postgre">
+        to_char(tp_StartTime,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterTpStartTime" databaseId="mysql">
+        date_format(tp_StartTime,'%Y-%m-%d')
+    </sql>
+
+
+    <select id="getTaskProcessinNotTime" resultType="com.jpmsoft.jpbpm.pojo.vo.SysTaskProcessinInfoVo">
+        select
+        uer.U_Name,
+        uer.U_Type,
+        uer.U_Account,
+        sa.ActType as acttype,
+        sa.ActHour as actHour,
+        sc.C_Name,
+        sc.C_ID,
+        sf.FileProject as pId,
+        t1.*
+        from ${tableCode} t1
+        left join SYS_User uer on uer.U_ID=t1.tp_user
+        left join SYS_File sf on sf.FileID=t1.tp_entityid
+        left join SYS_FlowActivity sa on sa.ActID=t1.tp_actid
+        left join SYS_Company sc on sc.C_ID=uer.C_ID
+        where t1.tp_entityid in
+        <foreach collection="fileIds" open="(" close=")" item="fileId" separator=",">
+            #{fileId}
+        </foreach>
+        <if test="teId!=null">
+            and user.Te_Id = #{teId}
+        </if>
+
+
+
+
+
+    </select>
+
+
+
+    <select id="getUserTaskProcessListCJ" resultType="com.jpmsoft.jpbpm.pojo.vo.TaskCoordinationTaskVo">
+        select t2.*,
+        pre_project.P_Name as pName,
+        u.U_Name as createName,
+        u1.U_Name as doUserName,
+        sys_file.FileCreateUser as fileCreateId,
+        sys_file.FileCreateUserName as fileCreateName,
+        sys_file.FileFlowStatus as fileFlowStatusc
+        from (select '已办' as taskType,
+        tp_entityid as fileId,
+        tp_entityid as tpEntityid,
+        tp_id as taskId,
+        tp_name as taskName,
+        tp_user as doUserId,
+        tp_dotime as doTime,
+        tp_from as createId,
+        tp_StartTime as createtime,
+        tp_explain as explainStr,
+        tp_actid as  actId,
+        tp_result as result,
+        sf.T_Code as tCode
+        from sys_task_processin mn
+        left join sys_file sf on  sf.FileID=mn.tp_entityid
+        where
+       tp_acttype='userTask'
+        <if test="params.userIds!=null">
+            and tp_user in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and tp_name like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and tp_name in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+         UNION
+        select
+        '已沟通' as taskType,
+        CP_FileID as fileId,
+        CP_FileID as tpEntityid,
+        CP_ID as taskId,
+        CP_Name as taskName,
+        CP_User as doUserId,
+        CP_Time as doTime,
+        CP_SendUser as createId,
+        CP_SendTime as createtime,
+        CP_Explain as explainStr,
+        CP_ActID as  actId,
+        '同意' as result,
+        sf.T_Code as tCode from sys_coordinationprocess mn
+        left join sys_file sf on  sf.FileID=mn.CP_FileID
+        where
+        1=1
+        <if test="params.userIds!=null">
+            and CP_User in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and CP_Name like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and CP_Name in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+        ) t2
+        left join sys_file on t2.fileId = sys_file.FileID
+        left join pre_project on sys_file.FileProject =pre_project.P_ID
+        left join SYS_User u on u.U_ID = t2.createId
+        left join SYS_User u1 on u1.U_ID = t2.doUserId
+        where  1=1
+        <include refid="getUserTaskProcessCjFilter"/>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by t2.${params.sortFiled} ${params.sortType}
+        </if>
+
+        <if test="params.dataCount!='All'">
+            limit #{params.start},#{params.size}
+        </if>
+    </select>
+
+    <select id="getUserTaskProcessCountCJ" resultType="java.lang.Integer">
+        select COUNT(1)
+        from (select '已办' as taskType,
+        tp_entityid as fileId,
+        tp_entityid as tpEntityid,
+        tp_id as taskId,
+        tp_name as taskName,
+        tp_user as doUserId,
+        tp_dotime as doTime,
+        tp_from as createId,
+        tp_StartTime as createtime,
+        tp_explain as explainStr,
+        tp_actid as  actId,
+        tp_result as result
+        from sys_task_processin
+        where
+        tp_acttype='userTask'
+        <if test="params.userIds!=null">
+            and tp_user in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and tp_name like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and tp_name in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+         UNION
+        select
+        '已沟通' as taskType,
+        CP_FileID as fileId,
+        CP_FileID as tpEntityid,
+        CP_ID as taskId,
+        CP_Name as taskName,
+        CP_User as doUserId,
+        CP_Time as doTime,
+        CP_SendUser as createId,
+        CP_SendTime as createtime,
+        CP_Explain as explainStr,
+        CP_ActID as  actId,
+        '同意' as result
+        from sys_coordinationprocess
+        where
+        1=1
+        <if test="params.userIds!=null">
+            and CP_User in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and CP_Name like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and CP_Name in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+        ) t2
+        left join sys_file on t2.fileId = sys_file.FileID
+        left join pre_project on sys_file.FileProject =pre_project.P_ID
+        left join SYS_User u on u.U_ID = t2.createId
+        left join SYS_User u1 on u1.U_ID = t2.doUserId
+        where  1=1
+        <include refid="getUserTaskProcessCjFilter"/>
+    </select>
+
+
+
+    <select id="getUserTaskProcessKeyCJ" resultType="java.lang.String">
+        select DISTINCT ${key}
+        from (select '已办' as taskType,
+        tp_entityid as fileId,
+        tp_entityid as tpEntityid,
+        tp_id as taskId,
+        tp_name as taskName,
+        tp_user as doUserId,
+        tp_dotime as doTime,
+        tp_from as createId,
+        tp_StartTime as createtime,
+        tp_explain as explainStr,
+        tp_actid as  actId,
+        tp_result as result
+        from sys_task_processin
+        where
+        1=1
+        <if test="params.userIds!=null">
+            and tp_user in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and tp_name like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and tp_name in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+         UNION
+        select
+        '已沟通' as taskType,
+        CP_FileID as fileId,
+        CP_FileID as tpEntityid,
+        CP_ID as taskId,
+        CP_Name as taskName,
+        CP_User as doUserId,
+        CP_Time as doTime,
+        CP_SendUser as createId,
+        CP_SendTime as createtime,
+        CP_Explain as explainStr,
+        CP_ActID as  actId,
+        '同意' as result
+        from sys_coordinationprocess
+        where
+        1=1
+        <if test="params.userIds!=null">
+            and CP_User in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+        <if test="params.taskname!=null">
+            and CP_Name like concat('%',#{params.taskname},'%')
+        </if>
+        <if test="params.tasknames!=null">
+            and CP_Name in
+            <foreach collection="params.tasknames" open="(" close=")" separator="," item="taskname">
+                #{taskname}
+            </foreach>
+        </if>
+        ) t2
+        left join sys_file on t2.fileId = sys_file.FileID
+        left join pre_project on FileProject = p_id
+        left join SYS_User u on u.U_ID = t2.createId
+        left join SYS_User u1 on u1.U_ID = t2.doUserId
+        where  1=1
+        <include refid="getUserTaskProcessCjFilter"/>
+    </select>
+
+    <sql id="getUserTaskProcessCjFilter">
+        <if test="params.pNames!=null">
+            and pre_project.P_Name in
+            <foreach collection="params.pNames" open="(" close=")" separator="," item="pName">
+                #{pName}
+            </foreach>
+        </if>
+        <if test="params.createNames!=null">
+            and u.U_Name in
+            <foreach collection="params.createNames" open="(" close=")" separator="," item="uName">
+                #{uName}
+            </foreach>
+        </if>
+        <if test="params.doUserNames!=null">
+            and u1.U_Name in
+            <foreach collection="params.doUserNames" open="(" close=")" separator="," item="doUserName">
+                #{doUserName}
+            </foreach>
+        </if>
+        <if test="params.fileCreateNames!=null">
+            and sys_file.FileCreateUserName in
+            <foreach collection="params.fileCreateNames" open="(" close=")" separator="," item="fileCreateName">
+                #{fileCreateName}
+            </foreach>
+        </if>
+
+        <if test="params.startCreateTime!=null">
+            and <include refid="dateFormatFilterDoTime2"/> >= #{params.startCreateTime}
+        </if>
+        <if test="params.endCreateTime!=null">
+            and #{params.endCreateTime} >= <include refid="dateFormatFilterDoTime2"/>
+        </if>
+        <if test="params.startDoTime!=null">
+            and <include refid="dateFormatFilterDoTime1"/> >= #{params.startDoTime}
+        </if>
+        <if test="params.endDoTime!=null">
+            and #{params.endDoTime} >= <include refid="dateFormatFilterDoTime1"/>
+        </if>
+    </sql>
+
+
+    <sql id="dateFormatFilterDoTime" databaseId="dm">
+        to_char(tp_dotime,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterDoTime" databaseId="postgre">
+        to_char(tp_dotime,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterDoTime" databaseId="mysql">
+         date_format(tp_dotime,'%Y-%m-%d')
+    </sql>
+
+    <sql id="dateFormatFilterDoTime1" databaseId="dm">
+        to_char(t2.doTime,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterDoTime1" databaseId="postgre">
+        to_char(t2.doTime,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterDoTime1" databaseId="mysql">
+        date_format(t2.doTime,'%Y-%m-%d')
+    </sql>
+    <sql id="dateFormatFilterDoTime2" databaseId="dm">
+        to_char(t2.createtime,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterDoTime2" databaseId="postgre">
+        to_char(t2.createtime,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterDoTime2" databaseId="mysql">
+        date_format(t2.createtime,'%Y-%m-%d')
+    </sql>
+
+    <select id="getApprovalUserByIds" resultType="com.jpmsoft.jpbpm.pojo.dto.WorkFlowFileDto">
+        select stp.tp_user as Uid ,stp.tp_entityid as Fileid
+        from Sys_Task_Processin stp
+        <where>
+            stp.tp_entityid in
+            <foreach collection="ids" open="(" close=")" separator="," item="id">
+                #{id}
+            </foreach>
+        </where>
+        union all
+        select sc.CC_User as Uid, sc.CC_FileID as Fileid
+        from SYS_CarbonCopy sc
+        <where>
+            sc.CC_FileID in
+            <foreach collection="ids" open="(" close=")" separator="," item="id">
+                #{id}
+            </foreach>
+        </where>
+        union all
+        select scp.CP_User as Uid, scp.CP_FileID as Fileid
+        from SYS_CoordinationProcess scp
+        <where>
+            scp.CP_FileID in
+            <foreach collection="ids" open="(" close=")" separator="," item="id">
+                #{id}
+            </foreach>
+        </where>
+    </select>
+</mapper>

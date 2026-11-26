@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.projectOutline.OutlineProjectRiskMapper">
+    <select id="getOutlineProjectRiskByOplIds"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectRiskResponse">
+        select
+        mn.*,
+        rwi.*
+        from Outline_Project_Risk mn
+        left join risk_warn_index rwi on rwi.rwi_id = mn.Risk_Id
+        where mn.Opl_Id in
+        <foreach item="item" collection="oplIds" index="index" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+        order by mn.Opr_Sort
+    </select>
+
+    <select id="getOutlineProjectRiskPage"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectRiskResponse">
+        select
+        mn.*,
+        rwi.*
+        from Outline_Project_Risk mn
+        left join risk_warn_index rwi on rwi.rwi_id = mn.Risk_Id
+        <where>
+            <if test="params.id != null and params.id != ''">
+                and mn.id = #{params.id}
+            </if>
+            <if test="params.riskId != null and params.riskId != ''">
+                and mn.Risk_Id = #{params.riskId}
+            </if>
+            <if test="params.oplId != null and params.oplId != ''">
+                and mn.Opl_Id = #{params.oplId}
+            </if>
+        </where>
+        order by mn.Opr_Sort
+    </select>
+
+    <select id="getOutlineProjectRiskById"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectRiskResponse">
+        select
+        mn.*,
+        rwi.*
+        from Outline_Project_Risk mn
+        left join risk_warn_index rwi on rwi.rwi_id = mn.Risk_Id
+        where mn.id = #{id}
+    </select>
+
+    <select id="getProjectRiskLedgerByOpmIds"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectRiskResponse" databaseId="dm">
+        select *
+        from (select mn.*,
+        opl.Opm_Id,
+        rw.*,
+        ROW_NUMBER() over (partition by rw.Rw_Id order by rw.Rw_Id) as rn
+        from Outline_Project_Risk mn
+        left join Outline_Project_Lib opl on opl.id = mn.Opl_Id
+        left join Outline_Project_Manage opm on opl.Opm_Id = opm.id
+        left join Risk_Warn rw on rw.Rwi_Id = mn.Risk_Id and rw.P_Id = opm.P_Id
+        where rw.Rw_Id is not null
+        and opl.Opm_Id in
+        <foreach item="item" collection="opmIds" index="index" separator="," open="(" close=")">
+            #{item}
+        </foreach>) t
+        where t.rn = 1
+    </select>
+
+    <select id="getProjectRiskLedgerByOpmIds"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectRiskResponse" databaseId="mysql">
+        select mn.*, opl.Opm_Id,rw.*
+        from Outline_Project_Risk mn
+        left join Outline_Project_Lib opl on opl.id = mn.Opl_Id
+        left join Outline_Project_Manage opm on opl.Opm_Id = opm.id
+        left join Risk_Warn rw on rw.Rwi_Id = mn.Risk_Id and rw.P_Id = opm.P_Id
+        where rw.Rw_Id is not null
+        and opl.Opm_Id in
+        <foreach item="item" collection="opmIds" index="index" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+        and mn.id in (
+        select min(mn2.id)
+        from Outline_Project_Risk mn2
+        left join Outline_Project_Lib opl2 on opl2.id = mn2.Opl_Id
+        left join Outline_Project_Manage opm2 on opl2.Opm_Id = opm2.id
+        left join Risk_Warn rw2 on rw2.Rwi_Id = mn2.Risk_Id and rw2.P_Id = opm2.P_Id
+        where rw2.Rw_Id is not null
+        and opl2.Opm_Id in
+        <foreach item="item" collection="opmIds" index="index" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+        group by rw2.Rw_Id)
+    </select>
+</mapper>

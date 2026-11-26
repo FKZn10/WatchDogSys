@@ -1,0 +1,1 @@
+import{F as e,K as t,M as n,o as r}from"./index-C31iI8Bc.js";var i={},a={class:`about`};function o(r,i){return t(),e(`div`,a,[...i[0]||=[n(`h1`,null,`This is an about page`,-1)]])}var s=r(i,[[`render`,o],[`__scopeId`,`data-v-718c1986`]]);export{s as default};

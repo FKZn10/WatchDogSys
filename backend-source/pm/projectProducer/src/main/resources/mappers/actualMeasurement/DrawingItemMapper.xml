@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.actualMeasurement.DrawingItemMapper">
+
+    <select id="getDrawingItemList"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.DrawingItemResponse">
+            select
+                mn.*,
+                dmc2.Dm_region_name as dmParentRegionName,
+                pro.p_Name as pName
+            from drawing_item mn
+            left join Drawing_Management_Catalogue dmc on mn.di_region_group = dmc.Dm_Id
+            left join Drawing_Management_Catalogue dmc2 on dmc.dm_parent_id = dmc2.Dm_Id
+            left join pre_project pro on pro.P_Id = mn.p_id
+            <where>
+                <if test="params.pId != null">
+                    and mn.p_id = #{params.pId}
+                </if>
+                <if test="params.diRegionGroups != null and params.diRegionGroups.size() > 0">
+                    and mn.di_region_group in
+                    <foreach collection="params.diRegionGroups" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="params.diRegionName != null">
+                    and mn.di_region_name like concat('%',#{params.diRegionName},'%')
+                </if>
+                <if test="params.diRegionCode != null">
+                    and mn.di_region_code like concat('%',#{params.diRegionCode},'%')
+                </if>
+                <if test="params.state != null">
+                    and mn.state = #{params.state}
+                </if>
+            </where>
+            order by mn.create_time desc
+    </select>
+</mapper>

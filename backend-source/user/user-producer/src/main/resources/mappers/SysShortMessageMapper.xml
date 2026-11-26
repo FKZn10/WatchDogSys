@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysShortMessageMapper">
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id=#{params.teId}
+        </if>
+        <if test="params.smUname!=null">
+            and d.Sm_Uname like concat('%',#{params.smUname},'%')
+        </if>
+        <if test="params.smMobilePhone!=null">
+            and mn.Sm_Mobile_Phone like concat('%',#{params.smMobilePhone},'%')
+        </if>
+    </sql>
+
+    <select id="getSysShortMessageList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Sms.SysShortMessageModel">
+        select
+        mn.*
+        from  SYS_Short_Message mn
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSysShortMessageListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  SYS_Short_Message mn
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+</mapper>

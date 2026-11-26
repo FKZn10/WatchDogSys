@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecQuestionMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecQuestionVO"
+               id="getSecQuestion">
+        <id column="Sq_Id" property="sqId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Sq_Id" select="getSecInfoProject">
+        </collection>
+        <collection property="secDefenseReviews" ofType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecDefenseReviewVO"
+                    column="Sq_Id" select="getSecDefenseReview">
+        </collection>
+        <collection property="secDefenseSupervisions" ofType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecDefenseSupervisionVO"
+                    column="Sq_Id" select="getSecDefenseSupervision">
+        </collection>
+    </resultMap>
+
+    <select id="getSecDefenseReview" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecDefenseReviewVO">
+        select
+            c1.C_Name as sdrCompanyName,
+            mn.*
+        from Sec_Defense_Review mn
+                 left join Sys_Company c1 on c1.C_Id=mn.Sdr_Company
+        where mn.Sq_Id=#{sqId}
+        order by mn.Sdr_Sort asc
+    </select>
+
+    <select id="getSecDefenseSupervision" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecDefenseSupervisionVO">
+        select
+            c1.C_Name as sdsCompanyName,
+            mn.*
+        from Sec_Defense_Supervision mn
+                 left join Sys_Company c1 on c1.C_Id=mn.Sds_Company
+        where mn.Sq_Id=#{sqId}
+        order by mn.Sds_Sort asc
+    </select>
+
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Question sq on sq.Sec_Id=sec.Sec_Id
+        where sq.Sq_Id=#{sqId}
+    </select>
+
+    <select id="getSecQuestionById" resultMap="getSecQuestion">
+        select
+            c1.C_Name as tendereeName,
+            sec.Sec_Name as secName,
+            mn.*
+        from Sec_Question mn
+        left join Sys_Company c1 on c1.C_Id=mn.Sq_Tenderee
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where mn.Sq_Id=#{id}
+    </select>
+
+</mapper>

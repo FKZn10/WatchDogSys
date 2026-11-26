@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fundPlan.FundAppropriationMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundAppropriationVo" id="selectFundAppropriation">
+        <id column="id" property="id"/>
+        <collection property="fundAppropriationDtls"
+                    ofType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundAppropriationDtlVo"
+                    column="id" select="selectFundAppropriationDtl">
+        </collection>
+    </resultMap>
+
+    <select id="selectFundAppropriationDtl"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundAppropriationDtlVo">
+        select pro.P_Name          as pName,
+               con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               con.Con_Type        as conType,
+               con.Con_Money_Total as conMoneyTotal,
+               con.Con_Pay_Clause  as conPayClause,
+               mn.*
+        from Fund_Appropriation_Dtl mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_Id
+                 left join Con_Contract con on mn.Con_Id = con.Con_Id
+        where mn.Fa_Id = #{id}
+        order by mn.Fad_Sort ASC
+    </select>
+
+    <select id="getFundAppropriationById" resultMap="selectFundAppropriation">
+        select pro.P_Name           as pName,
+               pro.P_Approve_Budget as pApproveBudget,
+               c1.C_Name            as cName,
+               c1.C_Abbreviation    as cAbbName,
+               dep.D_Name           as dName,
+               fp.Fp_Code           as fpCode,
+               f.File_Relation_Id   as fileRelationId,
+               mn.*
+        from Fund_Appropriation mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_Id
+                 left join SYS_Company c1 on mn.C_Id = c1.C_Id
+                 left join SYS_Department dep on mn.D_Id = dep.D_Id
+                 left join Fund_Plan fp on fp.id = mn.Fp_Id
+                 left join SYS_File f on f.fileid = mn.id
+        where mn.id = #{id}
+    </select>
+
+    <select id="getFundAppropriationList" resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundAppropriationVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Approve_Budget as pApproveBudget,
+        c1.C_Name as cName,
+        c1.C_Abbreviation as cAbbName,
+        dep.D_Name as dName,
+        fp.Fp_Code as fpCode,
+        mn.*
+        from Fund_Appropriation mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on mn.C_Id = c1.C_Id
+        left join SYS_Department dep on mn.D_Id = dep.D_Id
+        left join Fund_Plan fp on fp.id=mn.Fp_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.faYear!=null">
+            and mn.Fa_Year=#{params.faYear}
+        </if>
+        <if test="params.faMonth!=null">
+            and mn.Fa_Month=#{params.faMonth}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getConAppropriationDtl"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.ConAppropriationStatisticsVo">
+        select sum(Fad_Investment_Actual) as invCompleted,
+               sum(Fad_Demand_Appr)       as payTotal
+        from Fund_Appropriation_Dtl mn
+                 left join Fund_Appropriation fa on fa.id = mn.Fa_Id
+        where fa.State = 7
+          and mn.Con_Id = #{conId}
+    </select>
+</mapper>

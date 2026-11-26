@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvBudgetDeclareDtlMapper">
+
+    <select id="getInvBudgetConPayInfo" resultType="com.jpmsoft.projectProducer.pojo.vo.investment.BudgetConPayVo">
+        select
+            mn.Bdd_Id,
+            mn.Bdd_Number,
+            mn.Bdd_Parent_Id,
+            mn.Bdd_Name,
+            mn.Bdd_Code,
+            mn.Bdd_Price,
+            mn.Bdd_Total,
+            (select sum(con.Con_Money_Total) from Con_Contract con where con.Con_Budget_Id=mn.Bdd_Id and con.Con_Approval_State=7) as conMoneyTotal,
+            (select sum(py.Pay_Apply) from Con_Pay py left join Con_Contract con on con.Con_Id=py.Con_Id where con.Con_Budget_Id=mn.Bdd_Id and py.Pay_State=7) as conPayTotal
+        from Inv_Budget_Declare_Dtl mn
+                 left join Inv_Budget_Declare bd on mn.Bd_Id=bd.Bd_Id
+        where bd.Bd_State=7 and bd.P_Id=#{pId}
+        order by mn.Bdd_Order  ASC
+    </select>
+
+    <select id="getInvBudgetDeclareDtlByPid"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvBudgetDeclareDtl">
+        select * from Inv_Budget_Declare_Dtl ibdd left join Inv_Budget_Declare bd on bd.Bd_Id=ibdd.Bd_Id
+        <where>
+            <if test="pId != null and pId != ''">
+                and bd.P_Id=#{pId}
+            </if>
+            <if test="typeList != null and typeList.size()>0 ">
+                and bd.Bd_Id=#{bdId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getInvTypeBudgetDeclareDtlByBdIdList"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvBudgetDeclareDtl">
+        select * from Inv_Budget_Declare_Dtl
+        <where>
+            1=1
+            <if test="bdIdList != null and bdIdList.size()>0 ">
+                and Bd_Id in
+                <foreach collection="bdIdList" item="item" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        order by bdd_order ASC
+    </select>
+
+    <insert id="addBatch">
+        insert into Inv_Budget_Declare_Dtl
+        (Bdd_Id,Bd_Id)
+        values
+        <foreach collection="entitys" item="item" index="index" separator=",">
+            (#{item.bddId},#{item.bdId}
+            )
+        </foreach>
+    </insert>
+
+    <select id="getInvBudgetDeclareDtlDetailsByPid"
+            resultType="com.jpmsoft.projectProducer.pojo.response.InvestmentControlLedgerHBModel">
+        select
+        mn.*,
+        con.Con_Id as conId,
+        con.Con_Name as conName,
+        con.Con_Money_Total as conMoneyTotal
+        from Inv_Budget_Declare_Dtl mn
+        left join Inv_Budget_Declare bd on bd.Bd_Id = mn.Bd_Id
+        left join Con_Contract con on con.Con_Budget_Id = mn.Bdd_Id
+        where bd.Bd_State = 7
+        and bd.P_Id = #{pId}
+    </select>
+</mapper>

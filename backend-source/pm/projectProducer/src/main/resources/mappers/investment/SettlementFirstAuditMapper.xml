@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.SettlementFirstAuditMapper">
+    <select id="getCompanyValueByCode" resultType="com.jpmsoft.common.model.FilterObject">
+        select distinct mn.${value} as dbValue,com.C_Name as label
+        from Settlement_First_Audit mn
+        left join SYS_Company com on com.C_Id=mn.${value}
+        where mn.status=1 and mn.del_flag=1
+    </select>
+    <select id="getPersonValueByCode" resultType="com.jpmsoft.common.model.FilterObject">
+        select distinct mn.${value} as dbValue,u.U_Name as label
+        from Settlement_First_Audit mn
+        left join SYS_User u on u.U_ID=mn.${value}
+        where mn.status=1 and mn.del_flag=1
+    </select>
+    <select id="getValueByCode" resultType="java.lang.Object">
+        select distinct mn.${value} as dbValue
+        from Settlement_First_Audit mn
+        where mn.status=1 and mn.del_flag=1
+    </select>
+    <select id="getSettlementFirstAuditList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.SettlementFirstAuditModel">
+        select mn.*,
+               p.P_Name as projectName,
+               con.Con_Name as contractName,con.Con_Money_Total as contractTotalMoney,
+               con.Con_Party_B_Id as contractCompanyId, c3.C_Name as contractCompanyName,
+               con.Con_Bid_Amt AS contractControlPrice,
+               c1.C_Name as sfaCostConsultantUnitName,
+               c2.C_Name as sfaSupervisionUnitName
+        from Settlement_First_Audit mn
+        left join Pre_Project p on p.P_Id=mn.project_id
+        left join Con_Contract con on con.Con_Id=mn.contract_id
+        left join SYS_Company c1 on c1.C_Id=mn.sfa_cost_consultant_unit
+        left join SYS_Company c2 on c2.C_Id=mn.sfa_supervision_unit
+        left join SYS_Company c3 on c3.C_Id=con.Con_Party_B_Id
+        <where>
+            mn.status=1 and mn.del_flag=1
+            <if test="params.projectId != null">
+                and mn.project_id in
+                <foreach collection="params.projectId" item="item" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.contractId != null">
+                and mn.contract_id in
+                <foreach collection="params.contractId" item="item" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.sfaCostConstructionUnit != null">
+                and mn.sfa_cost_consultant_unit in
+                <foreach collection="params.sfaCostConstructionUnit" item="item" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.sfaSupervisionUnit != null">
+                and mn.sfa_supervision_unit in
+                <foreach collection="params.sfaSupervisionUnit" item="item" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.sfaContractPrice!=null ">
+                and mn.sfa_contract_price in
+                <foreach collection="params.sfaContractPrice" item="item" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.sfaSupervisionUnitPrice!=null ">
+                and mn.sfa_supervision_unit_price in
+                <foreach collection="params.sfaSupervisionUnitPrice" item="item" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.sfaCostConsultantUnitPrice!=null ">
+                and mn.sfa_cost_consultant_unit_price in
+                <foreach collection="params.sfaCostConsultantUnitPrice" item="item" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.sfaSettlementFirstPrice!=null ">
+                and mn.sfa_settlement_first_price in
+                <foreach collection="params.sfaSettlementFirstPrice" item="item" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.sfaCorePrice!=null ">
+                and mn.sfa_core_price in
+                <foreach collection="params.sfaCorePrice" item="item" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+    <select id="getProjectNameByCode" resultType="com.jpmsoft.common.model.FilterObject">
+        select distinct mn.${value} as dbValue,p.P_Name as label
+        from Settlement_First_Audit mn
+        left join Pre_Project p on p.P_Id=mn.project_id
+        where mn.status=1 and mn.del_flag=1
+    </select>
+    <select id="getContractNameByCode" resultType="com.jpmsoft.common.model.FilterObject">
+        select distinct mn.${value} as dbValue,con.Con_Name as label
+        from Settlement_First_Audit mn
+        left join Con_Contract con on con.Con_Id=mn.contract_id
+        where mn.status=1 and mn.del_flag=1
+    </select>
+    <select id="selectModelById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.SettlementFirstAuditModel">
+        select mn.*,
+               p.P_Name as projectName,
+               con.Con_Name as contractName,con.Con_Money_Total as contractTotalMoney,
+               con.Con_Party_B_Id as contractCompanyId, c3.C_Name as contractCompanyName,
+               con.Con_Bid_Amt AS contractControlPrice,
+               c1.C_Name as sfaCostConsultantUnitName,
+               c2.C_Name as sfaSupervisionUnitName
+        from Settlement_First_Audit mn
+        left join Pre_Project p on p.P_Id=mn.project_id
+        left join Con_Contract con on con.Con_Id=mn.contract_id
+        left join SYS_Company c1 on c1.C_Id=mn.sfa_cost_consultant_unit
+        left join SYS_Company c2 on c2.C_Id=mn.sfa_supervision_unit
+        left join SYS_Company c3 on c3.C_Id=con.Con_Party_B_Id
+        where mn.id = #{id} and mn.status=1 and mn.del_flag=1
+    </select>
+    <select id="getContractInfo" resultType="com.jpmsoft.common.model.response.Contract.ConEcResponse">
+        select mn.*
+        from Con_EC mn
+        left join multi_contract_con_ec mce on mce.uuid=mn.multi_contract_con_ec_id
+        where mn.Con_Id=#{contractId} and mce.state=7
+    </select>
+</mapper>

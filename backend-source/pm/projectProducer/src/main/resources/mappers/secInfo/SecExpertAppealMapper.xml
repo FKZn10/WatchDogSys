@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecExpertAppealMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertAppealVO" id="getSecExpertAppealAndDtl">
+        <id column="id" property="id"/>
+        <collection property="secExpertAppealDtls" ofType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertAppealDtlVO"
+                    column="id" select="getSecExpertAppealDtl">
+        </collection>
+    </resultMap>
+
+    <select id="getSecExpertAppealDtl" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertAppealDtlVO">
+        select mn.*
+        from Sec_Expert_Appeal_Dtl mn
+        where mn.Sea_Id=#{id}
+        order by mn.Sead_Sort asc
+    </select>
+
+    <select id="getSecExpertAppealById" resultMap="getSecExpertAppealAndDtl">
+        select
+            ex.Ex_Name as exName,
+            ex.Ex_Id_Type as exIdType,
+            ex.Ex_Id_Number as exIdNumber,
+            sec.Sec_Name as secName,
+            pro.P_Name as pName,
+            pro.P_Code as pCode,
+            mn.*
+        from Sec_Expert_Appeal mn
+                 left join Sec_Expert ex on ex.Ex_Id=mn.Ex_Id
+                 left join Pre_Project pro on pro.P_Id=mn.P_Id
+                 left join Sec_Info sec on mn.Sec_Id=sec.Sec_Id
+        where mn.id=#{id}
+    </select>
+
+    <select id="getSecExpertAppealList" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertAppealVO">
+        select
+        ex.Ex_Name as exName,
+        ex.Ex_Id_Type as exIdType,
+        ex.Ex_Id_Number as exIdNumber,
+        sec.Sec_Name as secName,
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        mn.*
+        from Sec_Expert_Appeal mn
+        left join Sec_Expert ex on ex.Ex_Id=mn.Ex_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join Sec_Info sec on mn.Sec_Id=sec.Sec_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.secName!=null">
+            and INSTR(sec.Sec_Name,#{params.secName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and INSTR(pro.P_Code,#{params.pCode})
+        </if>
+        <if test="params.exName!=null">
+            and INSTR(ex.Ex_Name,#{params.exName})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

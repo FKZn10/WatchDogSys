@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.EngineeringFundApplicationFundNumberDetailMapper">
+    <insert id="addBatch">
+        insert into Engineering_Fund_Application_Fund_Number_Detail(id,Efa_Id, Fn_Id, Efa_Occupancy_Amount)
+        values
+        <foreach collection="list" item="entity" separator=",">
+            (#{entity.id}, #{entity.efaId}, #{entity.fnId}, #{entity.efaOccupancyAmount})
+        </foreach>
+    </insert>
+    <select id="getDetailByEfaId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.fund.EngineeringFundApplicationFundNumberDetail">
+        select * from Engineering_Fund_Application_Fund_Number_Detail where efa_id = #{efaId}
+    </select>
+    <select id="selectByFnId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.fund.EngineeringFundApplicationFundNumberDetail">
+        select * from Engineering_Fund_Application_Fund_Number_Detail  efafnd
+        left join Engineering_Fund_Application efa on efa.id = efafnd.efa_id
+        where efafnd.fn_id = #{fnId} and efa.state=7
+    </select>
+</mapper>

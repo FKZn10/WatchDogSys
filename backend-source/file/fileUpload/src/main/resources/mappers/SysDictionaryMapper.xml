@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.SysDictionaryMapper">
+
+    <select id="getDictionaryByParentCodes" resultType="com.jpmsoft.fileUpload.pojo.entity.SysDictionary">
+        select
+        pt.D_Code as parentCode,
+        mn.*
+        from Sys_Dictionary mn
+        left join Sys_Dictionary pt on pt.D_ID=mn.D_ParentID
+        where pt.D_Code in
+        <foreach collection="codes" item="code" separator="," open="(" close=")">
+            #{code}
+        </foreach>
+    </select>
+</mapper>

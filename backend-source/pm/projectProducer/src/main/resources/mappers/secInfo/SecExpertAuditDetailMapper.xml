@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecExpertAuditDetailMapper">
+    <select id="getSecExpertAuditDetailListGroup"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertAuditDetailVO">
+        select mn.*,
+               se.*,
+               se.Ex_Change_Status as exChangeStatus,
+               c1.C_Name           as cName,
+               c1.C_Abbreviation   as cAbbName,
+               c1.C_Name_History   as cNameHistory
+        from Sec_Expert_Audit_Detail mn
+                 left join Sec_Expert_Audit ea on ea.id = mn.Sea_id
+                 left join Sec_Expert se on mn.Ex_Id = se.Ex_Id
+                 left join Sys_Company c1 on c1.C_Id = se.C_Id
+                 left join (select Ex_Id, year, count(*) as del_cnt
+                            from Sec_Expert_Delete
+                            where Ex_State = 7
+                            group by Ex_Id, year) sedc on sedc.Ex_Id = se.Ex_Id and sedc.year = se.year
+                 left join (select Ex_Id, year, count(*) as chg_cnt
+                            from Sec_Expert_Change
+                            where Ex_State = 7
+                            group by Ex_Id, year) secc on secc.Ex_Id = se.Ex_Id and secc.year = se.year
+                 left join (select Ex_Applicant_Id, count(*) as app_cnt
+                            from Sec_Expert
+                            where Ex_State != 3
+                            group by Ex_Applicant_Id) seca on seca.Ex_Applicant_Id = se.Ex_Applicant_Id
+        where se.year = #{year}
+          and ea.State = 7
+          and se.Ex_State = 7
+    </select>
+
+    <select id="getParentByCId" resultType="com.jpmsoft.projectProducer.pojo.entity.secInfo.SecExpertAudit">
+        select ea.*
+        from Sec_Expert_Audit_Detail mn
+                 left join Sec_Expert_Audit ea on ea.id = mn.Sea_id
+                 left join Sec_Expert se on mn.Ex_Id = se.Ex_Id
+        where se.C_Id = #{cId}
+          and ea.State = 7
+        limit 1
+    </select>
+</mapper>

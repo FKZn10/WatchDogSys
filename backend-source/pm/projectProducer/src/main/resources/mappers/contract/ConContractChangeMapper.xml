@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConContractChangeMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.contract.ConContractChangeVO"
+               id="contractChangeList">
+        <id column="id" property="id"/>
+        <collection property="payeeDtlModels"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Contract.ConPayeeDtlModel"
+                    column="id" select="selectConPayeeDtl">
+        </collection>
+        <collection property="moneyDtlModels"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Contract.ConContractMoneyDtlModel"
+                    column="id" select="selectConMoneyDtl">
+        </collection>
+        <collection property="payPlanModels"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Contract.ConContractPayPlanModel"
+                    column="id" select="selectConPayPlan">
+        </collection>
+    </resultMap>
+
+    <select id="selectConPayeeDtl" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConPayeeDtlModel">
+        select
+            mn.*
+        from Con_Payee_Dtl_Change mn
+        where mn.Con_Change_Id=#{id}
+        order by mn.Cpd_Create_Time Desc
+    </select>
+
+    <select id="selectConMoneyDtl" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConContractMoneyDtlModel">
+        select
+            mn.*
+        from Con_Contract_Money_Dtl_Change mn
+        where mn.Con_Change_Id=#{id}
+        order by mn.Cmd_Sort ASC
+    </select>
+
+    <select id="selectConPayPlan" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConContractPayPlanModel">
+        select
+            mn.*
+        from Con_Contract_Pay_Plan_Change mn
+        where mn.Con_Change_Id=#{id}
+        order by mn.Cpp_Sort ASC
+    </select>
+
+    <select id="getContractChangeById" resultMap="contractChangeList">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        (select sum(isa.Sa_Approved_Amt) from Inv_Settlement_Apply isa where isa.Con_Id=mn.Con_Id and isa.Sa_State=7) as saApprovedAmtSum,
+        mn.*
+        from Con_Contract_Change mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        where mn.id=#{id}
+    </select>
+
+    <select id="getContractChangeList" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConContractChangeVO">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        c.C_Name as conPartyBName,
+        c1.C_Name as conPartyAName,
+        c2.C_Name as conPartyAOtherName,
+        c3.C_Name as conPartyCName,
+        c.C_Abbreviation as conPartyBAbbName,
+        c1.C_Abbreviation as conPartyAAbbName,
+        c2.C_Abbreviation as conPartyAOtherAbbName,
+        con.Con_Name as conRelieveConName,
+        con.Con_Code as conRelieveConCode,
+        sec.Sec_Name as secName,
+        sdep.D_Name as conDepName,
+        (select sum(isa.Sa_Approved_Amt) from Inv_Settlement_Apply isa where isa.Con_Id=mn.Con_Id and isa.Sa_State=7) as saApprovedAmtSum,
+        mn.*
+        from Con_Contract_Change mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_C_Id=c3.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id=con.Con_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Con_Section_Id
+        ${params.authSql}
+        <include refid="getListFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <sql id="getListFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id=#{params.teId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id=#{params.conId}
+        </if>
+        <if test="params.conScanUp!=null">
+            and mn.Con_Scan_Up=#{params.conScanUp}
+        </if>
+        <if test="params.conCategory!=null">
+            and mn.con_Category=#{params.conCategory}
+        </if>
+        <if test="params.conApprovalState!=null">
+            and mn.con_Approval_State=#{params.conApprovalState}
+        </if>
+        <if test="params.conProjectId!=null">
+            and mn.Con_Project_Id=#{params.conProjectId}
+        </if>
+        <if test="params.conType!=null">
+            and mn.con_Type=#{params.conType}
+        </if>
+        <if test="params.conBudgetId!=null">
+            and mn.Con_Budget_Id=#{params.conBudgetId}
+        </if>
+        <if test="params.conIsHistory!=null">
+            and mn.Con_Is_History=#{params.conIsHistory}
+        </if>
+        <if test="params.conState!=null">
+            and mn.Con_State=#{params.conState}
+        </if>
+        <if test="params.conExecution!=null">
+            and mn.Con_Execution=#{params.conExecution}
+        </if>
+        <if test="params.conBiddingType!=null">
+            and mn.Con_Bidding_Type=#{params.conBiddingType}
+        </if>
+        <if test="params.conConsortium!=null">
+            and mn.Con_Consortium=#{params.conConsortium}
+        </if>
+        <if test="params.conMasterConId!=null">
+            and mn.Con_Master_Con_Id=#{params.conMasterConId}
+        </if>
+        <if test="params.conMultiSubject!=null">
+            and mn.Con_Multi_Subject=#{params.conMultiSubject}
+        </if>
+        <if test="params.conSup!=null">
+            and mn.Con_Sup=#{params.conSup}
+        </if>
+        <if test="params.conCurrency!=null">
+            and mn.Con_Currency=#{params.conCurrency}
+        </if>
+        <if test="params.conProfessionalType!=null">
+            and mn.Con_Professional_Type=#{params.conProfessionalType}
+        </if>
+        <if test="params.conSectionId!=null">
+            and mn.con_Section_Id=#{params.conSectionId}
+        </if>
+        <if test="params.conIsBidding!=null">
+            and mn.con_Is_Bidding=#{params.conIsBidding}
+        </if>
+        <if test="params.pId!=null">
+            and mn.Con_Project_Id=#{params.pId}
+        </if>
+        <if test="params.excludeSeven!=null and params.excludeSeven==true">
+            and mn.con_Category!='7'
+        </if>
+        <if test="params.pAdvanceFund!=null">
+            and pro.P_Advance_Fund=#{params.pAdvanceFund}
+        </if>
+        <if test="params.pCorporateRisk!=null">
+            and pro.P_Corporate_Risk=#{params.pCorporateRisk}
+        </if>
+        <if test="params.filterSubChangeAmt!=null and params.filterSubChangeAmt==true">
+            and mn.Con_Sup_Change_Money is not null and mn.Con_Sup_Change_Money != 0
+        </if>
+        <if test="params.bUnitId!=null">
+            and (
+            mn.Con_Party_B_Id=#{params.bUnitId}
+            or mn.Con_Party_B1=#{params.bUnitId}
+            or mn.Con_Party_B2=#{params.bUnitId}
+            or mn.Con_Party_B3=#{params.bUnitId}
+            or mn.Con_Party_B4=#{params.bUnitId}
+            or mn.Con_Party_C_Id=#{params.bUnitId}
+            or mn.Con_Party_D_Id=#{params.bUnitId}
+            )
+        </if>
+        <if test="params.conUsingType!=null">
+            and mn.Con_Using_Type like concat('%',#{params.conUsingType},'%')
+        </if>
+        <if test="params.onPartyBPmTel!=null">
+            and mn.Con_Party_B_Pm_Tel like concat('%',#{params.onPartyBPmTel},'%')
+        </if>
+        <if test="params.conCreateUserName!=null">
+            and mn.Con_Create_User_Name like concat('%',#{params.conCreateUserName},'%')
+        </if>
+        <if test="params.conPartyBLegal!=null">
+            and mn.Con_Party_B_Legal like concat('%',#{params.conPartyBLegal},'%')
+        </if>
+        <if test="params.conPartyBAgent!=null">
+            and mn.Con_Party_B_Agent like concat('%',#{params.conPartyBAgent},'%')
+        </if>
+        <if test="params.conPartyBPoxyNum!=null">
+            and mn.Con_Party_B_Poxy_Num like concat('%',#{params.conPartyBPoxyNum},'%')
+        </if>
+        <if test="params.conPartyBAgentTel!=null">
+            and mn.Con_Party_B_Agent_Tel like concat('%',#{params.conPartyBAgentTel},'%')
+        </if>
+        <if test="params.conTdName!=null">
+            and mn.Con_TD_Name like concat('%',#{params.conTdName},'%')
+        </if>
+        <if test="params.conTdNum!=null">
+            and mn.Con_TD_Num like concat('%',#{params.conTdNum},'%')
+        </if>
+        <if test="params.conTdMobileNumber!=null">
+            and mn.Con_TD_Mobile_Number like concat('%',#{params.conTdMobileNumber},'%')
+        </if>
+        <if test="params.conPartyBPm!=null">
+            and mn.Con_Party_B_Pm like concat('%',#{params.conPartyBPm},'%')
+        </if>
+        <if test="params.conPartyBPmConsNu!=null">
+            and mn.Con_Party_B_Pm_Cons_Nu like concat('%',#{params.conPartyBPmConsNu},'%')
+        </if>
+        <if test="params.conPartyBPmIdcard!=null">
+            and mn.Con_Party_B_Pm_Idcard like concat('%',#{params.conPartyBPmIdcard},'%')
+        </if>
+        <if test="params.conName!=null">
+            and mn.con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.conCode!=null">
+            and mn.con_Code like concat('%',#{params.conCode},'%')
+        </if>
+        <if test="params.conProjectName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.conProjectName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.conProjectName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conPartyBName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.conPartyBName},c.C_Id)=true
+                </when>
+                <otherwise>
+                    and c.C_Name like concat('%',#{params.conPartyBName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conPartyAName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.conPartyAName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.conPartyAName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conPartyAOtherName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.conPartyAOtherName},c2.C_Id)=true
+                </when>
+                <otherwise>
+                    and c2.C_Name like concat('%',#{params.conPartyAOtherName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.moneyTotalStart!=null">
+            and mn.Con_Money_Total>#{params.moneyTotalStart}
+        </if>
+        <if test="params.moneyTotalEnd!=null">
+            and mn.Con_Money_Total &lt; #{params.moneyTotalEnd}
+        </if>
+        <if test="params.totalDurationStart!=null">
+            and mn.Con_Total_Duration > #{params.totalDurationStart}
+        </if>
+        <if test="params.totalDurationEnd!=null">
+            and mn.Con_Total_Duration &lt; #{params.totalDurationEnd}
+        </if>
+        <if test="params.planStartDateStart!=null">
+            and mn.Con_Plan_Start_Date > #{params.planStartDateStart}
+        </if>
+        <if test="params.planStartDateEnd!=null">
+            and mn.Con_Plan_Start_Date &lt; #{params.planStartDateEnd}
+        </if>
+        <if test="params.planEndDateStart!=null">
+            and mn.Con_Plan_End_Date > #{params.planEndDateStart}
+        </if>
+        <if test="params.planEndDateEnd!=null">
+            and mn.Con_Plan_End_Date &lt; #{params.planEndDateEnd}
+        </if>
+        <if test="params.createTimeStart!=null">
+            and mn.Con_Create_Time > #{params.createTimeStart}
+        </if>
+        <if test="params.createTimeEnd!=null">
+            and mn.Con_Create_Time &lt; #{params.createTimeEnd}
+        </if>
+        <if test="params.conDateStart!=null">
+            and mn.Con_Date > #{params.conDateStart}
+        </if>
+        <if test="params.conDateEnd!=null">
+            and mn.Con_Date &lt; #{params.conDateEnd}
+        </if>
+        <if test="params.filterSettlement!=null and params.filterSettlement==true">
+            and mn.Con_Id in (select Con_Id from Inv_Settlement_Apply where Sa_State=7)
+        </if>
+        <if test="params.conTypes!=null and params.conTypes.size()>0">
+            and mn.Con_Type in
+            <foreach collection="params.conTypes" item="type" separator="," open="(" close=")">
+                #{type}
+            </foreach>
+        </if>
+        <if test="params.containState!=null and params.containState.size()>0">
+            and mn.Con_Approval_State in
+            <foreach collection="params.containState" item="state" separator="," open="(" close=")">
+                #{state}
+            </foreach>
+        </if>
+    </sql>
+</mapper>

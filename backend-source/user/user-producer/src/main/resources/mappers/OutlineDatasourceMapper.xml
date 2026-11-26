@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.OutlineDatasourceMapper">
+    <select id="getOdIdsByOplId" resultType="java.lang.String">
+        select mn.Od_Id
+        from Outline_Datasource_Temp mn
+        where mn.T_Code in
+        (select opt.T_Code
+        from Outline_Project_Temp opt
+        where opt.opl_id = #{oplId})
+    </select>
+
+    <select id="getOdIdsByOslId" resultType="java.lang.String">
+        select mn.Od_Id
+        from Outline_Datasource_Temp mn
+        where mn.T_Code in
+        (select ont.T_Code
+        from Outline_Node_Temp ont
+        where ont.Osl_Id = #{oslId})
+    </select>
+</mapper>

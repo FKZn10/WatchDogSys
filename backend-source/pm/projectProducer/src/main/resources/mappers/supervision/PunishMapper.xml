@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.supervision.PunishMapper">
+
+
+    <select id="getPunishList" resultType="com.jpmsoft.common.model.response.Supervisor.PunishResponse" databaseId="mysql">
+        SELECT
+        mn.*,
+        con.Con_Name as conName,
+        pp.P_Name as pName,
+        (SELECT GROUP_CONCAT(sc.C_name)
+        FROM punishes_conpartb b
+        JOIN sys_Company sc ON b.C_Id = sc.C_Id
+        WHERE b.Pun_Id = mn.id) AS cName
+        FROM Punishes mn
+        LEFT JOIN Con_Contract con ON con.Con_Id = mn.Con_Id
+        LEFT JOIN Pre_Project pp ON pp.P_Id = mn.P_ID
+        ${params.authSql}
+        <if test="params.pName!=null and params.pName!='' ">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    AND likePname(#{params.pName},pp.P_Id)=true
+                </when>
+                <otherwise>
+                    AND pp.P_Name LIKE CONCAT('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null and params.conName!=''">
+            AND con.Con_Name LIKE CONCAT('%',#{params.conName},'%')
+        </if>
+        <if test="params.punishType!=null and params.punishType!='' ">
+            AND mn.Punish_Type = #{params.punishType}
+        </if>
+        <if test="params.cName!=null and params.cName!=''">
+            AND EXISTS (
+            SELECT 1 FROM punishes_conpartb b
+            JOIN sys_Company sc ON b.C_Id = sc.C_Id
+            WHERE b.Pun_Id = mn.id AND sc.C_name LIKE CONCAT('%', #{params.cName}, '%')
+            )
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getPunishList" resultType="com.jpmsoft.common.model.response.Supervisor.PunishResponse" databaseId="dm">
+        SELECT
+        mn.*,
+        con.Con_Name as conName,
+        pp.P_Name as pName,
+        (SELECT LISTAGG(sc.C_name, ',') WITHIN GROUP (ORDER BY sc.C_name)
+        FROM punishes_conpartb b
+        JOIN sys_Company sc ON b.C_Id = sc.C_Id
+        WHERE b.Pun_Id = mn.id) AS cName
+        FROM Punishes mn
+        LEFT JOIN Con_Contract con ON con.Con_Id = mn.Con_Id
+        LEFT JOIN Pre_Project pp ON pp.P_Id = mn.P_ID
+        ${params.authSql}
+        <if test="params.pName!=null and params.pName!='' ">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    AND likePname(#{params.pName},pp.P_Id)=true
+                </when>
+                <otherwise>
+                    AND pp.P_Name LIKE CONCAT('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null and params.conName!=''">
+            AND con.Con_Name LIKE CONCAT('%',#{params.conName},'%')
+        </if>
+        <if test="params.punishType!=null and params.punishType!='' ">
+            AND mn.Punish_Type LIKE CONCAT('%',#{params.punishType},'%')
+        </if>
+        <if test="params.cName!=null and params.cName!=''">
+            AND EXISTS (
+            SELECT 1 FROM punishes_conpartb b
+            JOIN sys_Company sc ON b.C_Id = sc.C_Id
+            WHERE b.Pun_Id = mn.id AND sc.C_name LIKE CONCAT('%', #{params.cName}, '%')
+            )
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

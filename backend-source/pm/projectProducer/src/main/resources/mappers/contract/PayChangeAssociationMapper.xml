@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.PayChangeAssociationMapper">
+    <select id="getAssociationListByPayId"
+            resultType="com.jpmsoft.common.model.response.Contract.PayChangeAssociationResponse">
+        select
+            mn.*
+        from Pay_Change_Association mn
+        left join Con_Pay cp on mn.Pay_Id = cp.Pay_Id
+        <where>
+            and cp.Pay_State != 3
+            <if test="payId != null and payId != ''">
+                and mn.Pay_Id = #{payId}
+            </if>
+        </where>
+    </select>
+</mapper>

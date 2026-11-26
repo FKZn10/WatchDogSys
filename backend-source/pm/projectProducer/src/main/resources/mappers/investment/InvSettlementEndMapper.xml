@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvSettlementEndMapper">
+    <update id="refreshApplySum">
+        update Inv_Settlement_End a set a.pay_Apply_Sum=(select SUM(pay.pay_Apply) from con_pay pay where pay.con_id=a.con_id and pay.pay_State=7)
+        where a.sae_id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </update>
+    <select id="getLastApprovalInvSettlementEndByConId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvSettlementEndVO">
+        select c1.C_Name           as saeContractorName,
+               c2.C_Name           as saeSupervisorName,
+               c3.C_Name           as saeCostConsultName,
+               con.Con_Name        as conName,
+               con.Con_Money_Total as conMoneyTotal,
+               con.Con_Type        as conType,
+               con.Con_Code        as conCode,
+               pro.P_Name          as pName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               mn.*
+        from Inv_Settlement_End mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company c1 on mn.Sae_Contractor = c1.C_Id
+                 left join SYS_Company c2 on mn.Sae_Supervisor = c2.C_Id
+                 left join SYS_Company c3 on mn.Sae_Cost_Consult = c3.C_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        where mn.Con_Id = #{conId}
+        and mn.State = 7
+        order by mn.State_Time desc limit 1
+    </select>
+
+    <select id="getInvSettlementEndBySaeId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvSettlementEndVO">
+        select c1.C_Name           as saeContractorName,
+               c2.C_Name           as saeSupervisorName,
+               c3.C_Name           as saeCostConsultName,
+               con.con_Name  as conName,
+               con.con_Money_Total  as conMoneyTotal,
+               con.con_Type  as conType,
+               con.con_Code  as conCode,
+               pro.P_Name          as pName,
+               pro.P_Project_Stage as pProjectStage,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               mn.*
+        from Inv_Settlement_End mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company c1 on mn.Sae_Contractor = c1.C_Id
+                 left join SYS_Company c2 on mn.Sae_Supervisor = c2.C_Id
+                 left join SYS_Company c3 on mn.Sae_Cost_Consult = c3.C_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        where mn.Sae_Id = #{saId}
+    </select>
+
+
+    <select id="getInvSettlementEndNoAuthList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvSettlementEndVO">
+            select
+            mn.*
+            from Inv_Settlement_End mn
+            where 1=1
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pId!=null">
+                and mn.P_Id=#{params.pId}
+            </if>
+            <if test="params.conId!=null">
+                and mn.Con_Id = #{params.conId}
+            </if>
+            <if test="params.state!=null">
+                and mn.state = #{params.state}
+            </if>
+            <if test="params.saeCuAf!=null">
+                and mn.Sae_Cu_Af = #{params.saeCuAf}
+            </if>
+            <if test="params.outAudit!=null and params.outAudit==true">
+                and mn.pay_Apply_Sum  >  mn.sae_Audit_Report
+            </if>
+            <if test="params.outAudit!=null and params.outAudit==false">
+                and mn.pay_Apply_Sum  &lt;=  mn.sae_Audit_Report
+            </if>
+            <if test="params.saeSubmissionUser!=null">
+                and mn.Sae_Submission_User like concat('%',#{params.saeSubmissionUser},'%')
+            </if>
+            <if test="params.saeSubmissionPhone!=null">
+                and mn.Sae_Submission_Phone like concat('%',#{params.saeSubmissionPhone},'%')
+            </if>
+            <if test="params.saeExamineUser!=null">
+                and mn.Sae_Examine_User like concat('%',#{params.saeExamineUser},'%')
+            </if>
+            <if test="params.saeExaminePhone!=null">
+                and mn.Sae_Examine_Phone like concat('%',#{params.saeExaminePhone},'%')
+            </if>
+            <if test="params.saeConName!=null">
+                and mn.sae_Con_Name like concat('%',#{params.saeConName},'%')
+            </if>
+            <if test="params.saeProjectName!=null">
+                and mn.sae_Project_Name like concat('%',#{params.saeProjectName},'%')
+            </if>
+            <if test="params.saePartyAName!=null">
+                and mn.sae_Party_A_Name like concat('%',#{params.saePartyAName},'%')
+            </if>
+            <if test="params.haveCostConsult==true">
+                and mn.Sae_Cost_Consult is not null
+            </if>
+            <if test="params.haveCostConsult==false">
+                and mn.Sae_Cost_Consult is null
+            </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sae_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getInvSettlementEndList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvSettlementEndVO">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name as saeContractorName,
+        c2.C_Name as saeSupervisorName,
+        c3.C_Name as saeCostConsultName,
+        con.con_Name  as conName,
+        con.con_Money_Total  as conMoneyTotal,
+        con.con_Type  as conType,
+        con.con_Code  as conCode,
+        mn.*
+        from Inv_Settlement_End mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Company c1 on mn.Sae_Contractor=c1.C_Id
+        left join SYS_Company c2 on mn.Sae_Supervisor=c2.C_Id
+        left join SYS_Company c3 on mn.Sae_Cost_Consult=c3.C_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.state!=null">
+            and mn.state = #{params.state}
+        </if>
+        <if test="params.saeCuAf!=null">
+            and mn.Sae_Cu_Af = #{params.saeCuAf}
+        </if>
+        <if test="params.saeSubmissionUser!=null">
+            and mn.Sae_Submission_User like concat('%',#{params.saeSubmissionUser},'%')
+        </if>
+        <if test="params.saeSubmissionPhone!=null">
+            and mn.Sae_Submission_Phone like concat('%',#{params.saeSubmissionPhone},'%')
+        </if>
+        <if test="params.saeExamineUser!=null">
+            and mn.Sae_Examine_User like concat('%',#{params.saeExamineUser},'%')
+        </if>
+        <if test="params.saeExaminePhone!=null">
+            and mn.Sae_Examine_Phone like concat('%',#{params.saeExaminePhone},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.haveCostConsult==true">
+            and mn.Sae_Cost_Consult is not null
+        </if>
+        <if test="params.haveCostConsult==false">
+            and mn.Sae_Cost_Consult is null
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sae_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getLastApprovalInvSettlementEndByPayId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvSettlementEndVO">
+        select c1.C_Name           as saeContractorName,
+               c2.C_Name           as saeSupervisorName,
+               c3.C_Name           as saeCostConsultName,
+               con.Con_Name        as conName,
+               con.Con_Money_Total as conMoneyTotal,
+               con.Con_Type        as conType,
+               con.Con_Code        as conCode,
+               pro.P_Name          as pName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               mn.*
+        from Con_Pay pay
+        left join Con_Contract con on con.Con_Id = pay.Con_Id
+        left join Inv_Settlement_End mn on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on mn.Sae_Contractor = c1.C_Id
+        left join SYS_Company c2 on mn.Sae_Supervisor = c2.C_Id
+        left join SYS_Company c3 on mn.Sae_Cost_Consult = c3.C_Id
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        where pay.Pay_Id = #{payId}
+        order by pay.Pay_State_Time desc limit 1
+    </select>
+
+</mapper>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.BGDeclarationMapper">
+    <select id="BGDeclarationListByConId" resultType="com.jpmsoft.projectProducer.pojo.dto.project.ProBGDTO">
+        select *
+        from (
+         select
+             bgd.id as id,
+             bgd.D_Code as code,
+             '工程变更审批单' as type,
+             bgd.D_PId as pId,
+             bgd.D_CId as conId,
+             ifnull(IFNUll(bgd.D_BL,100) - (select ifnull(sum(co_glbl),0) from bg_contactorder where co_glid = bgd.id and state = 7),100) as BL,
+             bgd.D_Money as Money,
+             bgd.final_confirm_money as finalConfirmMoney
+        from bg_declaration bgd
+        where
+            bgd.state = 7
+          and
+            bgd.D_CId = #{request.conId}
+          and
+            bgd.id not in (select vo_GLID from BG_VisaOrder where state = 7)
+          and bgd.d_Ischeck = '涉及工程量调整/返工等及单价确认'
+        ) t
+        where t.BL > 0
+    </select>
+
+    <select id="getBGDeclarationMoney" resultType="java.math.BigDecimal">
+        select Sum(D_Money * IFNUll(D_BL,100) / 100 )
+        from BG_Declaration
+        where
+            State = 7
+          and
+            D_CId = #{conId}
+          and
+            (D_BL != 0 or D_BL is null)
+          and
+            id not in (select vo_GLID from BG_VisaOrder where state = 7)
+
+    </select>
+    <select id="BGDeclarationListByType" resultType="com.jpmsoft.projectProducer.pojo.dto.project.ProBGDTO">
+        select
+            bgd.id as id,
+            bgd.D_Code as code,
+            '工程变更审批单' as type,
+            bgd.D_PId as pId,
+            pp.P_Name as pName,
+            bgd.D_CId as conId,
+            cc.Con_Name as conName,
+            (100 - IFNUll(bgd.D_BL,100)) as BL,
+            bgd.D_Money as Money,
+            IFNUll(bgd.D_BL,100) as TrueBL,
+            (bgd.D_Money * IFNUll(bgd.D_BL,100) / 100 ) as TrueMoney
+        from
+            BG_Declaration bgd
+            left join Con_Contract cc on cc.Con_Id = bgd.Con_Id
+            left join pre_project pp on pp.P_ID = bgd.P_Id
+        where
+            bgd.State = 7
+          and
+            (bgd.D_BL != 0 or bgd.D_BL is null)
+          and
+            bgd.id not in (select vo_GLID from BG_VisaOrder where state = 7)
+            <if test="request.code != null and request.code != ''">
+              and  INSTR(bgd.D_Code,#{request.code})
+            </if>
+            <if test="request.conName != null and request.conName != ''">
+                and INSTR(cc.con_name,#{request.conName})
+            </if>
+            <if test="request.pName != null and request.pName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{request.pName},pp.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(pp.p_name,#{request.pName})
+                    </otherwise>
+                </choose>
+            </if>
+    </select>
+</mapper>

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProProposalMapper">
+
+    <select id="getPreProProposalById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProProposalModel">
+        select f.file_relation_id as fileRelationId,
+               c1.C_Name          as ppFeasibilityUnitName,
+               c1.C_Name_History  as ppFeasibilityUnitNameHistory,
+               c2.C_Name          as ppEstimationUnitName,
+               c2.C_Name_History  as ppEstimationUnitNameHistory,
+               c1.C_Abbreviation  as ppFeasibilityAbbName,
+               c2.C_Abbreviation  as ppEstimationAbbName,
+               sd.D_Name          as ppDepName,
+               mn.*
+        from Pre_Pro_Proposal mn
+                 left join Sys_Company c1 on c1.C_Id = mn.Pp_Feasibility_Unit_Id
+                 left join Sys_Company c2 on c2.C_Id = mn.Pp_Estimation_Unit_Id
+                 left join SYS_Department sd on sd.D_Id = mn.Pp_Department
+                 left join Sys_File f on f.FileID = mn.Pp_Id
+        where mn.Pp_Id = #{ppId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ppEstimationUnitId!=null">
+            and mn.Pp_Estimation_Unit_Id = #{params.ppEstimationUnitId}
+        </if>
+        <if test="params.ppFeasibilityUnitId!=null">
+            and mn.Pp_Feasibility_Unit_Id = #{params.ppFeasibilityUnitId}
+        </if>
+        <if test="params.ppState!=null">
+            and mn.Pp_State = #{params.ppState}
+        </if>
+        <if test="params.ppType!=null">
+            and mn.Pp_Type = #{params.ppType}
+        </if>
+        <if test="params.ppIsParticipate!=null">
+            and mn.Pp_Is_Participate = #{params.ppIsParticipate}
+        </if>
+        <if test="params.ppDepartment!=null">
+            and mn.Pp_Department = #{params.ppDepartment}
+        </if>
+        <if test="params.ppName!=null">
+            and mn.Pp_Name like concat('%',#{params.ppName},'%')
+        </if>
+        <if test="params.ppCode!=null">
+            and mn.Pp_Code like concat('%',#{params.ppCode},'%')
+        </if>
+        <if test="params.ppProName!=null">
+            and mn.Pp_Pro_Name like concat('%',#{params.ppProName},'%')
+        </if>
+        <if test="params.ppFeasibilityUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ppFeasibilityUnitName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.ppFeasibilityUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>y
+        <if test="params.ppEstimationUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ppEstimationUnitName},c2.C_Id)=true
+                </when>
+                <otherwise>
+                    and c2.C_Name like concat('%',#{params.ppEstimationUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ppCreateUname!=null">
+            and mn.Pp_Create_Uname like concat('%',#{params.ppCreateUname},'%')
+        </if>
+        <if test="params.ppInvestmentStart!=null">
+            and mn.Pp_Investment > #{params.ppInvestmentStart}
+        </if>
+        <if test="params.ppInvestmentEnd!=null">
+            and mn.Pp_Investment &lt; #{params.ppInvestmentEnd}
+        </if>
+        <include refid="ppCreateTimeFilter"/>
+    </sql>
+
+    <select id="getPreProProposalList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProProposalModel">
+        select
+        c1.C_Name as ppFeasibilityUnitName,
+        c1.C_Name_History as ppFeasibilityUnitNameHistory,
+        c2.C_Name as ppEstimationUnitName,
+        c2.C_Name_History as ppEstimationUnitNameHistory,
+        c1.C_Abbreviation as ppFeasibilityAbbName,
+        c2.C_Abbreviation as ppEstimationAbbName,
+        sd.D_Name as ppDepName,
+        mn.*
+        from Pre_Pro_Proposal mn
+        left join Sys_Company c1 on c1.C_Id=mn.Pp_Feasibility_Unit_Id
+        left join Sys_Company c2 on c2.C_Id=mn.Pp_Estimation_Unit_Id
+        left join SYS_Department sd on sd.D_Id=mn.Pp_Department
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Pp_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getPpInvestmentSum" resultType="com.jpmsoft.projectProducer.pojo.vo.project.PreProProposalStatisticsVo">
+        select
+        SUM(mn.Pp_Investment) as ppInvestmentSum
+        from Pre_Pro_Proposal mn
+        left join Sys_Company c1 on c1.C_Id=mn.Pp_Feasibility_Unit_Id
+        left join Sys_Company c2 on c2.C_Id=mn.Pp_Estimation_Unit_Id
+        left join SYS_Department sd on sd.D_Id=mn.Pp_Department
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+
+    <!-- *********************************** dm *********************************** -->
+    <sql id="ppCreateTimeFilter" databaseId="dm">
+        <if test="params.ppCreateTimeStart!=null">
+            and to_date(mn.Pp_Create_Time,'yyyy-MM-dd') >= to_date(#{params.ppCreateTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.ppCreateTimeEnd!=null">
+            and to_date(mn.Pp_Create_Time,'yyyy-MM-dd') &lt;= to_date(#{params.ppCreateTimeEnd},'yyyy-MM-dd')
+        </if>
+    </sql>
+
+    <sql id="ppCreateTimeFilter" databaseId="postgre">
+        <if test="params.ppCreateTimeStart!=null">
+            and to_char(mn.Pp_Create_Time,'yyyy-MM-dd') >= to_char(#{params.ppCreateTimeStart},'yyyy-MM-dd')
+        </if>
+        <if test="params.ppCreateTimeEnd!=null">
+            and to_char(mn.Pp_Create_Time,'yyyy-MM-dd') &lt;= to_char(#{params.ppCreateTimeEnd},'yyyy-MM-dd')
+        </if>
+    </sql>
+
+    <!-- *********************************** mysql *********************************** -->
+    <sql id="ppCreateTimeFilter" databaseId="mysql">
+        <if test="params.ppCreateTimeStart!=null">
+            and date_format(mn.Pp_Create_Time,'%Y-%m-%d') >= date_format(#{params.ppCreateTimeStart},'%Y-%m-%d')
+        </if>
+        <if test="params.ppCreateTimeEnd!=null">
+            and date_format(mn.Pp_Create_Time,'%Y-%m-%d') &lt;= date_format(#{params.ppCreateTimeEnd},'%Y-%m-%d')
+        </if>
+    </sql>
+</mapper>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.MeasureMapper">
+    <select id="countEngineeringContactOrderMeasureUsed" resultType="java.lang.Integer">
+        select count(1)
+        from bg_contactorder
+        where state is not null
+        and state != 3
+        and measure_id = #{measureId}
+    </select>
+    <select id="countEngineeringQuantitiesVisaMeasureUsed" resultType="java.lang.Integer">
+        select count(1)
+        from bg_visaorder
+        where state is not null
+          and state != 3
+        and measure_id = #{measureId}
+    </select>
+    <select id="countClearSectionMeasureUsed" resultType="java.lang.Integer">
+        select count(1)
+        from bg_clearorder
+        where state is not null
+          and state != 3
+        and measure_id = #{measureId}
+    </select>
+    <select id="countConstructionUnitOrderMeasureUsed" resultType="java.lang.Integer">
+        select count(1)
+        from bg_conunitorder
+        where state is not null
+          and state != 3
+        and measure_id = #{measureId}
+    </select>
+    <select id="countEngineeringChangeMeasureUsed" resultType="java.lang.Integer">
+        select count(1)
+        from bg_declaration
+        where state is not null
+          and state != 3
+        and measure_id = #{measureId}
+    </select>
+    <select id="countContractPriceMeasureUsed" resultType="java.lang.Integer">
+        select count(1)
+        from Contract_price_calculation
+        where state is not null
+          and state != 3
+        and measure_id = #{measureId}
+    </select>
+    <select id="countSectionLowestPriceMeasureUsed" resultType="java.lang.Integer">
+        select count(1)
+        from Calculation_tender_price
+        where state is not null
+          and state != 3
+        and D_Base_Price_Id = #{measureId}
+    </select>
+</mapper>

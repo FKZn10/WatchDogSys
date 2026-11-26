@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.MHCompanyMapper">
+
+    <select id="getCompanyListByApplyType" resultType="com.jpmsoft.projectProducer.pojo.vo.other.MHCompanyVO">
+        SELECT
+            sc.C_Name AS companyName,
+            sc.C_Type AS companyType,
+            sc.C_ContactPerson AS contactPerson,
+            sc.C_ContactPersonTel AS contactPersonTel,
+            p.con_estimated_amount_total AS conEstimatedAmountTotal,
+            p.batch_code AS batchCode,
+            sc.C_ID AS companyId,
+            -- 合同暂估价：按 getFinishedContractMoneyByCompanyIds 逻辑查询合同总金额
+            COALESCE((
+                SELECT SUM(c.Con_Money_Total)
+                FROM Con_Contract c
+                WHERE c.Con_Approval_State = 7
+                AND (
+                    c.Con_Party_B_Id = sc.C_ID OR c.Con_Party_B1 = sc.C_ID OR c.Con_Party_B2 = sc.C_ID OR
+                    c.Con_Party_B3 = sc.C_ID OR c.Con_Party_B4 = sc.C_ID OR c.Con_Party_B5 = sc.C_ID OR
+                    c.Con_Party_B6 = sc.C_ID OR c.Con_Party_B7 = sc.C_ID OR c.Con_Party_B8 = sc.C_ID OR
+                    c.Con_Party_B9 = sc.C_ID OR c.Con_Party_B10 = sc.C_ID
+                )
+            ), 0) AS usedContractMoney,
+            -- 合同支付金额：按相同逻辑查询已支付金额
+            COALESCE((
+                SELECT SUM(cp.Pay_Apply)
+                FROM Con_Pay cp
+                INNER JOIN Con_Contract c ON cp.Con_Id = c.Con_Id
+                WHERE c.Con_Approval_State = 7
+                AND cp.Pay_State = 7 AND cp.Pay_Category = '01'
+                AND (
+                    c.Con_Party_B_Id = sc.C_ID OR c.Con_Party_B1 = sc.C_ID OR c.Con_Party_B2 = sc.C_ID OR
+                    c.Con_Party_B3 = sc.C_ID OR c.Con_Party_B4 = sc.C_ID OR c.Con_Party_B5 = sc.C_ID OR
+                    c.Con_Party_B6 = sc.C_ID OR c.Con_Party_B7 = sc.C_ID OR c.Con_Party_B8 = sc.C_ID OR
+                    c.Con_Party_B9 = sc.C_ID OR c.Con_Party_B10 = sc.C_ID
+                )
+            ), 0) AS paidContractMoney
+        FROM
+            framework_agreement_party p
+        INNER JOIN
+            framework_agreement_company_id_list cil ON p.id = cil.framework_agreement_party_id
+        INNER JOIN
+            SYS_Company sc ON cil.sys_company_id = sc.C_ID
+        WHERE
+            p.party_type = #{applyType}
+            AND sc.C_Type = p.party_type
+        GROUP BY
+            sc.C_Name, sc.C_Type, sc.C_ContactPerson, sc.C_ContactPersonTel,
+            p.con_estimated_amount_total, p.batch_code, sc.C_ID
+    </select>
+
+</mapper>

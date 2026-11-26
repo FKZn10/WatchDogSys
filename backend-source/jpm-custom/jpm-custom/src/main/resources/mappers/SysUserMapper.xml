@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.custom.mapper.SysUserMapper">
+    <select id="getUserRoleNames" resultType="java.lang.String">
+        select mn.Role_Name
+        from SYS_Role mn
+        left join SYS_PositionP_Role ppr on ppr.Role_ID=mn.Role_ID
+        left join SYS_Position_Role pr on pr.Role_ID=mn.Role_ID
+        left join SYS_Position_User_P pup on pup.PP_ID=ppr.PP_ID
+        left join SYS_Position_User pu on pu.P_ID=pr.P_ID
+        where pup.U_ID=#{uId} or pu.U_ID=#{uId}
+    </select>
+</mapper>

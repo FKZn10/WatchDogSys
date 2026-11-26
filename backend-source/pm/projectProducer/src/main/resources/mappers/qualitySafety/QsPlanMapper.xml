@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.qualitySafety.QsPlanMapper">
+    <select id="getQsPlanList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Qs.QsPlanModel">
+        select
+        c1.C_Name as qspCname,
+        c2.C_Name as qspSbCname,
+        u1.U_Name as qspSbUname,
+        dp.D_Name as qspSbDname,
+        mn.*
+        from  Qs_Plan mn
+        LEFT JOIN Sys_Company c1 on c1.C_ID=mn.Qsp_Cid
+        LEFT JOIN Sys_Company c2 on c2.C_ID=mn.Qsp_Sb_Cid
+        LEFT JOIN Sys_User u1 on u1.U_ID=mn.Qsp_Sb_Uid
+        LEFT JOIN Sys_Department dp on dp.D_ID=mn.Qsp_Sb_Did
+        <if test="params.authSql == null or params.authSql == ''">
+            where 1=1
+        </if>
+        <if test="params.authSql != null and params.authSql != ''">
+            ${params.authSql}
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.qspProjectType!=null">
+            and mn.Qsp_Project_Type = #{params.qspProjectType}
+        </if>
+        <if test="params.qspType!=null">
+            and mn.Qsp_Type = #{params.qspType}
+        </if>
+        <if test="params.qspCategory!=null">
+            and mn.Qsp_Category = #{params.qspCategory}
+        </if>
+        <if test="params.qspName!=null">
+            and mn.Qsp_Name like concat('%',#{params.qspName},'%')
+        </if>
+        <if test="params.qspCode!=null">
+            and mn.Qsp_Code like concat('%',#{params.qspCode},'%')
+        </if>
+        <if test="params.replyState!=null">
+            and mn.Reply_State = #{params.replyState}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Qsp_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getQsPlanById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Qs.QsPlanModel">
+        select
+            c1.C_Name as qspCname,
+            c2.C_Name as qspSbCname,
+            u1.U_Name as qspSbUname,
+            dp.D_Name as qspSbDname,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Qs_Plan mn
+                  LEFT JOIN Sys_Company c1 on c1.C_ID=mn.Qsp_Cid
+                  LEFT JOIN Sys_Company c2 on c2.C_ID=mn.Qsp_Sb_Cid
+                  LEFT JOIN Sys_User u1 on u1.U_ID=mn.Qsp_Sb_Uid
+                  LEFT JOIN Sys_Department dp on dp.D_ID=mn.Qsp_Sb_Did
+        left join  Sys_File f on f.FileID=mn.Qsp_Id
+        where mn.Qsp_Id=#{qspId}
+    </select>
+
+</mapper>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MeEnterInspectionMapper">
+
+    <!-- *********************************** 公共 *********************************** -->
+
+    <select id="getMeEnterInspectionByEiId"
+            resultType="com.jpmsoft.common.model.response.MeEnter.MeEnterInspectionResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Party_B_Id as conPartyBId,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        c1.C_Name as conPartyBName,
+        c2.C_Name as eiSupervisorName,
+        c3.C_Name as eiDesignName,
+        c4.C_Name as eiContractorName,
+        c5.C_Name as eiSupplierName,
+        c1.C_Abbreviation as conPartyBAbbName,
+        c2.C_Abbreviation as eiSupervisorAbbName,
+        c3.C_Abbreviation as eiDesignAbbName,
+        c4.C_Abbreviation as eiContractorAbbName,
+        c5.C_Abbreviation as eiSupplierAbbName,
+        ea.Ea_Code as eaCode,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Me_Enter_Inspection mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Me_Enter_Apply ea on ea.Ea_Id=mn.Ea_Id
+        left join  SYS_Company c1 on con.Con_Party_B_Id=c1.C_Id
+        left join  SYS_Company c2 on mn.Ei_Supervisor_Id=c2.C_Id
+        left join  SYS_Company c3 on mn.Ei_Design_Id=c3.C_Id
+        left join  SYS_Company c4 on mn.Ei_Contractor_Id=c4.C_Id
+        left join  SYS_Company c5 on mn.Ei_Supplier_Id=c5.C_Id
+        left join  Sys_File f on f.FileID=mn.Ei_Id
+        where mn.Ei_Id=#{eiId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.conPartyBId!=null">
+            and con.Con_Party_B_Id = #{params.conPartyBId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.eiAcceptTime!=null">
+            <include refid="eiAcceptTimeFilter"/>
+        </if>
+        <if test="params.eaCode!=null">
+            and ea.Ea_Code like concat('%',#{params.eaCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+    </sql>
+
+    <select id="getMeEnterInspectionList"
+            resultType="com.jpmsoft.common.model.response.MeEnter.MeEnterInspectionResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Party_B_Id as conPartyBId,
+        c1.C_Name_History as conPartyBNameHistory,
+        c2.C_Name_History as eiSupervisorNameHistory,
+        c3.C_Name_History as eiDesignNameHistory,
+        c4.C_Name_History as eiContractorNameHistory,
+        c5.C_Name_History as eiSupplierNameHistory,
+        c1.C_Name as conPartyBName,
+        c2.C_Name as eiSupervisorName,
+        c3.C_Name as eiDesignName,
+        c4.C_Name as eiContractorName,
+        c5.C_Name as eiSupplierName,
+        c1.C_Abbreviation as conPartyBAbbName,
+        c2.C_Abbreviation as eiSupervisorAbbName,
+        c3.C_Abbreviation as eiDesignAbbName,
+        c4.C_Abbreviation as eiContractorAbbName,
+        c5.C_Abbreviation as eiSupplierAbbName,
+        ea.Ea_Code as eaCode,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from Me_Enter_Inspection mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Me_Enter_Apply ea on ea.Ea_Id=mn.Ea_Id
+        left join SYS_Company c1 on con.Con_Party_B_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Ei_Supervisor_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Ei_Design_Id=c3.C_Id
+        left join SYS_Company c4 on mn.Ei_Contractor_Id=c4.C_Id
+        left join SYS_Company c5 on mn.Ei_Supplier_Id=c5.C_Id
+        left join Sys_File f on f.FileID=mn.Ei_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ei_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- *********************************** dm *********************************** -->
+
+    <sql id="eiAcceptTimeFilter" databaseId="dm">
+      and to_date(mn.Ei_Accept_Time,'yyyy-MM-dd') = to_date(#{params.eiAcceptTime},'yyyy-MM-dd')
+    </sql>
+
+    <sql id="eiAcceptTimeFilter" databaseId="postgre">
+        and to_date(to_char(mn.Ei_Accept_Time,'yyyy-MM-dd'),'yyyy-MM-dd') = to_date(#{params.eiAcceptTime},'yyyy-MM-dd')
+    </sql>
+    <!-- *********************************** mysql *********************************** -->
+
+    <sql id="eiAcceptTimeFilter" databaseId="mysql">
+      and date_format(mn.Ei_Accept_Time,'%Y-%m-%d') = date_format(#{params.eiAcceptTime},'%Y-%m-%d')
+    </sql>
+
+</mapper>

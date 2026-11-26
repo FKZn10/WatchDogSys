@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.acpm.AcpmProjectInvestmentApprovalMapper">
+
+
+    <sql id="fieldMapping">
+        mn.id as id,
+        mn.Pia_Code as piaCode,
+        mn.Pia_Name as piaName,
+        mn.Pia_Area as piaArea,
+        mn.Pia_Type as piaType,
+        mn.Pia_Developer as piaDeveloper,
+        mn.Pia_IsAgencyApproval as piaIsAgencyApproval,
+        mn.Pia_TenderClosingTime as piaTenderClosingTime,
+        mn.Pia_AnswerClosingTime as piaAnswerClosingTime,
+        mn.Pia_RequirementForMan as piaRequirementForMan,
+        mn.Pia_BidBondMoney as piaBidBondMoney,
+        mn.Pia_PerformanceBond as piaPerformanceBond,
+        mn.Pia_Agency_Fee as piaAgencyFee,
+        mn.Pia_People as piaPeople,
+        mn.Pia_Per_Capita as piaPerCapita,
+        mn.Pia_Service_Fee as piaServiceFee,
+        mn.Pia_Stamp_Duty as piaStampDuty,
+        mn.Pia_Achievement as piaAchievement,
+        mn.Pia_Labor_Cost as piaLaborCost,
+        mn.Pia_Total_Cost as piaTotalCost,
+        mn.Pia_Gross_Profit as piaGrossProfit,
+        mn.Pia_Net_Profit as piaNetProfit,
+        mn.Pia_Gross_Profit_Margin as piaGrossProfitMargin,
+        mn.Pia_ProjectOverview as piaProjectOverview,
+        mn.Pia_RiskInstructions as piaRiskInstructions,
+        mn.Pia_Request_Doc as piaRequestDoc,
+        mn.Pia_Bidding_Doc as piaBiddingDoc,
+        mn.Pia_Provisional_Investment as piaProvisionalInvestment,
+        mn.Create_Uid as createUid,
+        mn.Create_Uname as createUname,
+        mn.Create_Time as createTime,
+        mn.Update_Uid as updateUid,
+        mn.Update_Uname as updateUname,
+        mn.Update_Time as updateTime,
+        mn.State as state,
+        mn.State_Time as stateTime,
+        mn.Pia_Guarantee_Amt_Req as piaGuaranteeAmtReq
+    </sql>
+
+
+    <sql id="listFilter">
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.piaType!=null">
+                and mn.Pia_Type = #{params.piaType}
+            </if>
+            <if test="params.piaIsAgencyApproval!=null">
+                and mn.Pia_IsAgencyApproval = #{params.piaIsAgencyApproval}
+            </if>
+            <if test="params.piaArea!=null">
+                and mn.Pia_Area = #{params.piaArea}
+            </if>
+            <if test="params.state!=null">
+                and mn.State = #{params.state}
+            </if>
+            <if test="params.piaCode!=null">
+                and mn.Pia_Code like concat('%',#{params.piaCode},'%')
+            </if>
+            <if test="params.piaName!=null">
+                and mn.Pia_Name like concat('%',#{params.piaName},'%')
+            </if>
+            <if test="params.piaDeveloper!=null">
+                and mn.Pia_Developer like concat('%',#{params.piaDeveloper},'%')
+            </if>
+            <if test="params.piaRequirementForMan!=null">
+                and mn.Pia_RequirementForMan like concat('%',#{params.piaRequirementForMan},'%')
+            </if>
+            <if test="params.createUname!=null">
+                and mn.Create_Uname like concat('%',#{params.createUname},'%')
+            </if>
+            <include refid="timeFilter"/>
+            <if test="params.piaBidBondMoneyStart!=null">
+                and mn.Pia_BidBondMoney >= #{params.piaBidBondMoneyStart}
+            </if>
+            <if test="params.piaBidBondMoneyEnd!=null">
+                and mn.Pia_BidBondMoney &lt;= #{params.piaBidBondMoneyEnd}
+            </if>
+            <if test="params.piaPerformanceBondStart!=null">
+                and mn.Pia_PerformanceBond >= #{params.piaPerformanceBondStart}
+            </if>
+            <if test="params.piaPerformanceBondEnd!=null">
+                and mn.Pia_PerformanceBond &lt;= #{params.piaPerformanceBondEnd}
+            </if>
+            <if test="params.piaAgencyFeeStart!=null">
+                and mn.Pia_Agency_Fee >= #{params.piaAgencyFeeStart}
+            </if>
+            <if test="params.piaAgencyFeeEnd!=null">
+                and mn.Pia_Agency_Fee &lt;= #{params.piaAgencyFeeEnd}
+            </if>
+            <if test="params.piaPeopleStart!=null">
+                and mn.Pia_People >= #{params.piaPeopleStart}
+            </if>
+            <if test="params.piaPeopleEnd!=null">
+                and mn.Pia_People &lt;= #{params.piaPeopleEnd}
+            </if>
+            <if test="params.piaPerCapitaStart!=null">
+                and mn.Pia_Per_Capita >= #{params.piaPerCapitaStart}
+            </if>
+            <if test="params.piaPerCapitaEnd!=null">
+                and mn.Pia_Per_Capita &lt;= #{params.piaPerCapitaEnd}
+            </if>
+            <if test="params.piaServiceFeeStart!=null">
+                and mn.Pia_Service_Fee >= #{params.piaServiceFeeStart}
+            </if>
+            <if test="params.piaServiceFeeEnd!=null">
+                and mn.Pia_Service_Fee &lt;= #{params.piaServiceFeeEnd}
+            </if>
+            <if test="params.piaStampDutyStart!=null">
+                and mn.Pia_Stamp_Duty >= #{params.piaStampDutyStart}
+            </if>
+            <if test="params.piaStampDutyEnd!=null">
+                and mn.Pia_Stamp_Duty &lt;= #{params.piaStampDutyEnd}
+            </if>
+            <if test="params.piaAchievementStart!=null">
+                and mn.Pia_Achievement >= #{params.piaAchievementStart}
+            </if>
+            <if test="params.piaAchievementEnd!=null">
+                and mn.Pia_Achievement &lt;= #{params.piaAchievementEnd}
+            </if>
+            <if test="params.piaLaborCostStart!=null">
+                and mn.Pia_Labor_Cost >= #{params.piaLaborCostStart}
+            </if>
+            <if test="params.piaLaborCostEnd!=null">
+                and mn.Pia_Labor_Cost &lt;= #{params.piaLaborCostEnd}
+            </if>
+            <if test="params.piaTotalCostStart!=null">
+                and mn.Pia_Total_Cost >= #{params.piaTotalCostStart}
+            </if>
+            <if test="params.piaTotalCostEnd!=null">
+                and mn.Pia_Total_Cost &lt;= #{params.piaTotalCostEnd}
+            </if>
+            <if test="params.piaGrossProfitStart!=null">
+                and mn.Pia_Gross_Profit >= #{params.piaGrossProfitStart}
+            </if>
+            <if test="params.piaGrossProfitEnd!=null">
+                and mn.Pia_Gross_Profit &lt;= #{params.piaGrossProfitEnd}
+            </if>
+            <if test="params.piaNetProfitStart!=null">
+                and mn.Pia_Net_Profit >= #{params.piaNetProfitStart}
+            </if>
+            <if test="params.piaNetProfitEnd!=null">
+                and mn.Pia_Net_Profit &lt;= #{params.piaNetProfitEnd}
+            </if>
+            <if test="params.piaGrossProfitMarginStart!=null">
+                and mn.Pia_Gross_Profit_Margin >= #{params.piaGrossProfitMarginStart}
+            </if>
+            <if test="params.piaGrossProfitMarginEnd!=null">
+                and mn.Pia_Gross_Profit_Margin &lt;= #{params.piaGrossProfitMarginEnd}
+            </if>
+            <if test="params.piaProvisionalInvStart!=null">
+                and mn.Pia_Provisional_Investment >= #{params.piaProvisionalInvStart}
+            </if>
+            <if test="params.piaProvisionalInvEnd!=null">
+                and mn.Pia_Provisional_Investment &lt;= #{params.piaProvisionalInvEnd}
+            </if>
+            <if test="params.piaGuaranteeAmtReqStart!=null">
+                and mn.Pia_Guarantee_Amt_Req >= #{params.piaGuaranteeAmtReqStart}
+            </if>
+            <if test="params.piaGuaranteeAmtReqEnd!=null">
+                and mn.Pia_Guarantee_Amt_Req &lt;= #{params.piaGuaranteeAmtReqEnd}
+            </if>
+        </where>
+    </sql>
+
+    <select id="getById" resultType="com.jpmsoft.projectProducer.pojo.vo.acpm.AcpmProjectInvestmentApprovalVo">
+        select
+        f.file_relation_id as fileRelationId,
+        <include refid="fieldMapping"/>
+        from Acpm_ProjectInvestmentApproval mn
+        left join Sys_File f on f.FileID=mn.id
+        where mn.id=#{id}
+    </select>
+
+
+    <select id="getList" resultType="com.jpmsoft.projectProducer.pojo.vo.acpm.AcpmProjectInvestmentApprovalVo">
+        select
+        <include refid="fieldMapping"/>
+        from Acpm_ProjectInvestmentApproval mn
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time ASC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getSelectList" resultType="com.jpmsoft.projectProducer.pojo.vo.acpm.AcpmProjectInvestmentApprovalSelectVo">
+        select
+        mn.id as id,
+        mn.Pia_Code as piaCode,
+        mn.Pia_Name as piaName,
+        mn.Pia_Area as piaArea,
+        mn.Pia_Type as piaType,
+        mn.Pia_Developer as piaDeveloper,
+        mn.Pia_IsAgencyApproval as piaIsAgencyApproval,
+        mn.Pia_TenderClosingTime as piaTenderClosingTime,
+        mn.Pia_AnswerClosingTime as piaAnswerClosingTime,
+        mn.Pia_RequirementForMan as piaRequirementForMan,
+        mn.Pia_BidBondMoney as piaBidBondMoney,
+        mn.Pia_PerformanceBond as piaPerformanceBond,
+        mn.Pia_Agency_Fee as piaAgencyFee,
+        mn.Pia_People as piaPeople,
+        mn.Pia_Per_Capita as piaPerCapita,
+        mn.Pia_Service_Fee as piaServiceFee,
+        mn.Pia_Stamp_Duty as piaStampDuty,
+        mn.Pia_Achievement as piaAchievement,
+        mn.Pia_Labor_Cost as piaLaborCost,
+        mn.Pia_Total_Cost as piaTotalCost,
+        mn.Pia_Gross_Profit as piaGrossProfit,
+        mn.Pia_Net_Profit as piaNetProfit,
+        mn.Pia_Gross_Profit_Margin as piaGrossProfitMargin,
+        mn.Pia_Provisional_Investment as piaProvisionalInvestment,
+        mn.Create_Uname as createUname,
+        mn.Create_Time as createTime
+        from Acpm_ProjectInvestmentApproval mn
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time ASC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Acpm_ProjectInvestmentApproval mn
+        <include refid="listFilter"/>
+    </select>
+
+
+    <sql id="timeFilter" databaseId="dm">
+        <if test="params.piaTenderClosingTimeStart!=null">
+            and to_date(#{params.piaTenderClosingTimeStart},'yyyy-MM-dd') &lt;=
+            to_date(mn.Pia_TenderClosingTime,'yyyy-MM-dd')
+        </if>
+        <if test="params.piaTenderClosingTimeEnd!=null">
+            and to_date(#{params.piaTenderClosingTimeEnd},'yyyy-MM-dd') >=
+            to_date(mn.Pia_TenderClosingTime,'yyyy-MM-dd')
+        </if>
+        <if test="params.piaAnswerClosingTimeStart!=null">
+            and to_date(#{params.piaAnswerClosingTimeStart},'yyyy-MM-dd') &lt;=
+            to_date(mn.Pia_AnswerClosingTime,'yyyy-MM-dd')
+        </if>
+        <if test="params.piaAnswerClosingTimeEnd!=null">
+            and to_date(#{params.piaAnswerClosingTimeEnd},'yyyy-MM-dd') >=
+            to_date(mn.Pia_AnswerClosingTime,'yyyy-MM-dd')
+        </if>
+    </sql>
+
+
+    <sql id="timeFilter" databaseId="mysql">
+        <if test="params.piaTenderClosingTimeStart!=null">
+            and date_format(#{params.piaTenderClosingTimeStart},'%Y-%m-%d') &lt;=
+            date_format(mn.Pia_TenderClosingTime,'%Y-%m-%d')
+        </if>
+        <if test="params.piaTenderClosingTimeEnd!=null">
+            and date_format(#{params.piaTenderClosingTimeEnd},'%Y-%m-%d') >=
+            date_format(mn.Pia_TenderClosingTime,'%Y-%m-%d')
+        </if>
+        <if test="params.piaAnswerClosingTimeStart!=null">
+            and date_format(#{params.piaAnswerClosingTimeStart},'%Y-%m-%d') &lt;=
+            date_format(mn.Pia_AnswerClosingTime,'%Y-%m-%d')
+        </if>
+        <if test="params.piaAnswerClosingTimeEnd!=null">
+            and date_format(#{params.piaAnswerClosingTimeEnd},'%Y-%m-%d') >=
+            date_format(mn.Pia_AnswerClosingTime,'%Y-%m-%d')
+        </if>
+    </sql>
+
+    <sql id="timeFilter" databaseId="postgre">
+        <if test="params.piaTenderClosingTimeStart!=null">
+            and to_char(#{params.piaTenderClosingTimeStart},'yyyy-MM-dd') &lt;=
+            to_char(mn.Pia_TenderClosingTime,'yyyy-MM-dd')
+        </if>
+        <if test="params.piaTenderClosingTimeEnd!=null">
+            and to_char(#{params.piaTenderClosingTimeEnd},'yyyy-MM-dd') >=
+            to_char(mn.Pia_TenderClosingTime,'yyyy-MM-dd')
+        </if>
+        <if test="params.piaAnswerClosingTimeStart!=null">
+            and to_char(#{params.piaAnswerClosingTimeStart},'yyyy-MM-dd') &lt;=
+            to_char(mn.Pia_AnswerClosingTime,'yyyy-MM-dd')
+        </if>
+        <if test="params.piaAnswerClosingTimeEnd!=null">
+            and to_char(#{params.piaAnswerClosingTimeEnd},'yyyy-MM-dd') >=
+            to_char(mn.Pia_AnswerClosingTime,'yyyy-MM-dd')
+        </if>
+    </sql>
+</mapper>

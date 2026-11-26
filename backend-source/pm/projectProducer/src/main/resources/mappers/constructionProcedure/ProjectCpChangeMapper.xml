@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.constructionProcedure.ProjectCpChangeMapper">
+
+    <select id="getProjectCpChangeById" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpChangeVO">
+        select
+        p.P_Name as pName,
+        p.P_Name_History as pNameHistory,
+        p.P_Code as pCode,
+        p.P_Type as pType,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.File_Relation_Id as fileRelationId,
+        <include refid="entityFileds"/>
+        from Project_Cp_Change mn
+        left join Pre_Project p on p.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=p.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=p.P_Competent_Department
+        left join Sys_File f on f.FileId=mn.Cp_Id
+        where mn.Id=#{id}
+    </select>
+
+    <select id="getProCpChangeList" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpChangeVO">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        <include refid="entityFileds"/>
+        from Project_Cp_Change mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Cp_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.cpId!=null">
+            and mn.Cp_Id = #{params.cpId}
+        </if>
+        <if test="params.pId!=null">
+            and pro.P_Id=#{params.pId}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type = #{params.pType}
+        </if>
+        <if test="params.pRegion!=null">
+            and pro.P_Region = #{params.pRegion}
+        </if>
+        <if test="params.pBuildModel!=null">
+            and pro.P_Build_Model = #{params.pBuildModel}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.proState!=null">
+            and pro.State = #{params.proState}
+        </if>
+        <if test="params.pProjectStage!=null">
+            and pro.P_Project_Stage = #{params.pProjectStage}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and pro.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pImpCompany!=null">
+            and INSTR(pro.P_Imp_Company,#{params.pImpCompany})
+        </if>
+        <if test="params.pUseUnit!=null">
+            and INSTR(pro.P_Use_Unit,#{params.pUseUnit})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and INSTR(pro.P_Code,#{params.pCode})
+        </if>
+    </sql>
+
+    <sql id="entityFileds">
+        mn.id as id,
+        mn.Cp_Id as cpId,
+        mn.P_Id as pId,
+        mn.Cp_Create_Time as cpCreateTime,
+        mn.Cp_Create_Uid as cpCreateUid,
+        mn.Cp_Create_Uname as cpCreateUname,
+        mn.Cp_Remark as cpRemark,
+        mn.Cplt_Id as cpltId,
+        mn.State as state,
+        mn.State_Time as stateTime
+    </sql>
+</mapper>

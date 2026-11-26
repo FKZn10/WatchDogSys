@@ -1,0 +1,610 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.peInfo.PeInfoMapper">
+
+    <!--************************************* 公用 *************************************-->
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.peYear!=null">
+            and mn.Pe_Year = #{params.peYear}
+        </if>
+        <if test="params.peQuarter!=null">
+            and mn.Pe_Quarter = #{params.peQuarter}
+        </if>
+        <if test="params.peState!=null">
+            and mn.Pe_State = #{params.peState}
+        </if>
+        <if test="params.peFlowState!=null">
+            and mn.Pe_Flow_State = #{params.peFlowState}
+        </if>
+        <if test="params.peType!=null">
+            and mn.Pe_Type = #{params.peType}
+        </if>
+        <if test="params.peProjectId!=null">
+            and mn.Pe_Project_Id = #{params.peProjectId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.Pe_Project_Id = #{params.pId}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and pro.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.peCompanyId!=null">
+            and mn.Pe_Company_Id = #{params.peCompanyId}
+        </if>
+        <if test="params.conType!=null">
+            and con.con_Type = #{params.conType}
+        </if>
+        <if test="params.peUnitId!=null">
+            and mn.Pe_Unit_Id = #{params.peUnitId}
+        </if>
+        <if test="params.peCreateUname!=null">
+            and mn.Pe_Create_Uname = #{params.peCreateUname}
+        </if>
+        <if test="params.pePm!=null">
+            and mn.Pe_Pm = #{params.pePm}
+        </if>
+        <if test="params.peContractCategory!=null">
+            and mn.Pe_Contract_Category = #{params.peContractCategory}
+        </if>
+        <if test="params.pBuildUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.pBuildUnitName},pc.C_Id)=true
+                </when>
+                <otherwise>
+                    and pc.C_Name like concat('%',#{params.pBuildUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.peCompanyName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.peCompanyName},c.C_Id)=true
+                </when>
+                <otherwise>
+                    and c.C_Name like concat('%',#{params.peCompanyName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.peCompetentDepartment!=null">
+            and mn.Pe_Competent_Department = #{params.peCompetentDepartment}
+        </if>
+        <if test="params.peFlowStates!=null">
+            and mn.Pe_Flow_State in
+            <foreach collection="params.peFlowStates" open="(" close=")" item="peFlowState" separator=",">
+                #{peFlowState}
+            </foreach>
+        </if>
+        <!--区间筛选-->
+        <if test="params.conMoneyTotalStart!=null">
+            and con.con_Money_Total > #{params.conMoneyTotalStart}
+        </if>
+        <if test="params.conMoneyTotalEnd!=null">
+            and con.con_Money_Total &lt; #{params.conMoneyTotalEnd}
+        </if>
+        <if test="params.peDateStart!=null">
+            and mn.Pe_Date > #{params.peDateStart}
+        </if>
+        <if test="params.peDateEnd!=null">
+            and mn.Pe_Date &lt; #{params.peDateEnd}
+        </if>
+        <if test="params.peTeamScoreStart!=null">
+            and mn.Pe_Team_Score > #{params.peTeamScoreStart}
+        </if>
+        <if test="params.peTeamScoreEnd!=null">
+            and mn.Pe_Team_Score &lt; #{params.peTeamScoreEnd}
+        </if>
+        <if test="params.peCreateTimeStart!=null">
+            and mn.Pe_Create_Time > #{params.peCreateTimeStart}
+        </if>
+        <if test="params.peCreateTimeEnd!=null">
+            and mn.Pe_Create_Time &lt; #{params.peCreateTimeEnd}
+        </if>
+        <if test="params.collected!=null">
+            and mn.Pe_Id in
+            (select picd.Pe_Id from Pe_Info_Collect_Dtl picd
+            left join Pe_Info_Collect pic on pic.Pec_Id=picd.Pec_Id
+            where Pec_Flow_State=7)
+        </if>
+    </sql>
+
+    <select id="getPeInfoList" resultType="com.jpmsoft.common.model.requestAndResponse.PeInfo.PeInfoModel">
+        select
+        c.C_Name as peCompanyName,
+        c.C_Name_History as peCompanyNameHistory,
+        unit.C_Name as peUnitName,
+        pc.C_Name as pBuildUnitName,
+        c.C_Abbreviation as peCompanyAbbName,
+        unit.C_Abbreviation as peUnitAbbName,
+        pc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Name else con.con_Name end as conName,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Money else con.con_Money_Total end as conMoneyTotal,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Type else con.con_Type end as conType,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Code else con.con_Code end as conCode,
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        u.U_Name as pePmName,
+        f.file_relation_id as fileRelationId,
+        sr.Sc_Title as scTitle,
+        sr.Sc_Name as scName,
+        sr.Sc_Code as scCode,
+        <include refid="entityFileds"/>
+        from Pe_Info mn
+        left join Con_Contract con on mn.Pe_Con_Id=con.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.Pe_Project_Id
+        left join SYS_Company c on c.C_Id=mn.Pe_Company_Id
+        left join SYS_Company unit on unit.C_Id=mn.Pe_Unit_Id
+        left join SYS_Company pc on pc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_User u on mn.Pe_Pm_Uid=u.U_Id
+        left join Subcontract_Record sr on mn.Pe_Sub_Contract=sr.Sc_Id
+        left join Sys_File f on f.FileID=mn.Pe_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Pe_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getPeInfoByPeId" resultType="com.jpmsoft.common.model.requestAndResponse.PeInfo.PeInfoModel">
+        select
+        c.C_Name as peCompanyName,
+        unit.C_Name as peUnitName,
+        pc.C_Name as pBuildUnitName,
+        c.C_Abbreviation as peCompanyAbbName,
+        unit.C_Abbreviation as peUnitAbbName,
+        pc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Name else con.con_Name end as conName,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Money else con.con_Money_Total end as conMoneyTotal,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Type else con.con_Type end as conType,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Code else con.con_Code end as conCode,
+        pro.P_Name as pName,
+        u.U_Name as pePmName,
+        f.file_relation_id as fileRelationId,
+        sr.Sc_Title as scTitle,
+        sr.Sc_Name as scName,
+        sr.Sc_Code as scCode,
+        <include refid="entityFileds"/>
+        from Pe_Info mn
+        left join Con_Contract con on mn.Pe_Con_Id=con.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.Pe_Project_Id
+        left join SYS_Company c on c.C_Id=mn.Pe_Company_Id
+        left join SYS_Company unit on unit.C_Id=mn.Pe_Unit_Id
+        left join SYS_Company pc on pc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_User u on mn.Pe_Pm_Uid=u.U_Id
+        left join Subcontract_Record sr on mn.Pe_Sub_Contract=sr.Sc_Id
+        left join Sys_File f on f.FileID=mn.Pe_Id
+        where mn.Pe_Id=#{peId}
+    </select>
+
+    <select id="getPeInfoUnMeetApproval" resultType="com.jpmsoft.common.model.requestAndResponse.PeInfo.PeInfoModel">
+        select
+        c.C_Name as peCompanyName,
+        unit.C_Name as peUnitName,
+        pc.C_Name as pBuildUnitName,
+        c.C_Abbreviation as peCompanyAbbName,
+        unit.C_Abbreviation as peUnitAbbName,
+        pc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Name else con.con_Name end as conName,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Money else con.con_Money_Total end as conMoneyTotal,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Type else con.con_Type end as conType,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Code else con.con_Code end as conCode,
+        pro.P_Name as pName,
+        u.U_Name as pePmName,
+        f.file_relation_id as fileRelationId,
+        sr.Sc_Title as scTitle,
+        sr.Sc_Name as scName,
+        sr.Sc_Code as scCode,
+        <include refid="entityFileds"/>
+        from Pe_Info mn
+        left join Con_Contract con on mn.Pe_Con_Id=con.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.Pe_Project_Id
+        left join SYS_Company c on c.C_Id=mn.Pe_Company_Id
+        left join SYS_Company unit on unit.C_Id=mn.Pe_Unit_Id
+        left join SYS_Company pc on pc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_User u on mn.Pe_Pm_Uid=u.U_Id
+        left join Subcontract_Record sr on mn.Pe_Sub_Contract=sr.Sc_Id
+        left join Sys_File f on f.FileID=mn.Pe_Id
+        <where>
+            1=1
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <include refid="listFilter"/>
+            and mn.Pe_Id in (
+            select Pe_id from Pe_Info_Collect left join Pe_Info_Collect_Dtl on
+            Pe_Info_Collect.pec_Id=Pe_Info_Collect_Dtl.pec_Id
+            <if test="params.pecFlowState">
+                where Pe_Info_Collect.Pec_Flow_State = #{params.pecFlowState}
+            </if>
+            )
+            <if test="params.eliminateLastMeeting and params.eliminateLastMeeting=='1'"></if>
+            and mn.Pe_Id not in (
+            select Pe_Id from Pe_Meeting_Approval left join Pe_Meeting_Approval_List on
+            Pe_Meeting_Approval.Ma_Id=Pe_Meeting_Approval_List.Ma_Id where Pe_Meeting_Approval.State !=3 and Pe_Id is
+            not null
+            )
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+        <if test="params.whetherPage">
+            limit #{params.start},#{params.size}
+        </if>
+    </select>
+
+    <select id="getPeInfoUnMeetApprovalCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Pe_Info mn
+        left join Con_Contract con on mn.Pe_Con_Id=con.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.Pe_Project_Id
+        left join SYS_Company c on c.C_Id=mn.Pe_Company_Id
+        left join SYS_Company unit on unit.C_Id=mn.Pe_Unit_Id
+        left join SYS_Company pc on pc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_User u on mn.Pe_Pm_Uid=u.U_Id
+        left join Subcontract_Record sr on mn.Pe_Sub_Contract=sr.Sc_Id
+        left join Sys_File f on f.FileID=mn.Pe_Id
+        <where>
+            1=1
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <include refid="listFilter"/>
+            and mn.Pe_Id in (
+            select Pe_id from Pe_Info_Collect left join Pe_Info_Collect_Dtl on
+            Pe_Info_Collect.pec_Id=Pe_Info_Collect_Dtl.pec_Id
+            <if test="params.pecFlowState">
+                where Pe_Info_Collect.Pec_Flow_State = #{params.pecFlowState}
+            </if>
+            )
+            <if test="params.eliminateLastMeeting and params.eliminateLastMeeting=='1'"></if>
+            and mn.Pe_Id not in (
+            select Pe_Id from Pe_Meeting_Approval left join Pe_Meeting_Approval_List on
+            Pe_Meeting_Approval.Ma_Id=Pe_Meeting_Approval_List.Ma_Id where Pe_Meeting_Approval.State !=3 and Pe_Id is
+            not null
+            )
+        </where>
+    </select>
+
+    <select id="getPeInfoByMaId" resultType="com.jpmsoft.common.model.requestAndResponse.PeInfo.PeInfoModel">
+        select
+        c.C_Name as peCompanyName,
+        unit.C_Name as peUnitName,
+        pc.C_Name as pBuildUnitName,
+        c.C_Abbreviation as peCompanyAbbName,
+        unit.C_Abbreviation as peUnitAbbName,
+        pc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Name else con.con_Name end as conName,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Money else con.con_Money_Total end as conMoneyTotal,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Type else con.con_Type end as conType,
+        case when mn.Pe_Contract_Category='02' then sr.Sc_Code else con.con_Code end as conCode,
+        pro.P_Name as pName,
+        u.U_Name as pePmName,
+        f.file_relation_id as fileRelationId,
+        sr.Sc_Title as scTitle,
+        sr.Sc_Name as scName,
+        sr.Sc_Code as scCode,
+        <include refid="entityFileds"/>
+        from Pe_Info mn
+        left join Con_Contract con on mn.Pe_Con_Id=con.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.Pe_Project_Id
+        left join SYS_Company c on c.C_Id=mn.Pe_Company_Id
+        left join SYS_Company unit on unit.C_Id=mn.Pe_Unit_Id
+        left join SYS_Company pc on pc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_User u on mn.Pe_Pm_Uid=u.U_Id
+        left join Subcontract_Record sr on mn.Pe_Sub_Contract=sr.Sc_Id
+        left join Sys_File f on f.FileID=mn.Pe_Id
+        where mn.Pe_Id in (
+        select Pe_Id from Pe_Meeting_Approval_List where Ma_Id=#{maId}
+        )
+    </select>
+
+    <sql id="entityFileds">
+        mn.Pe_Id as peId,
+        mn.Pe_Con_Id as peConId,
+        mn.Pe_Project_Id as peProjectId,
+        mn.Pe_Pm as pePm,
+        mn.Pe_Pm_Id as pePmId,
+        mn.Pe_Pm_Tel as pePmTel,
+        mn.Pe_Com_Principal as peComPrincipal,
+        mn.Pe_Com_Principal_Tel as peComPrincipalTel,
+        mn.Pe_Date as peDate,
+        mn.Pe_Year as peYear,
+        mn.Pe_Quarter as peQuarter,
+        mn.Pe_Type as peType,
+        mn.Pe_Company_Id as peCompanyId,
+        mn.Pe_Team_Score as peTeamScore,
+        mn.Pe_Team_Meeting_Time as peTeamMeetingTime,
+        mn.Pe_Con_Type as peConType,
+        mn.Pe_Stage as peStage,
+        mn.Pe_Unit_Id as peUnitId,
+        mn.Pe_Names as peNames,
+        mn.Pe_Team_Opinion as peTeamOpinion,
+        mn.Pe_Drus_Score as peDrusScore,
+        mn.Pe_Drus_Opinion as peDrusOpinion,
+        mn.Pe_Quality_Score as peQualityScore,
+        mn.Pe_Safety_Score as peSafetyScore,
+        mn.Pe_Material_Score as peMaterialScore,
+        mn.Pe_Material_Inspect as peMaterialInspect,
+        mn.Pe_Final_Score as peFinalScore,
+        mn.Pe_Final_Grade as peFinalGrade,
+        mn.Pe_Grade_Rule as peGradeRule,
+        mn.Pe_Create_Uid as peCreateUid,
+        mn.Pe_Create_Uname as peCreateUname,
+        mn.Pe_Create_Time as peCreateTime,
+        mn.Pe_Flow_State as peFlowState,
+        mn.Pe_Flow_State_Time as peFlowStateTime,
+        mn.Pe_State as peState,
+        mn.Pe_Con_Start_Date as peConStartDate,
+        mn.Pe_Con_End_Date as peConEndDate,
+        mn.Pe_Administrative_Sanction  as peAdministrativeSanction,
+        mn.Pe_Petition_Record  as pePetitionRecord,
+        mn.Pe_F_Id  as peFId,
+        mn.Pe_Remark  as peRemark,
+        mn.Pe_Extra_Points  as  peExtraPoints,
+        mn.Pe_Deduct_Points  as  peDeductPoints,
+        mn.Pe_Extra_Points_Remark  as  peExtraPointsRemark,
+        mn.Pe_Deduct_Points_Remark  as  peDeductPointsRemark,
+        mn.Pe_Join  as  peJoin,
+        mn.Pe_Pm_Uid  as  pePmUid,
+        mn.Pe_Report_Seal  as  peReportSeal,
+        mn.Pe_Sub_Contract  as  peSubContract,
+        mn.Pe_Contract_Category  as  peContractCategory,
+        mn.Pe_Competent_Department as peCompetentDepartment
+    </sql>
+
+
+    <select id="getPeInfoRankingCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from (
+        select t2.Con_Name,
+        t2.Con_Id,
+        t2.Con_Money_Total,
+        c1.C_Name as Construction_Unit,
+        c2.C_Name as Performing_Unit,
+        t1.Pe_Year,
+        t1.Pe_Quarter,
+        t1.Pe_Final_Score,
+        t1.Pe_Administrative_Sanction,
+        t1.Pe_Petition_Record from Pe_Info t1
+        left join Con_Contract t2 on t2.Con_Id=t1.Pe_Con_Id
+        left join SYS_Company c1 on t1.Pe_Unit_Id=c1.C_ID
+        left join SYS_Company c2 on t1.Pe_Company_Id=c2.C_ID
+        where t1.Pe_Type=#{params.peType}
+        and t1.Pe_Flow_State=#{params.state}
+        and Pe_Year=#{params.year}
+        and Pe_Quarter=#{params.peQuarter}
+        <if test="params.teId!=null">
+            and t1.Te_Id = #{params.teId}
+        </if>
+        <if test="params.conType!=null">
+            and t2.Con_Type in
+            <foreach collection="params.conType" open="(" close=")" separator="," item="conType">
+                #{conType}
+            </foreach>
+        </if>
+        ) t4
+        group by t4.Performing_Unit,t4.Pe_Year,t4.Pe_Quarter
+    </select>
+
+
+    <!--************************************* dm *************************************-->
+    <!--  获取履约评价排名  -->
+    <select id="getPeInfoRanking" databaseId="dm"
+            resultType="com.jpmsoft.common.model.requestAndResponse.PeInfo.PeInfoRankingModel">
+        select max(Construction_Unit) as constructionUnit,
+        Performing_Unit as performingUnit,
+        Pe_Year as peYear,
+        Pe_Quarter as peQuarter,
+        count(Con_Id) as conNumber,
+        sum(Con_Money_Total) as conTotalPrice,
+        wm_concat(Con_Name)as conName,
+        sum(Pe_Final_Score)/ count(Con_Id) as averageScore,
+        row_number() over (order by sum(Pe_Final_Score)/ count(Con_Id) desc) as ranking,
+        sum(Pe_Administrative_Sanction) as peAdministrativeSanction,
+        sum(Pe_Petition_Record) as pePetitionRecord
+        from (
+        select t2.Con_Name,
+        t2.Con_Id,
+        t2.Con_Money_Total,
+        c1.C_Name as Construction_Unit,
+        c2.C_Name as Performing_Unit,
+        t1.Pe_Year,
+        t1.Pe_Quarter,
+        t1.Pe_Final_Score,
+        t1.Pe_Administrative_Sanction,
+        t1.Pe_Petition_Record from Pe_Info t1
+        left join Con_Contract t2 on t2.Con_Id=t1.Pe_Con_Id
+        left join SYS_Company c1 on t1.Pe_Unit_Id=c1.C_ID
+        left join SYS_Company c2 on t1.Pe_Company_Id=c2.C_ID
+        where t1.Pe_Type=#{params.peType}
+        and t1.Pe_Flow_State=#{params.state}
+        and Pe_Year=#{params.year}
+        and Pe_Quarter=#{params.peQuarter}
+        <if test="params.teId!=null">
+            and t1.Te_Id = #{params.teId}
+        </if>
+        <if test="params.conType!=null">
+            and t2.Con_Type in
+            <foreach collection="params.conType" open="(" close=")" separator="," item="conType">
+                #{conType}
+            </foreach>
+        </if>
+        ) t4
+        group by t4.Performing_Unit,t4.Pe_Year,t4.Pe_Quarter order by averageScore desc
+        limit #{params.page},#{params.size}
+    </select>
+
+    <!--************************************* mysql *************************************-->
+    <!--  获取履约评价排名  -->
+    <select id="getPeInfoRanking" databaseId="mysql"
+            resultType="com.jpmsoft.common.model.requestAndResponse.PeInfo.PeInfoRankingModel">
+        select @rowNum:=@rowNum + 1 AS ranking,s.* from(
+        select
+        max(Construction_Unit) as constructionUnit,
+        Performing_Unit as performingUnit,
+        Pe_Year as peYear,
+        Pe_Quarter as peQuarter,
+        count(Con_Id) as conNumber,
+        sum(Con_Money_Total) as conTotalPrice,
+        GROUP_CONCAT(Con_Name)as conName,
+        sum(Pe_Final_Score)/ count(Con_Id) as averageScore,
+        sum(Pe_Final_Score) as scoreCount,
+        count(Con_Id) as conIdCount,
+        sum(Pe_Administrative_Sanction) as peAdministrativeSanction,
+        sum(Pe_Petition_Record) as pePetitionRecord
+        from (
+        select t2.Con_Name,
+        t2.Con_Id,
+        t2.Con_Money_Total,
+        c1.C_Name as Construction_Unit,
+        c2.C_Name as Performing_Unit,
+        t1.Pe_Year,
+        t1.Pe_Quarter,
+        t1.Pe_Final_Score,
+        t1.Pe_Administrative_Sanction,
+        t1.Pe_Petition_Record from Pe_Info t1
+        left join Con_Contract t2 on t2.Con_Id=t1.Pe_Con_Id
+        left join SYS_Company c1 on t1.Pe_Unit_Id=c1.C_ID
+        left join SYS_Company c2 on t1.Pe_Company_Id=c2.C_ID
+        where t1.Pe_Type=#{params.peType}
+        and t1.Pe_Flow_State=#{params.state}
+        and Pe_Year=#{params.year}
+        and Pe_Quarter=#{params.peQuarter}
+        <if test="params.teId!=null">
+            and t1.Te_Id = #{params.teId}
+        </if>
+        <if test="params.conType!=null">
+            and t2.Con_Type in
+            <foreach collection="params.conType" open="(" close=")" separator="," item="conType">
+                #{conType}
+            </foreach>
+        </if>
+        ) t4
+        group by t4.Performing_Unit,t4.Pe_Year,t4.Pe_Quarter order by averageScore desc
+        ) s,(SELECT @rowNum:=0) b
+        order by scoreCount/conIdCount desc
+    </select>
+
+    <!--************************************* postgre *************************************-->
+    <!--  获取履约评价排名  -->
+    <select id="getPeInfoRanking" databaseId="postgre"
+            resultType="com.jpmsoft.common.model.requestAndResponse.PeInfo.PeInfoRankingModel">
+        select max(Construction_Unit) as constructionUnit,
+        Performing_Unit as performingUnit,
+        Pe_Year as peYear,
+        Pe_Quarter as peQuarter,
+        count(Con_Id) as conNumber,
+        sum(Con_Money_Total) as conTotalPrice,
+        string_agg(Con_Name,',')as conName,
+        sum(Pe_Final_Score)/ count(Con_Id) as averageScore,
+        row_number() over (order by sum(Pe_Final_Score)/ count(Con_Id) desc) as ranking,
+        sum(Pe_Administrative_Sanction) as peAdministrativeSanction,
+        sum(Pe_Petition_Record) as pePetitionRecord
+        from (
+        select t2.Con_Name,
+        t2.Con_Id,
+        t2.Con_Money_Total,
+        c1.C_Name as Construction_Unit,
+        c2.C_Name as Performing_Unit,
+        t1.Pe_Year,
+        t1.Pe_Quarter,
+        t1.Pe_Final_Score,
+        t1.Pe_Administrative_Sanction,
+        t1.Pe_Petition_Record from Pe_Info t1
+        left join Con_Contract t2 on t2.Con_Id=t1.Pe_Con_Id
+        left join SYS_Company c1 on t1.Pe_Unit_Id=c1.C_ID
+        left join SYS_Company c2 on t1.Pe_Company_Id=c2.C_ID
+        where t1.Pe_Type=#{params.peType}
+        and t1.Pe_Flow_State=#{params.state}
+        and Pe_Year=#{params.year}
+        and Pe_Quarter=#{params.peQuarter}
+        <if test="params.teId!=null">
+            and t1.Te_Id = #{params.teId}
+        </if>
+        <if test="params.conType!=null">
+            and t2.Con_Type in
+            <foreach collection="params.conType" open="(" close=")" separator="," item="conType">
+                #{conType}
+            </foreach>
+        </if>
+        ) t4
+        group by t4.Performing_Unit,t4.Pe_Year,t4.Pe_Quarter order by averageScore desc
+        limit #{params.page},#{params.size}
+    </select>
+
+
+    <select id="getGradeCount" resultType="java.util.Map">
+        select
+        sum(case when Pe_Final_Score>=90 then 1 else 0 end) as youxiu,
+        sum(case when 90>Pe_Final_Score and  Pe_Final_Score>=80 then 1 else 0 end) as lianghao,
+        sum(case when 80>Pe_Final_Score and Pe_Final_Score>=60  then 1 else 0 end) as hege,
+        sum(case when 60>Pe_Final_Score then 1 else 0 end) as buhege
+        from Pe_Info where Pe_Flow_State=7
+        <if test="yearStr!=null">
+            and Pe_Year=#{yearStr}
+        </if>
+
+
+    </select>
+
+
+    <select id="getDIdCount" resultType="java.util.Map">
+        select Pe_Competent_Department as dId,count(Pe_id) as num from Pe_Info where Pe_Flow_State=7
+        <if test="yearStr!=null">
+            and Pe_Year=#{yearStr}
+        </if>
+        group by Pe_Competent_Department having Pe_Competent_Department is not null
+    </select>
+
+    <select id="getConTypeCount" resultType="java.util.Map">
+        select conType,count(1) as num from (
+        select Pe_id as peId, case when mn.Pe_Contract_Category='02' then sr.Sc_Type else con.con_Type end as conType
+        from Pe_Info mn
+        left join Con_Contract con on mn.Pe_Con_Id=con.Con_Id
+        left join Subcontract_Record sr on mn.Pe_Sub_Contract=sr.Sc_Id where Pe_Flow_State=7
+        <if test="yearStr!=null">
+            and Pe_Year=#{yearStr}
+        </if>
+        )t1 group by conType
+    </select>
+</mapper>

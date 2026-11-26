@@ -1,0 +1,4 @@
+*
+!Dockerfile
+!target/
+!target/video-access-service-0.1.0-SNAPSHOT.jar

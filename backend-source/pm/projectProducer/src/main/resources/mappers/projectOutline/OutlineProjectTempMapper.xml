@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.projectOutline.OutlineProjectTempMapper">
+    <select id="getOutlineProjectTempPage"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectTempResponse">
+        select
+        mn.*,
+        sf.T_Name as tName
+        from Outline_Project_Temp mn
+        left join SYS_FileTemplate sf on sf.T_Code = mn.T_Code
+        <where>
+            <if test="params.oplId != null and params.oplId != ''">
+                and mn.Opl_Id = #{params.oplId}
+            </if>
+            <if test="params.tCode != null and params.tCode != ''">
+                and mn.T_Code = #{params.tCode}
+            </if>
+            <if test="params.tName != null and params.tName != ''">
+                and sf.T_Name = #{params.tName}
+            </if>
+            <if test="params.createUname != null and params.createUname != ''">
+                and mn.Create_Uname = #{params.createUname}
+            </if>
+            <if test="params.createUid != null and params.createUid != ''">
+                and mn.Create_Uid = #{params.createUid}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Opd_Sort
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getOutlineProjectTempByOplIds"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineProjectTempResponse">
+        select
+        mn.*,
+        sf.T_Name as tName
+        from Outline_Project_Temp mn
+        left join SYS_FileTemplate sf on sf.T_Code = mn.T_Code
+        where mn.Opl_Id in
+        <foreach item="item" collection="oplIds" separator="," open="(" close=")" index="index">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="getOdIdsByTCodes" resultType="java.lang.String">
+        select
+        Od_Id
+        from Outline_Datasource_Temp
+        where T_Code in
+        <foreach item="item" collection="tCodes" separator="," open="(" close=")" index="index">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

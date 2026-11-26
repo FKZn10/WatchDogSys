@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.SysFileMapper">
+
+    <update id="onlyUpdateStateBath">
+        update Sys_File
+        set FileFlowStatus=#{state} where FileID in
+        <foreach collection="fileIds" separator="," open="(" close=")" item="id">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="getFileTemplateByTCode" resultType="com.jpmsoft.common.model.response.FileTemplateTree">
+        select mn.*
+        from SYS_FileTemplate mn
+        where mn.T_Code = #{tCode}
+        and mn.T_Stats = '1'
+    </select>
+</mapper>

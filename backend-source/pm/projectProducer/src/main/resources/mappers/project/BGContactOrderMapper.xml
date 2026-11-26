@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.BGContactOrderMapper">
+
+    <select id="getBGContactOrderMoney" resultType="java.math.BigDecimal">
+        select Sum(CO_TureMoney)
+        from BG_ContactOrder
+        where
+            State = 7
+          and
+            CO_ConId = #{conId}
+          and
+            (CO_BL != 0 or CO_BL is null)
+          and
+            id not in (select vo_GLID from BG_VisaOrder where state = 7)
+    </select>
+    <select id="BGContactOrderListByType" resultType="com.jpmsoft.projectProducer.pojo.dto.project.ProBGDTO">
+        select
+            co.id as id,
+            co.CO_Code as code,
+            '工程联系单' as type,
+            co.CO_PId as pId,
+            pp.P_Name as pName,
+            co.CO_ConId as conId,
+            cc.Con_Name as conName,
+            IFNUll(co.CO_GLBL,100) as BL,
+            co.CO_TureMoney as Money,
+            100 as TrueBL,
+            co.CO_TureMoney as TrueMoney
+        from
+            BG_ContactOrder co
+                left join Con_Contract cc on cc.Con_Id = co.Con_Id
+                left join pre_project pp on pp.P_ID = co.P_Id
+        where
+            co.State = 7
+          and
+            (co.CO_BL != 0 or co.CO_BL is null)
+          and
+            co.id not in (select vo_GLID from BG_VisaOrder where state = 7)
+        <if test="request.code != null and request.code != ''">
+            and INSTR(co.CO_Code,#{request.code})
+        </if>
+        <if test="request.conName != null and request.conName != ''">
+            and INSTR(cc.con_name,#{request.conName})
+        </if>
+        <if test="request.pName != null and request.pName != ''">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{request.pName},pp.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pp.p_name,#{request.pName})
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+    <select id="sumOfRateByContactItemId" resultType="java.math.BigDecimal">
+        select ifnull(sum(co_Glbl),0)
+        from BG_ContactOrder
+        where state = 7
+        and co_Glid = #{contactItemId}
+    </select>
+</mapper>

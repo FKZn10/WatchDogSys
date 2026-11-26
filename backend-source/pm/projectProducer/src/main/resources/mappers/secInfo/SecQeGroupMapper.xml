@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecQeGroupMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecQeGroupResponse" id="getSecQeGroup">
+        <id column="Qeg_Id" property="qegId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Qeg_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_QE_Group sqg on sqg.Sec_Id=sec.Sec_Id
+        where sqg.Qeg_Id=#{qegId}
+    </select>
+
+    <select id="getSecQeGroupByQegId" resultMap="getSecQeGroup">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Place as secPlace,
+        secn.N_Scope as nScope,
+        secn.N_Bidding_Type as nBiddingType,
+        c1.C_Name as tendereeName,
+        c2.C_Name as nBiddingAgencyName,
+        c2.C_Abbreviation as nBidAgeAbbName,
+        sqg.*
+        from  Sec_QE_Group sqg
+        left join  Sec_Info sec on sec.Sec_Id=sqg.Sec_Id
+        left join  Sec_Notice secn on  sec.Sec_Id=secn.Sec_Id
+        left join  SYS_Company c1 on c1.C_ID=sec.Sec_Tenderee
+        left join  SYS_Company c2 on secn.N_Bidding_Agency=c2.C_Id
+       where sqg.Qeg_Id=#{qegId}
+    </select>
+</mapper>

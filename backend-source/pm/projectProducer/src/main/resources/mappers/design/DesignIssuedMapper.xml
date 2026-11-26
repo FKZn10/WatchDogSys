@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.design.DesignIssuedMapper">
+
+    <select id="getDesignIssuedList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignIssuedModel">
+        select
+            mn.*
+        from
+            design_Issued mn
+        where 1=1
+        <include refid="listDesignIssued"/>
+    </select>
+
+
+    <resultMap id="DesignResultsIssuedResultMap"
+               type="com.jpmsoft.common.model.requestAndResponse.Design.DesignResultsIssuedModel">
+
+        <!-- 主表字段 -->
+        <id property="id" column="id"/>
+        <result property="dqCode" column="dq_code"/>
+        <result property="designIsIssued" column="design_is_issued"/>
+        <result property="pId" column="p_id"/>
+        <result property="pName" column="p_name"/>
+        <result property="driName" column="dri_name"/>
+        <result property="driBussnisType" column="dri_bussnis_type"/>
+        <result property="driType" column="dri_type"/>
+        <result property="driPaperNum" column="dri_paper_num"/>
+        <result property="driCategory" column="dri_category"/>
+        <result property="driTerm" column="dri_term"/>
+        <result property="driIssuedDescribe" column="dri_issued_describe"/>
+        <result property="driRemark" column="dri_remark"/>
+        <result property="dqcId" column="dqc_id"/>
+        <result property="driFormType" column="dri_form_type"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createUid" column="create_uid"/>
+        <result property="createUname" column="create_uname"/>
+        <result property="state" column="state"/>
+        <result property="stateTime" column="state_time"/>
+        <result property="fileRelationId" column="file_relation_id"/>
+
+        <result property="diIsIssued" column="di_Is_Issued"/>
+        <!-- 嵌套映射明细列表 -->
+        <collection property="designIssuedDetails" ofType="com.jpmsoft.common.model.requestAndResponse.Design.DesignIssuedDetailModel">
+            <id property="id" column="did_id"/>
+            <result property="didUnitId" column="did_unit_id"/>
+            <result property="didUnitName" column="did_unit_name"/>
+            <result property="didUid" column="did_uid"/>
+            <result property="didUname" column="did_uname"/>
+            <result property="didPaperNum" column="did_paper_num"/>
+            <result property="didElectron" column="did_electron"/>
+            <result property="didNumber" column="did_number"/>
+            <result property="didType" column="did_type"/>
+            <result property="diId" column="di_id"/>
+            <result property="createTime" column="detail_create_time"/>
+        </collection>
+    </resultMap>
+
+
+
+
+    <select id="getDesignIssuedById" resultMap="DesignResultsIssuedResultMap">
+        select
+        dri.id as id,
+        dri.design_is_issued as design_is_issued,
+        dri.p_id as p_id,
+        pre.p_name as p_name,
+        dri.dri_name as dri_name,
+        dri.dri_bussnis_type as dri_bussnis_type,
+        dri.dri_type as dri_type,
+        dri.dri_paper_num as dri_paper_num,
+        dri.dri_category as dri_category,
+        dri.dri_term as dri_term,
+        dri.dri_issued_describe as dri_issued_describe,
+        dri.dri_remark as dri_remark,
+        dri.dqc_id as dqc_id,
+        dri.dri_form_type as dri_form_type,
+        dri.create_time as create_time,
+        dri.create_uid as create_uid,
+        dri.create_uname as create_uname,
+        dri.state as state,
+        dri.state_time as state_time,
+        qr.dq_code as dq_code,
+        sf.file_relation_id as file_relation_id,
+
+        drid.id as did_id,
+        drid.did_unit_id as did_unit_id,
+        drid.did_unit_name as did_unit_name,
+        drid.did_uid as did_uid,
+        drid.did_Uname as did_uname,
+        drid.did_paper_num as did_paper_num,
+        drid.did_electron as did_electron,
+        drid.did_number as did_number,
+        drid.did_type as did_type,
+        drid.di_id as di_id,
+        mn.create_time as detail_create_time,
+        mn.di_Is_Issued as di_Is_Issued
+        from design_issued mn
+        left join design_results_issued dri on mn.Di_Entity_Id = dri.id
+        left join design_issued_detail drid on drid.Di_Id = mn.id
+        left join pre_project pre on dri.P_Id = pre.P_Id
+        left join design_qr_code qr on qr.id = dri.dqc_id
+        left join sys_user sy on sy.U_Id=drid.did_uid
+        left join sys_file sf on sf.fileId = dri.id
+        where 1=1
+        <if test="id != null and id != ''">
+            and mn.id = #{id}
+        </if>
+        order by drid.did_number asc
+    </select>
+
+
+    <sql id="listDesignIssued">
+        <if test="params.diEntityId != null and params.diEntityId != ''">
+            and mn.di_entity_id = #{params.diEntityId}
+        </if>
+        <if test="params.state != null">
+            and mn.State= #{params.state}
+        </if>
+        <if test="params.diModule != null and params.diModule != ''">
+            and mn.di_module = #{params.diModule}
+        </if>
+        <if test="params.diIsIssued != null and params.diIsIssued != ''">
+            and mn.di_is_issued = #{params.diIsIssued}
+        </if>
+        <if test="params.createUid != null and params.createUid != ''">
+            and mn.createUid = #{params.createUid}
+        </if>
+        <if test="params.createUname != null and params.createUname.size() > 0">
+            and mn.Create_Uname like concat('%',#{params.createUname},'%')
+        </if>
+        <if test="params.state != null">
+            and mn.State=#{params.state}
+        </if>
+    </sql>
+
+</mapper>

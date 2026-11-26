@@ -1,0 +1,116 @@
+package com.jpmsoft.common.model.requestAndResponse.SecInfo;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.jpmsoft.common.model.BaseFileRequest;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.math.BigDecimal;
+import java.util.Date;
+
+@EqualsAndHashCode(callSuper = true)
+@Data
+public class SecExpertChangeModel extends BaseFileRequest {
+    private String id;
+    private String exId;
+    @JsonProperty("cId")
+    private String cId;
+    @JsonProperty("cName")
+    private String cName;
+    private String exName;
+    private String exSex;
+    private Date exBirthday;
+    private String exFamily;
+    private String exIdType;
+    private String exIdNumber;
+    private String exLocation;
+    private String exPolitics;
+    private String exEducation;
+    private String exMajor;
+    private String exSchool;
+    private String exWorkState;
+    private Integer exProfessionalYears;
+    private String exWorkUnit;
+    private String exPost;
+    private String exTitle;
+    private String exTitleNumber;
+    private String exProfessionalCategory;
+    private String exIndustry;
+    private String exWorkAddress;
+    private String exCellphoneNumber1;
+    private String exCellphoneNumber2;
+    private String exPostcode;
+    private String exFax;
+    private String exHomePhone;
+    private String exEmail;
+    private String exMailAddress;
+    private String exBidMajor;
+    private String exPracticeQualification;
+    private String exBidArea;
+    private String exPersonalResearch;
+    private String exProjects;
+    private String exAvoidanceUnit;
+    private String exCreateUid;
+    private String exCreateUname;
+    private Date exCreateTime;
+    private Integer exState;
+    private Date exStateTime;
+    private String exCategory;
+    private Date exStartDate;
+    private Date exTilteDate;
+    private Date exPracticeDate;
+    private String exPracticeCode;
+    private String exMainWork;
+    private String exPersonalResult;
+    private Integer exStatus;
+    private String exType;
+    private String exQualification;
+    private String exDiplomaMajor;
+    private Date exWorkTime;
+    private Integer exWorkYear;
+    private Integer exWorkMon;
+    private String exCpy;
+    private String exCpyPost;
+    private String exBank;
+    private String exAvoidFile;
+    private String exOtherFile;
+    private BigDecimal exPostNum;
+    private String exCardFile;
+    private String exTitleFile;
+    private Date exFinishDate;
+    private String exPromiseFile;
+    private String exPerformFile;
+    private String exDegree;
+    private String exBankAccount;
+    private String exPlaintextNum;
+    private String teId;
+    private BigDecimal exMajorNum;
+    private Boolean exIsAvoidance;
+    private String exApplicantId;
+    private Integer exSysWorkYear;
+    private String exDeclareMajorOne;
+    private String exDeclareMajorTwo;
+    private String exAvoid;
+    private String personnelState;
+    private Date personnelTimeStr;
+    private Date personnelTimeEnd;
+    private String keyExpert;
+    private Integer exAge;
+    private String exRank;
+    private String exModifyReason;
+    private String exRemark;
+    private Integer year;
+
+    private String exCardFileIds;
+    private String exDegreeIds;
+    private String exPerformFileIds;
+    private String exTitleFileIds;
+    private String exPromiseFileIds;
+    private String exAvoidFileIds;
+    private String exOtherFileIds;
+
+    /**
+     * 是否变更过 00-未变更过 01-变更过
+     */
+    private String changed;
+}

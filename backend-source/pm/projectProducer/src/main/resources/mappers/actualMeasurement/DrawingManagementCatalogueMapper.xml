@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.actualMeasurement.DrawingManagementCatalogueMapper">
+
+<!--    <select id="getDrawingManagementCatalogueTreeByUser"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.DrawingManagementCatalogueResponse">
+        SELECT
+        pro.P_Id      AS pId,
+        pro.P_Name    AS pName,
+        COUNT(DISTINCT CASE WHEN tdc.measured_Flag = '03' THEN tdc.tdc_Id END) AS questionSum
+        FROM Drawing_Item mn
+        LEFT JOIN pre_project pro ON pro.P_Id = mn.p_id
+        LEFT JOIN task_distribution td ON td.di_Id = mn.di_Id
+        LEFT JOIN task_distribution_check tdc ON tdc.td_Id = td.td_Id
+        WHERE 1=1
+        <if test="params.pId != null">
+            AND mn.p_Id = #{params.pId}
+        </if>
+        <if test="params.pName != null">
+            AND pro.p_Name LIKE concat('%', #{params.pName}, '%')
+        </if>
+        <if test="params.dmRegionName != null">
+            AND td.dm_Region_Name LIKE concat('%', #{params.taskName}, '%')
+        </if>
+        <if test="params.userTaskId != null">
+            AND tdc.check_Person_Uid = #{params.userTaskId}
+        </if>
+        <if test="params.dmCode != null">
+            AND td.dm_Code = #{params.dmCode}
+        </if>
+        GROUP BY pro.P_Id, pro.P_Name
+    </select>-->
+
+
+    <select id="getDrawingManagementCatalogueTreeByUser"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.DrawingManagementCatalogueResponse">
+        SELECT
+        pro.P_Id      AS pId,
+        pro.P_Name    AS pName,
+        COUNT(DISTINCT CASE WHEN tdc.hf_Hg_Flag = '01' THEN tdc.tdc_Id END) AS questionSum
+        FROM Drawing_Management_Catalogue mn
+        LEFT JOIN pre_project pro ON pro.P_Id = mn.p_id
+        LEFT JOIN task_distribution td ON td.dm_Id = mn.dm_Id
+        LEFT JOIN task_distribution_check tdc ON tdc.td_Id = td.td_Id
+        WHERE 1=1 AND (mn.del_flag &lt;&gt; '02' or mn.del_Flag is null)
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId != null">
+            AND mn.p_Id = #{params.pId}
+        </if>
+        <if test="params.pName != null">
+            AND pro.p_Name LIKE concat('%', #{params.pName}, '%')
+        </if>
+        <if test="params.dmRegionName != null">
+            AND td.dm_Region_Name LIKE concat('%', #{params.taskName}, '%')
+        </if>
+        <if test="params.userTaskId != null">
+            AND tdc.check_Person_Uid = #{params.userTaskId}
+        </if>
+        <if test="params.dmCode != null">
+            AND mn.dm_Code = LIKE concat('%', #{params.dmCode}, '%')
+        </if>
+        <if test="params.dmParentId != null">
+            AND mn.dm_Parent_Id = #{params.dmParentId}
+        </if>
+        <if test="params.dmDrawing != null">
+            AND mn.dm_Drawing = #{params.dmDrawing}
+        </if>
+        GROUP BY pro.P_Id, pro.P_Name
+    </select>
+
+    <select id="getCatalogueStatisticsByUid" resultType="map">
+        SELECT
+        dm.dm_id,
+        SUM(CASE WHEN tdc.check_Person_Uid = #{uId} AND tdc.hf_Hg_Flag = '01' THEN 1 ELSE 0 END) AS hfHgCount,
+        SUM(CASE WHEN tdc.check_Person_Uid = #{uId} AND tdc.measured_Flag = '01' THEN 1 ELSE 0 END) AS measuredCount
+        FROM Drawing_Management_Catalogue dm
+        LEFT JOIN task_distribution td ON td.dm_id = dm.dm_id
+        LEFT JOIN task_distribution_check tdc ON tdc.td_id = td.td_id
+        WHERE dm.p_id = #{pId} and td.state = 7 and (dm.del_flag &lt;&gt; '02' or dm.del_Flag is null)
+        GROUP BY dm.dm_id
+    </select>
+
+</mapper>

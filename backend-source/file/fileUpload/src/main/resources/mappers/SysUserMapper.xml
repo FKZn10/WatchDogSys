@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.SysUserMapper">
+
+    <select id="getUsersByNamesIgnoreSpace" resultType="com.jpmsoft.fileUpload.pojo.entity.SysUser">
+        select *
+        from SYS_User
+        where replace(replace(U_Name, ' ', ''), '　', '') in
+        <foreach collection="userNames" item="userName" open="(" close=")" separator=",">
+            #{userName}
+        </foreach>
+    </select>
+
+    <select id="GetUserListByDPId" resultType="com.jpmsoft.fileUpload.pojo.dto.easyexcel.DepartmentPSysUserDTO">
+        select
+        p.PP_ID as ppId,
+        p.PD_ID as pdId,
+        p.PP_Name as ppName,
+        c.C_Name as cName,
+        c.C_Type as cType,
+        plv.PL_Name as plName,
+        d.PD_Name as pdName,
+        pu.Pup_Id as pupId,
+        pu.Pup_Sort as pupSort,
+        pro.P_Name as projectName,
+        <include refid="sqlFileds"/>
+        from
+        SYS_User u
+        left join SYS_Position_User_P pu on u.U_ID=pu.U_ID
+        left join SYS_Position_P p on pu.PP_ID=p.PP_ID
+        left join SYS_Department_P d on d.PD_ID=p.PD_ID
+        left join SYS_Company c on c.C_ID=u.C_ID
+        left join SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        left join Pre_Project pro on pro.P_Id= d.P_Id
+        <where>
+            <if test="params.pdId!=null">
+                and d.PD_ID=#{params.pdId}
+            </if>
+            <if test="params.pId!=null">
+                and d.P_Id=#{params.pId}
+            </if>
+            <if test="params.teId!=null">
+                and u.Te_ID=#{params.teId}
+            </if>
+            <if test="params.uState!=null">
+                and u.U_State=#{params.uState}
+            </if>
+            <if test="params.uType!=null">
+                and u.U_Type=#{params.uType}
+            </if>
+            <if test="params.cId!=null">
+                and u.C_ID=#{params.cId}
+            </if>
+            <if test="params.ppId!=null">
+                and p.PP_ID=#{params.ppId}
+            </if>
+            <if test="params.filterPosition==true">
+                and pu.Pup_Id is not null
+            </if>
+            <if test="params.pdName!=null">
+                and INSTR(d.PD_Name,#{params.pdName})
+            </if>
+            <if test="params.projectName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.fileUpload.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.projectName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(pro.P_Name,#{params.projectName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.ppName!=null">
+                and INSTR(p.PP_Name,#{params.ppName})
+            </if>
+            <if test="params.ppCode!=null">
+                and INSTR(p.PP_Code,#{params.ppCode})
+            </if>
+            <if test="params.cName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.fileUpload.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.cName},c.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c.C_Name,#{params.cName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.uName!=null">
+                and INSTR(u.U_Name,#{params.uName})
+            </if>
+            <if test="params.uAccount!=null">
+                and INSTR(u.U_Account,#{params.uAccount})
+            </if>
+            <if test="params.uCode!=null">
+                and INSTR(u.U_Code,#{params.uCode})
+            </if>
+            <if test="params.uMtel!=null">
+                and INSTR(u.U_MTel,#{params.uMtel})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by u.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="(params.sortType==null or params.sortFiled==null) and params.pdId!=null">
+                order by pu.Pup_Sort asc
+            </when>
+            <when test="(params.sortType==null or params.sortFiled==null) and params.pdId==null">
+                order by u.U_sort asc
+            </when>
+            <otherwise>
+                order by u.U_CreateTime DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getUserListByMoreCondition" resultType="com.jpmsoft.fileUpload.pojo.dto.easyexcel.DepartmentSysUserDTO">
+        select
+        p.P_ID as pId,
+        p.D_ID as dId,
+        p.P_Name as pName,
+        d.D_Name as dName,
+        c.C_Name as cName,
+        plv.PL_Name as plName,
+        pu.Pu_Id as puId,
+        pu.PU_Sort as puSort,
+        pu.PU_Main_Duty as puMainDuty,
+        pu.Pu_Duty as puDuty,
+        pu.Pu_Main_Dep as puMainDep,
+        <include refid="sqlFileds"/>
+        from
+        SYS_User u
+        left join SYS_Position_User pu on u.U_ID=pu.U_ID
+        left join SYS_Position p on pu.P_ID=p.P_ID
+        left join SYS_Department d on d.D_ID=p.D_ID
+        left join SYS_Company c on c.C_ID=u.C_ID
+        left join SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        where 1=1
+        <include refid="conditionFilter"/>
+        <choose>
+            <when test="params.sortFiled=='PL_NAME'">
+                order by plv.PL_Name ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by u.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType==null and params.sortFiled==null and params.sortSideFiled==null and params.dId!=null">
+                order by puSort ASC
+            </when>
+            <otherwise>
+                order by u.U_CreateTime DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <sql id="conditionFilter">
+        <if test="params.teId!=null">
+            and u.Te_ID=#{params.teId}
+        </if>
+        <if test="params.uState != null">
+            and u.U_State=#{params.uState}
+        </if>
+        <if test="params.uType != null">
+            and u.U_Type=#{params.uType}
+        </if>
+        <if test="params.uId != null">
+            and u.U_Id=#{params.uId}
+        </if>
+        <if test="params.cId != null">
+            and u.C_ID=#{params.cId}
+        </if>
+        <if test="params.dId!=null">
+            and d.D_ID=#{params.dId}
+        </if>
+        <if test="params.dId==null or params.all!=null and params.all==true">
+            and d.D_ID is not null
+        </if>
+        <if test="params.plId != null">
+            and plv.PL_ID = #{params.plId}
+        </if>
+        <if test="params.timeStart!=null and params.timeEnd!=null">
+            and u.U_CreateTime between #{params.timeStart} and #{params.timeEnd}
+        </if>
+        <if test="params.uName != null">
+            and u.U_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test="params.pName != null">
+            and p.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.cName!=null">
+            <choose>
+                <when test="@com.jpmsoft.fileUpload.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.cName},c.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c.C_Name,#{params.cName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.uAccount != null">
+            and u.U_Account like concat('%',#{params.uAccount},'%')
+        </if>
+        <if test="params.uCode != null">
+            and u.U_Code like concat('%',#{params.uCode},'%')
+        </if>
+        <if test="params.uMtel != null">
+            and u.U_MTel like concat('%',#{params.uMtel},'%')
+        </if>
+        <if test="params.depIds!=null and params.depIds.size()>0">
+            and d.D_Id in
+            <foreach collection="params.depIds" open="(" close=")" item="depId" separator=",">
+                #{depId}
+            </foreach>
+        </if>
+    </sql>
+
+    <sql id="sqlFileds">
+        u.U_ID as uId,
+        u.PL_ID as plID,
+        u.C_ID as cID,
+        u.U_Name as uName,
+        u.U_Code as uCode,
+        u.U_MTel as uMtel,
+        u.U_Tel as uTel,
+        u.U_Email as uEmail,
+        u.U_Account as uAccount,
+        u.U_PassWord as uPassword,
+        u.U_Sex as uSex,
+        u.U_Birthday as uBirthday,
+        u.U_State as uState,
+        u.U_MDM_NO as uMdmNo,
+        u.U_CreateTime as uCreatetime,
+        u.U_CreateU_ID as uCreateuID,
+        u.U_CreateU_Name as uCreateuName,
+        u.U_Type  as uType,
+        u.U_Office as uOffice,
+        u.U_Cornet as uCornet,
+        u.U_IdCard as uIdcard,
+        u.U_Sort as uSort,
+        u.U_Push_Id as uPushId,
+        u.Open_Id as openId,
+        u.U_Signature as uSignature,
+        u.U_Qualification as uQualification
+    </sql>
+
+    <select id="GetUserList" resultType="com.jpmsoft.fileUpload.pojo.dto.easyexcel.SysUserVo">
+        select
+        sc.C_Name as cName,
+        u.U_Name as uName,
+        case when u.U_State = 1 then '启用' when u.U_State = 0 then '禁用' else '未知' end as uState,
+        u.U_MTel as uMtel,
+        case when u.U_Type = 1 then '内部用户' when u.U_Type = 2 then '外部用户' else '未知' end as uType
+        from SYS_User u
+        left join SYS_Company sc on u.C_ID=sc.C_ID
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by u.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by u.U_CreateTime DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilter">
+        <where>
+            <if test="params.teId != null">
+                and u.Te_Id=#{params.teId}
+            </if>
+            <if test="params.uState != null">
+                and u.U_State=#{params.uState}
+            </if>
+            <if test="params.uType != null">
+                and u.U_Type=#{params.uType}
+            </if>
+            <if test="params.cId != null">
+                and u.C_ID=#{params.cId}
+            </if>
+            <if test="params.uId!=null">
+                and INSTR(u.U_ID,#{params.uId})
+            </if>
+            <if test="params.uMdmNo!=null">
+                and INSTR(u.U_MDM_NO,#{params.uMdmNo})
+            </if>
+            <if test="params.timeStart!=null and params.timeEnd!=null">
+                and u.U_CreateTime between #{params.timeStart} and #{params.timeEnd}
+            </if>
+            <if test="params.uName != null">
+                and u.U_Name like concat('%',#{params.uName},'%')
+            </if>
+            <if test="params.cName != null">
+                and sc.C_Name like concat('%',#{params.cName},'%')
+            </if>
+            <if test="params.uAccount != null">
+                and u.U_Account like concat('%',#{params.uAccount},'%')
+            </if>
+            <if test="params.uCode != null">
+                and u.U_Code like concat('%',#{params.uCode},'%')
+            </if>
+            <if test="params.uMtel != null">
+                and u.U_MTel like concat('%',#{params.uMtel},'%')
+            </if>
+            <if test="params.excludeClass!=null">
+                and (u.u_class is null or u.u_class not in
+                <foreach collection="params.excludeClass" open="(" close=")" item="item" separator=",">
+                    #{item}
+                </foreach>)
+            </if>
+        </where>
+    </sql>
+</mapper>

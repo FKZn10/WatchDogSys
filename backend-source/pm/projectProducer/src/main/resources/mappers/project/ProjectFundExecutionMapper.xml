@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProjectFundExecutionMapper">
+    <select id="selectSubjects"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectFundExecutionVO$ContractDetail">
+        SELECT Bdd_Id, Bdd_Parent_Id, Bdd_Number, Bdd_Code, Bdd_Name, Bdd_Total
+        FROM Inv_Budget_Declare_Dtl
+        WHERE Bd_Id = #{bdId} AND COALESCE(deleted, 0) = 0
+        ORDER BY Bdd_Order, Bdd_Id
+    </select>
+    <select id="selectContractAmounts"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectFundExecutionVO$ContractDetail">
+        SELECT b.Bdd_Id, COALESCE(SUM(c.Con_Money_Total), 0) AS conMoneyTotal
+        FROM Con_Contract c
+        INNER JOIN Inv_Budget_Declare_Dtl b ON b.Bdd_Id = c.Con_Budget_Id
+        WHERE c.Con_Project_Id = #{pId} AND b.Bd_Id = #{bdId}
+        AND COALESCE(b.deleted, 0) = 0
+        GROUP BY b.Bdd_Id
+    </select>
+    <select id="selectSelfPaidAmounts"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectFundExecutionVO$SubjectPayment">
+        SELECT b.Bdd_Id, EXTRACT(YEAR FROM p.Pay_Application_Date) AS year,
+        COALESCE(SUM(p.Pay_Payable), 0) AS amount
+        FROM Con_Pay p
+        INNER JOIN Con_Contract c ON c.Con_Id = p.Con_Id
+        INNER JOIN Inv_Budget_Declare_Dtl b ON b.Bdd_Id = c.Con_Budget_Id
+        WHERE c.Con_Project_Id = #{pId} AND b.Bd_Id = #{bdId}
+        AND COALESCE(b.deleted, 0) = 0
+        AND p.Pay_State = 7 AND p.Pay_Source = '02'
+        GROUP BY b.Bdd_Id, EXTRACT(YEAR FROM p.Pay_Application_Date)
+    </select>
+    <select id="selectGovernmentPaidAmounts"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectFundExecutionVO$SubjectPayment">
+        SELECT b.Bdd_Id, EXTRACT(YEAR FROM p.Pay_Application_Date) AS year,
+        COALESCE(SUM(p.Pay_Payable), 0) AS amount
+        FROM Con_Pay p
+        INNER JOIN Con_Contract c ON c.Con_Id = p.Con_Id
+        INNER JOIN Inv_Budget_Declare_Dtl b ON b.Bdd_Id = c.Con_Budget_Id
+        WHERE c.Con_Project_Id = #{pId} AND b.Bd_Id = #{bdId}
+        AND COALESCE(b.deleted, 0) = 0
+        AND p.Pay_State = 7
+        AND (p.Pay_Source = '01' OR p.Pay_Source IS NULL OR TRIM(p.Pay_Source) = '')
+        GROUP BY b.Bdd_Id, EXTRACT(YEAR FROM p.Pay_Application_Date)
+    </select>
+    <select id="selectTenderControlAmounts"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectFundExecutionVO$ContractDetail">
+        <!-- 使用派生表和反存在查询兼容 MySQL 5，不依赖 CTE 或窗口函数。 -->
+        SELECT s.Bdd_Id, COALESCE(SUM(d.D_Amount), 0) AS tenderControlPrice
+        FROM (
+        SELECT DISTINCT b.Bdd_Id, c.Con_Section_Id AS Sec_Id
+        FROM Con_Contract c
+        INNER JOIN Inv_Budget_Declare_Dtl b ON b.Bdd_Id = c.Con_Budget_Id
+        WHERE c.Con_Project_Id = #{pId} AND b.Bd_Id = #{bdId}
+        AND COALESCE(b.deleted, 0) = 0
+        AND c.Con_Section_Id IS NOT NULL AND TRIM(c.Con_Section_Id) != ''
+        ) s
+        LEFT JOIN Sec_Document d ON d.Sec_Id = s.Sec_Id
+        AND NOT EXISTS (
+        SELECT 1
+        FROM Sec_Document newer
+        WHERE newer.Sec_Id = d.Sec_Id
+        AND (
+        (d.D_Create_Time IS NULL AND newer.D_Create_Time IS NOT NULL)
+        OR newer.D_Create_Time &gt; d.D_Create_Time
+        OR (
+        (newer.D_Create_Time = d.D_Create_Time
+        OR (newer.D_Create_Time IS NULL AND d.D_Create_Time IS NULL))
+        AND newer.D_Id &gt; d.D_Id
+        )
+        )
+        )
+        GROUP BY s.Bdd_Id
+    </select>
+</mapper>

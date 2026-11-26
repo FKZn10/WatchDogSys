@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecDeterminResultMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecDeterminResultResponse"
+               id="SecDeterminResult">
+        <id column="Dr_Id" property="drId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Dr_Id" select="getSecInfoProject">
+        </collection>
+        <collection property="secDeterminCpys" ofType="com.jpmsoft.common.model.request.SecInfo.SecDeterminCpyDto"
+                    column="Dr_Id" select="getSecDeterminCpy">
+        </collection>
+    </resultMap>
+
+
+    <select id="getSecDeterminCpy" resultType="com.jpmsoft.common.model.request.SecInfo.SecDeterminCpyDto">
+        select
+        mn.*
+        from Sec_Determin_Cpy mn
+        where mn.Dr_Id=#{drId}
+    </select>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Determin_Result sd on sd.Sec_Id=sec.Sec_Id
+        where sd.Dr_Id=#{drId}
+    </select>
+
+
+    <select id="getSecDeterminResultById" resultMap="SecDeterminResult">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Type as secType,
+        c1.C_Name as drBidWinnerName,
+        c1.C_Abbreviation as drBidWinAbbName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Sec_Determin_Result mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  SYS_Company c1 on mn.Dr_Bid_Winner=c1.C_Id
+        left join  Sys_File f on f.FileID=mn.Dr_Id
+        where mn.Dr_Id=#{drId}
+    </select>
+
+    <select id="getFirstDeterminResultBySecId" resultMap="SecDeterminResult">
+        select
+            sec.Sec_Name as secName,
+            sec.Sec_Code as secCode,
+            sec.Sec_Type as secType,
+            c1.C_Name as drBidWinnerName,
+            c1.C_Abbreviation as drBidWinAbbName,
+            f.file_relation_id as fileRelationId,
+            mn.*
+        from  Sec_Determin_Result mn
+                  left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+                  left join  SYS_Company c1 on mn.Dr_Bid_Winner=c1.C_Id
+                  left join  Sys_File f on f.FileID=mn.Dr_Id
+        where mn.Sec_Id=#{secId} and mn.Dr_State=7
+        order by mn.Dr_State_Time desc
+        limit 1
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+        <if test="params.drBidWinner!=null">
+            and mn.Dr_Bid_Winner = #{params.drBidWinner}
+        </if>
+        <if test="params.drCalibrationType!=null">
+            and mn.Dr_Calibration_Type = #{params.drCalibrationType}
+        </if>
+        <if test="params.drCalibrationMode!=null">
+            and mn.Dr_Calibration_Mode = #{params.drCalibrationMode}
+        </if>
+        <if test="params.drPreferential!=null">
+            and mn.Dr_Preferential = #{params.drPreferential}
+        </if>
+        <if test="params.drRemark!=null">
+            and mn.Dr_Remark like concat('%',#{params.drRemark},'%')
+        </if>
+        <if test="params.drCreateUname!=null">
+            and mn.Dr_Create_Uname like concat('%',#{params.drCreateUname},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.drBidWinnerName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.drBidWinnerName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.drBidWinnerName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <!--区间筛选-->
+        <if test="params.drCreateTimeStart!=null">
+            and mn.Dr_Create_Time > #{params.drCreateTimeStart}
+        </if>
+        <if test="params.drCreateTimeEnd!=null">
+            and mn.Dr_Create_Time &lt; #{params.drCreateTimeEnd}
+        </if>
+        <if test="params.drCalibrationDateStart!=null">
+            and mn.Dr_Calibration_Date > #{params.drCalibrationDateStart}
+        </if>
+        <if test="params.drCalibrationDateEnd!=null">
+            and mn.Dr_Calibration_Date &lt; #{params.drCalibrationDateEnd}
+        </if>
+        <if test="params.drVacancieStart!=null">
+            and mn.Dr_Number_Vacancies > #{params.drVacancieStart}
+        </if>
+        <if test="params.drVacancieEnd!=null">
+            and mn.Dr_Number_Vacancies &lt; #{params.drVacancieEnd}
+        </if>
+    </sql>
+
+    <select id="getSecDeterminResultList" resultMap="SecDeterminResult">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        c1.C_Name_History as drBidWinnerNameHistory,
+        c1.C_Name as drBidWinnerName,
+        c1.C_Abbreviation as drBidWinAbbName,
+        mn.*
+        from  Sec_Determin_Result mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  SYS_Company c1 on mn.Dr_Bid_Winner=c1.C_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecDeterminResultListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  Sec_Determin_Result mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  SYS_Company c1 on mn.Dr_Bid_Winner=c1.C_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+</mapper>

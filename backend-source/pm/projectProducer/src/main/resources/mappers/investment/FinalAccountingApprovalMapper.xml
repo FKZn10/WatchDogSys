@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.FinalAccountingApprovalMapper">
+
+    <select id="getpNameValueByCode"
+            resultType="java.lang.Object">
+        select distinct p.${value} as dbValue
+        from final_accounting_approval mn
+                 left join Pre_Project p on p.P_Id=mn.P_Id
+        where mn.status=1
+    </select>
+
+
+    <select id="getValueByCode" resultType="java.lang.Object">
+        select distinct mn.${value} as dbValue
+        from final_accounting_approval mn
+        where mn.status=1
+    </select>
+
+    <select id="getfinalApprovalById" resultType="com.jpmsoft.projectProducer.pojo.vo.investment.FinalAccountingApprovalVo">
+        select mn.*,pre.p_name as pName,sys.c_name as cName,sys.c_id as cId
+        from Final_Accounting_Approval mn
+        left join pre_project pre on mn.p_id = pre.p_id
+        left join sys_company sys on mn.faa_Approval_Unit = sys.c_id
+        <where>
+            mn.status=1
+            <if test="id!=null">
+                and mn.id = #{id}
+            </if>
+        </where>
+    </select>
+
+    <select id="getfinalApprovalList" resultType="com.jpmsoft.projectProducer.pojo.vo.investment.FinalAccountingApprovalVo">
+        select mn.*,pre.p_name as pName,sys.c_name as cName,sys.c_id as cId
+        from Final_Accounting_Approval mn
+        left join pre_project pre on mn.p_id = pre.p_id
+        left join sys_company sys on mn.faa_Approval_Unit = sys.c_id
+        <where>
+            mn.status=1
+            <if test="request.pId!=null">
+                and mn.pId = #{request.pId}
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    <if test="request.pName!=null">
+                        and likePname(#{request.pName},pre.P_Id)=true
+                    </if>
+                    <if test="request.cName!=null">
+                        and likeCname(#{request.cName},sys.C_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="request.pName!=null">
+                        and pre.P_Name like concat('%',#{request.pName},'%')
+                    </if>
+                    <if test="request.cName!=null">
+                        and sys.c_name like concat('%',#{request.cName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="request.state!=null">
+                and mn.state = #{request.state}
+            </if>
+            <if test="request.faaApprovalTime!=null">
+                and mn.faa_Approval_Time = #{request.faaApprovalTime}
+            </if>
+            <if test="request.faaApprovalUnit!=null">
+                and mn.faa_Approval_Unit = #{request.faaApprovalUnit}
+            </if>
+            <if test="request.createUid!=null">
+                and mn.create_Uid = #{request.createUid}
+            </if>
+            <if test="request.createTime!=null">
+                and mn.create_Time = #{request.createTime}
+            </if>
+            <if test="request.pNameList != null and request.pNameList.size() > 0">
+                and pre.P_Name in
+                <foreach collection="request.pNameList" item="pName" separator="," open="(" close=")">
+                    #{pName}
+                </foreach>
+            </if>
+            <if test="request.stateList != null and request.stateList.size() > 0">
+                and mn.state in
+                <foreach collection="request.stateList" item="state" separator="," open="(" close=")">
+                    #{state}
+                </foreach>
+            </if>
+            <if test="request.faaApprovalInvestmentList != null and request.faaApprovalInvestmentList.size() > 0">
+                and mn.faa_Approval_Investment in
+                <foreach collection="request.faaApprovalInvestmentList" item="faaApprovalInvestment" separator="," open="(" close=")">
+                    #{faaApprovalInvestment}
+                </foreach>
+            </if>
+            <if test="request.createUnameList != null and request.createUnameList.size() > 0">
+                and mn.create_Uname in
+                <foreach collection="request.createUnameList" item="createUnameList" separator="," open="(" close=")">
+                    #{createUname}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+
+
+</mapper>

@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvSettlementApplyMapper">
+    <select id="getLastApprovalInvSettlementApplyByConId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvSettlementApplyResponse">
+        select c1.C_Name           as saContractorName,
+               c2.C_Name           as saSupervisorName,
+               c3.C_Name           as saCostConsultName,
+               c1.C_Abbreviation   as saContractorAbbName,
+               c2.C_Abbreviation   as saSupervisorAbbName,
+               c3.C_Abbreviation   as saCostConsultAbbName,
+               con.Con_Name        as conName,
+               con.Con_Money_Total as conMoneyTotal,
+               con.Con_Type        as conType,
+               con.Con_Code        as conCode,
+               pro.P_Name          as pName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               mn.*
+        from Inv_Settlement_Apply mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company c1 on mn.Sa_Contractor = c1.C_Id
+                 left join SYS_Company c2 on mn.Sa_Supervisor = c2.C_Id
+                 left join SYS_Company c3 on mn.Sa_Cost_Consult = c3.C_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        where mn.Con_Id = #{conId} and mn.Sa_State=7
+        order by mn.Sa_State_Time desc limit 1
+    </select>
+
+    <select id="getInvSettlementApplyBysaId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvSettlementApplyResponse">
+        select c1.C_Name           as saContractorName,
+               c2.C_Name           as saSupervisorName,
+               c3.C_Name           as saCostConsultName,
+               c1.C_Abbreviation   as saContractorAbbName,
+               c2.C_Abbreviation   as saSupervisorAbbName,
+               c3.C_Abbreviation   as saCostConsultAbbName,
+               case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Name else con.con_Name end as conName,
+               case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Money else con.con_Money_Total end as conMoneyTotal,
+               case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Type else con.con_Type end as conType,
+               case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Code else con.con_Code end as conCode,
+               pro.P_Name          as pName,
+               pro.P_Project_Stage as pProjectStage,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               mn.*
+        from Inv_Settlement_Apply mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company c1 on mn.Sa_Contractor = c1.C_Id
+                 left join SYS_Company c2 on mn.Sa_Supervisor = c2.C_Id
+                 left join SYS_Company c3 on mn.Sa_Cost_Consult = c3.C_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join Subcontract_Record sr on mn.Con_Id=sr.Sc_Id
+        where mn.Sa_Id = #{saId}
+    </select>
+
+
+    <select id="getInvSettlementApplyList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvSettlementApplyResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name as saContractorName,
+        c2.C_Name as saSupervisorName,
+        c3.C_Name as saCostConsultName,
+        c1.C_Name_History as saContractorNameHistory,
+        c2.C_Name_History as saSupervisorNameHistory,
+        c3.C_Name_History as saCostConsultNameHistory,
+        c4.C_Name as saReviewUnitName,
+        case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Name else con.con_Name end as conName,
+        case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Money else con.con_Money_Total end as conMoneyTotal,
+        case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Type else con.con_Type end as conType,
+        case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Code else con.con_Code end as conCode,
+        mn.*
+        from Inv_Settlement_Apply mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Company c1 on mn.Sa_Contractor=c1.C_Id
+        left join SYS_Company c2 on mn.Sa_Supervisor=c2.C_Id
+        left join SYS_Company c3 on mn.Sa_Cost_Consult=c3.C_Id
+        left join SYS_Company c4 on mn.Sa_Review_Unit=c4.C_Id
+        left join Subcontract_Record sr on mn.Con_Id=sr.Sc_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.saCuAf!=null">
+            and mn.Sa_Cu_Af = #{params.saCuAf}
+        </if>
+        <if test="params.saHistorical!=null">
+            and mn.Sa_Historical = #{params.saHistorical}
+        </if>
+        <if test="params.saState!=null">
+            and mn.Sa_State = #{params.saState}
+        </if>
+        <if test="params.saSubmissionUser!=null">
+            and mn.Sa_Submission_User like concat('%',#{params.saSubmissionUser},'%')
+        </if>
+        <if test="params.saSubmissionPhone!=null">
+            and mn.Sa_Submission_Phone like concat('%',#{params.saSubmissionPhone},'%')
+        </if>
+        <if test="params.saExamineUser!=null">
+            and mn.Sa_Examine_User like concat('%',#{params.saExamineUser},'%')
+        </if>
+        <if test="params.saExaminePhone!=null">
+            and mn.Sa_Examine_Phone like concat('%',#{params.saExaminePhone},'%')
+        </if>
+        <if test="params.saConCode!=null">
+            and mn.Sa_Con_Code like concat('%',#{params.saConCode},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.saCreateUname!=null and params.saCreateUname!=''">
+            and mn.Sa_Create_Uname like concat('%',#{params.saCreateUname},'%')
+        </if>
+        <if test="params.saContractorName!=null">
+            and c1.C_Name like concat('%',#{params.saContractorName},'%')
+        </if>
+        <if test="params.saCreateDateStart!=null">
+            and mn.sa_Create_Time &gt; #{params.saCreateDateStart}
+        </if>
+        <if test="params.saCreateDateEnd!=null">
+            and mn.sa_Create_Time &lt; #{params.saCreateDateEnd}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.haveCostConsult==true">
+            and mn.Sa_Cost_Consult is not null
+        </if>
+        <if test="params.haveCostConsult==false">
+            and mn.Sa_Cost_Consult is null
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sa_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getLastApprovalInvSettlementApplyByProjectId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvSettlementApplyResponse">
+                select c1.C_Name           as saContractorName,
+               c2.C_Name           as saSupervisorName,
+               c3.C_Name           as saCostConsultName,
+               c1.C_Abbreviation   as saContractorAbbName,
+               c2.C_Abbreviation   as saSupervisorAbbName,
+               c3.C_Abbreviation   as saCostConsultAbbName,
+               case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Name else con.con_Name end as conName,
+               case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Money else con.con_Money_Total end as conMoneyTotal,
+               case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Type else con.con_Type end as conType,
+               case when mn.Sa_Is_Sub_Contract='02' then sr.Sc_Code else con.con_Code end as conCode,
+               pro.P_Name          as pName,
+               pro.P_Project_Stage as pProjectStage,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               mn.*
+        from Inv_Settlement_Apply mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company c1 on mn.Sa_Contractor = c1.C_Id
+                 left join SYS_Company c2 on mn.Sa_Supervisor = c2.C_Id
+                 left join SYS_Company c3 on mn.Sa_Cost_Consult = c3.C_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join Subcontract_Record sr on mn.Con_Id=sr.Sc_Id
+        where mn.P_Id = #{projectId} and mn.Sa_State = 7
+    </select>
+    <select id="getList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.InvSettlementApplyModel">
+        select mn.*,ccc.confirm_serial_number as confirmSerialNumber
+        ,ccc.Construction_Contractor as constructionContractor
+        ,sc3.C_NAME as constructionContractorName
+        ,ccc.Construction_Image as constructionImage
+        ,ccc.Construction_Drawing as constructionDrawing
+        ,ccc.Audit_Unit as auditUnit
+        ,sc2.C_NAME as auditUnitName
+        from Inv_Settlement_Apply mn
+        left join construction_completion_confirm ccc on ccc.id = mn.completion_confirm_id
+        left join sys_company sc3 on sc3.C_ID = ccc.Construction_Contractor
+        left join sys_company sc2 on sc2.C_ID = ccc.Audit_Unit
+        <where>
+            <if test="params.confirmSerialNumber!=null and params.confirmSerialNumber!='' ">
+                and ccc.confirm_serial_number like concat('%',#{params.confirmSerialNumber},'%')
+            </if>
+            <if test="params.saSerialNumber!=null and params.saSerialNumber!=''">
+                and mn.Sa_Serial_Number like concat('%',#{params.saSerialNumber},'%')
+            </if>
+            <if test="params.saState != null ">
+                and mn.Sa_State = #{params.saState}
+            </if>
+            <if test="params.createTimeRange!=null and params.createTimeRange.size() > 1">
+                and mn.Sa_Create_Time between #{params.createTimeRange[0]} and #{params.createTimeRange[1]}
+            </if>
+            <if test="params.isSelect != null and params.isSelect==1">
+                and mn.Sa_Id not in (select distinct isp.inv_settlement_apply_id
+                from inv_settlement_pay  isp  where isp.state!=3)
+            </if>
+            <if test="params.constructionContractorName != null and params.constructionContractorName !=''">
+                and sc3.C_NAME like concat('%',#{params.constructionContractorName},'%')
+            </if>
+            <if test="params.saTitle != null and params.saTitle !=''">
+                and mn.sa_title like concat('%',#{params.saTitle},'%')
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sa_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getDetail"
+            resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.InvSettlementApplyModel">
+        select mn.*,ccc.confirm_serial_number as confirmSerialNumber
+             ,sc3.C_NAME as constructionContractorName
+            ,ccc.Construction_Image as constructionImage
+            ,ccc.Construction_Drawing as constructionDrawing
+            ,mr.Mr_Report_Amount_Pre as  mrReportAmountPre
+            ,ccc.Audit_Unit as auditUnit
+            ,sc2.C_NAME as auditUnitName,
+        mr.P_NAME as pName
+        from Inv_Settlement_Apply mn
+        left join construction_completion_confirm ccc on ccc.id = mn.completion_confirm_id
+        left join maintenance_record mr on mr.Mr_Id = mn.mr_id
+        left join sys_company sc3 on sc3.C_ID = ccc.Construction_Contractor
+        left join sys_company sc2 on sc2.C_ID = ccc.Audit_Unit
+        where mn.Sa_Id = #{saId}
+    </select>
+
+</mapper>

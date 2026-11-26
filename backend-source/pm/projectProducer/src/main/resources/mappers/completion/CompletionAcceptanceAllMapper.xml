@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.completion.CompletionAcceptanceAllMapper">
+
+
+    <select id="getCompletionAcceptanceAllById"
+            resultType="com.jpmsoft.common.model.response.Completion.CompletionAcceptanceAllResponse">
+        select
+        <include refid="UserAndCompanyFiled"/>
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from Completion_Acceptance_All mn
+        <include refid="leftJoinTable"/>
+        left join Sys_File f on f.FileID=mn.Caa_Id
+        where mn.Caa_Id=#{caaId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.caaSunitId!=null">
+            and mn.Caa_Sunit_Id = #{params.caaSunitId}
+        </if>
+        <if test="params.caaDunitId!=null">
+            and mn.Caa_Dunit_Id = #{params.caaDunitId}
+        </if>
+        <if test="params.caaCcunitId!=null">
+            and mn.Caa_CCunit_Id = #{params.caaCcunitId}
+        </if>
+        <if test="params.caaState!=null">
+            and mn.Caa_State = #{params.caaState}
+        </if>
+        <if test="params.caaCreateUname!=null">
+            and mn.Caa_Create_Uname like concat('%',#{params.caaCreateUname},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pNameHistory!=null">
+            and pro.P_Name_History like concat('%',#{params.pNameHistory},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+    </sql>
+
+    <select id="getCompletionAcceptanceAllList"
+            resultType="com.jpmsoft.common.model.response.Completion.CompletionAcceptanceAllResponse">
+        select
+        <include refid="UserAndCompanyFiled"/>
+        mn.*
+        from Completion_Acceptance_All mn
+        <include refid="leftJoinTable"/>
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Caa_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+
+    <sql id="UserAndCompanyFiled">
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name_History as caaSunitNameHistory,
+        c2.C_Name_History as caaDunitNameHistory,
+        c3.C_Name_History as caaCcunitNameHistory,
+        c1.C_Name as caaSunitName,
+        c2.C_Name as caaDunitName,
+        c3.C_Name as caaCcunitName,
+        c4.C_Name as caaConstructionUnitName,
+        c5.C_Name as caaSurveyUnitName,
+        c1.C_Abbreviation as caaSunitAbbName,
+        c2.C_Abbreviation as caaDunitAbbName,
+        c3.C_Abbreviation as caaCcunitAbbName,
+        u1.U_Name as caaPleaderUname,
+        u2.U_Name as caaOneSunitUname,
+        u3.U_Name as caaOneExplorationUname,
+        u4.U_Name as caaOneDesignUname,
+        u5.U_Name as caaOneConstructionUname,
+        u6.U_Name as caaTwoPleaderUname,
+        u7.U_Name as caaTwoSunitUname,
+        u8.U_Name as caaTwoExplorationUname,
+        u9.U_Name as caaTwoDesignUname,
+        u10.U_Name as caaTwoConstructionUname,
+        u11.U_Name as caaThreeResponsibleUname,
+        u12.U_Name as caaThreePleaderUname,
+        u13.U_Name as caaThreeSunitUname,
+        u14.U_Name as caaThreeExplorationUname,
+        u15.U_Name as caaThreeDesignUname,
+        u16.U_Name as caaThreeConstructionUname,
+    </sql>
+
+    <sql id="leftJoinTable">
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  SYS_Company c1 on mn.Caa_Sunit_Id=c1.C_Id
+        left join  SYS_Company c2 on mn.Caa_Dunit_Id=c2.C_Id
+        left join  SYS_Company c3 on mn.Caa_CCunit_Id=c3.C_Id
+        left join  SYS_Company c4 on mn.Caa_Construction_Unit=c4.C_Id
+        left join  SYS_Company c5 on mn.Caa_Survey_Unit=c5.C_Id
+        left join  SYS_User u1 on mn.Caa_PLeader_Uid=u1.U_Id
+        left join  SYS_User u2 on mn.Caa_One_Sunit_Uid=u2.U_Id
+        left join  SYS_User u3 on mn.Caa_One_Exploration_Uid=u3.U_Id
+        left join  SYS_User u4 on mn.Caa_One_Design_Uid=u4.U_Id
+        left join  SYS_User u5 on mn.Caa_One_Construction_Uid=u5.U_Id
+        left join  SYS_User u6 on mn.Caa_Two_PLeader_Uid=u6.U_Id
+        left join  SYS_User u7 on mn.Caa_Two_Sunit_Uid=u7.U_Id
+        left join  SYS_User u8 on mn.Caa_Two_Exploration_Uid=u8.U_Id
+        left join  SYS_User u9 on mn.Caa_Two_Design_Uid=u9.U_Id
+        left join  SYS_User u10 on mn.Caa_Two_Construction_Uid=u10.U_Id
+        left join  SYS_User u11 on mn.Caa_Three_Responsible_Uid=u11.U_Id
+        left join  SYS_User u12 on mn.Caa_Three_PLeader_Uid=u12.U_Id
+        left join  SYS_User u13 on mn.Caa_Three_Sunit_Uid=u13.U_Id
+        left join  SYS_User u14 on mn.Caa_Three_Exploration_Uid=u14.U_Id
+        left join  SYS_User u15 on mn.Caa_Three_Design_Uid=u15.U_Id
+        left join  SYS_User u16 on mn.Caa_Three_Construction_Uid=u16.U_Id
+    </sql>
+</mapper>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaProblemMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.Oa.OaProblemModel" id="selectOaProblemById">
+        <id column="Pm_Id" property="pmId"/>
+        <collection property="oaProblemDtls" ofType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProblemDtlModel"
+                    column="Pm_Id" select="selectOaProblemDtls">
+        </collection>
+    </resultMap>
+
+    <select id="selectOaProblemDtls" resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProblemDtlModel">
+        select
+         *
+        from  OA_Problem_Dtl mn
+        where mn.Pm_Id=#{pmId}
+    </select>
+
+    <select id="getOaProblemById" resultMap="selectOaProblemById">
+        select
+        f.file_relation_id as fileRelationId,
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        mn.*
+        from  OA_Problem mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Sys_File f on f.FileID=mn.Pm_Id
+        where mn.Pm_Id=#{pmId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+        <if test="params.pmState!=null">
+            and mn.Pm_State = #{params.pmState}
+        </if>
+        <if test="params.pmCreateUid!=null">
+            and mn.Pm_Create_Uid = #{params.pmCreateUid}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pmTitle!=null">
+            and mn.Pm_Title like concat('%',#{params.pmTitle},'%')
+        </if>
+        <if test="params.pmCode!=null">
+            and mn.Pm_Code like concat('%',#{params.pmCode},'%')
+        </if>
+        <if test="params.pmRemark!=null">
+            and mn.Pm_Remark like concat('%',#{params.pmRemark},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+    </sql>
+
+    <select id="getOaProblemList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProblemModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        mn.*
+        from  OA_Problem mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Pm_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

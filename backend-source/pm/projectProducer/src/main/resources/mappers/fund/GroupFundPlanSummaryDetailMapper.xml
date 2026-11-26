@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.GroupFundPlanSummaryDetailMapper">
+    <select id="getDetailByGfpsId" resultType="com.jpmsoft.projectProducer.pojo.entity.fund.GroupFundPlanSummaryDetail"
+            parameterType="java.lang.String">
+        select * from Group_Fund_Plan_Summary_Detail where Group_Fund_Plan_Summary_Detail.Gfps_Id=#{primaryId}
+    </select>
+    <select id="getDetailById" resultType="com.jpmsoft.projectProducer.pojo.entity.fund.GroupFundPlanSummaryDetail">
+        select * from Group_Fund_Plan_Summary_Detail detail  where detail.status = 0 and  detail.del_flag = 0 and detail.id
+        in
+        <foreach collection="gfpDetailIds" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+    <select id="getGroupFundPlanById" resultType="com.jpmsoft.projectProducer.pojo.entity.fund.GroupFundPlan">
+        select * from Group_Fund_Plan where Group_Fund_Plan.id in
+        <foreach collection="gfpDetailIds" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="getCompanyDetailByGfpsId"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanSummaryDetailVo">
+        select
+        gfp.*,
+        gfp.id as gfpId,
+        pp.P_Competent_Department as gfpsProjectCompetentDepartmentId,
+        sd1.D_Name as gfpsProjectCompetentDepartmentName,
+        pp.P_Department as gfpsProjectDepartmentId,
+        sd2.D_Name as gfpsProjectDepartmentName,
+        pp.P_Name as pname,
+        pp.P_Name as projectName,
+        mn.id as gfpsdId,
+        mn.Remark_Context as remarkContext,
+        mn.Gfp_Fund_Apply_Amount_Gc_Audit as gfpFundApplyAmountGcAudit,
+        mn.Gfp_Fund_Apply_Amount_Cw_Audit as gfpFundApplyAmountCwAudit,
+        gfp2.groupCount
+        from Group_Fund_Plan_Summary_Detail mn
+        left join Group_Fund_Plan_Summary gfps on mn.Gfps_Id = gfps.Id
+        left join Group_Fund_Plan gfp on mn.Gfp_Id = gfp.Id
+        left join Pre_Project pp on gfp.Project_ID = pp.P_ID
+        left join SYS_Department sd1 on pp.P_Competent_Department = sd1.D_Id
+        left join SYS_Department sd2 on pp.P_Department = sd2.D_Id
+        left join (
+        select Group_Id,
+        count(1) as groupCount
+        from Group_Fund_Plan
+        where del_flag = 0
+        group by Group_Id
+        ) gfp2 on gfp.Group_Id = gfp2.Group_Id
+        where mn.gfps_Id = #{id}
+        and mn.del_flag = 0
+        and mn.status = 0
+        and gfp.del_flag = 0
+        order by gfp.Create_Time desc
+    </select>
+</mapper>

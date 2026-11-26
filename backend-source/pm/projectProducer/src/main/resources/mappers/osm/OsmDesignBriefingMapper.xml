@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.osm.OsmDesignBriefingMapper">
+
+
+    <select id="getDesignBriefingList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.osm.OsmDesignBriefingDto">
+        select odb.*,cc.con_name conName from osm_design_briefing odb left join Con_Contract cc  on odb.con_id=cc.Con_Id
+        <where>
+            <if test="params.title != null and params.title != ''">
+                and odb.title like concat('%',#{params.title},'%')
+            </if>
+            <if test="params.code != null and params.code != ''">
+                and odb.code like concat('%',#{params.code},'%')
+            </if>
+            <if test="params.conId != null and params.conId != ''">
+                and cc.con_id = #{params.conId}
+            </if>
+            <if test="params.conName != null and params.conName != ''">
+                and cc.con_name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.usingSeals != null ">
+                and odb.using_seals = #{params.usingSeals}
+            </if>
+            <if test="params.sealsType != null and params.sealsType !=''  ">
+                and odb.seals_type = #{params.sealsType}
+            </if>
+            <if test="params.state != null">
+                and odb.state = #{params.state}
+            </if>
+            <if test="params.handlerUserName != null and params.handlerUserName!='' ">
+                and odb.handler_user_name like concat('%',#{params.handlerUserName},'%')
+            </if>
+            <if test="params.createUname != null and params.createUname!='' ">
+                and odb.create_uname like concat('%',#{params.createUname},'%')
+            </if>
+        </where>
+    </select>
+
+</mapper>
+

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProjectManagementOutlineMapper">
+
+    <select id="getValueByCode" resultType="java.lang.Object">
+            select distinct ${value} as dbValue
+            from Project_Management_Outline mn
+            left join Pre_Project pro on pro.P_ID = mn.project_id
+            left join SYS_Department d on pro.P_Competent_Department=d.D_Id
+            left join SYS_Department d2 on pro.P_Department = d2.D_Id
+            ${params.authSql}
+            <if test="params.pDepartmentNameList!=null and params.pDepartmentNameList.size()>0 ">
+                and d2.D_Name  in
+                <foreach collection="params.pDepartmentNameList" open="(" close=")" separator="," item="pDepartmentName">
+                    #{pDepartmentName}
+                </foreach>
+            </if>
+            <if test="params.pBuildModelList!=null and params.pBuildModelList.size()>0 ">
+                and mn.p_Build_Model  in
+                <foreach collection="params.pBuildModelList" open="(" close=")" separator="," item="pBuildModel">
+                    #{pBuildModel}
+                </foreach>
+            </if>
+            <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+                and d.D_Name  in
+                <foreach collection="params.pCompetentDepartmentNameList" open="(" close=")" separator="," item="pCompetentDepartmentName">
+                    #{pCompetentDepartmentName}
+                </foreach>
+            </if>
+            <if test="params.pNameList!=null and params.pNameList.size()>0 ">
+                and pro.p_name  in
+                <foreach collection="params.pNameList" open="(" close=")" separator="," item="pName">
+                    #{pName}
+                </foreach>
+            </if>
+            <if test="params.createUnameList!=null and params.createUnameList.size()>0 ">
+                and mn.create_uname  in
+                <foreach collection="params.createUnameList" open="(" close=")" separator="," item="createUname">
+                    #{createUname}
+                </foreach>
+            </if>
+            <if test="params.stateList!=null and params.stateList.size()>0 ">
+                and mn.state  in
+                <foreach collection="params.stateList" open="(" close=")" separator="," item="state">
+                    #{state}
+                </foreach>
+            </if>
+            <if test="params.createTime!=null">
+                <include refid="datetimeFilter" /> = #{params.createTime}
+            </if>
+    </select>
+
+    <select id="getProjectManagementOutlineList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectManagementOutlineVo">
+        select
+        mn.*,
+        d.D_Name as pCompetentDepartmentName,
+        d2.D_Name as pDepartmentName,
+        pro.P_Name as pName
+        from Project_Management_Outline mn
+        left join Pre_Project pro on pro.P_ID = mn.project_id
+        left join SYS_Department d on pro.P_Competent_Department=d.D_Id
+        left join SYS_Department d2 on pro.P_Department = d2.D_Id
+        ${params.authSql}
+        <if test="params.pId!= null and params.pId != '' " >
+            and mn.project_id = #{params.pId}
+        </if>
+        <if test="params.pName!=null and params.pName!='' ">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pDepartmentNameList!=null and params.pDepartmentNameList.size()>0 ">
+            and d2.D_Name  in
+            <foreach collection="params.pDepartmentNameList" open="(" close=")" separator="," item="pDepartmentName">
+                #{pDepartmentName}
+            </foreach>
+        </if>
+        <if test="params.pBuildModelList!=null and params.pBuildModelList.size()>0 ">
+            and mn.p_Build_Model  in
+            <foreach collection="params.pBuildModelList" open="(" close=")" separator="," item="pBuildModel">
+                #{pBuildModel}
+            </foreach>
+        </if>
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            and d.D_Name  in
+            <foreach collection="params.pCompetentDepartmentNameList" open="(" close=")" separator="," item="pCompetentDepartmentName">
+                #{pCompetentDepartmentName}
+            </foreach>
+        </if>
+        <if test="params.pNameList!=null and params.pNameList.size()>0 ">
+            and pro.p_name  in
+            <foreach collection="params.pNameList" open="(" close=")" separator="," item="pName">
+                #{pName}
+            </foreach>
+        </if>
+        <if test="params.createUnameList!=null and params.createUnameList.size()>0 ">
+            and mn.create_uname  in
+            <foreach collection="params.createUnameList" open="(" close=")" separator="," item="createUname">
+                #{createUname}
+            </foreach>
+        </if>
+        <if test="params.stateList!=null and params.stateList.size()>0 ">
+            and mn.state  in
+            <foreach collection="params.stateList" open="(" close=")" separator="," item="state">
+                #{state}
+            </foreach>
+        </if>
+        <if test="params.createTime!=null">
+            <include refid="datetimeFilter" /> = #{params.createTime}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.create_time DESC
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getProjectManagementOutlineById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectManagementOutlineVo">
+        select
+        mn.*,pro.P_Name as pName
+        from Project_Management_Outline mn
+        left join Pre_Project pro on pro.P_ID = mn.project_id
+        where mn.id= #{id}
+    </select>
+
+
+    <sql id="datetimeFilter" databaseId="dm">
+        and to_date(mn.create_time,'yyyy-MM-dd')
+    </sql>
+
+
+    <sql id="datetimeFilter" databaseId="mysql">
+       and date_format(mn.create_time,'%Y-%m-%d')
+    </sql>
+
+    <sql id="datetimeFilter" databaseId="postgre">
+        and to_char(mn.create_time,'yyyy-MM-dd')
+    </sql>
+</mapper>

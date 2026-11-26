@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.enghonorpunish.EngPunishMapper">
+
+
+    <select id="getEngPunishList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.enghonorpunish.EngPunishDto">
+         select pro.p_name as pName,* from Eng_Punish mn
+         left join pre_project pro on pro.p_id=mn.punish_project
+         <where>
+             <if test="params.punishName != null and params.punishName != ''">
+                 and mn.punish_name like concat('%',#{params.punishName},'%')
+             </if>
+             <if test="params.punishType != null and params.punishType != ''">
+                 and mn.punish_type = #{params.punishType}
+             </if>
+             <if test="params.punishProject != null and params.punishProject != ''">
+                 and mn.punish_project=#{params.punishProject}
+             </if>
+             <if test="params.pName != null and params.pName != ''">
+                 <choose>
+                     <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                         and likePname(#{params.pName},pro.P_Id)=true
+                     </when>
+                     <otherwise>
+                         and pro.p_name like concat('%',#{params.pName},'%')
+                     </otherwise>
+                 </choose>
+             </if>
+             <if test="params.punishUnit != null and params.punishUnit != ''">
+                 and mn.punish_unit like concat('%',#{params.punishUnit},'%')
+             </if>
+         </where>
+    </select>
+
+</mapper>

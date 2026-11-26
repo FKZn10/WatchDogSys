@@ -1,0 +1,921 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaWorkReportMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.Oa.OaWorkReportResponse" id="OaWorkReportById">
+        <id column="Wr_Id" property="wrId"/>
+        <collection property="oaProReports" ofType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProjectReportModel"
+                    column="Wr_Id" select="getOaProjectReportByWrId">
+        </collection>
+    </resultMap>
+
+    <select id="getOaProjectReportByWrId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProjectReportModel">
+        select pro.P_Name as pName,
+               pro.P_Code as pCode,
+               sd.D_Name  as pCompetentDepartmentName,
+               mn.*
+        from OA_Project_Report mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Department sd on pro.P_Competent_Department = sd.D_Id
+        where mn.Wr_Id = #{wrId}
+    </select>
+
+    <select id="getOaWorkReportById" resultMap="OaWorkReportById">
+        select con.Con_Name       as conName,
+               con.Con_Code       as conCode,
+               pro.P_Name         as pName,
+               pro.P_Code         as pName,
+               sec.Sec_Name       as secName,
+               c1.C_Name          as wrCName,
+               c2.C_Name          as wrContractorName,
+               c1.C_Abbreviation  as wrCAbbName,
+               c2.C_Abbreviation  as wrContractorAbbName,
+               sd.D_Name          as wrDName,
+               sd1.D_Name         as pCompetentDepartmentName,
+               f.file_relation_id as fileRelationId,
+               mn.*
+        from OA_Work_Report mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join SYS_Company c1 on mn.Wr_C_Id = c1.C_Id
+                 left join SYS_Company c2 on mn.Wr_Contractor_Id = c2.C_Id
+                 left join SYS_Department sd1 on pro.P_Competent_Department = sd1.D_Id
+                 left join SYS_Department sd on mn.Wr_D_Id = sd.D_Id
+                 left join Sys_File f on f.FileID = mn.Wr_Id
+        where mn.Wr_Id = #{wrId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.wrState!=null">
+            and mn.wr_State = #{params.wrState}
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.wrType!=null">
+            and mn.Wr_Type = #{params.wrType}
+        </if>
+        <if test="params.wrYear!=null">
+            and mn.Wr_Year = #{params.wrYear}
+        </if>
+        <if test="params.wrQuarter!=null">
+            and mn.Wr_Quarter = #{params.wrQuarter}
+        </if>
+        <if test="params.wrMonth!=null">
+            and mn.Wr_Month = #{params.wrMonth}
+        </if>
+        <if test="params.wrCreateUid!=null">
+            and mn.Wr_Create_Uid = #{params.wrCreateUid}
+        </if>
+        <if test="params.wrDId!=null">
+            and mn.Wr_D_Id = #{params.wrDId}
+        </if>
+        <if test="params.wrCreateUname!=null">
+            and mn.Wr_Create_Uname like concat('%',#{params.wrCreateUname},'%')
+        </if>
+        <if test="params.wrTitle!=null">
+            and mn.Wr_Title like concat('%',#{params.wrTitle},'%')
+        </if>
+        <if test="params.wrEndTimeStart != null">
+            and mn.Wr_End_Time &gt;= #{params.wrEndTimeStart}
+        </if>
+        <if test="params.wrEndTimeEnd != null">
+            and mn.Wr_End_Time &lt;= #{params.wrEndTimeEnd}
+        </if>
+        <if test="params.wrStartTimeStart != null">
+            and mn.Wr_Start_Time &gt;= #{params.wrStartTimeStart}
+        </if>
+        <if test="params.wrStartTimeEnd != null">
+            and mn.Wr_Start_Time &lt;= #{params.wrStartTimeEnd}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <include refid="dateFilter" />
+        <if test="params.userDid!=null">
+            and mn.Wr_Create_Uid in
+            ( select u.U_ID
+            from SYS_User u
+            left join SYS_Position_User pu on pu.U_ID=u.U_ID
+            left join SYS_Position po on po.P_ID=pu.P_ID
+            where po.D_Id= #{params.userDid})
+        </if>
+    </sql>
+
+    <select id="getOaWorkReportList"
+            resultType="com.jpmsoft.common.model.response.Oa.OaWorkReportResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sec.Sec_Name as secName,
+        c1.C_Name_History as wrCNameHistory,
+        c1.C_Name as wrCName,
+        c2.C_Name as wrContractorName,
+        c1.C_Abbreviation as wrCAbbName,
+        c2.C_Abbreviation as wrContractorAbbName,
+        sd.D_Name as wrDName,
+        mn.*
+        from OA_Work_Report mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Wr_C_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Wr_Contractor_Id=c2.C_Id
+        left join SYS_Department sd on mn.Wr_D_Id=sd.D_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <if test="params.wrDName!=null">
+            and sd.d_name like  concat( #{params.wrDName},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Wr_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!--工作报告列表（含子表明细数量合计）-->
+    <select id="getOaWorkReportSumList"
+            resultType="com.jpmsoft.common.model.response.Oa.OaWorkReportResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sec.Sec_Name as secName,
+        c1.C_Name_History as wrCNameHistory,
+        c1.C_Name as wrCName,
+        c2.C_Name as wrContractorName,
+        c1.C_Abbreviation as wrCAbbName,
+        c2.C_Abbreviation as wrContractorAbbName,
+        sd.D_Name as wrDName,
+        COALESCE(det.wrdNumberTotal, 0) as wrdNumberTotal,
+        mn.*
+        from OA_Work_Report mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Wr_C_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Wr_Contractor_Id=c2.C_Id
+        left join SYS_Department sd on mn.Wr_D_Id=sd.D_Id
+        left join (
+        select Wr_Id, sum(COALESCE(Wrd_Number, 0)) as wrdNumberTotal
+        from OA_Work_Report_Detail
+        group by Wr_Id
+        ) det on det.Wr_Id = mn.Wr_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <if test="params.wrDName!=null">
+            and sd.d_name like concat( #{params.wrDName},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Wr_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!--************************************* dm *************************************-->
+
+    <select id="getOaWorkReportStandingbook" resultType="com.jpmsoft.common.model.response.Oa.OaWorkReportStandingbook" parameterType="string" databaseId="dm" >
+        select *
+        from (
+        SELECT
+        m.project_name,
+        m.projectId,
+        m.function_code,
+        m.function_name,
+        sum(m.alreadySubmissions) alreadySubmissions
+        FROM(SELECT
+        b.project_name,
+        b.project_id projectId,
+        b.function_code,
+        b.function_name,
+        ifnull( a.alreadySubmissions, 0 ) alreadySubmissions
+        FROM function_time_config b
+        LEFT JOIN (
+        SELECT
+        mn.P_Id AS projectId,
+        count( 1 ) alreadySubmissions
+        FROM OA_Work_Report mn
+        LEFT JOIN holiday_judge hj ON hj.date = to_char ( mn.wr_Date, 'yyyyMMdd' ) and hj.workday = 1
+        INNER JOIN function_time_config ftc ON ftc.project_id = mn.P_Id
+        <if test="authSql!=null">
+            ${authSql}
+        </if>
+        <if test="authSql==null">
+            where 1=1
+        </if>
+        and ftc.is_work = '1'
+        AND mn.wr_Type = '04010101'
+        AND ftc.delete_status = '0'
+        AND mn.wr_State = '7'
+        <![CDATA[     and hj.date >= to_char(ftc.start_time,'yyyyMMdd') ]]>
+        <![CDATA[    and hj.date <= to_char(ftc.end_time,'yyyyMMdd')]]>
+        GROUP BY
+        mn.P_Id
+        ) a ON b.project_id = a.projectId
+        where b.delete_status = '0'
+        <if test="projectName != null and projectName != ''">
+            and b.project_name like concat( '%',#{projectName},'%')
+        </if>
+        <if test="pId != null and pId != ''">
+            and b.project_id=#{pId}
+        </if>
+        union all
+        SELECT
+        b.project_name,
+        b.project_id projectId,
+        b.function_code,
+        b.function_name,
+        ifnull( a.alreadySubmissions, 0 ) alreadySubmissions
+        FROM function_time_config b
+        LEFT JOIN (
+        SELECT
+        mn.P_Id AS projectId,
+        count( 1 ) alreadySubmissions
+        FROM OA_Work_Report mn
+        LEFT JOIN  holiday_judge hj ON hj.date = to_char ( mn.wr_Date, 'yyyyMMdd' )
+        INNER JOIN function_time_config ftc ON ftc.project_id = mn.P_Id
+        <if test="authSql!=null">
+            ${authSql}
+        </if>
+        <if test="authSql==null">
+            where 1=1
+        </if>
+        and ftc.is_work = '0'
+        AND mn.wr_Type = '04010101'
+        AND ftc.delete_status = '0'
+        AND mn.wr_State = '7'
+        <![CDATA[     and hj.date >= to_char(ftc.start_time,'yyyyMMdd') ]]>
+        <![CDATA[    and hj.date <= to_char(ftc.end_time,'yyyyMMdd')]]>
+        GROUP BY
+        mn.P_Id
+        ) a ON b.project_id = a.projectId
+        where b.delete_status = '0'
+        <if test="pId != null and pId != ''">
+            and b.project_id=#{pId}
+        </if>
+        <if test="projectName != null and projectName != ''">
+            and b.project_name like concat( '%',#{projectName},'%')
+        </if>) m
+        group by m.project_name,
+        m.projectId ,
+        m.function_code,
+        m.function_name
+        ) c ${ew.customSqlSegment}
+    </select>
+
+    <select id="getholidayJudgeCount" resultType="long" parameterType="string" databaseId="dm" >
+        select  count(1) from holiday_judge  hj where 1=1
+        <if test="isWork == 1">
+            and hj.workday = '1'
+        </if>
+        <![CDATA[    and hj.date >= (select to_char(start_time,'yyyyMMdd') from function_time_config where delete_status = '0' and project_id =#{projectId} and function_code =#{functionCode} )  ]]>
+        <![CDATA[    and hj.date <= (select to_char(end_time,'yyyyMMdd') from function_time_config where delete_status = '0' and project_id =#{projectId}  and function_code =#{functionCode} ) ]]>
+    </select>
+
+    <select id="getOaWorkReportNeverSub" parameterType="string" resultType="string" databaseId="dm" >
+        select to_char(to_date(hj.date,'yyyy-mm-dd'),'yyyy-mm-dd') noSubDate  from holiday_judge hj
+        where 1=1
+        <![CDATA[  and hj.date >= #{startTime}  ]]>
+        <![CDATA[  and hj.date <= #{endTime}  ]]>
+        <if test="isWork == 1">
+            and hj.workday = '1'
+        </if>
+        and to_char(to_date(hj.date,'yyyy-mm-dd'),'yyyymmdd')  not in
+        ( select hj.date subDate from holiday_judge hj
+        left  join  OA_Work_Report awr
+        on  to_char( awr.wr_Date,'yyyyMMdd') == hj.date
+        where 1=1
+        and awr.wr_state = 7
+        and awr.wr_Type ='04010101'
+        <![CDATA[  and hj.date >= #{startTime} ]]>
+        <![CDATA[   and hj.date <= #{endTime}   ]]>
+        <if test="isWork == 1">
+            and hj.workday = '1'
+        </if>
+        and awr.p_id=#{projectId}
+        order by hj.date)
+        order by to_date(hj.date,'yyyy-mm-dd')
+    </select>
+
+    <select id="getholidayJudgeCountNowTime" resultType="java.lang.Long" databaseId="dm" >
+        SELECT
+        count( 1 )
+        FROM
+        holiday_judge hj
+        WHERE
+        1 = 1
+        <if test = "isWork == 1" >
+            AND hj.workday = '1'
+        </if>
+        <![CDATA[
+            AND (( hj.date <= to_char ( now(), 'yyyyMMdd' )
+        ]]>
+        <![CDATA[
+            and to_char ( now(), 'yyyyMMdd' ) <= (
+            SELECT
+            to_char ( end_time, 'yyyyMMdd' )
+            FROM
+            function_time_config
+            WHERE
+            delete_status = '0'
+            AND project_id = #{projectId}  and function_code =#{functionCode} )
+        ]]>
+        <![CDATA[
+            AND hj.date >= (
+            SELECT
+            to_char ( start_time, 'yyyyMMdd' )
+            FROM
+            function_time_config
+            WHERE
+            delete_status = '0'
+            AND project_id = #{projectId}  and function_code =#{functionCode} ))
+        ]]>
+
+        <![CDATA[
+            or ( to_char ( now(), 'yyyyMMdd' ) >= (
+            SELECT
+            to_char ( end_time, 'yyyyMMdd' )
+            FROM
+            function_time_config
+            WHERE
+            delete_status = '0'
+            AND project_id = #{projectId}  and function_code =#{functionCode} )
+        ]]>
+        <![CDATA[
+            AND hj.date >= (
+            SELECT
+            to_char ( start_time, 'yyyyMMdd' )
+            FROM
+            function_time_config
+            WHERE
+            delete_status = '0'
+            AND project_id = #{projectId}  and function_code =#{functionCode} )
+        ]]>
+        <![CDATA[
+            AND hj.date <= (
+            SELECT
+            to_char ( end_time, 'yyyyMMdd' )
+            FROM
+            function_time_config
+            WHERE
+            delete_status = '0'
+            AND project_id = #{projectId}  and function_code =#{functionCode} ))
+        ]]>
+        )
+    </select>
+
+    <select id="getAlreadySubmitNowTime" resultType="long" databaseId="dm" >
+        SELECT
+            count( 1 ) alreadySubmissions
+        FROM OA_Work_Report mn
+                 LEFT JOIN holiday_judge hj
+                           ON hj.date = to_char ( mn.wr_Date, 'yyyyMMdd' ) and hj.workday = 1
+                 INNER JOIN function_time_config ftc ON ftc.project_id = mn.P_Id
+        where 1=1
+          and mn.p_id = #{projectId}
+          and ((ftc.is_work = #{isWork} and hj.workday = 1) or ftc.is_work = #{isWork} )
+          AND mn.wr_Type = '04010101'
+          AND ftc.delete_status = '0'
+          AND mn.wr_State = '7'
+        <![CDATA[     and ((hj.date <= to_char(now(),'yyyyMMdd') ]]>
+        <![CDATA[    and hj.date >= to_char(ftc.start_time,'yyyyMMdd'))]]>
+        <![CDATA[     or ( to_char(now(),'yyyyMMdd') >= to_char(ftc.end_time,'yyyyMMdd')]]>
+        <![CDATA[    and hj.date <= to_char(ftc.end_time,'yyyyMMdd') ]]>
+        <![CDATA[    and hj.date >= to_char(ftc.start_time,'yyyyMMdd')))]]>
+    </select>
+
+    <select id="selectoaWorkReportList" databaseId="dm" resultType="com.jpmsoft.projectProducer.pojo.entity.oa.OaWorkReport">
+        select * from OA_Work_Report where to_char( wr_Date,'yyyyMMdd') = to_char( #{entity.wrDate},'yyyyMMdd') and p_id=#{entity.pId} and wr_state != '3' and wr_type = '04010101'
+    </select>
+
+    <sql id="dateFilter" databaseId="dm">
+        <if test="params.wrDateStart!=null">
+            and to_char(mn.wr_Date,'yyyy-MM-dd') > #{params.wrDateStart}
+        </if>
+        <if test="params.wrDateEnd!=null">
+            <![CDATA[       and to_char(mn.wr_Date,'yyyy-MM-dd') < #{params.wrDateEnd} ]]>
+        </if>
+        <if test="params.wrDate!=null">
+            and  to_char(mn.wr_Date,'yyyy-MM-dd') = to_char(to_date(#{params.wrDate},'yyyy-MM-dd'),'yyyy-MM-dd')
+        </if>
+        <if test="params.wrStartTime!=null">
+            and  to_char(mn.wr_Start_Time,'yyyy-MM-dd') > #{params.wrStartTime}
+        </if>
+        <if test="params.wrEndTime!=null">
+            <![CDATA[    and  to_char(mn.wr_End_Time,'yyyy-MM-dd') < #{params.wrEndTime} ]]>
+        </if>
+    </sql>
+
+    <!--************************************* mysql *************************************-->
+
+    <select id="getOaWorkReportStandingbook" resultType="com.jpmsoft.common.model.response.Oa.OaWorkReportStandingbook" parameterType="string" databaseId="mysql" >
+        select *
+        from (
+        SELECT
+        m.project_name,
+        m.projectId,
+        m.function_code,
+        m.function_name,
+        sum(m.alreadySubmissions) alreadySubmissions
+        FROM(SELECT
+        b.project_name,
+        b.project_id projectId,
+        b.function_code,
+        b.function_name,
+        ifnull( a.alreadySubmissions, 0 ) alreadySubmissions
+        FROM function_time_config b
+        LEFT JOIN (
+        SELECT
+        mn.P_Id AS projectId,
+        count( 1 ) alreadySubmissions
+        FROM OA_Work_Report mn
+        LEFT JOIN holiday_judge hj ON hj.date = date_format(mn.wr_Date,'%Y%m%d') and hj.workday = 1
+        INNER JOIN function_time_config ftc ON ftc.project_id = mn.P_Id
+        <if test="authSql!=null">
+            ${authSql}
+        </if>
+        <if test="authSql==null">
+            where 1=1
+        </if>
+        and ftc.is_work = '1'
+        AND mn.wr_Type = '04010101'
+        AND ftc.delete_status = '0'
+        AND mn.wr_State = '7'
+        <![CDATA[     and hj.date >= date_format(ftc.start_time,'%Y%m%d') ]]>
+        <![CDATA[    and hj.date <= date_format(ftc.end_time,'%Y%m%d') ]]>
+        GROUP BY
+        mn.P_Id
+        ) a ON b.project_id = a.projectId where b.delete_status = '0'
+        <if test="pId != null and pId != ''">
+            and b.project_id=#{pId}
+        </if>
+        <if test="projectName != null and projectName != ''">
+            and b.project_name like concat( '%',#{projectName},'%')
+        </if>
+        union all
+        SELECT
+        b.project_name,
+        b.project_id projectId,
+        b.function_code,
+        b.function_name,
+        ifnull( a.alreadySubmissions, 0 ) alreadySubmissions
+        FROM function_time_config b
+        LEFT JOIN (
+        SELECT
+        mn.P_Id AS projectId,
+        count( 1 ) alreadySubmissions
+        FROM OA_Work_Report mn
+        LEFT JOIN  holiday_judge hj ON hj.date = date_format(mn.wr_Date,'%Y%m%d')
+        INNER JOIN function_time_config ftc ON ftc.project_id = mn.P_Id
+        <if test="authSql!=null">
+            ${authSql}
+        </if>
+        <if test="authSql==null">
+            where 1=1
+        </if>
+        and ftc.is_work = '0'
+        AND mn.wr_Type = '04010101'
+        AND ftc.delete_status = '0'
+        AND mn.wr_State = '7'
+        <![CDATA[     and hj.date >= date_format(ftc.start_time,'%Y%m%d') ]]>
+        <![CDATA[    and hj.date <= date_format(ftc.end_time,'%Y%m%d')]]>
+        GROUP BY
+        mn.P_Id
+        ) a ON b.project_id = a.projectId where b.delete_status = '0'
+        <if test="pId != null and pId != ''">
+            and b.project_id=#{pId}
+        </if>
+        <if test="projectName != null and projectName != ''">
+            and b.project_name like concat( '%',#{projectName},'%')
+        </if>) m
+        group by m.project_name,
+        m.projectId ,
+        m.function_code,
+        m.function_name
+        ) c ${ew.customSqlSegment}
+    </select>
+
+    <select id="getholidayJudgeCount" resultType="long" parameterType="string" databaseId="mysql" >
+        select  count(1) from holiday_judge  hj where 1=1
+        <if test="isWork == 1">
+            and hj.workday = '1'
+        </if>
+        <![CDATA[    and hj.date >= (select date_format(start_time,'%Y%m%d')  from function_time_config where delete_status = '0' and project_id =#{projectId} and function_code =#{functionCode} )  ]]>
+        <![CDATA[    and hj.date <= (select date_format(end_time,'%Y%m%d')  from function_time_config where delete_status = '0' and project_id =#{projectId}  and function_code =#{functionCode} ) ]]>
+    </select>
+
+    <select id="getOaWorkReportNeverSub" parameterType="string" resultType="string" databaseId="mysql" >
+        select date_format(hj.date,'%Y-%m-%d') noSubDate  from holiday_judge hj
+        where 1=1
+        <![CDATA[  and hj.date >= #{startTime}  ]]>
+        <![CDATA[  and hj.date <= #{endTime}  ]]>
+        <if test="isWork == 1">
+            and hj.workday = '1'
+        </if>
+        and date_format(hj.date,'%Y%m%d')  not in
+        ( select hj.date subDate from holiday_judge hj
+        left  join  OA_Work_Report awr
+        on  date_format(awr.wr_Date,'%Y%m%d') == hj.date
+        where 1=1
+        and awr.wr_state = 7
+        and awr.wr_Type ='04010101'
+        <![CDATA[  and hj.date >= #{startTime} ]]>
+        <![CDATA[   and hj.date <= #{endTime}   ]]>
+        <if test="isWork == 1">
+            and hj.workday = '1'
+        </if>
+        and awr.p_id=#{projectId}
+        order by hj.date)
+        order by date_format(hj.date,'%Y-%m-%d')
+    </select>
+
+    <select id="getholidayJudgeCountNowTime" resultType="java.lang.Long" databaseId="mysql" >
+        SELECT
+        count( 1 )
+        FROM
+        holiday_judge hj
+        WHERE
+        1 = 1
+        <if test = "isWork == 1" >
+            AND hj.workday = '1'
+        </if>
+        <![CDATA[
+            AND hj.date <= date_format(now(),'%Y%m%d')
+        ]]>
+        <![CDATA[
+            AND hj.date >= (
+            SELECT
+            date_format(end_time,'%Y%m%d')
+            FROM
+            function_time_config
+            WHERE
+            delete_status = '0'
+            AND project_id = #{projectId}  and function_code =#{functionCode} )
+        ]]>
+    </select>
+
+    <select id="getAlreadySubmitNowTime" resultType="long" databaseId="mysql" >
+        SELECT
+            count( 1 ) alreadySubmissions
+        FROM OA_Work_Report mn
+                 LEFT JOIN holiday_judge hj
+                           ON hj.date = date_format(mn.wr_Date,'%Y%m%d')  and hj.workday = 1
+                 INNER JOIN function_time_config ftc ON ftc.project_id = mn.P_Id
+        where 1=1
+          and mn.p_id = #{projectId}
+          and ftc.is_work = #{isWork}
+          AND mn.wr_Type = '04010101'
+          AND ftc.delete_status = '0'
+          AND mn.wr_State = '7'
+        <![CDATA[     and hj.date <= date_format(now(),'%Y%m%d') ]]>
+        <![CDATA[    and hj.date >= date_format(ftc.end_time,'%Y%m%d') ]]>
+    </select>
+
+
+    <select id="selectoaWorkReportList" databaseId="mysql" resultType="com.jpmsoft.projectProducer.pojo.entity.oa.OaWorkReport">
+        select * from OA_Work_Report where date_format( wr_Date,'%Y-%m-%d') = date_format( #{entity.wrDate},'%Y-%m-%d') and p_id=#{entity.pId}
+    </select>
+
+    <select id="countOaWorkReport" resultType="java.lang.Long" databaseId="mysql">
+        select count(1) from OA_Work_Report
+        where 1=1 and Wr_Type = #{type}
+        <if test="endTime!=null">
+            and date_format(wr_Date,'%Y-%m-%d') &lt;= #{endTime}
+        </if>
+        <if test="startTime!=null">
+            and date_format(wr_Date,'%Y-%m-%d') &gt;= #{startTime}
+        </if>
+        <if test=" type == '0101'">
+            and P_Id in
+            <foreach collection="bizIds" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test=" type == '0201'">
+            and Con_Id in
+            <foreach collection="bizIds" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="countOaWorkReport" resultType="java.lang.Long" databaseId="dm">
+        select count(1) from OA_Work_Report
+        where 1=1 and Wr_Type = #{type}
+        <if test="endTime!=null">
+            and to_char(wr_Date,'yyyy-MM-dd') &lt;= #{endTime}
+        </if>
+        <if test="startTime!=null">
+            and to_char(wr_Date,'yyyy-MM-dd') &gt;= #{startTime}
+        </if>
+        <if test=" type == '0101'">
+            and P_Id in
+            <foreach collection="bizIds" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test=" type == '0201'">
+            and Con_Id in
+            <foreach collection="bizIds" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+
+    <sql id="dateFilter" databaseId="mysql">
+        <if test="params.wrDateStart!=null">
+            and date_format(mn.wr_Date,'%Y-%m-%d') > #{params.wrDateStart}
+        </if>
+        <if test="params.wrDateEnd!=null">
+            <![CDATA[       and date_format(mn.wr_Date,'%Y-%m-%d') < #{params.wrDateEnd} ]]>
+        </if>
+        <if test="params.wrDate!=null">
+            and  date_format(mn.wr_Date,'%Y-%m-%d') =date_format(#{params.wrDate},'%Y-%m-%d')
+        </if>
+        <if test="params.wrStartTime!=null">
+            and  date_format(mn.wr_Start_Time,'%Y-%m-%d') > #{params.wrStartTime}
+        </if>
+        <if test="params.wrEndTime!=null">
+            <![CDATA[ and  date_format(mn.wr_End_Time,'%Y-%m-%d') < #{params.wrEndTime} ]]>
+        </if>
+    </sql>
+
+
+    <!--************************************* postgre *************************************-->
+
+
+    <select id="getOaWorkReportStandingbook" resultType="com.jpmsoft.common.model.response.Oa.OaWorkReportStandingbook" parameterType="string" databaseId="postgre" >
+        select *
+        from (
+        SELECT
+        m.project_name,
+        m.projectId,
+        m.function_code,
+        m.function_name,
+        sum(m.alreadySubmissions) alreadySubmissions
+        FROM(SELECT
+        b.project_name,
+        b.project_id projectId,
+        b.function_code,
+        b.function_name,
+        COALESCE( a.alreadySubmissions, 0 ) alreadySubmissions
+        FROM function_time_config b
+        LEFT JOIN (
+        SELECT
+        mn.P_Id AS projectId,
+        count( 1 ) alreadySubmissions
+        FROM OA_Work_Report mn
+        LEFT JOIN holiday_judge hj ON hj.date = to_char ( mn.wr_Date, 'yyyyMMdd' ) and hj.workday = 1
+        INNER JOIN function_time_config ftc ON ftc.project_id = mn.P_Id
+        <if test="authSql!=null">
+            ${authSql}
+        </if>
+        <if test="authSql==null">
+            where 1=1
+        </if>
+        and ftc.is_work = '1'
+        AND mn.wr_Type = '04010101'
+        AND ftc.delete_status = '0'
+        AND mn.wr_State = '7'
+        <![CDATA[     and hj.date >= to_char(ftc.start_time,'yyyyMMdd') ]]>
+        <![CDATA[    and hj.date <= to_char(ftc.end_time,'yyyyMMdd')]]>
+        GROUP BY
+        mn.P_Id
+        ) a ON b.project_id = a.projectId
+        where b.delete_status = '0'
+        <if test="pId != null and pId != ''">
+            and b.project_id=#{pId}
+        </if>
+        <if test="projectName != null and projectName != ''">
+            and b.project_name like concat( '%',#{projectName},'%')
+        </if>
+        union all
+        SELECT
+        b.project_name,
+        b.project_id projectId,
+        b.function_code,
+        b.function_name,
+        COALESCE( a.alreadySubmissions, 0 ) alreadySubmissions
+        FROM function_time_config b
+        LEFT JOIN (
+        SELECT
+        mn.P_Id AS projectId,
+        count( 1 ) alreadySubmissions
+        FROM OA_Work_Report mn
+        LEFT JOIN  holiday_judge hj ON hj.date = to_char ( mn.wr_Date, 'yyyyMMdd' )
+        INNER JOIN function_time_config ftc ON ftc.project_id = mn.P_Id
+        <if test="authSql!=null">
+            ${authSql}
+        </if>
+        <if test="authSql==null">
+            where 1=1
+        </if>
+        and ftc.is_work = '0'
+        AND mn.wr_Type = '04010101'
+        AND ftc.delete_status = '0'
+        AND mn.wr_State = '7'
+        <![CDATA[     and hj.date >= to_char(ftc.start_time,'yyyyMMdd') ]]>
+        <![CDATA[    and hj.date <= to_char(ftc.end_time,'yyyyMMdd')]]>
+        GROUP BY
+        mn.P_Id
+        ) a ON b.project_id = a.projectId
+        where b.delete_status = '0'
+        <if test="pId != null and pId != ''">
+            and b.project_id=#{pId}
+        </if>
+        <if test="projectName != null and projectName != ''">
+            and b.project_name like concat( '%',#{projectName},'%')
+        </if>) m
+        group by m.project_name,
+        m.projectId ,
+        m.function_code,
+        m.function_name
+        ) c ${ew.customSqlSegment}
+    </select>
+
+    <select id="getholidayJudgeCount" resultType="long" parameterType="string" databaseId="postgre" >
+        select  count(1) from holiday_judge  hj where 1=1
+        <if test="isWork == 1">
+            and hj.workday = '1'
+        </if>
+        <![CDATA[    and hj.date >= (select to_char(start_time,'yyyyMMdd') from function_time_config where delete_status = '0' and project_id =#{projectId} and function_code =#{functionCode} )  ]]>
+        <![CDATA[    and hj.date <= (select to_char(end_time,'yyyyMMdd') from function_time_config where delete_status = '0' and project_id =#{projectId}  and function_code =#{functionCode} ) ]]>
+    </select>
+
+    <select id="getOaWorkReportNeverSub" parameterType="string" resultType="string" databaseId="postgre" >
+        select to_char(to_date(hj.date,'yyyy-mm-dd'),'yyyy-mm-dd') noSubDate  from holiday_judge hj
+        where 1=1
+        <![CDATA[  and hj.date >= #{startTime}  ]]>
+        <![CDATA[  and hj.date <= #{endTime}  ]]>
+        <if test="isWork == 1">
+            and hj.workday = '1'
+        </if>
+        and to_char(to_date(hj.date,'yyyy-mm-dd'),'yyyymmdd')  not in
+        ( select hj.date subDate from holiday_judge hj
+        left  join  OA_Work_Report awr
+        on  to_char( awr.wr_Date,'yyyyMMdd') == hj.date
+        where 1=1
+        and awr.wr_state = 7
+        and awr.wr_Type ='04010101'
+        <![CDATA[  and hj.date >= #{startTime} ]]>
+        <![CDATA[   and hj.date <= #{endTime}   ]]>
+        <if test="isWork == 1">
+            and hj.workday = '1'
+        </if>
+        and awr.p_id=#{projectId}
+        order by hj.date)
+        order by to_date(hj.date,'yyyy-mm-dd')
+    </select>
+
+    <select id="getholidayJudgeCountNowTime" resultType="java.lang.Long" databaseId="postgre" >
+        SELECT
+        count( 1 )
+        FROM
+        holiday_judge hj
+        WHERE
+        1 = 1
+        <if test = "isWork == 1" >
+            AND hj.workday = '1'
+        </if>
+        <![CDATA[
+            AND (( hj.date <= to_char ( now(), 'yyyyMMdd' )
+        ]]>
+        <![CDATA[
+            and to_char ( now(), 'yyyyMMdd' ) <= (
+            SELECT
+            to_char ( end_time, 'yyyyMMdd' )
+            FROM
+            function_time_config
+            WHERE
+            delete_status = '0'
+            AND project_id = #{projectId}  and function_code =#{functionCode} )
+        ]]>
+        <![CDATA[
+            AND hj.date >= (
+            SELECT
+            to_char ( start_time, 'yyyyMMdd' )
+            FROM
+            function_time_config
+            WHERE
+            delete_status = '0'
+            AND project_id = #{projectId}  and function_code =#{functionCode} ))
+        ]]>
+
+        <![CDATA[
+            or ( to_char ( now(), 'yyyyMMdd' ) >= (
+            SELECT
+            to_char ( end_time, 'yyyyMMdd' )
+            FROM
+            function_time_config
+            WHERE
+            delete_status = '0'
+            AND project_id = #{projectId}  and function_code =#{functionCode} )
+        ]]>
+        <![CDATA[
+            AND hj.date >= (
+            SELECT
+            to_char ( start_time, 'yyyyMMdd' )
+            FROM
+            function_time_config
+            WHERE
+            delete_status = '0'
+            AND project_id = #{projectId}  and function_code =#{functionCode} )
+        ]]>
+        <![CDATA[
+            AND hj.date <= (
+            SELECT
+            to_char ( end_time, 'yyyyMMdd' )
+            FROM
+            function_time_config
+            WHERE
+            delete_status = '0'
+            AND project_id = #{projectId}  and function_code =#{functionCode} ))
+        ]]>
+        )
+    </select>
+
+    <select id="getAlreadySubmitNowTime" resultType="long" databaseId="postgre" >
+        SELECT
+            count( 1 ) alreadySubmissions
+        FROM OA_Work_Report mn
+                 LEFT JOIN holiday_judge hj
+                           ON hj.date = to_char ( mn.wr_Date, 'yyyyMMdd' ) and hj.workday = 1
+                 INNER JOIN function_time_config ftc ON ftc.project_id = mn.P_Id
+        where 1=1
+          and mn.p_id = #{projectId}
+          and ((ftc.is_work = #{isWork} and hj.workday = 1) or ftc.is_work = #{isWork} )
+          AND mn.wr_Type = '04010101'
+          AND ftc.delete_status = '0'
+          AND mn.wr_State = '7'
+        <![CDATA[     and ((hj.date <= to_char(now(),'yyyyMMdd') ]]>
+        <![CDATA[    and hj.date >= to_char(ftc.start_time,'yyyyMMdd'))]]>
+        <![CDATA[     or ( to_char(now(),'yyyyMMdd') >= to_char(ftc.end_time,'yyyyMMdd')]]>
+        <![CDATA[    and hj.date <= to_char(ftc.end_time,'yyyyMMdd') ]]>
+        <![CDATA[    and hj.date >= to_char(ftc.start_time,'yyyyMMdd')))]]>
+    </select>
+
+    <select id="selectoaWorkReportList" databaseId="postgre" resultType="com.jpmsoft.projectProducer.pojo.entity.oa.OaWorkReport">
+        select * from OA_Work_Report where to_char( wr_Date,'yyyyMMdd') = to_char( #{entity.wrDate},'yyyyMMdd') and p_id=#{entity.pId} and wr_state != '3' and wr_type = '04010101'
+    </select>
+
+
+    <sql id="dateFilter" databaseId="postgre">
+        <if test="params.wrDateStart!=null">
+            and to_char(mn.wr_Date,'yyyy-MM-dd') > #{params.wrDateStart}
+        </if>
+        <if test="params.wrDateEnd!=null">
+            <![CDATA[       and to_char(mn.wr_Date,'yyyy-MM-dd') < #{params.wrDateEnd} ]]>
+        </if>
+        <if test="params.wrDate!=null">
+            and  to_char(mn.wr_Date,'yyyy-MM-dd') = to_char(to_date(#{params.wrDate},'yyyy-MM-dd'),'yyyy-MM-dd')
+        </if>
+        <if test="params.wrStartTime!=null">
+            and  to_char(mn.wr_Start_Time,'yyyy-MM-dd') > #{params.wrStartTime}
+        </if>
+        <if test="params.wrEndTime!=null">
+            <![CDATA[    and  to_char(mn.wr_End_Time,'yyyy-MM-dd') < #{params.wrEndTime} ]]>
+        </if>
+    </sql>
+
+</mapper>

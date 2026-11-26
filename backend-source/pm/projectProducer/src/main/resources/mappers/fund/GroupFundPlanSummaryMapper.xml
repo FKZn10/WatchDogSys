@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.GroupFundPlanSummaryMapper">
+     <resultMap type="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanSummaryVo" id="selectGroupFundPlanSummary">
+        <id column="id" property="id"/>
+        <collection property="detailVos" ofType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanSummaryDetailVo"
+                    column="id" select="getGroupFundPlanSummaryDetailVoList">
+        </collection>
+    </resultMap>
+    <select id="getGroupFundPlanSummaryVosList"
+            resultMap="selectGroupFundPlanSummary">
+        select mn.*,
+        sd.D_Name as gfpsProjectCompetentDepartmentName,
+        gfpSum.totalFundApplyAmount,
+        gfpSum.totalNextMonthFunds
+        from Group_Fund_Plan_Summary mn
+        left join SYS_Department sd on mn.Gfps_Project_Competent_Department_Id = sd.D_ID
+        left join (
+        select
+        gfpsd.Gfps_Id,
+        sum(gfp.Gfp_Fund_Apply_Amount) as totalFundApplyAmount,
+        sum(gfp.gfp_next_month_funds_total) as totalNextMonthFunds
+        from Group_Fund_Plan gfp
+        left join Group_Fund_Plan_Summary_Detail gfpsd on gfpsd.Gfp_Id = gfp.Id
+        left join Group_Fund_Plan_Summary gfps on gfpsd.Gfps_Id = gfps.Id
+        where gfp.State = 7
+        and gfpsd.del_flag = 0
+        and gfpsd.status = 0
+        and gfps.del_flag = 0
+        and gfp.del_flag = 0
+        group by gfpsd.Gfps_Id
+        ) gfpSum on gfpSum.Gfps_Id = mn.id
+        ${params.authSql}
+        and mn.state !=3
+        and mn.del_flag = 0
+        <if test="params.gfpsProjectCompetentDepartmentId != null and params.gfpsProjectCompetentDepartmentId != ''">
+            and mn.Gfps_Project_Competent_Department_Id = #{params.gfpsProjectCompetentDepartmentId}
+        </if>
+        <if test="params.gfpsType != null ">
+            and mn.Gfps_Type = #{params.gfpsType}
+        </if>
+        <if test="params.gfpsYear != null ">
+            and mn.Gfps_Year = #{params.gfpsYear}
+        </if>
+        <if test="params.gfpsMonth != null ">
+            and mn.Gfps_Month = #{params.gfpsMonth}
+        </if>
+        <if test="params.groupId != null and params.groupId != ''">
+            and mn.Group_Id = #{params.groupId}
+        </if>
+        <if test="params.groupMainType != null and params.groupMainType != ''">
+            and mn.Group_Main_Type = #{params.groupMainType}
+        </if>
+        <if test="params.gfpsTitle != null and params.gfpsTitle != ''">
+            and mn.Gfps_Title like concat('%',#{params.gfpsTitle},'%')
+        </if>
+        order by mn.Create_Time desc
+    </select>
+    <select id="getGroupFundPlanSummaryById"
+            resultMap="selectGroupFundPlanSummary"
+            parameterType="java.lang.String">
+        select gfps.*,sd.D_Name as gfpsProjectCompetentDepartmentName
+        from Group_Fund_Plan_Summary gfps
+        left join SYS_Department sd on gfps.Gfps_Project_Competent_Department_Id = sd.D_ID
+        where gfps.id = #{id}
+        and gfps.del_flag = 0
+    </select>
+    <select id="getGroupFundPlanSummaryDetailVoList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanSummaryDetailVo">
+        select gfpsd.*, pp.P_Name as pname,pp.P_Name as projectName,gfp.Project_ID as projectId,
+               pp.P_Inv_Total as pInvTotal,pp.P_Approve_Budget_Code as pApproveBudgetCode,
+               pp.P_Approve_Budget as pApproveBudget,ibd.bd_approval_num as bdApprovalNum,
+               gfp.Gfp_Project_Progress as gfpProjectProgress,
+               gfp.Gfp_Arrived_Funds as gfpArrivedFunds,
+               gfp.Gfp_Balance_Funds as gfpBalanceFunds,
+               gfp.Gfp_Member_Balance_Funds as gfpMemberBalanceFunds,
+               gfp.Gfp_Fund_Demand_Amount as gfpFundDemandAmount,
+               gfp.Gfp_Fund_Apply_Amount as gfpFundApplyAmount,
+               gfp.Gfp_Arrange_Funds as gfpArrangeFunds,
+               gfp.Gfp_Next_Month_Funds as gfpNextMonthFunds,
+               gfp.Gfp_Fund_Apply_Amount_GC_Audit as gfpFundApplyAmountGcAudit,
+               gfp.Gfp_Fund_Apply_Amount_CW_Audit as gfpFundApplyAmountCwAudit,
+               sd.D_Name as gfpsProjectCompetentDepartmentName,gfp.Project_Total as projectTotal
+        from Group_Fund_Plan_Summary_Detail gfpsd
+        left join Group_Fund_Plan_Summary gfps on gfpsd.Gfps_Id = gfps.Id
+        left join Group_Fund_Plan gfp on gfpsd.Gfp_Id = gfp.Id
+        left join Pre_Project pp on gfp.Project_ID = pp.P_ID
+        left join Inv_Budget_Declare ibd on pp.P_ID = ibd.P_ID
+        left join SYS_Department sd on gfpsd.Gfps_Project_Competent_Department_Id = sd.D_ID
+        where gfpsd.Gfps_Id = #{id} and gfpsd.status = 0 and gfpsd.del_flag = 0
+        and gfps.del_flag = 0
+        and gfp.del_flag = 0
+        order by sd.d_Sort
+    </select>
+    <select id="getGroupFundPlanSummaryInfo"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanSummaryDetailVo">
+        select gfp.id as gfpId, pp.P_Name as pname,pp.P_Name as projectName,gfp.Project_ID as projectId,gfp.Gfp_Month as gfpMonth,gfp.Gfp_Year as gfpYear,gfp.Create_Time as createTime,
+               pp.P_Inv_Total as projectInvTotal,pp.P_Approve_Budget_Code as projectApproveBudgetCode,
+               pp.P_Approve_Budget as projectApproveBudget,ibd.bd_approval_num as bdApprovalNum,
+               gfp.Gfp_Project_Progress as gfpProjectProgress,
+               gfp.Gfp_Arrived_Funds as gfpArrivedFunds,
+               gfp.Gfp_Balance_Funds as gfpBalanceFunds,
+               gfp.Gfp_Member_Balance_Funds as gfpMemberBalanceFunds,
+               gfp.Gfp_Fund_Demand_Amount as gfpFundDemandAmount,
+               gfp.Gfp_Fund_Apply_Amount as gfpFundApplyAmount,
+               gfp.Gfp_Arrange_Funds as gfpArrangeFunds,
+               gfp.Gfp_Next_Month_Funds as gfpNextMonthFunds,
+               pp.P_Competent_Department as gfpsProjectCompetentDepartmentId,
+               sd.D_Name as gfpsProjectCompetentDepartmentName,gfp.Project_Total as projectTotal
+        from  Group_Fund_Plan gfp
+        left join Pre_Project pp on gfp.Project_ID = pp.P_ID
+        left join Inv_Budget_Declare ibd on pp.P_ID = ibd.P_ID
+        left join SYS_Department sd on pp.P_Competent_Department = sd.D_ID
+        <where>
+            gfp.state = 7
+            and gfp.del_flag = 0
+            <if test="params.gfpsMonth != null ">
+                and gfp.Gfp_Month = #{params.gfpsMonth}
+            </if>
+            <if test="params.gfpsYear != null ">
+                and gfp.Gfp_Year = #{params.gfpsYear}
+            </if>
+            <if test="params.gfpsProjectCompetentDepartmentIds != null ">
+                and pp.P_Competent_Department in
+                <foreach collection="params.gfpsProjectCompetentDepartmentIds" item="item" index="index"
+                          open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                and gfp.id  not in (
+                    select gfpsd.Gfp_Id
+                    from Group_Fund_Plan_Summary_Detail gfpsd
+                    left join Group_Fund_Plan_Summary gfps on gfpsd.Gfps_Id = gfps.Id
+                    where gfpsd.status =0 and gfpsd.del_flag =0 and gfps.state !=3 and gfps.gfps_type = 1
+                    and gfps.del_flag = 0
+                    )
+            </if>
+            <if test="params.gfpsProjectCompetentDepartmentIds == null ">
+                and gfp.id not in (
+                    select gfpsd.Gfp_Id
+                    from Group_Fund_Plan_Summary_Detail gfpsd
+                    left join Group_Fund_Plan_Summary gfps on gfpsd.Gfps_Id = gfps.Id
+                    where gfpsd.status =0 and gfpsd.del_flag =0 and gfps.state !=3 and gfps.gfps_type = 2
+                    and gfps.del_flag = 0
+                    )
+                and gfp.id in (
+                    select gfpsd.Gfp_Id
+                    from Group_Fund_Plan_Summary_Detail gfpsd
+                    left join Group_Fund_Plan_Summary gfps on gfpsd.Gfps_Id = gfps.Id
+                    where gfpsd.status =0 and gfpsd.del_flag =0 and gfps.state =7 and gfps.gfps_type = 1
+                    and gfps.del_flag = 0
+                )
+               order by sd.d_Sort
+            </if>
+        </where>
+    </select>
+    <select id="getGroupFundPlanSummaryByGroupFundPlanId" resultType="java.lang.String"
+            parameterType="java.lang.String">
+         select distinct gfps.Id
+         from Group_Fund_Plan_Summary_Detail gfpsd
+         left join Group_Fund_Plan_Summary gfps on gfpsd.Gfps_Id = gfps.Id
+        where gfpsd.Gfp_Id=#{gfpId} and gfpsd.status =0 and gfpsd.del_flag =0 and gfps.gfps_type = 1
+        and gfps.del_flag = 0
+    </select>
+    <select id="getGroupFundPlanSummaryByDetailId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.fund.GroupFundPlanSummary">
+        select * from Group_Fund_Plan_Summary gfps where gfps.id in
+        <foreach collection="gfpDetailIds" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        and gfps.del_flag = 0
+    </select>
+
+    <select id="getCompanyProjectFundPlan"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanSummaryDetailVo">
+        select mn.*,
+        mn.id as gfpId,
+        pp.P_Competent_Department as gfpsProjectCompetentDepartmentId,
+        sd1.D_Name as gfpsProjectCompetentDepartmentName,
+        pp.P_Department as gfpsProjectDepartmentId,
+        sd2.D_Name as gfpsProjectDepartmentName,
+        pp.P_Name as pname,
+        pp.P_Name as projectName,
+        gfp2.groupCount
+        from Group_Fund_Plan mn
+        left join Pre_Project pp on mn.Project_ID = pp.P_ID
+        left join SYS_Department sd1 on pp.P_Competent_Department = sd1.D_Id
+        left join SYS_Department sd2 on pp.P_Department = sd2.D_Id
+        left join (
+        select Group_Id,
+        count(1) as groupCount
+        from Group_Fund_Plan
+        where del_flag = 0
+        group by Group_Id
+        ) gfp2 on mn.Group_Id = gfp2.Group_Id
+        where mn.Gfp_Year = #{params.gfpsYear}
+        and mn.Gfp_Month = #{params.gfpsMonth}
+        and mn.del_flag = 0
+        and pp.P_Competent_Department in
+        <foreach collection="params.departmentIds" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        <if test="params.gfpsType != null">
+            and mn.Gfp_Fund_Apply_Amount &gt; 0
+        </if>
+        <if test="params.groupType != null and params.groupType != ''">
+            and mn.group_Type = #{params.groupType}
+        </if>
+        and mn.state = 7
+        and not exists (select 1
+        from Group_Fund_Plan gfp
+        where gfp.Group_Id = mn.Group_Id
+        and gfp.del_flag = 0
+        and (gfp.Group_Main_Type is null
+        or gfp.Group_Main_Type = ''
+        or (gfp.Group_Main_Type = '0'
+        and gfp.State != 7 and gfp.State != 3)))
+        <if test="params.gfpsType != null and params.gfpsType == 1">
+            and exists(select 1
+            from Group_Fund_Plan_Summary gfps
+            left join Group_Fund_Plan_Summary_Detail gfpsd on gfps.id = gfpsd.Gfps_Id
+            left join Group_Fund_Plan gfp_sub on gfpsd.Gfp_Id = gfp_sub.Id
+            where gfp_sub.Group_Id = mn.Group_Id
+            and gfps.State = 7
+            and gfps.del_flag = 0
+            and gfpsd.del_flag = 0
+            and gfpsd.status = 0
+            and gfps.Gfps_Type = 1)
+        </if>
+        and mn.Group_Main_Type = '1'
+        order by mn.Create_Time desc
+    </select>
+
+     <select id="getCompanyGroupFundPlanSummaryById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanSummaryVo">
+         select *
+         from Group_Fund_Plan_Summary
+         where id = #{id}
+         and del_flag = 0
+     </select>
+
+    <select id="getGroupFundPlanSummaryDetailByPid"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.GroupFundPlanSummaryDetailVo">
+        select mn.*, gfps.id as gfpsId
+        from Group_Fund_Plan mn
+        left join Group_Fund_Plan_Summary_Detail gfpsd on mn.Id = gfpsd.Gfp_Id
+        left join Group_Fund_Plan_Summary gfps on gfpsd.Gfps_Id = gfps.Id
+        where mn.Project_ID = #{params.pId}
+        and gfps.Gfps_Type = #{params.gfpsType}
+        and mn.state = 7
+        and mn.del_flag = 0
+        and gfpsd.del_flag = 0
+        and gfps.del_flag = 0
+        and gfps.State = 7
+        and gfps.Group_Main_Type = 'new'
+        and exists (select 1
+        from Group_Fund_Plan_Summary_Detail gfpsd
+        inner join Group_Fund_Plan_Summary gfps on gfpsd.Gfps_Id = gfps.id
+        where gfpsd.Gfp_Id = mn.id
+        and gfpsd.del_flag = 0
+        and gfpsd.status = 0
+        and gfps.State = 7
+        and gfps.del_flag = 0)
+    </select>
+
+    <select id="existUseByGfpId" resultType="long">
+        select count(1)
+        from Group_Fund_Plan_Summary_Detail gfpsd
+        left join Group_Fund_Plan_Summary gfps on gfpsd.Gfps_Id = gfps.Id
+        where gfpsd.Gfp_Id = #{id}
+        and gfpsd.del_flag = 0
+        and gfpsd.status = 0
+        and gfps.del_flag = 0
+        and gfps.state != 3
+    </select>
+
+    <select id="existProjectSubmit" resultType="java.lang.String">
+        select p.D_ID
+        from Group_Fund_Plan_Summary gfps
+        left join SYS_User u on gfps.Create_Uid = u.U_ID
+        left join SYS_Position_User pu on u.U_ID = pu.U_ID
+        left join SYS_Position p on pu.P_ID = p.P_ID
+        where gfps.state != 3
+        and gfps.del_flag = 0
+        and gfps.Group_Main_Type = 'new'
+        <if test="id != null and id != ''">
+            and gfps.id != #{id}
+        </if>
+        and gfps.Gfps_Year = #{year}
+        and gfps.Gfps_Month = #{month}
+        and gfps.Gfps_Type = #{type}
+    </select>
+</mapper>

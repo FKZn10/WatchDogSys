@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.actualMeasurement.TaskDistributionCheckMapper">
+
+    <select id="getTaskDistributionCheckByTdId"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.TaskDistributionCheckModel">
+        select
+            mn.*,
+            ci.Ci_Name as ciName,
+            ci.Ci_Code as ciCode,
+            ci.Ci_Type as ciType,
+            ci.Ci_Expection as ciExpection,
+            ci.Ci_describe as ciDescribe,
+            ci.ci_Indicator as ciIndicator,
+            ci.ci_Method_Data as ciMethodData,
+            ci.Ci_Compute_Expection as ciComputeExpection,
+            CI2.ci_Name as ciParentName,
+            su.U_Name as checkPersonUname
+        from task_distribution_check mn
+        left join check_item ci on ci.Ci_Id = mn.Ci_Id
+        left join Check_Item CI2 on CI2.ci_Id = ci.Ci_Parent
+        left join sys_user su on su.U_id = mn.Check_Person_Uid
+        where
+            mn.td_Id = #{tdId}
+        order by mn.order_No
+    </select>
+
+    <select id="getTaskDistributionCheckList"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.TaskDistributionCheckModel">
+        select
+            mn.*,
+            ci.Ci_id as ciId,
+            ci.Ci_Name as ciName,
+            ci.Ci_Code as ciCode,
+            ci.Ci_Type as ciType,
+            ci.Ci_Expection as ciExpection,
+            ci.Ci_describe as ciDescribe,
+            ci.ci_Indicator as ciIndicator,
+            ci.ci_Method_Data as ciMethodData,
+            ci.Ci_Compute_Expection as ciComputeExpection,
+            su.U_Name as checkPersonUname,
+            pro.p_Id as pId,
+            pro.p_Name as pName,
+            dm.dm_Region_Name as diRegionName,
+            dm.dm_Code as diRegionCode,
+            dm.dm_Id as dmId,
+            dm.dm_Drawing as diDrawing,
+            td.task_Name as taskName,
+            td.task_Code as taskCode,
+            case
+                when mn.measured_Flag = '02' and mn.hf_Hg_Flag = '01' and mn.qsr_Id is null then '01'
+                when mn.measured_Flag = '02' and qr.qsr_Rectify_Status = '02' then '02'
+                when mn.measured_Flag = '02' and qr.qsr_Rectify_Status = '03' then '03'
+                else null
+            end as taskStatus
+        from task_distribution_check mn
+        left join Qs_Record qr on qr.qsr_Id = mn.qsr_Id
+        left join check_item ci on ci.Ci_Id = mn.Ci_Id
+        left join task_distribution td on td.Td_Id = mn.Td_Id
+        left join Drawing_Management_Catalogue dm on dm.dm_Id = td.dm_Id
+        left join sys_user su on su.U_id = mn.Check_Person_Uid
+        left join pre_project pro on pro.p_Id = td.p_Id
+        where td.state = 7
+            <if test="params.tdId != null">
+                and mn.td_Id = #{params.tdId}
+            </if>
+            <if test="params.checkPersonUid != null">
+                and mn.Check_Person_Uid = #{params.checkPersonUid}
+            </if>
+            <if test="params.checkType != null">
+                and mn.Check_Type = #{params.checkType}
+            </if>
+            <if test="params.measuredFlag != null">
+                and mn.Measured_Flag = #{params.measuredFlag}
+            </if>
+            <if test="params.checkPersonUname != null">
+                and su.U_Name like concat('%',#{params.checkPersonUname},'%')
+            </if>
+            <if test="params.ciName != null">
+                and ci.Ci_Name like concat('%',#{params.ciName},'%')
+            </if>
+            <if test="params.ciCode != null">
+                and ci.Ci_Code like concat('%',#{params.ciCode},'%')
+            </if>
+            <if test="params.ciType != null">
+                and ci.Ci_Type like concat('%',#{params.ciType},'%')
+            </if>
+            <if test="params.ciExpection != null">
+                and ci.Ci_Expection like concat('%',#{params.ciExpection},'%')
+            </if>
+            <if test="params.ciComputeExpection != null">
+                and ci.Ci_Compute_Expection like concat('%',#{params.ciComputeExpection},'%')
+            </if>
+            <if test="params.pId != null">
+                and td.p_Id = #{params.pId}
+            </if>
+            <if test="params.hfHgFlag != null">
+                and mn.hf_Hg_Flag like concat('%',#{params.hfHgFlag},'%')
+            </if>
+        order by mn.order_No
+    </select>
+
+    <select id="getTaskDistributionCheckByDmId"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.TaskDistributionResponse">
+        select
+            mn.*,
+            mn.Dm_Drawing as diDrawing,
+            td.task_Name as taskName,
+            td.task_Code as taskCode,
+            mn.dm_Region_Name as diRegionName,
+            mn.dm_Code as diRegionCode,
+            pro.p_Id as pId,
+            td.td_Id as tdId,
+            td.task_user_ids as taskUserIds,
+            td.task_user_names as taskUserNames,
+            pro.p_Name as pName
+        from Drawing_Management_Catalogue mn
+        <!--
+            原 SQL 的关联条件写成了当前目录字段自等，条件恒真，会把当前图纸目录关联到所有已完成任务。
+            这里改为 td.dm_Id = mn.dm_Id，确保按当前图纸目录取任务；用户可见性在 service 中兼容
+            “已有检查点”和“任务主表授权用户集合”两种逻辑。
+        -->
+        left join task_Distribution td on td.dm_Id = mn.dm_Id
+        left join pre_project pro on pro.P_id = mn.p_id
+        where mn.dm_Id = #{dmId} and td.state = 7
+    </select>
+
+    <select id="getTaskDistributionCheckByCreateTimeNew"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.TaskDistributionResponse">
+        select
+        mn.*,
+        mn.task_user_ids as taskUserIds,
+        mn.task_user_names as taskUserNames,
+        pro.p_Id as pId,
+        pro.p_Name as pName,
+        dm.Dm_Drawing as diDrawing,
+        dm.dm_Region_Name as diRegionName,
+        dm.dm_Code as diRegionCode
+        from task_distribution mn
+        left join task_distribution_check tdc on tdc.Td_Id = mn.Td_Id
+        left join Drawing_Management_Catalogue dm on dm.dm_Id = mn.dm_Id
+        left join pre_project pro on pro.p_Id = mn.p_Id
+        where 1=1
+        and mn.state = 7
+        <if test="params.teId != null">
+            and mn.te_Id = #{params.teId}
+        </if>
+        <if test="params.checkPersonUid != null">
+            <!--
+                兼容旧逻辑和新逻辑：
+                旧逻辑要求用户已被分配检查点；新逻辑允许任务主表 task_user_ids 先授权用户看到图纸，
+                即使该用户还没有任何检查点，也能取到任务壳并动态新增点位。
+            -->
+            and (
+                tdc.Check_Person_Uid = #{params.checkPersonUid}
+                or (
+                    mn.task_user_ids is not null
+                    and concat(',', mn.task_user_ids, ',') like concat('%,', #{params.checkPersonUid}, ',%')
+                )
+            )
+        </if>
+        <if test="params.pId !=null">
+            and mn.p_Id = #{params.pId}
+        </if>
+        order by mn.create_Time asc
+        limit 1
+    </select>
+</mapper>

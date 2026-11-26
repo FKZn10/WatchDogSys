@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysTenantMapper">
+
+    <select id="getSysTenantList" resultType="com.jpmsoft.userProducer.pojo.vo.SysTenantVO">
+        select
+             mn.*
+        from SYS_Tenant mn
+        <where>
+            <if test="params.teType!=null">
+                and mn.Te_Type=#{params.teType}
+            </if>
+            <if test="params.teChargeType!=null">
+                and mn.Te_Charge_Type=#{params.teChargeType}
+            </if>
+            <if test="params.teStatus!=null">
+                and mn.Te_Status=#{params.teStatus}
+            </if>
+            <if test="params.state!=null">
+                and mn.State=#{params.state}
+            </if>
+            <if test="params.teIndustry!=null">
+                and mn.Te_Industry=#{params.teIndustry}
+            </if>
+            <if test="params.teSize!=null">
+                and mn.Te_Size=#{params.teSize}
+            </if>
+            <if test="params.teName!=null">
+                and INSTR(mn.Te_Name,#{params.teName})
+            </if>
+            <if test="params.teCode!=null">
+                and INSTR(mn.Te_Code,#{params.teCode})
+            </if>
+            <if test="params.teNo!=null">
+                and INSTR(mn.Te_No,#{params.teNo})
+            </if>
+            <if test="params.teLegal!=null">
+                and INSTR(mn.Te_Legal,#{params.teLegal})
+            </if>
+            <if test="params.teContacts!=null">
+                and INSTR(mn.Te_Contacts,#{params.teContacts})
+            </if>
+            <if test="params.teContactsTel!=null">
+                and INSTR(mn.Te_Contacts_Tel,#{params.teContactsTel})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

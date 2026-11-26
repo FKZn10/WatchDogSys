@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.visaChange.ConSvisMapper">
+
+    <select id="getConSvisById" resultType="com.jpmsoft.common.model.response.DesignChange.ConSvisResponse">
+        select con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               pro.P_Name          as pName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               c1.C_Name           as svisProposedName,
+               c1.C_Abbreviation   as svisProposedAbbName,
+               f.file_relation_id  as fileRelationId,
+               mn.*
+        from Con_Svis mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Company c1 on mn.Svis_Proposed_Id = c1.C_Id
+                 left join Sys_File f on f.FileID = mn.Svis_Id
+        where mn.Svis_Id = #{svisId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id=#{params.conId}
+        </if>
+        <if test="params.svisState!=null">
+            and mn.Svis_State=#{params.svisState}
+        </if>
+        <if test="params.svisProposedId!=null">
+            and mn.Svis_Proposed_Id=#{params.svisProposedId}
+        </if>
+        <if test="params.svisMainCode!=null">
+            and mn.Svis_Main_Code=#{params.svisMainCode}
+        </if>
+        <if test="params.svisSubCode!=null">
+            and mn.Svis_Sub_Code=#{params.svisSubCode}
+        </if>
+        <if test="params.svisCode!=null">
+            and mn.Svis_Code like concat('%',#{params.svisCode},'%')
+        </if>
+        <if test="params.svisName!=null">
+            and mn.Svis_Name like concat('%',#{params.svisName},'%')
+        </if>
+        <if test="params.svisProjectName!=null">
+            and mn.Svis_Project_Name like concat('%',#{params.svisProjectName},'%')
+        </if>
+        <if test="params.svisMajor!=null">
+            and mn.Svis_Major like concat('%',#{params.svisMajor},'%')
+        </if>
+        <if test="params.svisDrawingNo!=null">
+            and mn.Svis_Drawing_No like concat('%',#{params.svisDrawingNo},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.filterSvBudget==true">
+            and (select count(*) from Con_Sv_Budget scvb where scvb.Svis_Id=mn.Svis_Id and scvb.State!=3) &lt; 1
+        </if>
+    </sql>
+
+    <select id="getConSvisList" resultType="com.jpmsoft.common.model.response.DesignChange.ConSvisResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name_History as svisProposedNameHistory,
+        c1.C_Name as svisProposedName,
+        c1.C_Abbreviation as svisProposedAbbName,
+        mn.*
+        from Con_Svis mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on mn.Svis_Proposed_Id=c1.C_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Svis_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getConSvisListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Con_Svis mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+</mapper>

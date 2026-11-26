@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fundPlan.FundAppropriationDtlMapper">
+
+    <select id="getFundAppropriationDtlList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundAppropriationDtlVo">
+        select <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+               con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               con.Con_Money_Total as conMoneyTotal,
+               con.Con_Pay_Clause  as conPayClause,
+               fa.Fa_Date          as faDate,
+               fa.Fa_Code          as faCode,
+               fa.Create_Uname     as createUname,
+               mn.*
+        from Fund_Appropriation_Dtl mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+                 left join Con_Contract con on mn.Con_Id = con.Con_Id
+                 left join Fund_Appropriation fa on fa.id = mn.Fa_Id
+        where mn.Con_Id = #{params.conId}
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.teId!=null">
+            and fa.Te_Id = #{params.teId}
+        </if>
+        and fa.State = 7
+        order by fa.Create_Time desc, mn.Fad_Sort asc
+    </select>
+
+</mapper>

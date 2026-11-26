@@ -1,0 +1,57 @@
+package com.jpmsoft.common.model.requestAndResponse.osm;
+
+import com.jpmsoft.common.model.BaseFileRequest;
+import lombok.Data;
+
+import java.util.Date;
+
+@Data
+public class OsmSiteMeetingMinutesDto extends BaseFileRequest {
+
+    private String id;
+    /**
+     * 标题
+     */
+    private String title;
+    /**
+     * 编码
+     */
+    private String code;
+    /**
+     * 处理人id
+     */
+    private String handlerUserId;
+    /**
+     * 处理人姓名
+     */
+    private String handlerUserName;
+    /**
+     * 提交时间
+     */
+    private Date handlerTime;
+    /**
+     * 备注
+     */
+    private String remark;
+    /**
+     * 创建人id
+     */
+    private String createUid;
+    /**
+     * 创建人姓名
+     */
+    private String createUname;
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+    /**
+     * 流程状态
+     */
+    private Integer state;
+    /**
+     * 审批时间
+     */
+    private Date stateTime;
+
+}

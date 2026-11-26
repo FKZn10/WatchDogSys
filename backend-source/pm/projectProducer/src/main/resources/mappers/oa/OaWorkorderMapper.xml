@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaWorkorderMapper">
+
+    <select id="getOaWorkorderById"
+            resultType="com.jpmsoft.common.model.response.Oa.OaWorkorderResponse">
+        select con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               pro.P_Name          as pName,
+               sd.D_Name           as dName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               f.file_relation_id  as fileRelationId,
+               mn.*
+        from OA_WorkOrder mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Department sd on sd.D_Id = mn.D_Id
+                 left join Sys_File f on f.FileID = mn.Wo_Id
+        where mn.Wo_Id = #{woId}
+    </select>
+
+
+    <select id="getOaWorkorderList"
+            resultType="com.jpmsoft.common.model.response.Oa.OaWorkorderResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        sd.D_Name as dName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from OA_WorkOrder mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department sd on sd.D_Id=mn.D_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.woType!=null">
+            and mn.Wo_Type = #{params.woType}
+        </if>
+        <if test="params.woPriority!=null">
+            and mn.Wo_Priority = #{params.woPriority}
+        </if>
+        <if test="params.woState!=null">
+            and mn.Wo_State = #{params.woState}
+        </if>
+        <if test="params.woResolvedState!=null">
+            and mn.Wo_Resolved_State = #{params.woResolvedState}
+        </if>
+        <if test="params.woTitle!=null">
+            and pro.Wo_Title like concat('%',#{params.woTitle},'%')
+        </if>
+        <if test="params.woCode!=null">
+            and pro.Wo_Code like concat('%',#{params.woCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Wo_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

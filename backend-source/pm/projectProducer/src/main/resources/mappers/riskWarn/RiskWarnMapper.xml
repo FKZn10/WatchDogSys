@@ -1,0 +1,493 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.riskWarn.RiskWarnMapper">
+
+    <!--************************************* 公用 *************************************-->
+    <sql id="rwTimeYearFormat" databaseId="dm">
+        year(Rw_Time)
+    </sql>
+    <sql id="rwTimeYearFormat" databaseId="mysql">
+        year(Rw_Time)
+    </sql>
+    <sql id="rwTimeYearFormat" databaseId="postgre">
+        to_char(Rw_Time,'yyyy')
+    </sql>
+
+    <sql id="rwTimeMonthFormat" databaseId="dm">
+        MONTH(Rw_Time)
+    </sql>
+    <sql id="rwTimeMonthFormat" databaseId="mysql">
+        MONTH(Rw_Time)
+    </sql>
+    <sql id="rwTimeMonthFormat" databaseId="postgre">
+        to_number(to_char(Rw_Time,'MM'))
+    </sql>
+
+    <select id="getRiskWarnListCoutnByYearAndMonth" resultType="Map">
+        select
+        yearstr,
+        count(1) as "yearcount",
+        sum(case when rwState=0 then 1 else 0 end) as "yearhandlecount",
+        sum(case when mon=#{month}  then 1 else 0 end) as "monthcount",
+        sum(case when mon=#{month} and  rwState=7 then 1 else 0 end) as "monthhandlecount"
+        from (
+        SELECT
+        <include refid="rwTimeYearFormat" /> as "yearstr",
+        <include refid="rwTimeMonthFormat" /> as "mon",
+        Rw_State as rwState
+        from  Risk_Warn
+        <if test="teId!=null">
+            and Te_Id = #{teId}
+        </if>
+        ) a
+        group  by  yearstr having yearstr=#{yaer}
+    </select>
+
+
+    <select id="getRiskWarnById" resultType="com.jpmsoft.common.model.response.RiskWarn.RiskWarnResponse">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        con.Con_Name as conName,
+        sec.Sec_Name as secName,
+        c1.C_Name_History as rwFlowCNameHistory,
+        c1.C_Name as rwFlowCName,
+        c1.C_Abbreviation as rwFlowCAbbName,
+        d.D_Name as dName,
+        rwi.Rwi_Name as rwiName,
+        rwi.Rwi_Level as rwiLevel,
+        u.U_Name as rwPmName,
+        rwi.Rwi_Desc as rwiDesc,
+        rwi.Rwi_Problem as rwiProblem,
+        mn.*
+        from  Risk_Warn mn
+        left join  Risk_Warn_Index rwi on mn.Rwi_Id=rwi.Rwi_Id
+        left join  Pre_Project pro on mn.P_Id=pro.P_ID
+        left join  Con_Contract con on mn.Con_Id=con.Con_Id
+        left join  Sec_Info sec on mn.Sec_Id=sec.Sec_Id
+        left join  SYS_Company c1 on mn.Rw_Flow_C_Id=c1.C_Id
+        left join  SYS_Department d on mn.D_Id=d.D_Id
+        left join  SYS_User u on mn.Rw_Pm_Id=u.U_Id
+        where mn.Rw_ID=#{rwId}
+    </select>
+
+    <!-- 分页查询风险预警信息 Begin-->
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.dId!=null">
+            and mn.D_Id =#{params.dId}
+        </if>
+        <if test="params.rwiLevel!=null">
+            and rwi.Rwi_Level =#{params.rwiLevel}
+        </if>
+        <if test="params.rwTimeStart!=null">
+            and mn.Rw_Time > #{params.rwTimeStart}
+        </if>
+        <if test="params.rwTimeEnd!=null">
+            and mn.Rw_Time &lt; #{params.rwTimeEnd}
+        </if>
+        <if test="params.rwCreateTimeStart!=null">
+            and clue.Rwc_Create_Time &gt;= #{params.rwCreateTimeStart}
+        </if>
+        <if test="params.rwCreateTimeEnd!=null">
+            and clue.Rwc_Create_Time &lt;= #{params.rwCreateTimeEnd}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.rwiName!=null">
+            and rwi.Rwi_Name like concat('%',#{params.rwiName},'%')
+        </if>
+        <if test="params.rwContent!=null">
+            and mn.Rw_Content like concat('%',#{params.rwContent},'%')
+        </if>
+        <if test="params.rwState!=null">
+            and mn.Rw_State = #{params.rwState}
+        </if>
+        <if test="params.rwiId!=null">
+            and mn.Rwi_Id = #{params.rwiId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.cId!=null">
+            and pro.P_Construction_Unit = #{params.cId}
+        </if>
+        <if test="params.uType!=null">
+            and u1.U_Type = #{params.uType}
+        </if>
+        <if test="params.oplId != null and params.oplId != ''">
+            and opr.Opl_Id = #{params.oplId}
+        </if>
+        <if test="params.rwFrom != null and params.rwFrom != ''">
+            and mn.Rw_From = #{params.rwFrom}
+        </if>
+        <if test="params.tCode != null and params.tCode != ''">
+            and sf.T_Code = #{params.tCode}
+        </if>
+    </sql>
+
+    <select id="getRiskWarnList" resultType="com.jpmsoft.common.model.response.RiskWarn.RiskWarnResponse">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        con.Con_Name as conName,
+        sec.Sec_Name as secName,
+        c1.C_Name_History as rwFlowCNameHistory,
+        c1.C_Name as rwFlowCName,
+        c1.C_Abbreviation as rwFlowCAbbName,
+        d.D_Name as dName,
+        rwi.Rwi_Name as rwiName,
+        rwi.Rwi_Level as rwiLevel,
+        u.U_Name as rwPmName,
+        rwi.Rwi_Desc as rwiDesc,
+        rwi.Rwi_Problem as rwiProblem,
+        u1.U_Name as personLiable,
+        sf.T_Code as tCode,
+        mn.*
+        from Risk_Warn mn
+        left join Risk_Warn_Index rwi on mn.Rwi_Id=rwi.Rwi_Id
+        left join Pre_Project pro on mn.P_Id=pro.P_ID
+        left join Con_Contract con on mn.Con_Id=con.Con_Id
+        left join Sec_Info sec on mn.Sec_Id=sec.Sec_Id
+        left join SYS_Company c1 on mn.Rw_Flow_C_Id=c1.C_Id
+        left join SYS_Department d on mn.D_Id=d.D_Id
+        left join SYS_User u on mn.Rw_Pm_Id=u.U_Id
+        left join SYS_User u1 on mn.Rw_Handle_Uid=u1.U_Id
+        left join SYS_File sf on mn.Rw_From = sf.FileID
+        left join Risk_Warn_Clue clue on mn.Rw_Clue_Id = clue.Rwc_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Rw_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getRiskWarnRanking" resultType="Map">
+        select max(rwi.Rwi_Name) as "rwiName", count(distinct mn.Rw_Id) as "warnCount"
+        from Risk_Warn mn
+        left join Risk_Warn_Index rwi on mn.Rwi_Id = rwi.Rwi_Id
+        left join Pre_Project pro on mn.P_Id = pro.P_Id
+        left join SYS_User u1 on mn.Rw_Handle_Uid = u1.U_Id
+        left join SYS_File sf on mn.Rw_From = sf.FileID
+        <if test="params.oplId != null and params.oplId != ''">
+            left join Outline_Project_Risk opr on opr.Risk_Id = mn.Rwi_Id
+        </if>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <if test="params.rwiDesc != null">
+            and rwi.Rwi_Desc like concat('%', #{params.rwiDesc}, '%')
+        </if>
+        <if test="params.rwiProblem != null">
+            and rwi.Rwi_Problem like concat('%', #{params.rwiProblem}, '%')
+        </if>
+        group by mn.Rwi_Id
+        order by count(distinct mn.Rw_Id) desc, mn.Rwi_Id asc
+    </select>
+
+    <!-- 分页查询风险预警信息 End-->
+
+
+    <select id="selectRiskWarnAnnualQuery" resultType="Map">
+        select   t1.D_Name,t1.D_Code,count(1) as "countstr",
+        sum(case when t1.Rw_State=7 then 1 else 0 end) as "Approved",
+        sum(case when t1.Rw_State in(2,9)  then 1 else 0 end) as "Approvalfailed",
+        sum(case when t1.Rw_State=0  then 1 else 0 end) as "Pending",
+        sum(case when t1.Rw_State in(1,4)  then 1 else 0 end) as "Underapproval"
+        from
+        (select  d1.D_Name,d1.D_Code,rw.Rw_State   from
+         Risk_Warn rw
+        left join   Risk_Warn_Index rwi  on rw.Rwi_Id=rwi.Rwi_Id
+        left join (select *   from  Sys_Dictionary where  D_ParentID in( select  D_ID from   Sys_Dictionary where  D_Code='JPMsoft_FXYJDJ')) d1  on rwi.Rwi_Level=d1.D_Code
+        where  rw.Rw_Time>=#{params.starttime}  and rw.Rw_Time  &lt; #{ params.Endtime}
+        <if test="params.teId!=null">
+            and rwi.Te_Id = #{params.teId}
+        </if>
+        )t1
+        group  by  t1.D_Name,t1.D_Code
+    </select>
+
+    <select id="getKeyIndicatorQuery" resultType="com.jpmsoft.common.model.response.RiskWarn.RiskWarnIndexResponse">
+        select * from(
+        select t1.Rwi_Id,count(1) as countstr,sum(case when t1.Rw_State=0 then 1 else 0 end) as pending
+        from ( select * from Risk_Warn where Rw_Time>=#{params.starttime} and Rw_Time &lt; #{ params.Endtime})t1 group
+        by t1.Rwi_Id
+        )b1 left join Risk_Warn_Index rwi on b1.Rwi_Id=rwi.Rwi_Id
+        <where>
+            <if test="params.teId!=null">
+                and rwi.Te_Id = #{params.teId}
+            </if>
+            <if test="params.rwiType!=null">
+                and rwi.Rwi_Type = #{params.rwiType}
+            </if>
+            <if test="params.rwiName!=null">
+                and rwi.Rwi_Name like concat('%',#{params.rwiName},'%')
+            </if>
+            <if test="params.dId!=null">
+                and rwi.D_Id = #{params.dId}
+            </if>
+            <if test="params.rwiLevel!=null">
+                and rwi.Rwi_Level = #{params.rwiLevel}
+            </if>
+            <if test="params.rwiDesc!=null">
+                and rwi.Rwi_Desc like concat('%',#{params.rwiDesc},'%')
+            </if>
+            <if test="params.rwiProblem!=null">
+                and rwi.Rwi_Problem like concat('%',#{params.rwiProblem},'%')
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by rwi.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getKeyIndicatorQueryCount" resultType="java.lang.Integer">
+        select count(1) from(
+        select t1.Rwi_Id,count(1) as countstr,sum(case when t1.Rw_State=0 then 1 else 0 end) as pending
+        from ( select * from Risk_Warn where Rw_Time>=#{params.starttime} and Rw_Time &lt; #{ params.Endtime})t1 group
+        by t1.Rwi_Id
+        )b1 left join Risk_Warn_Index rwi on b1.Rwi_Id=rwi.Rwi_Id
+        <where>
+            <if test="params.teId!=null">
+                and rwi.Te_Id = #{params.teId}
+            </if>
+            <if test="params.rwiType!=null">
+                and rwi.Rwi_Type = #{params.rwiType}
+            </if>
+            <if test="params.rwiName!=null">
+                and rwi.Rwi_Name like concat('%',#{params.rwiName},'%')
+            </if>
+            <if test="params.dId!=null">
+                and rwi.D_Id = #{params.dId}
+            </if>
+            <if test="params.rwiLevel!=null">
+                and rwi.Rwi_Level = #{params.rwiLevel}
+            </if>
+            <if test="params.rwiDesc!=null">
+                and rwi.Rwi_Desc like concat('%',#{params.rwiDesc},'%')
+            </if>
+            <if test="params.rwiProblem!=null">
+                and rwi.Rwi_Problem like concat('%',#{params.rwiProblem},'%')
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by rwi.${params.sortFiled} ${params.sortType}
+        </if>
+    </select>
+
+
+    <select id="getDepartmentTaskQueryCount" resultType="Map">
+        select
+        t1.C_Name,t1.C_ID,
+        count(1) as "countstr",
+        sum(case when t1.Rw_State=0 then 1 else 0 end) as "pending"
+        from (
+        select C_Name,C_ID,RW.Rw_State from Risk_Warn RW
+        left join Pre_Project PP on RW.P_ID=PP.P_Id
+        left join SYS_Company on C_ID=PP.P_Construction_Unit
+        where 1=1
+        <if test="params.teId!=null">
+            and PP.Te_Id = #{params.teId}
+        </if>
+        <if test="params.starttime!=null">
+            and RW.Rw_Time>=#{params.starttime}
+        </if>
+        <if test="params.Endtime!=null">
+            and RW.Rw_Time &lt; #{ params.Endtime}
+        </if>
+        )t1 group by t1.C_Name,t1.C_ID
+        having 1=1
+        <if test="params.cName!=null">
+            and t1.C_Name like concat('%',#{params.cName},'%')
+        </if>
+        <if test="params.uaranteeprocessed!=null">
+            and (sum(case when t1.Rw_State=0 then 1 else 0 end) >0
+            or sum(case when t1.Rw_State in(2,9) then 1 else 0 end)>0
+            or sum(case when t1.Rw_State in(1,4) then 1 else 0 end)>0)
+        </if>
+    </select>
+
+
+    <select id="getProjectTaskQueryCount" resultType="Map">
+        select t1.P_Name,
+        count(1) as "countstr",
+        sum(case when t1.Rw_State=0 then 1 else 0 end) as "pending"
+        from (
+        select pp.P_Name,RW.Rw_State from Risk_Warn RW
+        left join Risk_Warn_Index rwi on RW.Rwi_Id=rwi.Rwi_Id
+        left join Pre_Project PP on RW.P_ID=PP.P_Id
+        where 1=1
+        <if test="params.teId!=null">
+            and PP.Te_Id = #{params.teId}
+        </if>
+        <if test="params.starttime!=null">
+            and RW.Rw_Time>=#{params.starttime}
+        </if>
+        <if test="params.Endtime!=null">
+            and RW.Rw_Time &lt; #{ params.Endtime}
+        </if>
+        )t1 group by t1.P_Name having 1=1
+        <if test="params.pName!=null">
+            and t1.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.uaranteeprocessed!=null">
+            and (sum(case when t1.Rw_State=0 then 1 else 0 end) >0
+            or sum(case when t1.Rw_State in(2,9) then 1 else 0 end)>0
+            or sum(case when t1.Rw_State in(1,4) then 1 else 0 end)>0)
+        </if>
+    </select>
+
+    <select id="getDepartmentTaskQuery" resultType="Map">
+        select t1.C_Name,t1.C_ID,
+        count(1) as "countstr",
+        sum(case when t1.Rw_State=7 then 1 else 0 end) as "approved",
+        sum(case when t1.Rw_State in(2,9) then 1 else 0 end) as "approvalfailed",
+        sum(case when t1.Rw_State=0 then 1 else 0 end) as "pending",
+        sum(case when t1.Rw_State in(1,4) then 1 else 0 end) as "underapproval",
+        <include refid="concatRwiLevelResult"/>
+        max(t1.Rw_Time) as "rwTime"
+        from (
+        select RW.Rw_State,C_Name,C_ID,RW.Rw_Time,rwi.Rwi_Level from Risk_Warn RW
+        left join Risk_Warn_Index rwi on RW.Rwi_Id=rwi.Rwi_Id
+        left join Pre_Project PP on RW.P_ID=PP.P_Id
+        left join SYS_Company c1 on c1.C_ID=PP.P_Construction_Unit
+        where 1=1
+        <if test="params.teId!=null">
+            and PP.Te_Id = #{params.teId}
+        </if>
+        <if test="params.starttime!=null">
+            and RW.Rw_Time>=#{params.starttime}
+        </if>
+        <if test="params.Endtime!=null">
+            and RW.Rw_Time &lt; #{ params.Endtime}
+        </if>
+        )t1 group by t1.C_Name,t1.C_ID
+        having 1=1
+        <if test="params.cName!=null">
+            and t1.C_Name like concat('%',#{params.cName},'%')
+        </if>
+        <if test="params.uaranteeprocessed!=null">
+            and (sum(case when t1.Rw_State=0 then 1 else 0 end) >0
+            or sum(case when t1.Rw_State in(2,9) then 1 else 0 end)>0
+            or sum(case when t1.Rw_State in(1,4) then 1 else 0 end)>0)
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getProjectTaskQuery" resultType="Map">
+        select t1.P_Name,
+        count(1) as "countstr",
+        sum(case when t1.Rw_State=7 then 1 else 0 end) as "approved",
+        sum(case when t1.Rw_State in(2,9) then 1 else 0 end) as "approvalfailed",
+        sum(case when t1.Rw_State=0 then 1 else 0 end) as "pending",
+        sum(case when t1.Rw_State in(1,4) then 1 else 0 end) as "underapproval",
+        <include refid="concatRwiLevelResult"/>
+        max(t1.Rw_Time) as "rwTime"
+        from (
+        select PP.P_Name,RW.Rw_State,RW.Rw_Time,rwi.Rwi_Level from Risk_Warn RW
+        left join Risk_Warn_Index rwi on RW.Rwi_Id=rwi.Rwi_Id
+        left join Pre_Project PP on RW.P_ID=PP.P_Id
+        where 1=1
+        <if test="params.teId!=null">
+            and PP.Te_Id = #{params.teId}
+        </if>
+        <if test="params.starttime!=null">
+            and RW.Rw_Time>=#{params.starttime}
+        </if>
+        <if test="params.Endtime!=null">
+            and RW.Rw_Time &lt; #{ params.Endtime}
+        </if>
+        )t1 group by t1.P_Name having 1=1
+        <if test="params.pName!=null">
+            and t1.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.uaranteeprocessed!=null">
+            and (sum(case when t1.Rw_State=0 then 1 else 0 end) >0
+            or sum(case when t1.Rw_State in(2,9) then 1 else 0 end)>0
+            or sum(case when t1.Rw_State in(1,4) then 1 else 0 end)>0)
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <!--************************************* dm *************************************-->
+
+    <sql id="concatRwiLevelResult" databaseId="dm">
+        LISTAGG(t1.Rwi_Level,',') as "tipsstr",
+    </sql>
+
+    <sql id="concatRwiLevelResult" databaseId="postgre">
+        string_agg(t1.Rwi_Level,',') as tipsstr,
+    </sql>
+
+    <!--************************************* mysql *************************************-->
+    <sql id="concatRwiLevelResult" databaseId="mysql">
+        group_concat(t1.Rwi_Level) as "tipsstr",
+    </sql>
+
+    <select id="getRiskWarnListOutline"
+            resultType="com.jpmsoft.common.model.response.RiskWarn.RiskWarnResponse">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        con.Con_Name as conName,
+        sec.Sec_Name as secName,
+        c1.C_Name_History as rwFlowCNameHistory,
+        c1.C_Name as rwFlowCName,
+        c1.C_Abbreviation as rwFlowCAbbName,
+        d.D_Name as dName,
+        rwi.Rwi_Name as rwiName,
+        rwi.Rwi_Level as rwiLevel,
+        u.U_Name as rwPmName,
+        rwi.Rwi_Desc as rwiDesc,
+        rwi.Rwi_Problem as rwiProblem,
+        u1.U_Name as personLiable,
+        mn.*,
+        opr.Opl_Id as oplId,
+        sf.T_Code as tCode
+        from Risk_Warn mn
+        left join Risk_Warn_Index rwi on mn.Rwi_Id=rwi.Rwi_Id
+        left join Pre_Project pro on mn.P_Id=pro.P_ID
+        left join Con_Contract con on mn.Con_Id=con.Con_Id
+        left join Sec_Info sec on mn.Sec_Id=sec.Sec_Id
+        left join SYS_Company c1 on mn.Rw_Flow_C_Id=c1.C_Id
+        left join SYS_Department d on mn.D_Id=d.D_Id
+        left join SYS_User u on mn.Rw_Pm_Id=u.U_Id
+        left join SYS_User u1 on mn.Rw_Handle_Uid=u1.U_Id
+        left join Outline_Project_Risk opr on opr.Risk_Id = mn.Rwi_Id
+        left join SYS_File sf on mn.Rw_From = sf.FileID
+        left join Risk_Warn_Clue clue on mn.Rw_Clue_Id = clue.Rwc_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Rw_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

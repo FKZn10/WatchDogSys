@@ -1,0 +1,507 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.maintenance.MaintenanceRecordMapper">
+
+    <select id="getMaintenanceRecordById"
+            resultType="com.jpmsoft.common.model.response.Maintenance.MaintenanceRecordResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        c1.C_Name as mrCName,
+        c1.C_Abbreviation as mrAbbName,
+        sec.Sec_Name as secName,
+        f.file_relation_id as fileRelationId,
+        met.Met_Name as metName,
+        mn.*, dep.D_Name as mrReportDepartmentName,cd.Construction_Drawing_Code as mrConstructionDrawingCode
+        from  Maintenance_Record mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_Department dep on mn.Mr_Report_Department_Id = dep.D_Id
+        left join  construction_drawing cd on cd.id=mn.Mr_Report_Construction_Drawing_Id
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  SYS_Company c1 on c1.C_Id=mn.Mr_C_Id
+        left join  Sys_File f on f.FileID=mn.Mr_Id
+        left join  Me_Type_Library met on met.Met_Id=mn.Met_Id
+        where mn.Mr_Id=#{mrId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id=#{params.secId}
+        </if>
+        <if test="params.mrCId!=null">
+            and mn.Mr_C_Id=#{params.mrCId}
+        </if>
+        <if test="params.mrState!=null">
+            and mn.Mr_State=#{params.mrState}
+        </if>
+        <if test="params.metId!=null">
+            and mn.Met_Id=#{params.metId}
+        </if>
+        <if test="params.mrRepairState!=null">
+            and mn.Mr_Repair_State=#{params.mrRepairState}
+        </if>
+        <if test="params.metName!=null">
+            and met.Met_Name like concat('%',#{params.metName},'%')
+        </if>
+        <if test="params.mrReportTel!=null">
+            and mn.Mr_Report_Tel like concat('%',#{params.mrReportTel},'%')
+        </if>
+        <if test="params.mrReportUname!=null">
+            and mn.Mr_Report_Uname like concat('%',#{params.mrReportUname},'%')
+        </if>
+        <if test="params.mrPosition!=null">
+            and mn.Mr_Position like concat('%',#{params.mrPosition},'%')
+        </if>
+        <if test="params.mrCreateUname!=null">
+            and mn.Mr_Create_Uname like concat('%',#{params.mrCreateUname},'%')
+        </if>
+        <if test="params.pName!=null">
+            and mn.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <!--区间筛选-->
+        <if test="params.mrCreateTimeStart!=null">
+            and mn.Mr_Create_Time > #{params.mrCreateTimeStart}
+        </if>
+        <if test="params.mrCreateTimeEnd!=null">
+            and mn.Mr_Create_Time &lt; #{params.mrCreateTimeEnd}
+        </if>
+        <if test="params.mrCostStart!=null">
+            and mn.Mr_Cost > #{params.mrCostStart}
+        </if>
+        <if test="params.mrCostEnd!=null">
+            and mn.Mr_Cost &lt; #{params.mrCostEnd}
+        </if>
+        <if test="params.mrReportTime!=null">
+            and DATE(mn.Mr_Report_Time) = DATE(#{params.mrReportTime})
+        </if>
+        <if test="params.mrSerialNumber!=null">
+            and mn.mr_serial_number like concat('%',#{params.mrSerialNumber},'%')
+        </if>
+        <if test="params.mrConstructionId!=null">
+            and mn.Mr_Construction_Id = #{params.mrConstructionId}
+        </if>
+        <if test="params.mrConstructionName!=null">
+            and mn.	Mr_Construction_Name like concat('%',#{params.mrConstructionName},'%')
+        </if>
+        <if test="params.mrCampus != null and params.mrCampus != ''">
+            and mn.mr_campus = #{params.mrCampus}
+        </if>
+        <if test="params.mfCode != null and params.mfCode != ''">
+            and exists (select 1 from maintenance_finance mf where mf.mr_id=mn.mr_id and mf.mf_code like concat('%',#{params.mfCode},'%'))
+        </if>
+        <if test="params.mrReportTimeStart != null">
+            and mn.mr_report_time &gt;= #{params.mrReportTimeStart}
+        </if>
+        <if test="params.mrReportTimeEnd != null">
+            and mn.mr_report_time &lt;= #{params.mrReportTimeEnd}
+        </if>
+        <if test="params.piecemealSettlementFlowFlag != null and params.piecemealSettlementFlowFlag == true">
+            AND NOT EXISTS (SELECT 1 FROM sporadic_settlement_dtl ssd JOIN sporadic_settlement ss ON ss.id = ssd.se_id WHERE ssd.mr_id = mn.mr_id AND ss.state != 3)
+        </if>
+        <if test="params.jinfeihao != null and params.jinfeihao != ''">
+            and exists (
+            select 1 from maintenance_finance mf2
+            where mf2.mr_id = mn.mr_id
+            and mf2.mf_code like CONCAT('%', #{params.jinfeihao}, '%')
+            )
+        </if>
+        <if test="params.mrCategory != null and params.mrCategory != ''">
+            and mn.mr_category = #{params.mrCategory}
+        </if>
+        <if test="params.mrIssuingUnit != null and params.mrIssuingUnit != ''">
+            and mn.mr_issuing_unit= #{params.mrIssuingUnit}
+        </if>
+    </sql>
+
+    <resultMap id="MaintenanceRecordResultMap" type="com.jpmsoft.common.model.response.Maintenance.MaintenanceRecordResponse">
+        <id property="mrId" column="mr_id"/>
+        <result property="conName" column="conName"/>
+        <result property="conCode" column="conCode"/>
+        <result property="mrCNameHistory" column="mrCNameHistory"/>
+        <result property="mrCName" column="mrCName"/>
+        <result property="mrAbbName" column="mrAbbName"/>
+        <result property="secName" column="secName"/>
+        <result property="metName" column="metName"/>
+        <result property="Jinfeihao" column="Jinfeihao"/>
+        <collection property="maintenanceContentList" ofType="com.jpmsoft.common.model.response.Maintenance.MaintenanceContentResponse">
+            <id property="id" column="mc_id"/>
+            <result property="createUid" column="mc_create_uid"/>
+            <result property="createUname" column="mc_create_uname"/>
+            <result property="createTime" column="mc_create_time"/>
+            <result property="state" column="mc_state"/>
+            <result property="stateTime" column="mc_state_time"/>
+            <result property="mContent" column="m_content"/>
+            <result property="mPicture" column="m_picture"/>
+            <result property="startTime" column="start_time"/>
+            <result property="endTime" column="end_time"/>
+            <result property="endPicture" column="end_picture"/>
+            <result property="mrId" column="mc_mr_id"/>
+        </collection>
+        <collection property="maintenanceFinanceList" ofType="com.jpmsoft.common.model.response.Maintenance.MaintenanceFinanceResponse">
+            <id property="id" column="mf_id"/>
+            <result property="createUid" column="mf_create_uid"/>
+            <result property="createUname" column="mf_create_uname"/>
+            <result property="createTime" column="mf_create_time"/>
+            <result property="state" column="mf_state"/>
+            <result property="stateTime" column="mf_state_time"/>
+            <result property="mfSource" column="mf_source"/>
+            <result property="mfCode" column="mf_code"/>
+            <result property="mrId" column="mf_mr_id"/>
+            <result property="mfBudget" column="mf_budget"/>
+        </collection>
+    </resultMap>
+
+    <select id="getMaintenanceRecordList"
+            resultMap="MaintenanceRecordResultMap">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name_History as mrCNameHistory,
+        c1.C_Name as mrCName,
+        c1.C_Abbreviation as mrAbbName,
+        sec.Sec_Name as secName,
+        met.Met_Name as metName,
+        mn.*,
+        <include refid="MfCodesByMr"/>
+        pro.p_name as pName,
+        mc.id as mc_id,
+        mc.create_uid as mc_create_uid,
+        mc.create_uname as mc_create_uname,
+        mc.create_time as mc_create_time,
+        mc.state as mc_state,
+        mc.state_time as mc_state_time,
+        mc.m_content as m_content,
+        mc.m_picture as m_picture,
+        mc.start_time as start_time,
+        mc.end_time as end_time,
+        mc.end_picture as end_picture,
+        mc.mr_id as mc_mr_id,
+        mf.id as mf_id,
+        mf.create_uid as mf_create_uid,
+        mf.create_uname as mf_create_uname,
+        mf.create_time as mf_create_time,
+        mf.state as mf_state,
+        mf.state_time as mf_state_time,
+        mf.mf_source as mf_source,
+        mf.mf_code as mf_code,
+        mf.mr_id as mf_mr_id,
+        mf.mf_budget as mf_budget
+        from  Maintenance_Record mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  SYS_Company c1 on c1.C_Id=mn.Mr_C_Id
+        left join  Sys_Department dep on mn.Mr_Report_Department_Id = dep.D_Id
+        left join  Me_Type_Library met on met.Met_Id=mn.Met_Id
+        left join  maintenance_finance mf on mf.mr_id=mn.mr_id
+        left join  maintenance_content mc on mc.mr_id=mn.mr_id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+            <if test="params.ggCid!=null">
+                ((select count(*) from SYS_FlowActivity fa
+                left join sys_task_processin tp on tp.tp_actid=fa.actid
+                left join sys_user u1 on u1.u_id=tp.tp_user
+                where tp_entityid=mn.mr_id and actcode='construction' and u1.c_id=#{params.ggCid}) > 0
+                or
+                (select count(*) from sys_task tk where tk.taskentityid=mn.mr_id and taskuser=#{params.ggUid})>0
+                or
+                (select count(*) from sys_task_processin tp where tp.tp_entityid=mn.mr_id and tp_user=#{params.ggUid})>0
+                )
+            </if>
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.checkAuthority == '01' and params.ggUid != null and params.ggUid != ''">
+            AND (
+            mn.mr_Create_Uid = #{params.ggUid}
+            OR EXISTS (
+            SELECT 1
+            FROM sys_task_processin
+            WHERE tp_entityid = mn.mr_id
+            AND tp_user = #{params.ggUid}
+            )
+            )
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Mr_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <sql id="MfCodesByMr" databaseId="dm">
+        (SELECT Jinfeihao
+        FROM (
+                 SELECT LISTAGG(t.mf_code, ',') WITHIN GROUP (ORDER BY t.mf_code) AS Jinfeihao
+                 FROM (
+                     SELECT DISTINCT mf2.mf_code
+                     FROM maintenance_finance mf2
+                     WHERE mf2.mr_id = '1'
+                     ) t
+             )) Jinfeihao,
+    </sql>
+    <sql id="MfCodesByMr" databaseId="mysql">
+        (select GROUP_CONCAT(DISTINCT mf2.mf_code ORDER BY mf2.mf_code SEPARATOR ',')
+         from maintenance_finance mf2
+         where mf2.mr_id = mn.mr_id) as Jinfeihao,
+    </sql>
+
+    <select id="getTask" resultType="com.jpmsoft.common.model.response.TaskResponse">
+        select *
+        from sys_task
+        where TaskEntityID = #{mrId}
+        order by TaskSendTime desc
+        limit 1
+    </select>
+
+    <select id="getTaskProcessin" resultType="com.jpmsoft.projectProducer.pojo.entity.other.TaskProcessin">
+        select *
+        from sys_task_processin
+        where tp_entityid = #{mrId}
+        order by tp_dotime desc
+        limit 1
+    </select>
+
+    <select id="getList" resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.MaintenanceRecordModel">
+        select
+        mn.*,
+        dep.D_Name as mrReportDepartmentName,
+        cd.Construction_Drawing_Code as mrReportConstructionDrawingCode
+        ,c1.C_Name as mrCName ,u1.U_Name as mrRepairUname,
+        u2.U_Name as mrDispatchUname,u3.U_Name as mrCreateUname,
+        cd.construction_Drawing_Name as mrConstructionDrawingName
+        from Maintenance_Record mn
+        left join sys_department dep on mn.Mr_Report_Department_Id = dep.D_Id
+        left join SYS_Company c1 on c1.C_Id=mn.Mr_C_Id
+        left join sys_user u1 on u1.U_ID=mn.Mr_Repair_Uid
+        left join sys_user u2 on u2.U_ID=mn.Mr_Dispatch_Uid
+        left join sys_user u3 on u3.U_ID=mn.Mr_Create_Uid
+        left join construction_drawing cd on cd.id=mn.Mr_Report_Construction_Drawing_Id
+        ${params.authSql}
+        <if test="params.pName!=null and params.pName!=''">
+            and mn.p_name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.mrSerialNumber!=null and params.mrSerialNumber!=''">
+            and mn.mr_serial_number like concat('%',#{params.mrSerialNumber},'%')
+        </if>
+        <if test="params.mrReportDepartmentName!=null and params.mrReportDepartmentName!=''">
+            and dep.D_Name like concat('%',#{params.mrReportDepartmentName},'%')
+        </if>
+        <if test="params.mrState!=null and params.mrState!=''">
+            and mn.mr_state=#{params.mrState}
+        </if>
+        <if test="params.createTimeRange!=null and params.createTimeRange.size() > 1">
+            and mn.Mr_Create_Time between #{params.createTimeRange[0]} and #{params.createTimeRange[1]}
+        </if>
+        <if test="params.isSelect != null and params.isSelect==1">
+            and mn.Mr_Id not in (select distinct ccc.mr_id
+            from construction_completion_confirm ccc where ccc.state!=3)
+        </if>
+        <if test="params.excludeSelectedRenovatioChanges != null and params.excludeSelectedRenovatioChanges==1">
+            and mn.Mr_Id not in (select distinct rc.mr_id
+            from Renovatio_Changes rc where rc.state!=3)
+        </if>
+        <if test="params.excludeSelectedRenovatioVisa != null and params.excludeSelectedRenovatioVisa==1">
+            and mn.Mr_Id not in (select distinct rv.mr_id
+            from Renovatio_Visa rv where rv.state!=3)
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Mr_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getDetail" resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.MaintenanceRecordModel">
+        select
+        mn.*
+        ,dep.D_Name as mrReportDepartmentName
+        ,cd.Construction_Drawing_Code as mrReportConstructionDrawingCode
+        ,c1.C_Name as mrCName ,u1.U_Name as mrRepairUname
+        ,u2.U_Name as mrDispatchUname,u3.U_Name as mrCreateUname,
+        cd.construction_Drawing_Name as mrConstructionDrawingName,
+        sf.file_relation_id as fileRelationId
+        from Maintenance_Record mn
+        left join sys_department dep on mn.Mr_Report_Department_Id = dep.D_Id
+        left join SYS_Company c1 on c1.C_Id=mn.Mr_C_Id
+        left join sys_user u1 on u1.U_ID=mn.Mr_Repair_Uid
+        left join sys_user u2 on u2.U_ID=mn.Mr_Dispatch_Uid
+        left join sys_user u3 on u3.U_ID=mn.Mr_Create_Uid
+        left join construction_drawing cd on cd.id=mn.Mr_Report_Construction_Drawing_Id
+        left join Sys_File sf on sf.FileID=mn.Mr_Id
+        where mn.Mr_Id=#{mrId}
+    </select>
+
+    <select id="getList2" resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.MaintenanceRecordModel">
+        select
+        mn.*,
+        dep.D_Name as mrReportDepartmentName,
+        cd.Construction_Drawing_Code as mrConstructionDrawingCode
+        ,c1.C_Name as mrCName ,u1.U_Name as mrRepairUname,u2.U_Name as mrDispatchUname,u3.U_Name as mrCreateUname,
+        cd.construction_Drawing_Name as mrConstructionDrawingName
+        from Maintenance_Record mn
+        left join sys_department dep on mn.Mr_Report_Department_Id = dep.D_Id
+        left join SYS_Company c1 on c1.C_Id=mn.Mr_C_Id
+        left join sys_user u1 on u1.U_ID=mn.Mr_Repair_Uid
+        left join sys_user u2 on u2.U_ID=mn.Mr_Dispatch_Uid
+        left join sys_user u3 on u3.U_ID=mn.Mr_Create_Uid
+        left join construction_drawing cd on cd.id=mn.Mr_Report_Construction_Drawing_Id
+        <where>
+            mn.Mr_State not in (0,3,2,9)
+            <if test="params.pName!=null and params.pName!=''">
+                and mn.p_name like concat('%',#{params.pName},'%')
+            </if>
+            <if test="params.mrSerialNumber!=null and params.mrSerialNumber!=''">
+                and mn.mr_serial_number like concat('%',#{params.mrSerialNumber},'%')
+            </if>
+            <if test="params.year != null ">
+                and YEAR(mn.Mr_Report_Time) = #{params.year}
+            </if>
+            <if test="params.month != null ">
+                and MONTH(mn.Mr_Report_Time) = #{params.month}
+            </if>
+            <if test="params.mrRepairStates!=null and params.mrRepairStates.size() > 0">
+                and mn.mr_repair_state in
+                <foreach item="item" collection="params.mrRepairStates" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.startTime != null and params.endTime != null">
+                and mn.mr_report_time between #{params.startTime} and #{params.endTime}
+            </if>
+        </where>
+    </select>
+
+    <select id="getApplicationWarrantyStatusByMrId" resultType="java.lang.Integer">
+        select state
+        from Application_Warranty
+        where Mr_Id = #{mrId}
+    </select>
+
+    <update id="updateRepairRecordStatusAllInOne">
+        UPDATE maintenance_record mr
+            LEFT JOIN construction_completion_confirm ccc
+            ON mr.mr_id = ccc.mr_id
+            LEFT JOIN inv_settlement_apply_dtl isad
+            ON mr.mr_id = isad.mr_id
+            LEFT JOIN inv_settlement_apply isa
+            ON isad.isa_id = isa.sa_id
+            LEFT JOIN inv_settlement_pay isp
+            ON isa.sa_id = isp.inv_Settlement_Apply_Id
+            LEFT JOIN application_warranty aw
+            ON isp.id = aw.isp_id
+            SET mr.mr_repair_state = CASE
+                WHEN mr.mr_repair_state = '03' AND ccc.state = 3 THEN '02'
+                WHEN mr.mr_repair_state = '05' AND isa.sa_state = 3 THEN '04'
+                WHEN mr.mr_repair_state = '07' AND isp.state = 3 THEN '06'
+                WHEN mr.mr_repair_state = '09' AND aw.state = 3 THEN '08'
+                ELSE mr.mr_repair_state
+        END
+        WHERE mr.mr_repair_state IN ('03', '05', '07', '09')
+            AND (
+            (mr.mr_repair_state = '03' AND ccc.state = 3) OR
+            (mr.mr_repair_state = '05' AND isa.sa_state = 3) OR
+            (mr.mr_repair_state = '07' AND isp.state = 3) OR
+            (mr.mr_repair_state = '09' AND aw.state = 3)
+            )
+    </update>
+
+    <select id="getMaintenanceRecordListByAwId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.MaintenanceRecordModel">
+        select mn.*, aw.state as awState
+        from maintenance_record mn
+        left join inv_settlement_apply_dtl sad on sad.Mr_Id = mn.Mr_Id
+        left join inv_settlement_apply sa on sa.Sa_Id = sad.Isa_Id
+        left join Inv_Settlement_Pay isp on isp.inv_settlement_apply_id = sa.Sa_Id
+        left join Application_Warranty aw on aw.isp_Id = isp.id
+        where aw.id = #{id}
+    </select>
+
+    <select id="getRepairPersonByMrId" resultType="java.lang.String">
+        select stp.tp_user
+        from sys_task_processin stp
+        left join sys_flowactivity act on act.actId=stp.tp_actid
+        where stp.tp_entityid = #{mrId} and act.actcode = #{actCode}
+        order by stp.tp_dotime desc
+        limit 1
+    </select>
+    <select id="getSettlementRepairStates"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.maintenance.MaintenanceRecord">
+        select dtl.mr_id,
+        case max(case
+        when settlement.state = 7 then 3
+        when settlement.state not in (0, 3, 7) then 2
+        when settlement.state = 3 then 1
+        else 0
+        end)
+        when 3 then '4'
+        when 2 then '8'
+        when 1 then '3'
+        end as mr_repair_state
+        from sporadic_settlement_dtl dtl
+        join sporadic_settlement settlement on settlement.id = dtl.se_id
+        where dtl.mr_id in
+        <foreach collection="mrIds" item="mrId" open="(" separator="," close=")">
+            #{mrId}
+        </foreach>
+        and settlement.state != 0
+        group by dtl.mr_id
+    </select>
+    <select id="getPaymentRepairStates"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.maintenance.MaintenanceRecord">
+        select ssd.mr_id,
+        case max(case
+        when payments.state = 7 then 3
+        when payments.state not in (0, 3, 7) then 2
+        when payments.state = 3 then 1
+        else 0
+        end)
+        when 3 then '6'
+        when 2 then '9'
+        when 1 then '4'
+        end as mr_repair_state
+        from sporadic_payments payments
+        join sporadic_payments_dtl spd on spd.sp_p_did = payments.id
+        join sporadic_settlement settlement on settlement.id = spd.sp_d_id
+        join sporadic_settlement_dtl ssd on ssd.se_id = settlement.id
+        where settlement.state = 7
+        and payments.state != 0
+        and ssd.mr_id in
+        <foreach collection="mrIds" item="mrId" open="(" separator="," close=")">
+            #{mrId}
+        </foreach>
+        group by ssd.mr_id
+    </select>
+</mapper>

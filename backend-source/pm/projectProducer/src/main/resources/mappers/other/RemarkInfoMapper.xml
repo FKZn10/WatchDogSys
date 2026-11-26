@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.RemarkInfoMapper">
+    <insert id="addBatch">
+        insert into Remark_Info(id,Remark_Function_Code,Remark_Source_ID,Remark_Context,Create_Uid,Create_Uname,Create_Time,State,State_Time)
+        values
+        <foreach collection="list" item="remarkInfo" index="index" separator=",">
+            (#{remarkInfo.id},#{remarkInfo.remarkFunctionCode},#{remarkInfo.remarkSourceId},
+             #{remarkInfo.remarkContext},#{remarkInfo.createUid},#{remarkInfo.createUname},#{remarkInfo.createTime},#{remarkInfo.state},#{remarkInfo.stateTime})
+        </foreach>
+    </insert>
+    <select id="getRemarkInfoByGroupFundPlanSummaryId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.other.RemarkInfo">
+        select * from Remark_Info where Remark_Source_ID in
+        (select id from Group_Fund_Plan_Summary_Detail detail where detail.Gfps_Id=#{primaryId} and detail.del_flag=0 and detail.status=0)
+    </select>
+</mapper>

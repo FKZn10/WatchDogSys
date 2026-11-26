@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.osm.OsmCommencementReportMapper">
+
+
+    <select id="getCommencementReportList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.osm.OsmCommencementReportDto">
+         select ocr.*,pp.p_name pName from osm_commencement_report ocr
+             left join Pre_Project pp on pp.p_id = ocr.p_id
+         <where>
+             <if test="params.pId != null and params.pId != ''">
+                 and pp.p_id = #{params.pId}
+             </if>
+             <if test="params.pName != null and params.pName != ''">
+                 <choose>
+                     <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                         and likePname(#{params.pName},pp.P_Id)=true
+                     </when>
+                     <otherwise>
+                         and pp.p_name like concat('%',#{params.pName},'%')
+                     </otherwise>
+                 </choose>
+             </if>
+             <if test="params.usingSeals != null ">
+                 and ocr.using_seals = #{params.usingSeals}
+             </if>
+             <if test="params.sealsType != null and params.sealsType !=''  ">
+                 and ocr.seals_type = #{params.sealsType}
+             </if>
+             <if test="params.state != null">
+                 and ocr.state = #{params.state}
+             </if>
+             <if test="params.handlerUserName != null and params.handlerUserName!='' ">
+                 and ocr.handler_user_name like concat('%',#{params.handlerUserName},'%')
+             </if>
+             <if test="params.createUname != null and params.createUname!='' ">
+                 and ocr.create_uname like concat('%',#{params.createUname},'%')
+             </if>
+         </where>
+    </select>
+
+</mapper>
+

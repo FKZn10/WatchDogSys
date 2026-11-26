@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.riskWarn.RiskTemplateRelationMapper">
+
+    <select id="queryList" resultType="com.jpmsoft.projectProducer.pojo.dto.riskWarn.RiskTemplateRelationDTO">
+        select
+        ft.T_Name as tName,
+        ft.T_Code as tCode,
+        mn.*,
+        pm.Rpm_Type,
+        pm.Rpm_Level,
+        pm.Rpm_Points,
+        pm.Rpm_Measure,
+        pm.Rpm_Involved,
+        pm.Rpm_Dep,
+        pm.Rpm_Content,
+        pm.Create_Uid,
+        pm.Rpm_Icon,
+        pm.Rpm_Icon_Color,
+        pm.Rpm_Status
+        from Risk_Template_Relation mn
+        left join SYS_FileTemplate ft on ft.T_ID=mn.T_ID
+        left join Risk_Prevention_Measure pm on  pm.id=mn.Rpm_Id
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.rpmId!=null">
+                and mn.Rpm_Id=#{params.rpmId}
+            </if>
+            <if test="params.rtrFieldName!=null">
+                and INSTR(mn.Rtr_Field_Name,#{params.rtrFieldName})
+            </if>
+            <if test="params.rtrFieldCode!=null">
+                and INSTR(mn.Rtr_Field_Code,#{params.rtrFieldCode})
+            </if>
+            <if test="params.tName!=null">
+                and INSTR( ft.T_Name,#{params.tName})
+            </if>
+            <if test="params.tCode!=null">
+                and INSTR(ft.T_Code,#{params.tCode})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileViewMapper">
+
+    <select id="getArchiveFileViewList" resultType="com.jpmsoft.common.model.requestAndResponse.Archive.ArchiveFileViewModel">
+        select
+        fa.file_name as afAnnexName,
+        af.*,
+        mn.*
+        from  Archive_File_View mn
+        left join  Archive_File af on af.Af_Id=mn.Af_Id
+        left join  SYS_FileAnnex fa on af.Af_Annex_Id=fa.file_id
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.afvUname!=null">
+                and mn.Afv_Uname like concat('%',#{params.afvUname},'%')
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Afv_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.archive.ArchiveDirectoryGroupMapper">
+
+    <select id="getDirPowerRole" resultType="com.jpmsoft.projectProducer.pojo.dto.other.DirPowerRoleDTO">
+        select
+        srp.Role_Id as roleId,
+        mn.Power_Code as powerCode
+        from Sys_Power mn
+        left join SYS_Role_Power srp on srp.Power_ID=mn.Power_ID
+        where mn.Power_Type='1' and mn.Power_Status='1'
+        and srp.Role_Id in
+        <foreach collection="roleIds" open="(" close=")" separator="," item="roleId">
+            #{roleId}
+        </foreach>
+    </select>
+
+
+    <select id="getUserDirectoryPower" resultType="com.jpmsoft.projectProducer.pojo.vo.archive.ArchiveDirectoryGroupVo">
+        select
+        mn.*
+        from Archive_Directory_Group mn
+        where (mn.Adg_Type='02' and mn.Adg_Group_Id=#{userInfo.id})
+        <if test="userInfo.departmentIds!=null and userInfo.departmentIds.size()>0">
+            or ( mn.Adg_Type='01' and mn.Adg_Group_Id in
+                <foreach collection="userInfo.departmentIds" open="(" close=")" separator="," item="depId">
+                    #{depId}
+                </foreach>
+            )
+        </if>
+    </select>
+
+
+    <sql id="adgGroupNameSelect">
+        (case when mn.Adg_Type='01' then (select U_Name from Sys_User where U_Id=mn.Adg_Group_Id)
+            else (select D_Name from SYS_Department where D_Id=mn.Adg_Group_Id) end) as adgGroupName,
+    </sql>
+
+    <select id="getArchiveDirectoryGroupById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.archive.ArchiveDirectoryGroupVo">
+        select
+        <include refid="adgGroupNameSelect"/>
+        sr.Role_Name as roleName,
+        sr.Role_Code as roleCode,
+        mn.*
+        from Archive_Directory_Group mn
+        left join SYS_Role sr on sr.Role_ID=mn.Adg_Role
+        where mn.id=#{id}
+    </select>
+
+    <select id="getArchiveDirectoryGroupByAdId" resultType="com.jpmsoft.projectProducer.pojo.vo.archive.ArchiveDirectoryGroupVo">
+        select
+        <include refid="adgGroupNameSelect"/>
+        sr.Role_Name as roleName,
+        sr.Role_Code as roleCode,
+        mn.*
+        from Archive_Directory_Group mn
+        left join SYS_Role sr on sr.Role_ID=mn.Adg_Role
+        where mn.Ad_Id=#{adId}
+        order by mn.Create_Time DESC
+    </select>
+
+    <select id="getArchiveDirectoryGroupList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.archive.ArchiveDirectoryGroupVo">
+        select
+        <include refid="adgGroupNameSelect"/>
+        sr.Role_Name as roleName,
+        sr.Role_Code as roleCode,
+        mn.*
+        from Archive_Directory_Group mn
+        left join SYS_Role sr on sr.Role_ID=mn.Adg_Role
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.adId!=null">
+                and mn.Ad_Id=#{params.adId}
+            </if>
+            <if test="params.adgType!=null">
+                and mn.Adg_Type=#{params.adgType}
+            </if>
+            <if test="params.adgName!=null">
+                and INSRT(mn.Adg_Name,#{params.adgName})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

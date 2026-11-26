@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysTenantApplicationMapper">
+
+    <select id="getSysTenantApplicationList" resultType="com.jpmsoft.userProducer.pojo.vo.SysTenantApplicationVO">
+        select
+        app.App_Name as appName,
+        app.App_Code as appCode,
+        app.App_Type as appType,
+        te.Te_Name as teName,
+        te.Te_Code as teCode,
+        te.Te_Type as teType,
+        te.Te_Charge_Type as teChargeType,
+        te.Te_Expiration_Time as teExpirationTime,
+        mn.*
+        from SYS_TenantApplication mn
+        left join SYS_Tenant te on te.Te_Id=mn.Te_Id
+        left join SYS_Application app on app.App_Id=mn.App_Id
+        <where>
+            <if test="params.teType!=null">
+                and te.Te_Type=#{params.teType}
+            </if>
+            <if test="params.appType!=null">
+                and app.App_Type=#{params.appType}
+            </if>
+            <if test="params.teChargeType!=null">
+                and te.Te_Charge_Type=#{params.teChargeType}
+            </if>
+            <if test="params.appName!=null">
+                and INSTR(app.App_Name,#{params.appName})
+            </if>
+            <if test="params.appCode!=null">
+                and INSTR(app.App_Code,#{params.appCode})
+            </if>
+            <if test="params.teName!=null">
+                and INSTR(te.Te_Name,#{params.teName})
+            </if>
+            <if test="params.teCode!=null">
+                and INSTR(te.Te_Code,#{params.teCode})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by te.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

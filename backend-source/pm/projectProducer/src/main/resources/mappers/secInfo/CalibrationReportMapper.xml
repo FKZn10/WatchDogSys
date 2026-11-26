@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.CalibrationReportMapper">
+
+    <select id="getCalibrationReportBySecId" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.CalibrationReportVo">
+        select sec.Sec_Name       as secName,
+               sec.Sec_Code       as secCode,
+               pro.P_Name         as pName,
+               pro.P_Code         as pCode,
+               c1.c_name as crCNameOne,
+               c2.c_name as crCNameTwo,
+               c3.c_name as crCNameThree,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from CalibrationReport mn
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join sys_company c1 on c1.c_id=mn.Cr_C_Id_One
+                 left join sys_company c2 on c2.c_id=mn.Cr_C_Id_two
+                 left join sys_company c3 on c3.c_id=mn.Cr_C_Id_three
+                 left join SYS_File f on f.FileId = mn.id
+        where mn.Sec_Id = #{secId} and mn.State=7
+        order by mn.State_Time desc
+        limit 1
+    </select>
+    <select id="getCalibrationReportById" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.CalibrationReportVo">
+        select sec.Sec_Name       as secName,
+               sec.Sec_Code       as secCode,
+               pro.P_Name         as pName,
+               pro.P_Code         as pCode,
+               c1.c_name as crCNameOne,
+               c2.c_name as crCNameTwo,
+               c3.c_name as crCNameThree,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from CalibrationReport mn
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join sys_company c1 on c1.c_id=mn.Cr_C_Id_One
+                 left join sys_company c2 on c2.c_id=mn.Cr_C_Id_two
+                 left join sys_company c3 on c3.c_id=mn.Cr_C_Id_three
+                 left join SYS_File f on f.FileId = mn.id
+        where mn.id = #{id}
+    </select>
+
+
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.crPricingMethod!=null">
+            and mn.Cr_Pricing_Method=#{params.crPricingMethod}
+        </if>
+        <if test="params.crBacmApprove!=null">
+            and mn.Cr_Bacm_Approve=#{params.crBacmApprove}
+        </if>
+        <if test="params.crBidWinner!=null">
+            and INSTR(mn.Cr_Bid_Winner,#{params.crBidWinner})
+        </if>
+        <if test="params.crOtherValuation!=null">
+            and INSTR(mn.Cr_Other_Valuation,#{params.crOtherValuation})
+        </if>
+        <if test="params.crTitle!=null">
+            and INSTR(mn.Cr_Title,#{params.crTitle})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.crOriginator!=null">
+            and INSTR(mn.Cr_Originator,#{params.crOriginator})
+        </if>
+        <if test="params.crCode!=null">
+            and INSTR(mn.Cr_Code,#{params.crCode})
+        </if>
+    </sql>
+
+    <select id="getCalibrationReportList" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.CalibrationReportVo">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        c1.c_name as crCNameOne,
+        c2.c_name as crCNameTwo,
+        c3.c_name as crCNameThree,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from CalibrationReport mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join sys_company c1 on c1.c_id=mn.Cr_C_Id_One
+        left join sys_company c2 on c2.c_id=mn.Cr_C_Id_two
+        left join sys_company c3 on c3.c_id=mn.Cr_C_Id_three
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

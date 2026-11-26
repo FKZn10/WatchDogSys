@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.constructionProcedure.ProjectCpLibraryMapper">
+
+
+    <select id="updateLibraryFileTypeBath" resultType="Integer">
+        update
+        Project_Cp_Library
+        set Cpl_File_Type=#{type} where  Cpl_Id in
+        <foreach collection="cplIds" open="(" close=")" item="id" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="getList"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.constructionProcedure.ProjectCpLibrary">
+        select
+        pcl.*,
+        (select gt.task_Importance from gantt_tasks_template gt where gt.Cpl_Id = pcl.Cpl_Id limit 1) as taskImportance
+        from Project_Cp_Library pcl
+        <where>
+            <if test="params.teId != null">
+                and pcl.te_id = #{params.teId}
+            </if>
+            <if test="params.cplState != null">
+                and pcl.Cpl_State = #{params.cplState}
+            </if>
+        </where>
+        order by pcl.Cpl_Sort
+    </select>
+</mapper>

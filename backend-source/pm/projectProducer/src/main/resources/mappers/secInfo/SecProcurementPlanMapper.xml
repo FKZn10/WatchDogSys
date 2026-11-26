@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecProcurementPlanMapper">
+
+    <sql id="SecBiddingPlanFields">
+        spp.pp_id ppId,
+        spp.plan_name ppName,
+        spp.plan_status planStatus,
+        spp.plan_type planType,
+        spp.plan_code planCode,
+        spp.plan_form planForm,
+        spp.plan_start_time planStartTime,
+        spp.bidding_method biddingMethod
+    </sql>
+
+    <select id="getSecProcurementPlanById"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.secInfo.SecProcurementPlanDto">
+        select  *  from  Sec_Procurement_Plan  spp left join Pre_Project pp on pp.P_ID= spp.p_id where spp.pp_Id = #{ppId}
+    </select>
+
+    <select id="getSecProcurementPlanList"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.secInfo.SecProcurementPlanDto">
+        select
+        pp.P_Id as pId,
+        pp.P_Name as pName,
+        pp.P_Code as pCode,
+        spp.*
+            from Sec_Procurement_Plan spp left join Pre_Project pp on pp.P_ID= spp.p_id
+        <where>
+            <if test="params.pName != null and params.pName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pp.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pp.P_Name = #{params.pName}
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.pId != null and params.pId != ''">
+                and spp.p_id = #{params.pId}
+            </if>
+            <if test="params.planName != null and params.planName != ''">
+                and spp.plan_name like concat('%',#{params.planName},'%')
+            </if>
+            <if test="params.planStatus != null and params.planStatus != ''">
+                and spp.plan_status = #{params.planStatus}
+            </if>
+            <if test="params.planType != null and params.planType != ''">
+                and spp.plan_type = #{params.planType}
+            </if>
+            <if test="params.planCode != null and params.planCode != ''">
+                and spp.plan_code = #{params.planCode}
+            </if>
+            <if test="params.planForm != null and params.planForm != ''">
+                and spp.plan_form = #{params.planForm}
+            </if>
+            <if test="params.planStartTime != null and params.planStartTime != ''">
+                and spp.plan_start_time = #{params.planStartTime}
+            </if>
+            <if test="params.biddingMethod != null and params.biddingMethod != ''">
+                and spp.bidding_method = #{params.biddingMethod}
+            </if>
+            <if test="params.state != null">
+                and spp.state = #{params.state}
+            </if>
+            <if test="params.stateList != null and params.stateList.size()>0 ">
+                and spp.state in
+                <foreach collection="params.stateList" item="state" separator="," open="(" close=")">
+                    #{state}
+                </foreach>
+            </if>
+            <if test="params.noStateList != null and params.noStateList.size()>0 ">
+                and spp.state not in
+                <foreach collection="params.noStateList" item="state" separator="," open="(" close=")">
+                    #{state}
+                </foreach>
+            </if>
+            <if test="params.createUname != null and params.createUname != ''">
+                and pp.P_Name = #{params.pName}
+            </if>
+        </where>
+        order by spp.create_time desc
+    </select>
+
+    <select id="getSecProcurementPlanByPid"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.secInfo.SecProcurementPlanDto">
+        select  *  from  Sec_Procurement_Plan where state !=3 and  p_Id = #{pId}
+    </select>
+
+    <select id="getSecProcurementPlanByName"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.secInfo.SecProcurementPlan">
+        select  *  from  Sec_Procurement_Plan where state !=3 and  plan_name = #{planName} and p_id = #{pId}
+    </select>
+
+</mapper>

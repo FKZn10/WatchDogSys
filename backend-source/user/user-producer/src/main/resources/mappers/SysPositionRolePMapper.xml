@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysPositionRolePMapper">
+
+
+    <select id="getPositionRoleP" resultType="java.util.Map">
+        select distinct sr.Role_ID roleId,sr.Role_Name roleName
+        from SYS_Position_P  spp left join SYS_PositionP_Role spr on spp.PP_ID=spr.PP_ID
+        left join SYS_Department_P sdp on sdp.PD_ID=spp.PD_ID  left join SYS_Role sr on sr.Role_ID=spr.Role_ID
+        left join SYS_Position_User_P spup on spup.PP_ID=spp.PP_ID
+        <where>
+            spr.Role_ID is not null
+            <if test="pId != null and pId != '' ">
+                and sdp.P_ID=#{pId}
+            </if>
+            <if test="uId != null and uId != '' ">
+                and spup.U_ID=#{uId}
+            </if>
+        </where>
+    </select>
+
+
+</mapper>

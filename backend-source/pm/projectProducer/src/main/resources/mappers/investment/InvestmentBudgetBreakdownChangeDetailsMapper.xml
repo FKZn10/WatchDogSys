@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvestmentBudgetBreakdownChangeDetailsMapper">
+    <delete id="deleteByIsChangebId">
+        delete from Investment_Budget_Breakdown_change_Details where isb_change_id = #{primaryId}
+    </delete>
+
+    <select id="getDataByIsChangebId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.InvestmentBudgetBreakdownChangeDetailsModel">
+        select * from Investment_Budget_Breakdown_change_Details where isb_change_id = #{isChangebId}
+    </select>
+
+</mapper>

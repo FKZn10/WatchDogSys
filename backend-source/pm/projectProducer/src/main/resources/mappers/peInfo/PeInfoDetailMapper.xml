@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.peInfo.PeInfoDetailMapper">
+
+    <delete id="deletePeInfoDetailByPeId">
+        delete from   Pe_Info_Detail where Pe_Id = #{peId}
+    </delete>
+
+    <insert id="insertBatchs" parameterType="java.util.List">
+        <foreach item="item" index="index" collection="pojos" separator=";">
+            insert into
+             Pe_Info_Detail("Ped_Id", "Pe_id", "Ped_Type", "Ped_Content",
+            "Ped_Should_Score", "Ped_Actual_Score", "Ped_Calculation_Rule", "Ped_Order", "Ped_Standard", "Ped_Remark")
+            VALUES(#{item.pedId},#{item.peId},#{item.pedType},#{item.pedContent},#{item.pedShouldScore}
+            ,#{item.pedActualScore},#{item.pedCalculationRule},#{item.pedOrder},#{item.pedStandard},#{item.pedRemark})
+        </foreach>
+    </insert>
+</mapper>

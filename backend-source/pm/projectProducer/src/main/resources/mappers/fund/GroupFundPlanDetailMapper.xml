@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.GroupFundPlanDetailMapper">
+    <insert id="addBatch">
+        insert into Group_Fund_Plan_Detail
+            (id,Gfp_Id,Gfpd_Type,Gfpd_Contract_Id,Gfpd_Pay_Amount,Gfpd_Pay_Rate,
+             Gfpd_Apply_Amount,Gfpd_Total_Pay_Amount,Gfpd_Total_Pay_Rate,Gfpd_Cost_Name,
+             Gfpd_Cost_Code,Gfpd_Remark,Gfpd_Attachment,Gfpd_Attachment_File_Ids)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id},#{item.gfpId},#{item.gfpdType},#{item.gfpdContractId},#{item.gfpdPayAmount},#{item.gfpdPayRate},
+             #{item.gfpdApplyAmount},#{item.gfpdTotalPayAmount},#{item.gfpdTotalPayRate}, #{item.gfpdCostName},
+             #{item.gfpdCostCode},#{item.gfpdRemark},#{item.gfpdAttachment},#{item.gfpdAttachmentFileIds}
+            )
+        </foreach>
+    </insert>
+    <select id="getDetailByGfpId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.fund.GroupFundPlanDetail">
+        select * from Group_Fund_Plan_Detail where Group_Fund_Plan_Detail.Gfp_Id=#{gfpId}
+    </select>
+</mapper>

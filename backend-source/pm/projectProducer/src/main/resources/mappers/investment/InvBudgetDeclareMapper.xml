@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvBudgetDeclareMapper">
+
+    <select id="getBudgetCompanyByPid" resultType="com.jpmsoft.projectProducer.pojo.vo.investment.BudgetCompanyVo">
+        select
+            c1.C_Name as bdPreparedByName,
+            c2.C_Name as bdAuditUnitName,
+            c1.C_Abbreviation as bdPreparedByAbbName,
+            c2.C_Abbreviation as bdAuditUnitAbbName,
+            mn.Bd_Prepared_By,
+            mn.Bd_Audit_Unit
+        from  Inv_Budget_Declare mn
+        left join SYS_Company c1 on mn.Bd_Prepared_By=c1.C_Id
+        left join SYS_Company c2 on mn.Bd_Audit_Unit=c2.C_Id
+        where mn.P_Id=#{pId}
+        order by Bd_Create_Time desc
+        limit 1
+    </select>
+
+    <select id="getInvBudgetDeclareAndDtlByPid"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvBudgetDeclareResponse">
+        select
+            c1.C_Name as bdPreparedByName,
+            c2.C_Name as bdAuditUnitName,
+            c1.C_Abbreviation as bdPreparedByAbbName,
+            c2.C_Abbreviation as bdAuditUnitAbbName,
+            pro1.P_Name as bdSplitFormName,
+            pro.P_Name as pName,
+            proc.C_Name as pConstructionUnitName,
+            proc.C_Abbreviation as pConsAbbName,
+            prod.D_Name as pCompetentDepartmentName,
+            mn.*
+        from  Inv_Budget_Declare mn
+                  left join SYS_Company c1 on mn.Bd_Prepared_By=c1.C_Id
+                  left join SYS_Company c2 on mn.Bd_Audit_Unit=c2.C_Id
+                  left join Pre_Project pro1 on pro1.P_Id=mn.Bd_Split_Form
+                  left join Pre_Project pro on pro.P_Id=mn.P_Id
+                  left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+                  left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        where mn.P_Id=#{pId} and mn.Bd_State=7
+        order by mn.Bd_State_Time desc
+        limit 1
+    </select>
+
+
+    <select id="getInvBudgetDeclareByBdId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvBudgetDeclareResponse">
+        select
+        c1.C_Name as bdPreparedByName,
+        c2.C_Name as bdAuditUnitName,
+        c1.C_Abbreviation as bdPreparedByAbbName,
+        c2.C_Abbreviation as bdAuditUnitAbbName,
+        pro1.P_Name as bdSplitFormName,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        mn.*
+        from  Inv_Budget_Declare mn
+        left join SYS_Company c1 on mn.Bd_Prepared_By=c1.C_Id
+        left join SYS_Company c2 on mn.Bd_Audit_Unit=c2.C_Id
+        left join Pre_Project pro1 on pro1.P_Id=mn.Bd_Split_Form
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        where mn.Bd_Id=#{bdId}
+    </select>
+
+
+    <select id="getInvBudgetDeclareList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvBudgetDeclareResponse">
+        select
+        c1.C_Name as bdPreparedByName,
+        c2.C_Name as bdAuditUnitName,
+        c1.C_Abbreviation as bdPreparedByAbbName,
+        c2.C_Abbreviation as bdAuditUnitAbbName,
+        pro1.P_Name as bdSplitFormName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Inv_Budget_Declare mn
+        left join SYS_Company c1 on mn.Bd_Prepared_By=c1.C_Id
+        left join SYS_Company c2 on mn.Bd_Audit_Unit=c2.C_Id
+        left join Pre_Project pro1 on pro1.P_Id=mn.Bd_Split_Form
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.bdPreparedBy!=null">
+            and mn.Bd_Prepared_By = #{params.bdPreparedBy}
+        </if>
+        <if test="params.bdAuditUnit!=null">
+            and mn.Bd_Audit_Unit = #{params.bdAuditUnit}
+        </if>
+        <if test="params.bdSplitType!=null">
+            and mn.Bd_Split_Type = #{params.bdSplitType}
+        </if>
+        <if test="params.bdType!=null">
+            and mn.Bd_Type = #{params.bdType}
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.bdPreparedByName!=null">
+                    and likeCname(#{params.bdPreparedByName},c1.C_Id)=true
+                </if>
+                <if test="params.bdAuditUnitName!=null">
+                    and likeCname(#{params.bdAuditUnitName},c2.C_Id)=true
+                </if>
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.bdPreparedByName!=null">
+                    and c1.C_Name like concat('%',#{params.bdPreparedByName},'%')
+                </if>
+                <if test="params.bdAuditUnitName!=null">
+                    and c2.C_Name like concat('%',#{params.bdAuditUnitName},'%')
+                </if>
+                <if test="params.pName!=null">
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </if>
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Bd_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getInvBudgetDeclareByPid"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvBudgetDeclareResponse">
+        select * from Inv_Budget_Declare
+        <where>
+            <if test="pId!=null and pId!='' ">
+                P_Id=#{pId}
+            </if>
+            <if test="bdState!=null and bdState!='' ">
+                and Bd_State=#{bdState}
+            </if>
+            <if test="bdTypeList!=null and bdTypeList.size()>0 ">
+                and Bd_Type in
+                <foreach collection="bdTypeList" item="bdType" open="(" separator="," close=")">
+                    #{bdType}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+</mapper>

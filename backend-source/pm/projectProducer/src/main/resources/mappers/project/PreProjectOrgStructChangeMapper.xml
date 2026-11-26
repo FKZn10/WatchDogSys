@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectOrgStructChangeMapper">
+
+    <select id="selectData"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.PreProjectOrgStructChangeVo">
+       select cha.*,pre.p_name as pName,sd.D_Name as pCompetentDepartmentName,
+           pre.P_Competent_Department as pCompetentDepartment
+       from  pre_project_org_struct_change cha
+        left join pre_project pre on pre.p_id = cha.p_id
+        left join SYS_Department sd on pre.P_Competent_Department = sd.D_ID
+        where cha.p_id=#{pId}
+       order by  cha.create_time desc
+    </select>
+
+
+    <select id="getPreProjectOrgStructChangeById"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectOrgStructResponse">
+        select * from pre_project_org_struct_change ppos left join Pre_Project pp on ppos.p_id=pp.P_ID where ppos.id=#{id}
+    </select>
+
+</mapper>
+

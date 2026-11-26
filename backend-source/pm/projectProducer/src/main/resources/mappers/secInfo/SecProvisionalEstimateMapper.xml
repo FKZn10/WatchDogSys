@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecProvisionalEstimateMapper">
+
+    <select id="getSecProvisionalEstimateByPeId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecProvisionalEstimateModel">
+        select
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name as peApprovalCompanyName,
+        c1.C_Abbreviation as peApprCompAbbName,
+        mn.*
+        from Sec_Provisional_Estimate mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Sys_Company c1 on c1.C_Id=mn.Pe_Approval_Company
+        where mn.Pe_Id=#{peId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.peType!=null">
+            and mn.Pe_Type = #{params.peType}
+        </if>
+        <if test="params.peProType!=null">
+            and mn.Pe_Pro_Type = #{params.peProType}
+        </if>
+        <if test="params.pePricingMode!=null">
+            and mn.Pe_Pricing_Mode = #{params.pePricingMode}
+        </if>
+        <if test="params.peMode!=null">
+            and mn.Pe_Model like concat('%',#{params.peMode},'%')
+        </if>
+        <if test="params.peOverallName!=null">
+            and mn.Pe_Overall_Name like concat('%',#{params.peOverallName},'%')
+        </if>
+        <if test="params.peProfessionalName!=null">
+            and mn.Pe_Professional_Name like concat('%',#{params.peProfessionalName},'%')
+        </if>
+        <if test="params.peName!=null">
+            and mn.Pe_Name like concat('%',#{params.peName},'%')
+        </if>
+        <if test="params.peCreateUname!=null">
+            and mn.Pe_Create_Uname like concat('%',#{params.peCreateUname},'%')
+        </if>
+        <if test="params.peCode!=null">
+            and mn.Pe_Code like concat('%',#{params.peCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and pro.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.conCode!=null">
+            and con.Con_Code like concat('%',#{params.conCode},'%')
+        </if>
+        <if test="params.peApprovalCompanyName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.peApprovalCompanyName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.peApprovalCompanyName},'%')
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+    <select id="getSecProvisionalEstimateModelList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecProvisionalEstimateModel">
+        select
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name as peApprovalCompanyName,
+        c1.C_Abbreviation as peApprCompAbbName,
+        mn.*
+        from Sec_Provisional_Estimate mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Sys_Company c1 on c1.C_Id=mn.Pe_Approval_Company
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Pe_State_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecProvisionalEstimateModelListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Provisional_Estimate mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Sys_Company c1 on c1.C_Id=mn.Pe_Approval_Company
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+</mapper>

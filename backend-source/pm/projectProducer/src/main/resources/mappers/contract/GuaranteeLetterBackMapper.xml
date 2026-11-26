@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.GuaranteeLetterBackMapper">
+
+    <select id="getGuaranteeLetterBackByglbId"
+            resultType="com.jpmsoft.common.model.response.Contract.GuaranteeLetterBackResponse">
+        select
+        pro.P_Name as pName,
+        con.Con_Name as conName,
+        sec.Sec_Name as secName,
+        c1.C_Name as glsWarranteeName,
+        c2.C_Name as pConstructionUnitName,
+        c3.C_Name as glbCompanyName,
+        c1.C_Abbreviation as glsWarranteeAbbName,
+        c2.C_Abbreviation as pConsAbbName,
+        c3.C_Abbreviation as glbCompanyAbbName,
+        d.D_name as pCompetentDepartmentName,
+        gls.Gls_Code as glsCode,
+        gls.Gls_Type as glsType,
+        f.file_relation_id as fileRelationId,
+        panya.c_name as  companyPartyAName,
+        panyb.c_name as companyPartybName,
+        con.Con_Money_Total as conMoneyTotal,
+        mn.*
+        from  Guarantee_Letter_Back mn
+        left join  Guarantee_Letter_Sign gls on gls.Gls_Id=mn.Gls_Id
+        left join  Pre_Project pro on pro.P_Id=gls.P_Id
+        left join  Sec_Info sec on sec.Sec_Id=gls.Sec_Id
+        left join  Con_Contract con on con.Con_Id=gls.Con_Id
+        left join  SYS_Company c1 on gls.Gls_Warrantee=c1.C_Id
+        left join  SYS_Company c2 on pro.P_Construction_Unit=c2.C_Id
+        left join  SYS_Department d on pro.P_Competent_Department=d.D_Id
+        left join  SYS_Company c3 on mn.Glb_Company_Id=c3.C_Id
+        left join  Sys_File f on f.FileID=mn.Glb_Id
+        left join sys_company panya ON con.Con_Party_A_Id = panya.c_id
+        left join sys_company panyb ON con.Con_Party_B_Id = panyb.c_id
+        where mn.Glb_Id=#{glbId}
+    </select>
+
+
+    <select id="getGuaranteeLetterBackList"
+            resultType="com.jpmsoft.common.model.response.Contract.GuaranteeLetterBackResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        sec.Sec_Name as secName,
+        c1.C_Name_History as glsWarranteeNameHistory,
+        c3.C_Name_History as glbCompanyNameHistory,
+        c1.C_Name as glsWarranteeName,
+        c3.C_Name as glbCompanyName,
+        c1.C_Abbreviation as glsWarranteeAbbName,
+        c3.C_Abbreviation as glbCompanyAbbName,
+        gls.Gls_Code as glsCode,
+        gls.Gls_Type as glsType,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Guarantee_Letter_Back mn
+        left join  Guarantee_Letter_Sign gls on gls.Gls_Id=mn.Gls_Id
+        left join  Pre_Project pro on pro.P_Id=gls.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=gls.Sec_Id
+        left join  Con_Contract con on con.Con_Id=gls.Con_Id
+        left join  SYS_Company c1 on gls.Gls_Warrantee=c1.C_Id
+        left join  SYS_Company c3 on mn.Glb_Company_Id=c3.C_Id
+        left join  Sys_File f on f.FileID=mn.Glb_Id
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and gls.P_Id=#{params.pId}
+        </if>
+        <if test="params.glbCompletion!=null">
+            and mn.Glb_Completion=#{params.glbCompletion}
+        </if>
+        <if test="params.glbCompanyName!=null">
+            and c3.C_Name like concat('%',#{params.glbCompanyName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Glb_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

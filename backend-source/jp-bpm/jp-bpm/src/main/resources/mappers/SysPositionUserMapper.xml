@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.SysPositionUserMapper">
+    <select id="getUserIdByDid" resultType="com.jpmsoft.jpbpm.pojo.vo.userCVo">
+         select U_ID as uId,SYS_Position.P_ID as pId,D_ID as dId   from   SYS_Position_User left  join SYS_Position on SYS_Position.P_ID=SYS_Position_User.P_ID
+         where
+         SYS_Position.D_ID in( select D_ID from  SYS_Position where  P_ID in(select P_ID   from   SYS_Position_User where U_ID=#{uId}))
+
+
+     </select>
+    <select id="getUserObjByDids" resultType="com.jpmsoft.jpbpm.pojo.vo.userCVo">
+        select U_ID as uId,SYS_Position.P_ID as pId,D_ID as dId from SYS_Position_User left join SYS_Position on
+        SYS_Position.P_ID=SYS_Position_User.P_ID
+        where
+        SYS_Position.D_ID in
+        <foreach collection="dids" open="(" close=")" item="dId" separator=",">
+            #{dId}
+        </foreach>
+
+    </select>
+    <select id="getDidByDid" resultType="String">
+          select D_ID from  SYS_Position where  P_ID in(select P_ID   from   SYS_Position_User where U_ID=#{uId})
+    </select>
+    <select id="getUserIdByDids" resultType="String">
+        select  distinct U_ID from  SYS_Position p
+        left  join   SYS_Position_User pu on p.P_ID= pu.P_ID  where  pu.PU_ID is not null
+
+         ${uIdSql}
+    </select>
+
+
+    <select id="getUserIdByPid" resultType="com.jpmsoft.jpbpm.pojo.vo.userCVo">
+         select U_ID as uId,SYS_Position.P_ID as pId,D_ID as dId    from   SYS_Position_User
+         left join  SYS_Position on SYS_Position_User.P_ID=SYS_Position.P_ID
+         left join  Pre_Project on P_Competent_Department= D_ID   where     Pre_Project.P_ID=#{pId};
+    </select>
+    <select id="selectUidByUid" resultType="java.util.Map">
+        select U_ID,P_Name,uIds,D_ID from  SYS_Position_User pu
+        left join  SYS_Position p on p.P_ID=pu.P_ID
+        left join (select D_ID as did,U_ID as uIds from  SYS_Position_User ppu
+        left join  SYS_Position pp on pp.P_ID=ppu.P_ID )t1 on  p.D_ID=t1.did
+        where #{params.dname}  like concat('%',p.P_Name,'%') and uIds in ('${params.userid}')
+
+    </select>
+</mapper>

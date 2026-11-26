@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysFileTemplateDtlMapper">
+    <select id="getSysFileTemplateDtlBytIds"
+            resultType="com.jpmsoft.common.model.response.SysFileTemplateDtlDTO">
+        select mn.*,
+        pp.P_Name as pName
+        from SYS_FileTemplate_Dtl mn
+        left join pre_project pp on pp.P_ID = mn.P_ID
+        where mn.t_id in
+        <foreach collection="tIds" item="tId" open="(" separator="," close=")">
+            #{tId}
+        </foreach>
+    </select>
+</mapper>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysFormMapper">
+
+    <select id="getSysFormList" resultType="com.jpmsoft.userProducer.pojo.dto.SysFormDTO">
+        select
+        mn.*
+        from Sys_Form mn
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id=#{params.teId}
+            </if>
+            <if test="params.syType!=null">
+                and mn.Sy_Type=#{params.syType}
+            </if>
+            <if test="params.syState!=null">
+                and mn.Sy_State=#{params.syState}
+            </if>
+            <if test="params.tId!=null">
+                and mn.T_Id=#{params.tId}
+            </if>
+            <if test="params.syDataSourceType!=null">
+                and mn.Sy_Data_Source_Type=#{params.syDataSourceType}
+            </if>
+            <if test="params.syCreateName!=null">
+                and INSTR(mn.Sy_Create_Name,#{params.syCreateName})
+            </if>
+            <if test="params.syUpdateName!=null">
+                and INSTR(mn.Sy_Update_Name,#{params.syUpdateName})
+            </if>
+            <if test="params.tCode!=null">
+                and INSTR(mn.T_Code,#{params.tCode})
+            </if>
+            <if test="params.syVersion!=null">
+                and INSTR(mn.Sy_Version,#{params.syVersion})
+            </if>
+            <if test="params.syName!=null">
+                and INSTR(mn.Sy_Name,#{params.syName})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sy_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

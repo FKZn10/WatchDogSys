@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecClearTeamMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecClearTeamVO"
+               id="getSecClearTeam">
+        <id column="Sct_Id" property="sctId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Sct_Id" select="getSecInfoProject">
+        </collection>
+        <collection property="secClearTeamDtls" ofType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecClearTeamDtlVO"
+                    column="Sct_Id" select="getSecClearTeamDtl">
+        </collection>
+    </resultMap>
+
+    <select id="getSecClearTeamDtl" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecClearTeamDtlVO">
+        select
+            c1.C_Name as ctdCompanyName,
+            mn.*
+        from Sec_Clear_Team_Dtl mn
+        left join Sys_Company c1 on c1.C_Id=mn.Ctd_Company
+        where mn.Sct_Id=#{sccId}
+        order by mn.Ctd_Sort asc
+    </select>
+
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Clear_Team sct on sct.Sec_Id=sec.Sec_Id
+        where sct.Sct_Id=#{sccId}
+    </select>
+
+    <select id="getSecClearTeamById" resultMap="getSecClearTeam">
+        select
+            c1.C_Name as tendereeName,
+            sec.Sec_Name as secName,
+            mn.*
+        from Sec_Clear_Team mn
+        left join Sys_Company c1 on c1.C_Id=mn.Sct_Tenderee
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where mn.Sct_Id=#{id}
+    </select>
+
+</mapper>

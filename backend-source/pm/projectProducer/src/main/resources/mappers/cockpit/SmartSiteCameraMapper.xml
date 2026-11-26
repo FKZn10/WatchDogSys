@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.cockpit.SmartSiteCameraMapper">
+
+    <select id="getSmartSiteCameraById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SmartSite.SmartSiteCameraModel">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        mn.*
+        from  Smart_Site_Camera mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        where mn.Ssc_Id=#{sscId}
+    </select>
+
+
+    <select id="getAuthorizedPlaybackCamera"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.cockpit.SmartSiteCamera">
+        select mn.Ssc_Id, mn.Te_Id, mn.Ssc_Kind, mn.Ssc_Code, mn.Ssc_Key, mn.Ssc_Secret, mn.Ssc_Serial, mn.Ssc_Channel_No
+        from Smart_Site_Camera mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${authSql}
+        and mn.Ssc_Id = #{sscId}
+        <if test="teId != null and teId != ''">
+            and mn.Te_Id = #{teId}
+        </if>
+    </select>
+
+    <select id="getAuthorizedStatusCameras" resultType="com.jpmsoft.projectProducer.pojo.entity.cockpit.SmartSiteCamera">
+        select mn.Ssc_Id, mn.Te_Id, mn.Ssc_Kind, mn.Ssc_Code, mn.Ssc_Key, mn.Ssc_Secret, mn.Ssc_Serial, mn.Ssc_Channel_No
+        from Smart_Site_Camera mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${authSql}
+        and (pro.P_Id = #{pId} or pro.P_Parent_Id = #{pId})
+        and mn.Ssc_Kind in ('11', '02')
+        <if test="teId != null and teId != ''">and mn.Te_Id = #{teId}</if>
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and (pro.P_Id=#{params.pId} or pro.P_Parent_Id=#{params.pId})
+        </if>
+        <if test="params.sscState!=null">
+            and mn.Ssc_State=#{params.sscState}
+        </if>
+        <if test="params.sscType!=null">
+            and mn.Ssc_Type=#{params.sscType}
+        </if>
+        <if test="params.sscKind!=null">
+            and mn.Ssc_Kind=#{params.sscKind}
+        </if>
+        <if test="params.sscOverviewDisplay!=null">
+            and mn.Ssc_Overview_Display=#{params.sscOverviewDisplay}
+        </if>
+        <if test="params.sscName!=null">
+            and mn.Ssc_Name like concat('%',#{params.sscName},'%')
+        </if>
+        <if test="params.sscPlaybackAddress!=null">
+            and mn.Ssc_Playback_Address like concat('%',#{params.sscPlaybackAddress},'%')
+        </if>
+        <if test="params.sscCode!=null">
+            and mn.Ssc_Code like concat('%',#{params.sscCode},'%')
+        </if>
+        <if test="params.sscCreateUname!=null">
+            and mn.Ssc_Create_Uname like concat('%',#{params.sscCreateUname},'%')
+        </if>
+        <if test="params.sscUrl!=null">
+            and mn.Ssc_Url like concat('%',#{params.sscUrl},'%')
+        </if>
+        <if test="params.sscPosition!=null">
+            and mn.Ssc_Position like concat('%',#{params.sscPosition},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="getSmartSiteCameraList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SmartSite.SmartSiteCameraModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Smart_Site_Camera mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ssc_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getSmartSiteCameraByPid"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SmartSite.SmartSiteCameraModel">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        mn.*
+        from Smart_Site_Camera mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        where 1=1
+        <if test="pIds!=null and pIds.size() > 0">
+            and mn.P_Id in
+            <foreach collection="pIds" separator="," open="(" close=")" item="pId">
+                #{pId}
+            </foreach>
+        </if>
+        <if test="sod!=null">
+            and mn.Ssc_Overview_Display like concat('%',#{sod},'%')
+        </if>
+        order by mn.Ssc_Number asc
+    </select>
+</mapper>

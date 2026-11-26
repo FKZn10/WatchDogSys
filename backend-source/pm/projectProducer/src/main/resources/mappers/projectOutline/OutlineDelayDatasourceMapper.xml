@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.projectOutline.OutlineDelayDatasourceMapper">
+    <select id="getOdIdToAliasByOdIds"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.projectOutline.OutlineDatasource">
+        select
+        mn.id,
+        mn.od_alias
+        from outline_datasource mn
+        <where>
+            and mn.od_alias is not null
+            and mn.od_alias != ''
+            <if test="odIds != null and odIds.size() != 0">
+                and mn.id in
+                <foreach collection="odIds" item="odId" open="(" separator="," close=")">
+                    #{odId}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getRemoveOplIdsByOpmIds" resultType="java.lang.String">
+        select distinct mn.opl_Id
+        from Outline_Delay_Datasource mn
+        left join Outline_Project_Lib opl on mn.opl_Id = opl.id
+        <where>
+            <if test="opmIds != null and opmIds.size() != 0">
+                and opl.Opm_Id in
+                <foreach collection="opmIds" item="opmId" open="(" separator="," close=")">
+                    #{opmId}
+                </foreach>
+            </if>
+        </where>
+    </select>
+</mapper>

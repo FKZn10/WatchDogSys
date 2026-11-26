@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.FlowMapper">
+
+    <select id="getFlowList" resultType="com.jpmsoft.common.model.response.SysFlowResponse">
+        select
+        t.T_Name as tName,
+        u.U_Name as flowSolutionName,
+        d.D_Name as flowCompanyName,
+        pro.P_Name as pName,
+        <include refid="SysFlowEntity"/>
+        from  SYS_Flow flow
+        left join  SYS_FileTemplate t on t.T_ID=flow.T_ID
+        left join  Sys_User u on u.U_Id=flow.FlowSolution
+        left join  Pre_Project pro on pro.P_Id=flow.FlowProject
+        left join  SYS_Department d on d.D_ID=flow.FlowCompany
+        <where>
+            flow.FlowEnable = '1'
+            <if test="params.flowname!=null">
+                and flow.FlowName like concat('%',#{params.flowname},'%')
+            </if>
+            <if test="params.flowSolutionName!=null">
+                and u.U_Name like concat('%',#{params.flowSolutionName},'%')
+            </if>
+            <if test="params.flowCompanyName!=null">
+                and c.C_Name like concat('%',#{params.flowCompanyName},'%')
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                    <if test="params.flowCompanyName!=null">
+                        and likeCname(#{params.flowCompanyName},c.C_Id)=true
+                    </if>
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.flowCompanyName!=null">
+                        and c.C_Name like concat('%',#{params.flowCompanyName},'%')
+                    </if>
+                    <if test="params.pName!=null">
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.tName!=null">
+                and t.T_Name like concat('%',#{params.tName},'%')
+            </if>
+            <if test="params.pName!=null">
+                and pro.P_Name like concat('%',#{params.pName},'%')
+            </if>
+            <if test="params.ownerDepIds!=null">
+                and d.D_ID in
+                <foreach collection="params.ownerDepIds" open="(" close=")" item="depId" separator=",">
+                    #{depId}
+                </foreach>
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and flow.Te_Id = #{params.teId}
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by flow.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getFlowListCount" resultType="java.lang.Integer">
+        select
+        COUNT(1)
+        from  SYS_Flow flow
+        left join  SYS_FileTemplate t on t.T_ID=flow.T_ID
+        left join  Sys_User u on u.U_Id=flow.FlowSolution
+        left join  Pre_Project pro on pro.P_Id=flow.FlowProject
+        left join  Sys_Company c on c.C_ID=flow.FlowCompany
+        <where>
+            flow.FlowEnable = '1'
+            <if test="params.flowname!=null">
+                and flow.FlowName like concat('%',#{params.flowname},'%')
+            </if>
+            <if test="params.flowSolutionName!=null">
+                and u.U_Name like concat('%',#{params.flowSolutionName},'%')
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                    <if test="params.flowCompanyName!=null">
+                        and likeCname(#{params.flowCompanyName},c.C_Id)=true
+                    </if>
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.flowCompanyName!=null">
+                        and c.C_Name like concat('%',#{params.flowCompanyName},'%')
+                    </if>
+                    <if test="params.pName!=null">
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.tName!=null">
+                and t.T_Name like concat('%',#{params.tName},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and flow.Te_Id = #{params.teId}
+            </if>
+        </where>
+    </select>
+
+<select id="getSomeFieldsFlow" resultType="com.jpmsoft.jpbpm.pojo.entity.Flow">
+    select * from  SYS_Flow where  FlowEnable=1 and  T_Code=#{tCode}   <if test="teId!=null and teId!='All'">
+    and Te_Id = #{teId}
+</if>
+    ;
+</select>
+
+    <sql id="SysFlowEntity">
+        flow.FlowID as flowid,
+        flow.FlowName as flowname,
+        flow.FlowXML as flowxml,
+        flow.FlowClient as flowclient,
+        flow.FlowProject as flowproject,
+        flow.FlowSolution as flowsolution,
+        flow.FlowCompany as flowcompany,
+        flow.FlowCreateTime as flowcreatetime,
+        flow.FlowCreateU_ID as flowcreateuId,
+        flow.FlowCreateU_Name as flowcreateuName,
+        flow.FlowLastEditU_ID as flowlastedituId,
+        flow.FlowLastEditU_Name as flowlastedituName,
+        flow.FlowLastEditTime as flowlastedittime,
+        flow.FlowLastEditReason as flowlasteditreason,
+        flow.FlowVersionNum as flowversionnum,
+        flow.FlowEnable as flowenable,
+        flow.T_Code as tCode,
+        flow.T_ID as tId
+    </sql>
+
+
+</mapper>

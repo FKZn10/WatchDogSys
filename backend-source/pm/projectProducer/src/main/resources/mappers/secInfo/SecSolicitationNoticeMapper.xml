@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecSolicitationNoticeMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecSolicitationNoticeVo" id="getSecSolicitationNotice">
+        <id column="id" property="id"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join Sec_Solicitation_Notice sn on sn.Sec_Id = sec.Sec_Id
+        where sn.id = #{id}
+    </select>
+
+
+
+    <select id="getSecSolicitationNoticeLastApprovedBySecId"
+            resultMap="getSecSolicitationNotice">
+        select sec.Sec_Name       as secName,
+               sec.Sec_Type       as secType,
+               c1.C_Name          as secTendereeName,
+               c2.C_Name          as snProcureCpyName,
+               f.File_Relation_Id as fileRelationId,
+               dp.D_Name          as secContractingDepartmentName,
+               mn.*
+        from Sec_Solicitation_Notice mn
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join Sys_Company c1 on c1.C_Id = sec.Sec_Tenderee
+                 left join Sys_Company c2 on c2.C_Id = mn.Sn_Procure_Cpy
+                 left join SYS_File f on f.FileId = mn.id
+                 left join SYS_Department dp on dp.D_ID = sec.Sec_Contracting_Department
+        where mn.Sec_Id = #{secId} and mn.state=7
+        order by mn.create_time desc limit 1
+    </select>
+
+    <select id="getSecSolicitationNoticeById"
+            resultMap="getSecSolicitationNotice">
+        select sec.Sec_Name       as secName,
+               sec.Sec_Type       as secType,
+               c1.C_Name          as secTendereeName,
+               c2.C_Name          as snProcureCpyName,
+               f.File_Relation_Id as fileRelationId,
+               dp.D_Name          as secContractingDepartmentName,
+               mn.*
+        from Sec_Solicitation_Notice mn
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join Sys_Company c1 on c1.C_Id = sec.Sec_Tenderee
+                 left join Sys_Company c2 on c2.C_Id = mn.Sn_Procure_Cpy
+                 left join SYS_File f on f.FileId = mn.id
+                 left join SYS_Department dp on dp.D_ID = sec.Sec_Contracting_Department
+        where mn.id = #{id}
+    </select>
+
+    <select id="getSecSolicitationNoticeList" resultMap="getSecSolicitationNotice">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        c1.C_Name    as secTendereeName,
+        c2.C_Name    as snProcureCpyName,
+        mn.*
+        from Sec_Solicitation_Notice mn
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join Sys_Company c1 on c1.C_Id = sec.Sec_Tenderee
+        left join Sys_Company c2 on c2.C_Id = mn.Sn_Procure_Cpy
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.snQuotationMethod!=null">
+                and mn.Sn_Quotation_Method=#{params.snQuotationMethod}
+            </if>
+            <if test="params.snSettlementMethod!=null">
+                and mn.Sn_Settlement_Method=#{params.snSettlementMethod}
+            </if>
+            <if test="params.state!=null">
+                and mn.State=#{params.state}
+            </if>
+            <if test="params.secId!=null">
+                and mn.Sec_Id=#{params.secId}
+            </if>
+            <if test="params.snCalibration!=null">
+                and mn.Sn_Calibration=#{params.snCalibration}
+            </if>
+            <if test="params.snProcurePerson!=null">
+                and INSTR(mn.Sn_Procure_Person,#{params.snProcurePerson})
+            </if>
+            <if test="params.snProcurePhone!=null">
+                and INSTR(mn.Sn_Procure_Phone,#{params.snProcurePhone})
+            </if>
+            <if test="params.snAgencyCpy!=null">
+                and INSTR(mn.Sn_Agency_Cpy,#{params.snAgencyCpy})
+            </if>
+            <if test="params.snProcureCpyName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.snProcureCpyName},c2.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c2.C_Name,#{params.snProcureCpyName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.secName!=null">
+                and INSTR(sec.Sec_Name,#{params.secName})
+            </if>
+            <if test="params.createUname!=null">
+                and INSTR(mn.Create_Uname,#{params.createUname})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

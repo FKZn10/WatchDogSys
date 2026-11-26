@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.acpm.AcpmInvituoMarginApplicationMapper">
+
+
+    <sql id="fieldMapping">
+        mn.id as id,
+        mn.Acp_id as acpid,
+        mn.Ima_Code as  imaCode,
+        mn.Ima_BidBondMoney as imaBidBondMoney,
+        mn.Ima_Payee as imaPayee,
+        mn.Ima_Payee_Bank as imaPayeeBank,
+        mn.Ima_Payee_CA_Name as imaPayeeCaName,
+        mn.Ima_Payee_CA as imaPayeeCa,
+        mn.Ima_Remark as imaRemark,
+        mn.Create_Uid as createUid,
+        mn.Create_Uname as createUname,
+        mn.Create_Time as createTime,
+        mn.Update_Uid as updateUid,
+        mn.Update_Uname as updateUname,
+        mn.Update_Time as updateTime,
+        mn.State as state,
+        mn.State_Time as stateTime
+    </sql>
+
+
+    <sql id="listFilter">
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.state!=null">
+                and mn.State = #{params.state}
+            </if>
+            <if test="params.piaArea!=null">
+                and pia.Pia_Area = #{params.piaArea}
+            </if>
+            <if test="params.piaType!=null">
+                and pia.Pia_Type = #{params.piaType}
+            </if>
+            <if test="params.imaCode!=null">
+                and mn.Ima_Code like concat('%',#{params.imaCode},'%')
+            </if>
+            <if test="params.imaPayeeName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and (likeCname(#{params.imaPayeeName},mn.Ima_Payee)=true or vc1.C_Abbreviation like concat('%',#{params.imaPayeeName},'%') )
+                    </when>
+                    <otherwise>
+                        and (c1.C_Name like concat('%',#{params.imaPayeeName},'%') or c1.C_Abbreviation like concat('%',#{params.imaPayeeName},'%') )
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.imaPayeeBank!=null">
+                and mn.Ima_Payee_Bank like concat('%',#{params.imaPayeeBank},'%')
+            </if>
+            <if test="params.imaPayeeCaName!=null">
+                and mn.Ima_Payee_CA_Name like concat('%',#{params.imaPayeeCaName},'%')
+            </if>
+            <if test="params.imaPayeeCa!=null">
+                and mn.Ima_Payee_CA like concat('%',#{params.imaPayeeCa},'%')
+            </if>
+            <if test="params.imaRemark!=null">
+                and mn.Ima_Remark like concat('%',#{params.imaRemark},'%')
+            </if>
+            <if test="params.piaCode!=null">
+                and pia.Pia_Code like concat('%',#{params.piaCode},'%')
+            </if>
+            <if test="params.piaName!=null">
+                and pia.Pia_Name like concat('%',#{params.piaName},'%')
+            </if>
+            <if test="params.piaDeveloper!=null">
+                and pia.Pia_Developer like concat('%',#{params.piaDeveloper},'%')
+            </if>
+            <if test="params.createUname!=null">
+                and mn.Create_Uname like concat('%',#{params.createUname},'%')
+            </if>
+        </where>
+    </sql>
+
+    <select id="getById" resultType="com.jpmsoft.projectProducer.pojo.vo.acpm.AcpmInvituoMarginApplicationVo">
+        select
+        pia.Pia_Code as piaCode,
+        pia.Pia_Name as piaName,
+        pia.Pia_Area as piaArea,
+        pia.Pia_Type as piaType,
+        pia.Pia_Developer as piaDeveloper,
+        c1.C_Name as imaPayeeName,
+        c1.C_Abbreviation as imaPayeeAbbName,
+        f.file_relation_id as fileRelationId,
+        <include refid="fieldMapping"/>
+        from Acpm_InvituoMarginApplication mn
+        left join Acpm_ProjectInvestmentApproval pia on pia.id=mn.Acp_id
+        left join Sys_Company c1 on c1.C_Id=mn.Ima_Payee
+        left join Sys_File f on f.FileID=mn.id
+        where mn.id=#{id}
+    </select>
+
+
+    <select id="getList" resultType="com.jpmsoft.projectProducer.pojo.vo.acpm.AcpmInvituoMarginApplicationVo">
+        select
+        pia.Pia_Code as piaCode,
+        pia.Pia_Name as piaName,
+        pia.Pia_Area as piaArea,
+        pia.Pia_Type as piaType,
+        c1.C_Name as imaPayeeName,
+        c1.C_Abbreviation as imaPayeeAbbName,
+        pia.Pia_Developer as piaDeveloper,
+        <include refid="fieldMapping"/>
+        from Acpm_InvituoMarginApplication mn
+        left join Acpm_ProjectInvestmentApproval pia on pia.id=mn.Acp_id
+        left join Sys_Company c1 on c1.C_Id=mn.Ima_Payee
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Acpm_InvituoMarginApplication mn
+        left join Acpm_ProjectInvestmentApproval pia on pia.id=mn.Acp_id
+        left join Sys_Company c1 on c1.C_Id=mn.Ima_Payee
+        <include refid="listFilter"/>
+    </select>
+
+</mapper>

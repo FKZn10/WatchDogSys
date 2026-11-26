@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.ganttPlan.GanttDataImportMapper">
+        <insert id="batchInsert">
+        INSERT INTO gantt_milestone_statistics
+        (
+            id,
+            plan_id,
+            p_id,
+            p_name,
+            gs_id,
+            gs_name,
+            set_time,
+            start_time,
+            finish_time,
+            complete_time,
+            complete_records_time,
+            p_remove_time,
+            account_submit_time,
+            account_reply_time,
+            complete_records_need,
+            p_remove_need,
+            p_category,
+            p_competent_department,
+            p_department,
+            p_project_stage,
+            p_inv_total,
+            set_time_status,
+            start_time_status,
+            finish_time_status,
+            complete_time_status,
+            complete_records_time_status,
+            p_remove_time_status,
+            account_submit_time_status,
+            account_reply_time_status,
+            set_time_schedule,
+            start_time_schedule,
+            finish_time_schedule,
+            complete_time_schedule,
+            complete_records_time_schedule,
+            p_remove_time_schedule,
+            account_submit_time_schedule,
+            account_reply_time_schedule,
+            set_time_finish,
+            start_time_finish,
+            finish_time_finish,
+            complete_time_finish,
+            complete_records_time_finish,
+            p_remove_time_finish,
+            account_submit_time_finish,
+            account_reply_time_finish,
+            set_time_handle,
+            start_time_handle,
+            finish_time_handle,
+            complete_time_handle,
+            complete_records_time_handle,
+            p_remove_time_handle,
+            account_submit_time_handle,
+            account_reply_time_handle
+
+        )
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+                #{item.id},
+                #{item.planId},
+                #{item.pId},
+                #{item.pName},
+                #{item.gsId},
+                #{item.gsName},
+                #{item.setTime},
+                #{item.startTime},
+                #{item.finishTime},
+                #{item.completeTime},
+                #{item.completeRecordsTime},
+                #{item.pRemoveTime},
+                #{item.accountSubmitTime},
+                #{item.accountReplyTime},
+                #{item.completeRecordsNeed},
+                #{item.pRemoveNeed},
+                #{item.pCategory},
+                #{item.pCompetentDepartment},
+                #{item.pDepartment},
+                #{item.pProjectStage},
+                #{item.pInvTotal},
+                #{item.setTimeStatus},
+                #{item.startTimeStatus},
+                #{item.finishTimeStatus},
+                #{item.completeTimeStatus},
+                #{item.completeRecordsTimeStatus},
+                #{item.pRemoveTimeStatus},
+                #{item.accountSubmitTimeStatus},
+                #{item.accountReplyTimeStatus},
+                 #{item.setTimeSchedule},
+                #{item.startTimeSchedule},
+                #{item.finishTimeSchedule},
+                #{item.completeTimeSchedule},
+                 #{item.completeRecordsTimeSchedule},
+                 #{item.pRemoveTimeSchedule},
+                 #{item.accountSubmitTimeSchedule},
+                 #{item.accountReplyTimeSchedule},
+                 #{item.setTimeFinish},
+                 #{item.startTimeFinish},
+                 #{item.finishTimeFinish},
+                 #{item.completeTimeFinish},
+                 #{item.completeRecordsTimeFinish},
+                 #{item.pRemoveTimeFinish},
+                 #{item.accountSubmitTimeFinish},
+                 #{item.accountReplyTimeFinish},
+                 #{item.setTimeHandle},
+                 #{item.startTimeHandle},
+                 #{item.finishTimeHandle},
+                 #{item.completeTimeHandle},
+                 #{item.completeRecordsTimeHandle},
+                 #{item.pRemoveTimeHandle},
+                #{item.accountSubmitTimeHandle},
+                #{item.accountReplyTimeHandle}
+            )
+        </foreach>
+    </insert>
+
+    <select id="dataImport" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.GanttMilestoneStatistics">
+        SELECT gp.Plan_Id                                                                      AS Plan_Id,
+               gp.P_Id                                                                         AS P_Id,
+               pp.P_Name                                                                       AS P_Name,
+               gs.id                                                                           AS gsId,
+               CASE
+                   WHEN gs.id IS NOT NULL THEN gs.Gs_Section
+                   ELSE '全标段'
+               END                                                                             AS gs_name,
+               pp.P_Category                                                                   AS P_Category,
+               pp.P_Competent_Department                                                       AS P_Competent_Department,
+               pp.P_Department                                                                 AS P_Department,
+               pp.P_Inv_Total                                                                  AS P_Inv_Total,
+               sp.Set_Time_Schedule                                                            AS Set_Time_Schedule,
+               sp.Start_Time_Schedule                                                          AS Start_Time_Schedule,
+               sp.Finish_Time_Schedule                                                         AS Finish_Time_Schedule,
+               sp.Complete_Time_Schedule                                                       AS Complete_Time_Schedule,
+               sp.Complete_Records_Time_Schedule                                               AS Complete_Records_Time_Schedule,
+               sp.P_Remove_Time_Schedule                                                       AS P_Remove_Time_Schedule,
+               sp.Account_Submit_Time_Schedule                                                 AS Account_Submit_Time_Schedule,
+               sp.Account_Reply_Time_Schedule                                                  AS Account_Reply_Time_Schedule,
+               sp.Set_Time_Finish                                                              AS Set_Time_Finish,
+               sp.Start_Time_Finish                                                            AS Start_Time_Finish,
+               sp.Finish_Time_Finish                                                           AS Finish_Time_Finish,
+               sp.Complete_Time_Finish                                                         AS Complete_Time_Finish,
+               sp.Complete_Records_Time_Finish                                                 AS Complete_Records_Time_Finish,
+               sp.P_Remove_Time_Finish                                                         AS P_Remove_Time_Finish,
+               sp.Account_Submit_Time_Finish                                                   AS Account_Submit_Time_Finish,
+               sp.Account_Reply_Time_Finish                                                    AS Account_Reply_Time_Finish,
+               COALESCE(task_section.Set_Time, task_global.Set_Time)                           AS Set_Time,
+               COALESCE(task_section.Start_Time, task_global.Start_Time)                       AS Start_Time,
+               COALESCE(task_section.Finish_Time, task_global.Finish_Time)                     AS Finish_Time,
+               COALESCE(task_section.Complete_Time, task_global.Complete_Time)                 AS Complete_Time,
+               COALESCE(task_section.Complete_Records_Time, task_global.Complete_Records_Time) AS Complete_Records_Time,
+               COALESCE(task_section.P_Remove_Time, task_global.P_Remove_Time)                 AS P_Remove_Time,
+               COALESCE(task_section.Account_Submit_Time, task_global.Account_Submit_Time)     AS Account_Submit_Time,
+               COALESCE(task_section.Account_Reply_Time, task_global.Account_Reply_Time)       AS Account_Reply_Time,
+               COALESCE(task_section.Complete_Records_Need, task_global.Complete_Records_Need) AS Complete_Records_Need,
+               COALESCE(task_section.P_Remove_Need, task_global.P_Remove_Need)                 AS P_Remove_Need,
+               COALESCE(task_section.Set_Time_handle, task_global.Set_Time_handle)             AS Set_Time_handle,
+               COALESCE(task_section.Start_Time_handle, task_global.Start_Time_handle)         AS Start_Time_handle,
+               COALESCE(task_section.Finish_Time_handle, task_global.Finish_Time_handle)       AS Finish_Time_handle,
+               COALESCE(task_section.Complete_Time_handle, task_global.Complete_Time_handle)   AS Complete_Time_handle,
+               COALESCE(task_section.Complete_Records_Time_handle, task_global.Complete_Records_Time_handle) AS Complete_Records_Time_handle,
+               COALESCE(task_section.P_Remove_Time_handle, task_global.P_Remove_Time_handle)   AS P_Remove_Time_handle,
+               COALESCE(task_section.Account_Submit_Time_handle, task_global.Account_Submit_Time_handle)     AS Account_Submit_Time_handle,
+               COALESCE(task_section.Account_Reply_Time_handle, task_global.Account_Reply_Time_handle)       AS Account_Reply_Time_handle
+            FROM gantt_plan gp
+            LEFT JOIN (
+                SELECT
+                    P_Id,
+                    P_Name,
+                    P_Category,
+                    P_Competent_Department,
+                    P_Department,
+                    P_Inv_Total,
+                    State,
+                    deleted,
+                    P_Status,
+                    CASE
+                        WHEN P_Project_Form_Type = '01' THEN P_Approve_Budget_Date
+                        WHEN P_Project_Form_Type = '02' THEN P_Record_Date
+                        WHEN P_Project_Form_Type = '03' THEN P_Apply_Date
+                    END AS Set_Time
+                FROM pre_project
+            ) AS pp
+            ON gp.P_Id = pp.P_Id
+            LEFT JOIN (
+                SELECT id, plan_id, Gs_Section FROM gant_section
+                UNION ALL
+                SELECT NULL AS id, plan_id, '全标段' AS Gs_Section FROM gantt_plan
+                WHERE NOT EXISTS (SELECT 1 FROM gant_section WHERE gant_section.plan_id = gantt_plan.Plan_Id)
+            ) AS gs
+            ON gp.Plan_Id = gs.plan_id
+            LEFT JOIN (
+                SELECT Plan_Id,
+                       gs_id,
+                       MAX(CASE Task_Text WHEN '项目立项' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Set_Time,
+                       MAX(CASE Task_Text WHEN '开工' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Start_Time,
+                       MAX(CASE Task_Text WHEN '项目完工' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Finish_Time,
+                       MAX(CASE Task_Text WHEN '竣工验收' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Complete_Time,
+                       MAX(CASE Task_Text WHEN '竣工备案' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Complete_Records_Time,
+                       MAX(CASE Task_Text WHEN '竣工备案' THEN COALESCE(Must_Handle, 0) END) AS Complete_Records_Need,
+                       MAX(CASE Task_Text WHEN '工程移交' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS P_Remove_Time,
+                       MAX(CASE Task_Text WHEN '工程移交' THEN COALESCE(Must_Handle, 0) END) AS P_Remove_Need,
+                       MAX(CASE Task_Text WHEN '决算上报' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Account_Submit_Time,
+                       MAX(CASE Task_Text WHEN '决算批复' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Account_Reply_Time,
+                       MAX(CASE Task_Text WHEN '项目立项' THEN Must_Handle END) AS Set_Time_handle,
+                       MAX(CASE Task_Text WHEN '开工' THEN Must_Handle END) AS Start_Time_handle,
+                       MAX(CASE Task_Text WHEN '项目完工' THEN Must_Handle END) AS Finish_Time_handle,
+                       MAX(CASE Task_Text WHEN '竣工验收' THEN Must_Handle END) AS Complete_Time_handle,
+                       MAX(CASE Task_Text WHEN '竣工备案' THEN Must_Handle END) AS Complete_Records_Time_handle,
+                       MAX(CASE Task_Text WHEN '工程移交' THEN Must_Handle END) AS P_Remove_Time_handle,
+                       MAX(CASE Task_Text WHEN '决算上报' THEN Must_Handle END) AS Account_Submit_Time_handle,
+                       MAX(CASE Task_Text WHEN '决算批复' THEN Must_Handle END) AS Account_Reply_Time_handle
+                FROM gantt_tasks
+                WHERE gs_id IS NOT NULL and gs_id != ''
+                GROUP BY Plan_Id, gs_id
+            ) AS task_section
+            ON gp.Plan_Id = task_section.Plan_Id AND gs.id = task_section.gs_id
+            LEFT JOIN (
+                SELECT Plan_Id,
+                       MAX(CASE Task_Text WHEN '项目立项' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Set_Time,
+                       MAX(CASE Task_Text WHEN '开工' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Start_Time,
+                       MAX(CASE Task_Text WHEN '项目完工' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Finish_Time,
+                       MAX(CASE Task_Text WHEN '竣工验收' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Complete_Time,
+                       MAX(CASE Task_Text WHEN '竣工备案' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Complete_Records_Time,
+                       MAX(CASE Task_Text WHEN '竣工备案' THEN COALESCE(Must_Handle, 0) END) AS Complete_Records_Need,
+                       MAX(CASE Task_Text WHEN '工程移交' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS P_Remove_Time,
+                       MAX(CASE Task_Text WHEN '工程移交' THEN COALESCE(Must_Handle, 0) END) AS P_Remove_Need,
+                       MAX(CASE Task_Text WHEN '决算上报' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Account_Submit_Time,
+                       MAX(CASE Task_Text WHEN '决算批复' THEN COALESCE(Task_Finish_Time, Task_End_Date) END) AS Account_Reply_Time,
+                       MAX(CASE Task_Text WHEN '项目立项' THEN Must_Handle END) AS Set_Time_handle,
+                       MAX(CASE Task_Text WHEN '开工' THEN Must_Handle END) AS Start_Time_handle,
+                       MAX(CASE Task_Text WHEN '项目完工' THEN Must_Handle END) AS Finish_Time_handle,
+                       MAX(CASE Task_Text WHEN '竣工验收' THEN Must_Handle END) AS Complete_Time_handle,
+                       MAX(CASE Task_Text WHEN '竣工备案' THEN Must_Handle END) AS Complete_Records_Time_handle,
+                       MAX(CASE Task_Text WHEN '工程移交' THEN Must_Handle END) AS P_Remove_Time_handle,
+                       MAX(CASE Task_Text WHEN '决算上报' THEN Must_Handle END) AS Account_Submit_Time_handle,
+                       MAX(CASE Task_Text WHEN '决算批复' THEN Must_Handle END) AS Account_Reply_Time_handle
+                FROM gantt_tasks
+                WHERE gs_id IS NULL or gs_id =''
+                GROUP BY Plan_Id
+            ) AS task_global
+            ON gp.Plan_Id = task_global.Plan_Id
+            LEFT  JOIN (
+                SELECT
+                    Plan_Id,
+                    NULLIF(gs_id, '') AS gs_id,
+                    MAX(CASE Task_Text WHEN '项目立项' THEN Task_End_Date END) AS Set_Time_Schedule,
+                    MAX(CASE Task_Text WHEN '项目立项' THEN Task_Finish_Time END) AS Set_Time_Finish,
+                    MAX(CASE Task_Text WHEN '开工' THEN Task_End_Date END) AS Start_Time_Schedule,
+                    MAX(CASE Task_Text WHEN '开工' THEN Task_Finish_Time END) AS Start_Time_Finish,
+                    MAX(CASE Task_Text WHEN '项目完工' THEN Task_End_Date END) AS Finish_Time_Schedule,
+                    MAX(CASE Task_Text WHEN '项目完工' THEN Task_Finish_Time END) AS Finish_Time_Finish,
+                    MAX(CASE Task_Text WHEN '竣工验收' THEN Task_End_Date END) AS Complete_Time_Schedule,
+                    MAX(CASE Task_Text WHEN '竣工验收' THEN Task_Finish_Time END) AS Complete_Time_Finish,
+                    MAX(CASE Task_Text WHEN '竣工备案' THEN Task_End_Date END) AS Complete_Records_Time_Schedule,
+                    MAX(CASE Task_Text WHEN '竣工备案' THEN Task_Finish_Time END) AS Complete_Records_Time_Finish,
+                    MAX(CASE Task_Text WHEN '工程移交' THEN Task_End_Date END) AS P_Remove_Time_Schedule,
+                    MAX(CASE Task_Text WHEN '工程移交' THEN Task_Finish_Time END) AS P_Remove_Time_Finish,
+                    MAX(CASE Task_Text WHEN '决算上报' THEN Task_End_Date END) AS Account_Submit_Time_Schedule,
+                    MAX(CASE Task_Text WHEN '决算上报' THEN Task_Finish_Time END) AS Account_Submit_Time_Finish,
+                    MAX(CASE Task_Text WHEN '决算批复' THEN Task_End_Date END) AS Account_Reply_Time_Schedule,
+                    MAX(CASE Task_Text WHEN '决算批复' THEN Task_Finish_Time END) AS Account_Reply_Time_Finish
+                FROM gantt_tasks
+                GROUP BY Plan_Id, NULLIF(gs_id, '')
+              )AS sp
+            ON gp.Plan_Id = sp.Plan_Id
+        WHERE gp.Plan_State = 7
+          and pp.State = 7
+          and pp.deleted = false
+          and pp.P_Status = '1'
+    </select>
+
+    <select id="List" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.GanttMilestoneStatistics">
+        select * from gantt_milestone_statistics
+    </select>
+
+    <select id="getProjectList"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.GanttMilestoneStatistics">
+        select * from pre_project where State = 7 and deleted = false and P_Status = '1'
+    </select>
+
+    <select id="getProjectTimes"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.GanttPlanTimes">
+        select gp.P_Id,
+               gp.Plan_Id,
+               times.gs_id,
+               times.Set_Time_Finish,
+               times.Start_Time_Finish,
+               times.Finish_Time_Finish,
+               times.Complete_Time_Finish,
+               times.Complete_Records_Time_Finish,
+               times.P_Remove_Time_Finish,
+               times.Account_Submit_Time_Finish,
+               times.AccountReplyTime_Finish,
+
+                times.Complete_Records_Need,
+                times.P_Remove_Need,
+
+                times.Set_Time_Schedule,
+                times.Start_Time_Schedule,
+                times.Finish_Time_Schedule,
+                times.Complete_Time_Schedule,
+                times.Complete_Records_Time_Schedule,
+                times.P_Remove_Time_Schedule,
+                times.Account_Submit_Time_Schedule,
+                times.AccountReplyTime_Schedule
+
+        from gantt_plan gp
+                 LEFT JOIN (SELECT Plan_Id,
+                                   NULLIF(gs_id, '') AS gs_id,
+                                   MAX(CASE Task_Text WHEN '项目立项' THEN Task_Finish_Time END) AS Set_Time_Finish,
+                                   MAX(CASE Task_Text WHEN '开工' THEN Task_Finish_Time END)     AS Start_Time_Finish,
+                                   MAX(CASE Task_Text WHEN '项目完工' THEN Task_Finish_Time END) AS Finish_Time_Finish,
+                                   MAX(CASE Task_Text WHEN '竣工验收' THEN Task_Finish_Time END) AS Complete_Time_Finish,
+                                   MAX(CASE Task_Text WHEN '竣工备案' THEN Task_Finish_Time END) AS Complete_Records_Time_Finish,
+                                   MAX(CASE Task_Text WHEN '竣工备案' THEN Must_Handle END)      AS Complete_Records_Need,
+                                   MAX(CASE Task_Text WHEN '工程移交' THEN Task_Finish_Time END) AS P_Remove_Time_Finish,
+                                   MAX(CASE Task_Text WHEN '工程移交' THEN Must_Handle END) AS P_Remove_Need,
+                                   MAX(CASE Task_Text WHEN '决算上报' THEN Task_Finish_Time END) AS Account_Submit_Time_Finish,
+                                   MAX(CASE Task_Text WHEN '决算批复' THEN Task_Finish_Time END) AS AccountReplyTime_Finish,
+
+                                   MAX(CASE Task_Text WHEN '项目立项' THEN Task_End_Date END) AS Set_Time_Schedule,
+                                   MAX(CASE Task_Text WHEN '开工' THEN Task_End_Date END)     AS Start_Time_Schedule,
+                                   MAX(CASE Task_Text WHEN '项目完工' THEN Task_End_Date END) AS Finish_Time_Schedule,
+                                   MAX(CASE Task_Text WHEN '竣工验收' THEN Task_End_Date END) AS Complete_Time_Schedule,
+                                   MAX(CASE Task_Text WHEN '竣工备案' THEN Task_End_Date END) AS Complete_Records_Time_Schedule,
+                                   MAX(CASE Task_Text WHEN '工程移交' THEN Task_End_Date END) AS P_Remove_Time_Schedule,
+                                   MAX(CASE Task_Text WHEN '决算上报' THEN Task_End_Date END) AS Account_Submit_Time_Schedule,
+                                   MAX(CASE Task_Text WHEN '决算批复' THEN Task_End_Date END) AS AccountReplyTime_Schedule
+                            FROM gantt_tasks
+                            GROUP BY Plan_Id, NULLIF(gs_id, ''))
+                            AS times
+                            ON gp.Plan_Id = times.Plan_Id
+    </select>
+</mapper>

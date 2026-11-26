@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectSolutionMapper">
+    <resultMap id="preProjectSolutionModel" type="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectSolutionModel">
+        <id column="id" property="id" />
+        <association property="projectRegisterInfo"
+                     javaType="com.jpmsoft.common.model.requestAndResponse.Project.ProjectRegisterInfoModel"
+                     column="id" select="getProjectRegisterInfo"/>
+        <collection property="preProjectSolutionDetails"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectSolutionDetailsModel"
+                    column="id" select="getPreProjectSolutionDetails">
+        </collection>
+    </resultMap>
+    <select id="getPreProjectSolutionList"
+            resultMap="preProjectSolutionModel">
+        select mn.*,pro.P_Name as projectName,reg.audit_status as auditStatus,reg.audit_comment as auditComment
+        from Pre_Project_Solution mn
+        left join Pre_Project pro on mn.project_id = pro.P_ID
+        left join Project_Register_Info reg on mn.project_register_info_id = reg.id
+        <where>
+            mn.lastest = 1
+            <if test="params.projectName != null and params.projectName !=''">
+                and pro.P_Name like concat('%',#{params.projectName},'%')
+            </if>
+            <if test="params.projectId != null and params.projectId !=''">
+                and mn.project_id = #{params.projectId}
+            </if>
+            <if test="params.projectCode != null and params.projectCode !=''">
+                and pro.P_Code like concat('%',#{params.projectCode},'%')
+            </if>
+            <if test="params.auditStatus != null and params.auditStatus !=''">
+                and mn.audit_status = #{params.auditStatus}
+            </if>
+            <if test="params.createUid != null and params.createUid !=''">
+                and mn.create_uid = #{params.createUid}
+            </if>
+        </where>
+    </select>
+
+    <select id="getPreProjectSolutionById"
+            resultMap="preProjectSolutionModel">
+        select mn.*,pro.P_Name as projectName,reg.audit_status as auditStatus,reg.audit_comment as auditComment
+        from Pre_Project_Solution mn
+        left join Pre_Project pro on mn.project_id = pro.P_ID
+        left join Project_Register_Info reg on mn.project_register_info_id = reg.id
+        where mn.id=#{id}
+    </select>
+
+    <select id="getPreProjectSolutionDetails" resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectSolutionDetailsModel">
+        select mn.*
+        from Pre_Project_Solution_Details mn
+        where mn.solution_id=#{id} and mn.del_flag=1 and mn.status=1
+    </select>
+
+    <select id="getProjectRegisterInfo" resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProjectRegisterInfoModel">
+        select mn.*
+        from Project_Register_Info mn
+        where mn.solution_id= #{id}
+    </select>
+    <select id="getPreProjectSolutionListModifyInfo"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectSolutionModel">
+        select mn.*,pro.P_Name as projectName,reg.audit_status as
+            auditStatus,reg.audit_comment as auditComment,reg.solution_id as solutionId
+        from Pre_Project_Solution mn
+        left join Pre_Project pro on mn.project_id = pro.P_ID
+        left join Project_Register_Info reg on mn.project_register_info_id = reg.id
+        <where>
+            mn.version_id = #{params.versionId}
+            <if test="params.projectName != null and params.projectName !=''">
+                and pro.P_Name like concat('%',#{params.projectName},'%')
+            </if>
+            <if test="params.projectId != null and params.projectId !=''">
+                and mn.project_id = #{params.projectId}
+            </if>
+            <if test="params.projectCode != null and params.projectCode !=''">
+                and pro.P_Code like concat('%',#{params.projectCode},'%')
+            </if>
+            <if test="params.auditStatus != null and params.auditStatus !=''">
+                and mn.audit_status = #{params.auditStatus}
+            </if>
+            <if test="params.createUid != null and params.createUid !=''">
+                and mn.create_uid = #{params.createUid}
+            </if>
+        </where>
+    </select>
+</mapper>

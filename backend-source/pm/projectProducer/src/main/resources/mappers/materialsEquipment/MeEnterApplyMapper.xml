@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MeEnterApplyMapper">
+    <select id="getMeEnterApplyByEaId" resultType="com.jpmsoft.common.model.response.MeEnter.MeEnterApplyResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Party_B_Id as conPartyBId,
+        con2.Con_Name as eaPurchaseContractName,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        c1.C_Name as eaSupervisorName,
+        c2.C_Name as eaDesignName,
+        c3.C_Name as conPartyBName,
+        c1.C_Abbreviation as eaSupervisorAbbName,
+        c2.C_Abbreviation as eaDesignAbbName,
+        c3.C_Abbreviation as conPartyBAbbName,
+        f.file_relation_id as fileRelationId,
+        ir.Ir_Result as irResult,
+        wi.Wi_Id as wiId,
+        wi.Wi_Order_No as wiOrderNo,
+        ei.Ei_Id as eiId,
+        ei.Ei_Code as eiCode,
+        mn.*
+        from  Me_Enter_Apply mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Con_Contract con2 on con2.Con_Id=mn.Ea_Purchase_Contract
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  SYS_Company c1 on mn.Ea_Supervisor_Id=c1.C_Id
+        left join  SYS_Company c2 on mn.Ea_Design_Id=c2.C_Id
+        left join  Sys_File f on f.FileID=mn.Ea_Id
+        left join  SYS_Company c3 on con.Con_Party_B_Id=c3.C_Id
+        left join  Me_Witness_Inspection wi on wi.Ead_Id=mn.Ea_Id and wi.Wi_State!=3
+        left join  Me_Inspection_Report ir on wi.Wi_Id=ir.Wi_Id and ir.Ir_State!=3
+        left join  Me_Enter_Inspection ei on ei.Ea_Id=mn.Ea_Id and ei.Ei_State!=3
+        where mn.Ea_Id=#{eaId}
+    </select>
+
+
+    <select id="getMeEnterApplyList" resultType="com.jpmsoft.common.model.response.MeEnter.MeEnterApplyResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Party_B_Id as conPartyBId,
+        con2.Con_Name as eaPurchaseContractName,
+        c1.C_Name_History as eaSupervisorNameHistory,
+        c2.C_Name_History as eaDesignNameHistory,
+        c3.C_Name_History as conPartyBNameHistory,
+        c1.C_Name as eaSupervisorName,
+        c2.C_Name as eaDesignName,
+        c3.C_Name as conPartyBName,
+        c1.C_Abbreviation as eaSupervisorAbbName,
+        c2.C_Abbreviation as eaDesignAbbName,
+        c3.C_Abbreviation as conPartyBAbbName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from Me_Enter_Apply mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Con_Contract con2 on con2.Con_Id=mn.Ea_Purchase_Contract
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on mn.Ea_Supervisor_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Ea_Design_Id=c2.C_Id
+        left join Sys_File f on f.FileID=mn.Ea_Id
+        left join SYS_Company c3 on con.Con_Party_B_Id=c3.C_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.conPartyBId!=null">
+            and con.Con_Party_B_Id = #{params.conPartyBId}
+        </if>
+        <if test="params.eaWitness!=null">
+            and mn.Ea_Witness = #{params.eaWitness}
+        </if>
+        <if test="params.eaProjectTeam!=null">
+            and mn.Ea_Project_Team = #{params.eaProjectTeam}
+        </if>
+        <if test="params.eaSupervisorId!=null">
+            and mn.Ea_Supervisor_Id = #{params.eaSupervisorId}
+        </if>
+        <if test="params.eaDesignId!=null">
+            and mn.Ea_Design_Id = #{params.eaDesignId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.eaPurchaseContract!=null">
+            and mn.Ea_Purchase_Contract = #{params.eaPurchaseContract}
+        </if>
+        <if test="params.eaCode!=null">
+            and mn.Ea_Code like concat('%',#{params.eaCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.eaPurchaseContractName!=null">
+            and con2.Con_Name like concat('%',#{params.eaPurchaseContractName},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ea_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

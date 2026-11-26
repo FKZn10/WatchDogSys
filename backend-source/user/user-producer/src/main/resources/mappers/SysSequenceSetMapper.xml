@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysSequenceSetMapper">
+
+    <resultMap type="com.jpmsoft.userProducer.pojo.dto.SysSequenceSetDto" id="getSysSequenceSet">
+        <id column="S_Id" property="sId"/>
+        <collection property="sysSequenceSetDtls"
+                    ofType="com.jpmsoft.userProducer.pojo.dto.SysSequenceSetDtlDto"
+                    column="S_Id" select="getSysSequenceSetDtlBySid">
+        </collection>
+    </resultMap>
+
+    <select id="getSysSequenceSetByTcode" resultMap="getSysSequenceSet">
+        select
+        mn.*
+        from  SYS_Sequence_Set mn
+        where mn.T_Code=#{tCode}
+        <if test="teId!=null">
+            and mn.Te_Id=#{teId}
+        </if>
+    </select>
+
+
+    <select id="getSysSequenceSetDtlBySid"
+            resultType="com.jpmsoft.userProducer.pojo.dto.SysSequenceSetDtlDto" >
+        select
+        mn.*
+        from  SYS_Sequence_Set_Dtl mn
+        where mn.S_Id=#{sId}
+        order by mn.Sd_Rule_Order asc
+    </select>
+
+
+    <select id="getSysSequenceSetList"
+            resultType="com.jpmsoft.userProducer.pojo.dto.SysSequenceSetDto">
+        select
+        mn.*
+        from  SYS_Sequence_Set mn
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id=#{params.teId}
+            </if>
+            <if test="params.tCode!=null">
+                and mn.T_Code like concat('%',#{params.tCode},'%')
+            </if>
+            <if test="params.sName!=null">
+                and mn.S_Name like concat('%',#{params.sName},'%')
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.S_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSysSequenceSetListCount"
+            resultType="java.lang.Integer">
+        select
+        count(1)
+        from  SYS_Sequence_Set mn
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id=#{params.teId}
+            </if>
+            <if test="params.tCode!=null">
+                and mn.T_Code like concat('%',#{params.tCode},'%')
+            </if>
+            <if test="params.sName!=null">
+                and mn.S_Name like concat('%',#{params.sName},'%')
+            </if>
+        </where>
+    </select>
+</mapper>

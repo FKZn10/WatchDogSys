@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysPositionPMapper">
+
+
+    <select id="getPositionPByRole" resultType="Map">
+        select
+        pro.P_Name as pName,
+        p.PP_Name as ppName,
+        d.PD_Name as pdName
+        from
+        SYS_Position_P p
+        left join SYS_Department_P d on p.PD_ID=d.PD_ID
+        left join Pre_Project pro on pro.P_Id= d.P_Id
+        left join SYS_PositionP_Role pr on pr.PP_ID=p.PP_ID
+        where pr.Role_ID=#{roleId}
+    </select>
+
+    <select id="getPositionPByUid" resultType="com.jpmsoft.userProducer.pojo.vo.SysPositionPVo">
+        select
+        d.PD_Name as pdName,
+        d.P_Id as pId,
+        <include refid="ppFileds"/>
+        from
+        SYS_Position_P p
+        left join SYS_Department_P d on p.PD_ID=d.PD_ID
+        left join SYS_Position_User_P pup on pup.PP_ID=p.PP_ID
+        where pup.U_Id=#{uId}
+        <if test="pId!=null">
+            and d.P_Id=#{pId}
+        </if>
+    </select>
+
+    <select id="GetPositionPList" resultType="com.jpmsoft.userProducer.pojo.vo.SysPositionPVo">
+        select
+        d.PD_Name as pdName,
+        <include refid="ppFileds"/>
+        from
+        SYS_Position_P p
+        left join SYS_Department_P d on p.PD_ID=d.PD_ID
+        <include refid="positionPListWhere"/>
+        <choose>
+            <when test="sortType!=null and sortFiled!=null">
+                order by p.${sortFiled} ${sortType}
+            </when>
+            <otherwise>
+                order by p.PP_Sort asc
+            </otherwise>
+        </choose>
+        limit #{start},#{size}
+    </select>
+
+    <sql id="positionPListWhere">
+        <where>
+            1=1
+            <if test="filterSpecifiedPosition!=null and filterSpecifiedPosition!=''">
+                and p.PP_Code not in
+                <foreach collection="filterSpecifiedPosition.split(',')" item="code" open="(" separator="," close=")">
+                    #{code}
+                </foreach>
+            </if>
+            <if test="ppStatus!=null">
+                and p.PP_Status=#{ppStatus}
+            </if>
+            <if test="pdId!=null">
+                and p.PD_ID=#{pdId}
+            </if>
+            <if test="pdCode != null and pdCode != ''">
+                and d.PD_Code = #{pdCode}
+            </if>
+            <if test="ppName!=null">
+                and p.PP_Name like concat('%',#{ppName},'%')
+            </if>
+            <if test="pId != null and pId != ''">
+                and d.P_ID = #{pId}
+            </if>
+        </where>
+    </sql>
+
+
+    <select id="GetPositionPListCount" resultType="java.lang.Integer">
+        select
+        count(*)
+        from
+        SYS_Position_P p
+        left join SYS_Department_P d on p.PD_ID=d.PD_ID
+        <include refid="positionPListWhere"/>
+    </select>
+    <select id="getMaxPpSort" resultType="java.lang.Integer">
+        select
+        max(PP_Sort)
+        from
+        SYS_Position_P
+        where PD_ID=#{pdId}
+    </select>
+
+    <sql id="ppFileds">
+        p.PP_ID as ppId,
+        p.PD_ID as pdId,
+        p.PP_Name as ppName,
+        p.PP_Code as ppCode,
+        p.PP_Remark as ppRemark,
+        p.PP_Sort as ppSort,
+        p.PP_Status as ppStatus,
+        p.PP_MDM_NO as ppMdmNo,
+        p.PP_CreateTime as ppCreatetime,
+        p.PP_CreateU_ID as ppCreateuId,
+        p.PP_CreateU_Name as ppCreateuName
+    </sql>
+
+    <select id="getProjectPositionP" resultType="com.jpmsoft.userProducer.pojo.dto.UserPositionPDTO">
+        select
+        d.PD_Id as pdId,
+        d.PD_Code as pdCode,
+        p.PP_ID as ppId,
+        p.PP_Name as ppName,
+        p.PP_Code as ppCode,
+        d.PD_Name as pdName
+        from SYS_Position_P p
+        left join SYS_Department_P d on p.PD_ID=d.PD_ID
+        WHERE d.P_ID=#{pId}
+        and p.PP_Status = '1'
+        and d.PD_Status = '1'
+        and d.pd_code in
+        <foreach collection="pdCodes" item="pdCode" open="(" separator="," close=")">
+            #{pdCode}
+        </foreach>
+        order by d.PD_Sort, p.Pp_Sort asc
+    </select>
+
+    <select id="getProjectPositionPOwner" resultType="com.jpmsoft.userProducer.pojo.dto.UserPositionPDTO">
+        select
+        d.PD_Id as pdId,
+        d.PD_Code as pdCode,
+        p.PP_ID as ppId,
+        p.PP_Name as ppName,
+        p.PP_Code as ppCode,
+        d.owner_unit as ownerUnit,
+        c.C_Name as ownerUnitName,
+        d.PD_Name as pdName
+        from SYS_Position_P p
+        left join SYS_Department_P d on p.PD_ID=d.PD_ID
+        left join sys_company c on c.C_ID=d.owner_unit
+        WHERE d.P_ID=#{pId}
+        and p.PP_Status = '1'
+        and d.PD_Status = '1'
+        and (d.pd_code=#{yzdwoCode} or d.pd_code=#{yzdwtCode})
+        order by p.Pp_Sort asc
+    </select>
+</mapper>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecQeGroupDtlMapper">
+    <select id="getSecQeGroupDtlByQegId" resultType="com.jpmsoft.common.model.response.SecInfo.SecQeGroupDtlResponse">
+        select u.U_Name         as qegdUname,
+               c.C_Name         as qegdCompanyName,
+               c.C_Abbreviation as qegdCompAbbName,
+               c1.C_Name         as qegdCname,
+               sqgd.*
+        from Sec_QE_Group_Dtl sqgd
+                 left join Sys_User u on sqgd.Qegd_Uid = u.U_ID
+                 left join SYS_Company c on c.C_ID = u.C_ID
+                 left join SYS_Company c1 on c1.C_ID = sqgd.Qegd_Cid
+        where sqgd.Qeg_Id = #{qegId}
+    </select>
+
+    <select id="getSecQeGroupDtlBySecId" resultType="com.jpmsoft.common.model.response.SecInfo.SecQeGroupDtlResponse">
+        select u.U_Name         as qegdUname,
+               c.C_Name         as qegdCompanyName,
+               c.C_Abbreviation as qegdCompAbbName,
+               c1.C_Name         as qegdCname,
+               sqgd.*
+        from Sec_QE_Group_Dtl sqgd
+                 left join Sys_User u on sqgd.Qegd_Uid = u.U_ID
+                 left join SYS_Company c on c.C_ID = u.C_ID
+                 left join Sec_QE_Group sqg on sqg.Qeg_Id = sqgd.Qeg_Id
+                 left join Sec_Info sec on sec.Sec_Id = sqg.Sec_Id
+                 left join SYS_Company c1 on c1.C_ID = sqgd.Qegd_Cid
+        where sec.Sec_Id = #{secId}
+    </select>
+</mapper>

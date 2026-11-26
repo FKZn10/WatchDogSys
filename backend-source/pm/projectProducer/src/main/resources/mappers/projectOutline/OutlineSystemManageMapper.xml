@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.projectOutline.OutlineSystemManageMapper">
+    <select id="getOutlineSystemManagePage"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineSystemManageResponse">
+        select
+        mn.*
+        from Outline_System_Manage mn
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilter">
+        <where>
+            <if test="params.osmName != null and params.osmName != ''">
+                and mn.Osm_Name LIKE CONCAT('%', #{params.osmName}, '%')
+            </if>
+            <if test="params.osmNameList != null and !params.osmNameList.isEmpty()">
+                and mn.Osm_Name in
+                <foreach item="item" index="index" collection="params.osmNameList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.osmCode != null and params.osmCode != ''">
+                and mn.Osm_Code LIKE CONCAT('%', #{params.osmCode}, '%')
+            </if>
+            <if test="params.osmCodeList != null and !params.osmCodeList.isEmpty()">
+                and mn.Osm_Code in
+                <foreach item="item" index="index" collection="params.osmCodeList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.osmStatus != null and params.osmStatus != ''">
+                and mn.Osm_Status LIKE CONCAT('%', #{params.osmStatus}, '%')
+            </if>
+            <if test="params.osmStatusList != null and !params.osmStatusList.isEmpty()">
+                and mn.Osm_Status in
+                <foreach item="item" index="index" collection="params.osmStatusList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.osmProjectType != null and params.osmProjectType != ''">
+                and mn.Osm_Project_Type LIKE CONCAT('%', #{params.osmProjectType}, '%')
+            </if>
+            <if test="params.osmProjectTypeList != null and !params.osmProjectTypeList.isEmpty()">
+                and mn.Osm_Project_Type in
+                <foreach item="item" index="index" collection="params.osmProjectTypeList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.osmDepartmentId != null and params.osmDepartmentId != ''">
+                and mn.Osm_Department_Id = #{params.osmDepartmentId}
+            </if>
+            <if test="params.osmDepartmentIdList != null and !params.osmDepartmentIdList.isEmpty()">
+                and mn.Osm_Department_Id in
+                <foreach item="item" index="index" collection="params.osmDepartmentIdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.state != null">
+                and mn.State = #{params.state}
+            </if>
+            <if test="params.stateList != null and !params.stateList.isEmpty()">
+                and mn.State in
+                <foreach item="item" index="index" collection="params.stateList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <include refid="dateFormatFilter"/>
+        </where>
+    </sql>
+
+    <sql id="dateFormatFilter" databaseId="mysql">
+        <if test="params.createTime != null">
+            and DATE_FORMAT(mn.Create_Time, '%Y-%m-%d') = DATE_FORMAT(#{params.createTime}, '%Y-%m-%d')
+        </if>
+    </sql>
+
+    <sql id="dateFormatFilter" databaseId="dm">
+        <if test="params.createTime != null">
+            and TO_CHAR(mn.Create_Time, 'YYYY-MM-DD') = TO_CHAR(#{params.createTime}, 'YYYY-MM-DD')
+        </if>
+    </sql>
+
+    <select id="getOutlineSystemManageById"
+            resultType="com.jpmsoft.common.model.response.projectOutline.OutlineSystemManageResponse">
+        select mn.*
+        from Outline_System_Manage mn
+        where Id = #{id}
+    </select>
+</mapper>

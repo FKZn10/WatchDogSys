@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvestmentEstimateBreakdownDetailsMapper">
+    <delete id="deleteByIsbId">
+        delete from investment_estimate_breakdown_details where isb_id = #{primaryId}
+    </delete>
+
+    <select id="getDataByIsbId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.InvestmentEstimateBreakdownDetailsModel">
+         select * from  investment_estimate_breakdown_details where isb_id = #{isbId}
+    </select>
+
+    <insert id="insertBatch">
+        INSERT INTO Investment_Estimate_Breakdown_Details (
+        id,
+        isb_id,
+        ie_detail_id,
+        isbd_fee_type_name,
+        isbd_type,
+        isbd_section_type,
+        isbd_section_name,
+        isbd_amount,
+        isbd_remark,
+        action_display,
+        sort,
+        change_type,
+        level_code,
+        parent_id,
+        work_Measure,
+        unit,
+        unit_Price
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.id},
+            #{item.isbId},
+            #{item.ieDetailId},
+            #{item.isbdFeeTypeName},
+            #{item.isbdType},
+            #{item.isbdSectionType},
+            #{item.isbdSectionName},
+            #{item.isbdAmount},
+            #{item.isbdRemark},
+            #{item.actionDisplay},
+            #{item.sort},
+            #{item.changeType},
+            #{item.levelCode},
+            #{item.parentId},
+            #{item.workMeasure},
+            #{item.unit},
+            #{item.unitPrice}
+            )
+        </foreach>
+    </insert>
+
+
+</mapper>

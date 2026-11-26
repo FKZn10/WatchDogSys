@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MeUseApplyMapper">
+    <select id="getMeUseApplyByUaId"
+            resultType="com.jpmsoft.common.model.response.MeEnter.MeUseApplyResponse">
+        select
+        f.file_relation_id as fileRelationId,
+        ea.Ea_Code as eaCode,
+        con.Con_Name as conName,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        mn.*
+        from  Me_Use_Apply mn
+        left join  Me_Enter_Apply ea on ea.Ea_Id=mn.Ea_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_File f on f.FileID=mn.Ua_Id
+        where mn.Ua_Id=#{uaId}
+    </select>
+
+
+    <select id="getMeUseApplyList"
+            resultType="com.jpmsoft.common.model.response.MeEnter.MeUseApplyResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        f.file_relation_id as fileRelationId,
+        ea.Ea_Code as eaCode,
+        con.Con_Name as conName,
+        mn.*
+        from  Me_Use_Apply mn
+        left join  Me_Enter_Apply ea on ea.Ea_Id=mn.Ea_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sys_File f on f.FileID=mn.Ua_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.metName!=null">
+            and met.Met_Name like concat('%',#{params.metName},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ua_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

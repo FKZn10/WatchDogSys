@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.bim.ProjectBimTreeMapMapper">
+    <select id="queryIdsByProject" resultType="java.lang.String">
+        SELECT a.bim_tree_id
+        FROM PROJECT_BIM_TREE_MAP a
+        LEFT JOIN Pre_Project b ON a.project_id = b.p_id
+        <where>
+            <if test="projectId!=null and projectId!=''">
+                and b.p_id = #{projectId}
+            </if>
+            <if test="projectName!=null and projectName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{projectName},a.project_id)=true
+                    </when>
+                    <otherwise>
+                        and b.p_name like concat('%',#{projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+    <select id="queryProjectsByTreeIds" resultType="com.jpmsoft.projectProducer.pojo.dto.bim.ProjectBimTreeDto">
+        SELECT a.bim_tree_id,a.project_id,b.p_name as project_name
+        FROM PROJECT_BIM_TREE_MAP a
+        LEFT JOIN Pre_Project b ON a.project_id = b.p_id
+        <where>
+            <if test="treeIds!=null and treeIds.size() > 0">
+                a.bim_tree_id in
+                <foreach item="item" collection="treeIds" open="(" separator="," close=")" index="index">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+    <select id="queryListProjectForBim" resultType="com.jpmsoft.projectProducer.pojo.dto.bim.ProjectBimInfoDto">
+        select  a.p_id as project_id,
+                a.p_name as project_name,
+                a.p_address as address,
+                a.p_longitude as longitude,
+                a.p_latitude as latitude
+        from PRE_PROJECT a
+        WHERE EXISTS (SELECT 1 FROM PROJECT_BIM_TREE_MAP b WHERE b.project_id = a.p_id)
+        <if test="projectName!=null and projectName!=''">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{projectName},a.P_id)=true
+                </when>
+                <otherwise>
+                    and a.p_name like concat('%',#{projectName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        ORDER BY a.p_create_time ASC
+    </select>
+    <select id="queryProjectIdsByProjectName" resultType="java.lang.String">
+        select  a.p_id
+        from PRE_PROJECT a
+        <where>
+            <if test="projectName!=null and projectName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{projectName},a.P_id)=true
+                    </when>
+                    <otherwise>
+                        and a.p_name like concat('%',#{projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+
+    <select id="queryProjectsByProjectName" resultType="com.jpmsoft.projectProducer.pojo.dto.bim.ProjectDto">
+        select  a.p_id as project_id,
+        a.p_name as project_name
+        from PRE_PROJECT a
+        <where>
+            <if test="projectName!=null and projectName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{projectName},a.P_id)=true
+                    </when>
+                    <otherwise>
+                        and a.p_name like concat('%',#{projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+
+    <select id="queryContractsByContractName"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ContractDto">
+        select  a.Con_Id as contractId,
+        a.Con_Name as contractName
+        from Con_Contract a
+        <where>
+            <if test="contractName!=null and contractName!=''">
+                and a.Con_Name like concat('%',#{contractName},'%')
+            </if>
+        </where>
+    </select>
+
+    <select id="queryProjectsByProjectIds" resultType="com.jpmsoft.projectProducer.pojo.dto.bim.ProjectDto">
+         select  a.p_id as project_id,
+                a.p_name as project_name,
+                a.p_type as projectType
+         from PRE_PROJECT a
+        <where>
+            <if test="projectIds!=null and projectIds.size() > 0">
+                a.p_id in
+                <foreach item="item" collection="projectIds" open="(" separator="," close=")" index="index">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+    <select id="queryContractByConContractIds"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ContractDto">
+        select  a.con_id as contract_id,
+                a.con_name as contract_name,
+                a.Con_Code as contract_code
+        from CON_CONTRACT a
+        <where>
+            <if test="contractIds!=null and contractIds.size() > 0">
+                a.con_id in
+                <foreach item="item" collection="contractIds" open="(" separator="," close=")" index="index">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+    <select id="queryProjectsByProjectIdsAndProjectName"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.bim.ProjectBimInfoVO">
+        select
+        a.p_id as project_id,
+        a.p_name as project_name,
+        a.p_address as address,
+        a.p_longitude as longitude,
+        a.p_latitude as latitude,
+        a.p_type as projectType
+        from PRE_PROJECT a
+        <where>
+            <if test="projectIds!=null and projectIds.size() > 0">
+                a.p_id in
+                <foreach item="item" collection="projectIds" open="(" separator="," close=")" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="projectName!=null and projectName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{projectName},a.P_id)=true
+                    </when>
+                    <otherwise>
+                        and a.p_name like concat('%',#{projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="projectCategoryDetails != null and projectCategoryDetails.trim() != ''">
+                and a.project_category_details like concat('%',#{projectCategoryDetails},'%')
+            </if>
+        </where>
+    </select>
+    <select id="queryPageQs" resultType="com.jpmsoft.projectProducer.pojo.dto.bim.QsBimPageDto">
+        select
+        mn.qsr_id,
+        con.Con_Name as con_name,
+        mn.P_Id as project_id,
+        mn.qsr_category as qsr_type,
+        mn.qsr_type as check_type,
+        qt.Qst_Name as problem_category,
+        mn.qsr_problem_nature as problemNature,
+        mn.qsr_time as check_time,
+        mn.qsr_rectify_require_time as rectify_require_time,
+        mn.qsr_rectify_uame as rectify_user_name
+        from  Qs_Record mn
+        left join  Qs_Type qt on qt.Qst_Id=mn.Qst_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        <where>
+            mn.qsr_id in
+            <foreach item="item" collection="qsrIds" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </where>
+    </select>
+    <select id="queryContractIdsByContractName" resultType="java.lang.String">
+        select  a.Con_Id
+        from con_contract a
+        <where>
+            <if test="contractName!=null and contractName!=''">
+                a.Con_Name like concat('%',#{contractName},'%')
+            </if>
+        </where>
+    </select>
+    <select id="queryPagePlanTask" resultType="com.jpmsoft.projectProducer.pojo.dto.bim.PlanTaskBimPageDto">
+        SELECT a.*, b.plan_name FROM Gantt_Tasks a left join Gantt_Plan b ON a.plan_id = b.plan_id
+        <where>
+            a.task_id in
+            <foreach item="item" collection="taskIds" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </where>
+        order by Task_Sort asc
+    </select>
+    <select id="queryPagePlan" resultType="com.jpmsoft.projectProducer.pojo.dto.bim.PlanBimPageDto">
+        SELECT a.* FROM Gantt_Plan a
+        <where>
+            a.plan_id in
+            <foreach item="item" collection="taskIds" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </where>
+        order by a.Plan_Create_Time desc
+    </select>
+    <select id="queryListPlanTaskByPlanId"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.bim.PlanTaskBimPageDto">
+        SELECT a.* FROM Gantt_Tasks a where  a.plan_id = #{planId} order by Task_Sort asc
+    </select>
+    <select id="queryPageBoq" resultType="com.jpmsoft.projectProducer.pojo.dto.bim.ConBoqBimPageDto">
+        SELECT a.*, con.Con_Name as conName FROM Con_Boq a left join Con_Contract con on con.Con_Id = a.Con_Id
+        <where>
+            a.boq_id in
+            <foreach item="item" collection="boqIds" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </where>
+        order by a.boq_create_time desc
+    </select>
+    <select id="queryListBoqDtlByBoqId"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.bim.ConBoqDtlBimPageDto">
+        select mn.* from Con_Boq_Dtl mn where mn.Boq_Id=#{boqId} order by mn.Boqd_Sort asc
+    </select>
+    <select id="queryPageBoqDtl" resultType="com.jpmsoft.projectProducer.pojo.dto.bim.ConBoqDtlBimPageDto">
+        select mn.* from Con_Boq_Dtl mn
+        <where>
+            mn.boqd_id in
+            <foreach item="item" collection="boqDtlIds" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </where>
+         order by mn.Boqd_Sort asc
+    </select>
+    <select id="queryCountQsForResolved" resultType="java.lang.Long">
+        select
+        count(mn.qsr_id)
+        from  Qs_Record mn
+        where mn.qsr_state = 7
+            and mn.qsr_id in
+            <foreach item="item" collection="qsrIds" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+    </select>
+
+    <select id="queryCountQsForUnResolved" resultType="java.lang.Long">
+        select
+        count(mn.qsr_id)
+        from  Qs_Record mn
+        where mn.qsr_state != 7
+        and mn.qsr_id in
+        <foreach item="item" collection="qsrIds" open="(" separator="," close=")" index="index">
+            #{item}
+        </foreach>
+    </select>
+    <select id="queryQsRecordByQsrId" resultType="com.jpmsoft.projectProducer.pojo.vo.bim.QsRecordBimResponse">
+        select
+        con.Con_Name as conName,
+        pro.P_Name as pName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as  conMoneyTotal,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        qt.Qst_Name as qstName,
+        qt.Qst_Code as qstCode,
+        qt.Qst_Item as qstItem,
+        mn.*
+        from  Qs_Record mn
+        left join  Qs_Type qt on qt.Qst_Id=mn.Qst_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_File f on f.FileID=mn.Qsr_Id
+        where mn.Qsr_Id=#{qsrId}
+    </select>
+    <select id="queryListQsRecordByQsrIds"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.bim.QsRecordBimResponse">
+        select
+        con.Con_Name as conName,
+        pro.P_Name as pName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as  conMoneyTotal,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        qt.Qst_Name as qstName,
+        qt.Qst_Code as qstCode,
+        qt.Qst_Item as qstItem,
+        mn.*
+        from  Qs_Record mn
+        left join  Qs_Type qt on qt.Qst_Id=mn.Qst_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_File f on f.FileID=mn.Qsr_Id
+        where mn.Qsr_Id in
+        <foreach item="item" collection="qsrIds" open="(" separator="," close=")" index="index">
+            #{item}
+        </foreach>
+    </select>
+    <select id="queryListPlanTaskByTaskIds"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.bim.PlanTaskBimPageVO">
+        SELECT a.*, b.plan_name FROM Gantt_Tasks a left join Gantt_Plan b ON a.plan_id = b.plan_id
+        <where>
+            a.task_id in
+            <foreach item="item" collection="taskIds" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </where>
+        order by Task_Sort asc
+    </select>
+    <select id="queryListBoqDtlByDtlIds"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.bim.ConBoqDtlBimPageVO">
+        select mn.* from Con_Boq_Dtl mn
+        <where>
+            mn.boqd_id in
+            <foreach item="item" collection="boqDtlIds" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </where>
+        order by mn.Boqd_Sort asc
+    </select>
+    <select id="queryCountHiddenByRiskEvaluateIds" resultType="java.lang.Long"  databaseId="dm">
+        SELECT count(*) FROM Qs_Record a
+        WHERE a.biz_id IN
+            <foreach item="item" collection="riskEvaluateIds" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+            <if test="rectifyStatus != null and rectifyStatus != ''">
+                and a.Qsr_Rectify_Status = #{rectifyStatus}
+            </if>
+         and a.Pt_Id IN (
+            SELECT mn.id FROM Qs_Plan_Task mn WHERE mn.Pt_Type = '03' and mn.Pt_Category = '02'
+                <if test="startTime != null and startTime != ''">
+                    and to_char(mn.Pt_Evaluation_Time,'yyyy/MM/dd') &gt;= #{startTime}
+                </if>
+                <if test="endTime != null and endTime != ''">
+                    and to_char(mn.Pt_Evaluation_Time,'yyyy/MM/dd') &lt;= #{endTime}
+                </if>
+        )
+    </select>
+    <select id="queryCountHiddenByRiskEvaluateIds" resultType="java.lang.Long"  databaseId="mysql">
+        SELECT count(*) FROM Qs_Record a
+        WHERE a.biz_id IN
+            <foreach item="item" collection="riskEvaluateIds" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+            <if test="rectifyStatus != null and rectifyStatus != ''">
+                and a.Qsr_Rectify_Status = #{rectifyStatus}
+            </if>
+        and a.Pt_Id IN (
+        SELECT mn.id FROM Qs_Plan_Task mn WHERE mn.Pt_Type = '03' and mn.Pt_Category = '02'
+            <if test="startTime != null and startTime != ''">
+                and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y/%m/%d') &gt;= #{startTime}
+            </if>
+            <if test="endTime != null and endTime != ''">
+                and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y/%m/%d') &lt;= #{endTime}
+            </if>
+        )
+    </select>
+    <select id="queryCountQsRecord" resultType="com.jpmsoft.projectProducer.pojo.vo.bim.QsRecordCountVO"  databaseId="mysql">
+        select a.qsr_des as problemDesc
+        from qs_record a
+        where a.qsr_des is not null
+        and a.Pt_Id IN (
+        SELECT mn.id FROM Qs_Plan_Task mn WHERE mn.Pt_Category = '02' and mn.P_ID = #{projectId}
+        <if test="startTime != null and startTime != ''">
+            and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y/%m/%d') &gt;= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y/%m/%d') &lt;= #{endTime}
+        </if>
+        )
+    </select>
+    <select id="queryCountQsRecord" resultType="com.jpmsoft.projectProducer.pojo.vo.bim.QsRecordCountVO"  databaseId="dm">
+        select a.qsr_des as problemDesc
+        from qs_record a
+        where a.qsr_des is not null
+        and a.Pt_Id IN (
+        SELECT mn.id FROM Qs_Plan_Task mn WHERE mn.Pt_Category = '02' and mn.P_ID = #{projectId}
+        <if test="startTime != null and startTime != ''">
+            and to_char(mn.Pt_Evaluation_Time,'yyyy/MM/dd') &gt;= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            and to_char(mn.Pt_Evaluation_Time,'yyyy/MM/dd') &lt;= #{endTime}
+        </if>
+        )
+    </select>
+
+
+</mapper>

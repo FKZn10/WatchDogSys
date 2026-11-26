@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.archive.ArchiveBorrowMapper">
+
+
+    <select id="getArchiveBorrowById" resultType="com.jpmsoft.common.model.response.Archive.ArchiveBorrowResponse">
+        select
+        fa.file_name as afAnnexName,
+        f.file_relation_id as fileRelationId,
+        af.*,
+        mn.*
+        from  Archive_Borrow mn
+        left join  Archive_File af on af.Af_Id=mn.Af_Id
+        left join  SYS_FileAnnex fa on af.Af_Annex_Id=fa.file_id
+        left join  Sys_File f on f.FileID=mn.Ab_Id
+        where mn.Ab_Id=#{abId}
+    </select>
+
+
+    <select id="getArchiveBorrowList" resultType="com.jpmsoft.common.model.response.Archive.ArchiveBorrowResponse">
+        select
+        fa.file_name as afAnnexName,
+        af.*,
+        mn.*
+        from  Archive_Borrow mn
+        left join  Archive_File af on af.Af_Id=mn.Af_Id
+        left join  SYS_FileAnnex fa on af.Af_Annex_Id=fa.file_id
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.abCreateUname!=null">
+                and mn.Ab_Create_Uname like concat('%',#{params.abCreateUname},'%')
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ab_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getArchiveBorrowListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  Archive_Borrow mn
+        left join  Archive_File af on af.Af_Id=mn.Af_Id
+        left join  SYS_FileAnnex fa on af.Af_Annex_Id=fa.file_id
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.abCreateUname!=null">
+                and mn.Ab_Create_Uname like concat('%',#{params.abCreateUname},'%')
+            </if>
+        </where>
+    </select>
+</mapper>

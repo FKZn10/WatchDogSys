@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.QsRecordMapper">
+
+
+    <select id="selectExcelData" resultType="com.jpmsoft.fileUpload.pojo.dto.QsRecordExcelDTO">
+        select
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        qt.Qst_Name as qstName,
+        qt.Qst_Code as qstCode,
+        qt.Qst_Item as qstItem,
+        c1.C_Name as qsrDutyCpyName,
+        c2.C_Name as ptContractorName,
+        c3.C_Name as ptSupervisorName,
+        u1.U_Name as rectifyUname,
+        mn.Pt_Code as ptCode,
+        mn.Pt_Measure as ptMeasure,
+        mn.Pt_Type as ptType,
+        mn.Pt_Category as ptCategory,
+        mn.Pt_Pitfall as ptPitfall,
+        mn.Pt_Evaluation_Time as ptEvaluationTime,
+        mn.Pt_Group_Member_Name as ptGroupMemberName,
+        mn.Pt_Description as ptDescription,
+        mn.Pt_Rectify_Require_Time as ptRectifyRequireTime,
+        qr.*
+        from Qs_Record qr
+        left join Qs_Type qt on qt.Qst_Id = qr.Qst_Id
+        left join SYS_Company c1 on c1.C_Id = qr.Qsr_Duty_Cpy
+        left join Sys_User u1 on u1.U_Id = qr.Qsr_Rectify_Uid
+        left join Qs_Plan_Task mn on mn.id=qr.Pt_Id
+        left join SYS_Company c2 on c2.C_Id = mn.Pt_Contractor_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Pt_Supervisor_Id
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        <where>
+            <if test="params.planTaskIds!=null">
+                and qr.Pt_Id in
+                <foreach collection="params.planTaskIds" separator="," item="ptId" open="(" close=")">
+                    #{ptId}
+                </foreach>
+            </if>
+            <if test="params.qsrIds!=null">
+                and qr.Qsr_Id in
+                <foreach collection="params.planTaskIds" separator="," item="ptId" open="(" close=")">
+                    #{ptId}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+
+
+    <select id="getQsRecordYwExport" resultType="com.jpmsoft.fileUpload.pojo.vo.QsRecordVo">
+        select
+        mn.Pt_Code as ptCode,
+        pro.P_Name as pName,
+        mn.Pt_Type as ptType,
+        mn.Pt_Group_Member_Name as ptGroupMemberName,
+        mn.Pt_Evaluation_Time as ptEvaluationTime,
+        qr.qsr_Rectify_Require_Time as qsrRectifyRequireTime,
+        qr.qsr_Rectify_Status as qsrRectifyStatus,
+        mn.state as state
+        from Qs_Record qr
+        left join Qs_Type qt on qt.Qst_Id = qr.Qst_Id
+        left join Qs_Plan_Task mn on mn.id=qr.Pt_Id
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        <where>
+            mn.state != 3 and mn.state != 0 and qr.qsr_Rectify_Status != '03'
+            <if test="params.ptCategory!=null">
+              and  mn.pt_Category = #{params.ptCategory}
+            </if>
+            <if test="params.state!=null">
+                and  mn.state = #{params.state}
+            </if>
+
+            <if test="params.ptCode!=null">
+                and mn.Pt_Code = #{params.ptCode}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.fileUpload.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.ptGroupMemberName!=null">
+                and mn.Pt_Group_Member_Name like concat('%',#{params.ptGroupMemberName},'%')
+            </if>
+            <if test="params.ptType!=null">
+                and mn.Pt_Type = #{params.ptType}
+            </if>
+
+            <if test="params.ptEvaluationTimeStr!=null and params.ptEvaluationTimeStr!='' and  (params.ptEvaluationTimeEnd==null or params.ptEvaluationTimeEnd=='') ">
+                AND mn.Pt_Evaluation_Time  &gt; #{params.ptEvaluationTimeStr}
+            </if>
+
+            <if test="(params.ptEvaluationTimeStr == null or params.ptEvaluationTimeStr) == '' and (params.ptEvaluationTimeEnd != null and params.ptEvaluationTimeEnd != '')">
+                AND mn.Pt_Evaluation_Time  &lt; #{params.ptEvaluationTimeEnd}
+            </if>
+
+            <if test="params.ptEvaluationTimeStr!=null and params.ptEvaluationTimeStr!='' and  params.ptEvaluationTimeEnd!=null and params.ptEvaluationTimeEnd!='' ">
+                AND mn.Pt_Evaluation_Time BETWEEN #{params.ptEvaluationTimeStr} AND #{params.ptEvaluationTimeEnd}
+            </if>
+
+        </where>
+    </select>
+
+</mapper>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaAnnualPlanDtlMapper">
+
+
+    <select id="getOaAnnualPlanDtlList" resultType="com.jpmsoft.projectProducer.pojo.vo.oa.OaAnnualPlanDtlVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Oa_Annual_Plan_Dtl mn
+        left join Oa_Annual_Plan ap on ap.id=mn.Ap_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        <where>
+            <if test="params.teId!=null">
+                and ap.Te_Id = #{params.teId}
+            </if>
+            <if test="params.apdCheckType!=null">
+                and mn.Apd_Check_Type=#{params.apdCheckType}
+            </if>
+            <if test="params.apYear!=null">
+                and ap.Ap_Year=#{params.apYear}
+            </if>
+            <if test="params.state!=null">
+                and ap.State=#{params.state}
+            </if>
+            <if test="params.createUname!=null">
+                and INSTR(ap.Create_Uname,#{params.createUname})
+            </if>
+        </where>
+        order by mn.Apd_Sort ASC
+    </select>
+
+
+    <select id="getOaAnnualPlanDtlByYearAndPids" resultType="com.jpmsoft.projectProducer.pojo.entity.oa.OaAnnualPlanDtl">
+        SELECT
+            mn.*
+        from Oa_Annual_Plan_Dtl mn
+        left join Oa_Annual_Plan ap on ap.id=mn.Ap_Id
+        where ap.Ap_Year=#{year} and ap.State=7
+        and mn.P_Id in
+        <foreach collection="pIds" separator="," open="(" close=")" item="pId">
+            #{pId}
+        </foreach>
+    </select>
+</mapper>

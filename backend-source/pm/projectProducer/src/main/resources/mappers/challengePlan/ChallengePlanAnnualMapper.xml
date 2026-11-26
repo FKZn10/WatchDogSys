@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.challengePlan.ChallengePlanAnnualMapper">
+    <select id="getChallengePlanAnnualList"
+            resultType="com.jpmsoft.common.model.response.challengePlan.ChallengePlanAnnualResponse">
+        select mn.*,
+               p.P_Name       as pName,
+               d.D_Name       as pCompetentDepartmentName,
+               p.P_Build_Year as pBuildYear
+        from challenge_plan_annual mn
+                 left join pre_project p on mn.p_id = p.P_ID
+                 left join sys_department d on d.D_ID = p.P_Competent_Department
+        where mn.declare_year = #{params.declareYear}
+        limit #{offset},#{params.size}
+    </select>
+
+    <select id="getChallengePlanAnnualByid"
+            resultType="com.jpmsoft.common.model.response.challengePlan.ChallengePlanAnnualResponse">
+        select mn.*,
+        p.P_Name       as pName,
+        d.D_Name       as pCompetentDepartmentName,
+        p.P_Build_Year as pBuildYear
+        from challenge_plan_annual mn
+        left join pre_project p on mn.p_id = p.P_ID
+        left join sys_department d on d.D_ID = p.P_Competent_Department
+        where mn.id = #{id}
+    </select>
+</mapper>

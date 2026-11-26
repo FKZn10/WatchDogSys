@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.constructionProcedure.ProjectCpDtlCancelMapper">
+
+    <select id="getProjectCpDtlCancelById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.proCp.ProjectCpDtlCancelModel">
+        select
+        pcd.Cpd_Name as cpdName,
+        pcd.Cpd_Code as cpdCode,
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Project_Cp_Dtl_Cancel mn
+        left join  Project_Cp_Dtl pcd on pcd.Cpd_Id=mn.Cpd_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_File f on f.FileID=mn.Cdc_Id
+        where mn.Cdc_Id=#{cdcId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.cpdId!=null">
+            and mn.Cpd_Id = #{params.cpdId}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.cpdName!=null">
+            and pcd.Cpd_Name like concat('%',#{params.cpdName},'%')
+        </if>
+        <if test="params.pCode!=null">
+            and pro.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.cdcCreateUname!=null">
+            and mn.Cdc_Create_Uname like concat('%',#{params.cdcCreateUname},'%')
+        </if>
+    </sql>
+
+    <select id="getProjectCpDtlCancelList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.proCp.ProjectCpDtlCancelModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pcd.Cpd_Name as cpdName,
+        pcd.Cpd_Code as cpdCode,
+        mn.*
+        from  Project_Cp_Dtl_Cancel mn
+        left join  Project_Cp_Dtl pcd on pcd.Cpd_Id=mn.Cpd_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Cdc_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

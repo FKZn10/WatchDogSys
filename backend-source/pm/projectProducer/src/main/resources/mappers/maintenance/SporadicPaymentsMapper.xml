@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.sporadicSettlement.SporadicPaymentsMapper">
+
+    <select id="getSporadicPaymentsList" databaseId="mysql"
+            resultType="com.jpmsoft.common.model.response.Maintenance.SporadicPaymentsResponse">
+        select
+        mn.*,
+        su.u_Name as spPAreamanagerUname,
+        (select GROUP_CONCAT(DISTINCT sc.mf_Source ORDER BY sc.mf_Source SEPARATOR ',')
+        from sporadic_contract sc
+        where sc.sp_id = mn.id) as mfSource,
+        (select GROUP_CONCAT(DISTINCT sc.mf_Code ORDER BY sc.mf_Code SEPARATOR ',')
+        from sporadic_contract sc
+        where sc.sp_id = mn.id) as mfCode
+        from sporadic_payments mn
+        left join sys_user su on su.u_Id = mn.sp_p_areamanager_uid
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getSporadicPaymentsList" databaseId="dm"
+            resultType="com.jpmsoft.common.model.response.Maintenance.SporadicPaymentsResponse">
+        select
+        mn.*,
+        su.u_Name as spPAreamanagerUname,
+        (
+        select LISTAGG(t.mf_source, ',') WITHIN GROUP (ORDER BY t.mf_source)
+        from (
+        select distinct sc.mf_source
+        from sporadic_contract sc
+        where sc.sp_id = mn.id
+        ) t
+        ) as mfSource,
+        (
+        select LISTAGG(t.mf_code, ',') WITHIN GROUP (ORDER BY t.mf_code)
+        from (
+        select distinct sc.mf_code
+        from sporadic_contract sc
+        where sc.sp_id = mn.id
+        ) t
+        ) as mfCode
+        from sporadic_payments mn
+        left join sys_user su on su.u_Id = mn.sp_p_areamanager_uid
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.spPName!=null">
+            and mn.sp_p_name like CONCAT('%', #{params.spPName}, '%')
+        </if>
+        <if test="params.spPNumber!=null">
+            and mn.sp_p_number like CONCAT('%', #{params.spPNumber}, '%')
+        </if>
+        <if test="params.spPPaymentamount!=null">
+            and mn.sp_p_paymentamount like CONCAT('%', #{params.spPPaymentamount}, '%')
+        </if>
+        <if test="params.spPApplyunitid!=null">
+            and mn.sp_p_applyunitid = #{params.spPApplyunitid}
+        </if>
+        <if test="params.spPApplyunitname!=null">
+            and mn.sp_p_applyunitname like CONCAT('%', #{params.spPApplyunitname}, '%')
+        </if>
+        <if test="params.spFillindataStart!=null">
+            and mn.sp_p_fillindata &gt;= #{params.spFillindataStart}
+        </if>
+        <if test="params.spFillindataEnd!=null">
+            and mn.sp_p_fillindata &lt;= #{params.spFillindataEnd}
+        </if>
+        <if test="params.spPAreamanagerUid!=null">
+            and mn.sp_p_areamanager_uid = #{params.spPAreamanagerUid}
+        </if>
+        <if test="params.spPAreamanagerUname!=null">
+            and su.U_Name like CONCAT('%', #{params.spPAreamanagerUname}, '%')
+        </if>
+        <if test="params.mfCode != null and params.mfCode != ''">
+            and exists (
+            select 1
+            from sporadic_contract sc
+            where sc.sp_id = mn.id
+            and sc.mf_code like CONCAT('%', #{params.mfCode}, '%')
+            )
+        </if>
+        <if test="params.mrCategory != null and params.mrCategory != ''">
+            AND NOT EXISTS (
+            SELECT 1
+            FROM sporadic_payments_dtl spd
+            JOIN sporadic_settlement_dtl ssd ON ssd.se_id = spd.sp_d_id
+            JOIN Maintenance_Record mr ON mr.mr_Id = ssd.mr_id
+            WHERE spd.sp_p_did = mn.id
+            AND mr.mr_Category != #{params.mrCategory}
+            )
+            AND EXISTS (
+            SELECT 1
+            FROM sporadic_payments_dtl spd
+            JOIN sporadic_settlement_dtl ssd ON ssd.se_id = spd.sp_d_id
+            JOIN Maintenance_Record mr ON mr.mr_Id = ssd.mr_id
+            WHERE spd.sp_p_did = mn.id
+            AND mr.mr_Category = #{params.mrCategory}
+            )
+        </if>
+    </sql>
+
+
+    <select id="getMfCodesBySettlementIds" parameterType="map" resultType="com.jpmsoft.common.model.response.Maintenance.MaintenanceFinanceResponse">
+        SELECT
+        mf.*
+        FROM sporadic_settlement_dtl ssd
+        JOIN maintenance_finance mf ON mf.mr_id = ssd.mr_id
+        WHERE ssd.se_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <sql id="MfCodesBySettlement" databaseId="dm">
+        LISTAGG(mf.mf_code, ',') WITHIN GROUP (ORDER BY mf.mf_code) AS mf_codes
+    </sql>
+    <sql id="MfCodesBySettlement" databaseId="mysql">
+        GROUP_CONCAT(DISTINCT mf.mf_code ORDER BY mf.mf_code) AS mf_codes
+    </sql>
+
+    <select id="queryAreaManagerIds" resultType="java.lang.String">
+        select stp.tp_user from Sys_Task_Processin stp
+        left join SYS_FlowActivity act on act.actid = stp.tp_actid
+        where
+        act.actcode=#{actCode}
+        and
+            stp.tp_entityid in
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        limit 1;
+    </select>
+
+    <select id="getModifymrRepairState"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.maintenance.MaintenanceRecord">
+        select DISTINCT mr.*
+        from sporadic_payments mn
+        left join sporadic_payments_dtl spd on spd.sp_p_did=mn.id
+        left join sporadic_settlement ss on ss.id=spd.sp_d_id
+        left join sporadic_settlement_dtl ssd on ssd.se_id=ss.id
+        left join maintenance_record mr on mr.mr_Id=ssd.mr_id
+        where mn.id=#{id}
+    </select>
+
+    <select id="getSporadicPaymentsBySeId" resultType="java.lang.String">
+        select
+            distinct
+            mn.id
+        from sporadic_payments mn
+        left join sporadic_payments_dtl spd on spd.sp_p_did=mn.id
+        left join sporadic_settlement ss on ss.id=spd.sp_d_id
+        where ss.id=#{seId} limit 1
+    </select>
+</mapper>

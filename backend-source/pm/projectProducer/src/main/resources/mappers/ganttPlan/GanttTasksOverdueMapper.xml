@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.ganttPlan.GanttTasksOverdueMapper">
+
+    <resultMap id="BaseResultMap" type="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.GanttTasksOverdue">
+            <id property="id" column="id" />
+            <result property="taskId" column="taskId" />
+            <result property="createUid" column="create_uid" />
+            <result property="createUname" column="create_uname" />
+            <result property="createTime" column="create_time" />
+            <result property="state" column="state" />
+            <result property="stateTime" column="state_time" />
+            <result property="gtoExplanation" column="gto_explanation" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,create_uid,create_uname,create_time,state,state_time,
+        task_type,plan_start,plan_end,task_begin_time,task_finsh_time,
+        gto_person,gto_time,gto_explanation,gs_section,task_text,
+        p_name
+    </sql>
+
+
+    <select id="getGanttTasksOverdueByTaskId" resultType="com.jpmsoft.projectProducer.pojo.response.OverdueTaskResponse">
+        SELECT
+            pp.P_id as pId,
+            pp.P_Name,
+            gt.Task_Text,
+            gs.Gs_Section,
+            gt.Task_Type,
+            gp.Plan_Start,
+            gp.Plan_End,
+            gt.Task_Start_Date,
+            gt.Task_End_Date,
+            gto.*
+        FROM
+            gantt_tasks_overdue gto
+                LEFT JOIN gantt_tasks gt ON gto.Task_ID = gt.Task_Id
+                LEFT JOIN gant_section gs ON gt.gs_id = gs.id
+                LEFT JOIN gantt_plan gp ON gt.Plan_Id = gp.Plan_Id
+                LEFT JOIN pre_project pp ON gp.P_Id = pp.P_ID
+        WHERE
+            gto.Task_Id = #{taskId}
+    </select>
+
+    <select id="getGanttTasksOverdueById"
+            resultType="com.jpmsoft.projectProducer.pojo.response.OverdueTaskResponse">
+        SELECT
+            gp.P_Id as pId,
+            pp.P_Name,
+            gt.Task_Text,
+            gs.Gs_Section,
+            gt.Task_Type,
+            gp.Plan_Start,
+            gp.Plan_End,
+            gt.task_Importance,
+            gt.Task_Start_Date,
+            gt.Task_End_Date,
+            gt.task_Begin_Time,
+            gt.task_Finish_Time,
+            gto.*
+        FROM
+            gantt_tasks_overdue gto
+                LEFT JOIN gantt_tasks gt ON gto.Task_ID = gt.Task_Id
+                LEFT JOIN gant_section gs ON gt.gs_id = gs.id
+                LEFT JOIN gantt_plan gp ON gt.Plan_Id = gp.Plan_Id
+                LEFT JOIN pre_project pp ON gp.P_Id = pp.P_ID
+        WHERE
+            gto.id = #{id}
+    </select>
+
+
+</mapper>

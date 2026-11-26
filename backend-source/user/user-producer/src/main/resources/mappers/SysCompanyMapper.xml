@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysCompanyMapper">
+    <select id="getCompanyList" resultType="com.jpmsoft.userProducer.pojo.entity.SysCompany">
+        select mn.*
+        from SYS_Company mn
+        <where>
+            <if test="params.cId != null and params.cId != ''">
+                and mn.c_id = #{params.cId}
+            </if>
+            <if test="params.teId != null and params.teId != ''">
+                and mn.te_id = #{params.teId}
+            </if>
+            <if test="params.cState != null and params.cState != ''">
+                and mn.c_state = #{params.cState}
+            </if>
+            <if test="params.cType != null and params.cType != ''">
+                and mn.c_type = #{params.cType}
+            </if>
+            <if test="params.cName != null and params.cName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.userProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.cName}, mn.C_Id) = true
+                    </when>
+                    <otherwise>
+                        and mn.C_Name like concat('%',#{params.cName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.cCode != null and params.cCode != ''">
+                and mn.C_Code like concat('%', #{params.cCode}, '%')
+            </if>
+            <if test="params.cCreditcode != null and params.cCreditcode != ''">
+                and mn.C_Creditcode like concat('%', #{params.cCreditcode}, '%')
+            </if>
+            <if test="params.payNames != null and params.payNames.size() > 0">
+                and mn.C_Name in
+                <foreach collection="params.payNames" item="payName" open="(" separator="," close=")">
+                    #{payName}
+                </foreach>
+            </if>
+            <if test="params.cContactpersontel != null and params.cContactpersontel != ''">
+                and mn.C_ContactPersonTel like concat('%', #{params.cContactpersontel}, '%')
+            </if>
+            <if test="params.cContactperson != null and params.cContactperson != ''">
+                and mn.C_ContactPerson like concat('%', #{params.cContactperson}, '%')
+            </if>
+            <if test="params.excludeType != null and params.excludeType != ''">
+                and mn.C_Type not in
+                <foreach collection="params.excludeType" item="type" open="(" separator="," close=")">
+                    #{type}
+                </foreach>
+            </if>
+            <if test="params.containType != null and params.containType != ''">
+                and mn.C_Type in
+                <foreach collection="params.containType" item="type" open="(" separator="," close=")">
+                    #{type}
+                </foreach>
+            </if>
+            <if test="params.filterDepCpy != null and params.filterDepCpy">
+                and mn.C_Id in (select distinct D_Company_Id from Sys_Department where D_Type=1 and D_Company_Id is not
+                null)
+            </if>
+            <if test="params.cIds != null and params.cIds.size() > 0">
+                and mn.C_Id in
+                <foreach collection="params.cIds" item="cId" open="(" separator="," close=")">
+                    #{cId}
+                </foreach>
+            </if>
+            <if test="params.includeCIds != null and params.includeCIds.size() > 0">
+                and mn.C_Id in
+                <foreach collection="params.includeCIds" item="includeCId" open="(" separator="," close=")">
+                    #{includeCId}
+                </foreach>
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <when test="params.modelCIds != null and params.modelCIds.size() > 0">
+                order by
+                case
+                <foreach collection="params.modelCIds" item="modelCId" index="index">
+                    when C_ID = #{modelCId} then #{index}
+                </foreach>
+                ELSE 99999
+                end asc,
+                mn.C_CreateTime desc
+            </when>
+            <otherwise>
+                order by mn.C_CreateTime desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getCompanyByPId" resultType="com.jpmsoft.userProducer.pojo.vo.SysCompanyVo">
+        select
+        c.*,
+        dp.pdName
+        from SYS_Company c
+        inner join (
+        select
+        u.C_ID,
+        max(d.PD_Name) as pdName
+        from SYS_User u
+        left join SYS_Position_User_P pu on u.U_ID = pu.U_ID
+        left join SYS_Position_P p on pu.PP_ID = p.PP_ID
+        left join SYS_Department_P d on d.PD_ID = p.PD_ID
+        <where>
+            u.C_ID is not null
+            <if test="params.pId != null and params.pId != ''">
+                and d.P_Id = #{params.pId}
+            </if>
+            <if test="params.pdType != null and params.pdType != ''">
+                and d.PD_Type = #{params.pdType}
+            </if>
+            <if test="params.pdCodes != null and params.pdCodes.size() > 0">
+                and d.PD_Code in
+                <foreach collection="params.pdCodes" item="pdCode" open="(" separator="," close=")">
+                    #{pdCode}
+                </foreach>
+            </if>
+        </where>
+        group by u.C_ID
+        ) dp on dp.C_ID = c.C_ID
+        <where>
+            c.C_ID is not null
+            <if test="params.cId != null and params.cId != ''">
+                and c.C_ID = #{params.cId}
+            </if>
+            <if test="params.excludeCIds != null and params.excludeCIds.size() > 0">
+                and c.C_ID not in
+                <foreach collection="params.excludeCIds" item="excludeCId" open="(" separator="," close=")">
+                    #{excludeCId}
+                </foreach>
+            </if>
+            <if test="params.cName != null and params.cName != ''">
+                and c.C_Name like concat('%', #{params.cName}, '%')
+            </if>
+        </where>
+    </select>
+</mapper>

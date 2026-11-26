@@ -1,0 +1,860 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecDocumentMapper">
+    <!--************************************* 公用 *************************************-->
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecDocumentResponse" id="getSecDocument">
+        <id column="D_Id" property="dId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="D_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecDocumentResponse" id="getSecDocumentNJCJ">
+        <id column="D_Id" property="dId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="D_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Document sd on sd.Sec_Id=sec.Sec_Id
+        where sd.D_Id=#{dId}
+    </select>
+
+    <select id="getSecDocumentBySecId" resultMap="getSecDocument">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Organize_Form as secOrganizeForm,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Start_Time as secStartTime,
+        sec.Sec_Bidding_Cycle as secBiddingCycle,
+        sec.Sec_Place as secPlace,
+        sec.Sec_Other_Valuation as secOtherValuation,
+        sec.Sec_Pricing_Method as secPricingMethod,
+        sec.Sec_Trading_Place as secTradingPlace,
+        sec.Sec_Money as secMoney,
+        sec.Sec_Contracting_department as secContractingDepartment,
+        c1.C_Name as dManageConsulName,
+        c2.C_Name as dAgentUnitName,
+        c3.C_Name as dPersonName,
+        c4.C_Name as tendereeName,
+        c5.C_Name as dEntrustedCpyName,
+        c6.C_Name as secAgencyName,
+        c1.C_Abbreviation as dManageConAbbName,
+        c2.C_Abbreviation as dAgentAbbName,
+        c3.C_Abbreviation as dPersonAbbName,
+        c4.C_Abbreviation as tendereeAbbName,
+        c5.C_Abbreviation as dEntrustedCpyAbbName,
+        c7.C_Name as dCname,
+        dp1.D_Name as dDname,
+        u1.U_Name as dPmName,
+        <include refid="getProCompetentDepartment"/>
+        sd.*
+        from Sec_Document sd
+        left join Sec_Info sec on sec.Sec_Id=sd.Sec_Id
+        left join SYS_Company c1 on c1.C_Id=sd.D_Manage_Consul
+        left join SYS_Company c2 on c2.C_Id=sd.D_Agent_Unit
+        left join SYS_Company c3 on c3.C_Id=sd.D_Person
+        left join SYS_Company c4 on c4.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c5 on c5.C_Id=sd.D_Entrusted_Cpy
+        left join Sys_Company c6 on c6.C_Id=sec.Sec_Agency
+        left join Sys_Company c7 on c7.C_Id=sd.D_Cid
+        left join Sys_Department dp1 on dp1.D_Id=sd.D_Did
+        left join Sys_User u1 on u1.U_Id=sd.D_Pm_Id
+        where sd.Sec_Id=#{secId}
+    </select>
+
+    <select id="getSecDocumentBydId" resultMap="getSecDocument">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Organize_Form as secOrganizeForm,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Start_Time as secStartTime,
+        sec.Sec_Bidding_Cycle as secBiddingCycle,
+        sec.Sec_Place as secPlace,
+        sec.Sec_Other_Valuation as secOtherValuation,
+        sec.Sec_Pricing_Method as secPricingMethod,
+        sec.Sec_Trading_Place as secTradingPlace,
+        sec.Sec_Money as secMoney,
+        sec.Sec_Contracting_department as secContractingDepartment,
+        sec.Sec_Section_Classify as secSectionClassify,
+        dp.D_Name as secContractingDepartmentName,
+        c1.C_Name as dManageConsulName,
+        c2.C_Name as dAgentUnitName,
+        c3.C_Name as dPersonName,
+        c4.C_Name as tendereeName,
+        c5.C_Name as dEntrustedCpyName,
+        c6.C_Name as secAgencyName,
+        c1.C_Abbreviation as dManageConAbbName,
+        c2.C_Abbreviation as dAgentAbbName,
+        c3.C_Abbreviation as dPersonAbbName,
+        c4.C_Abbreviation as tendereeAbbName,
+        c5.C_Abbreviation as dEntrustedCpyAbbName,
+        c7.C_Name as dCname,
+        dp1.D_Name as dDname,
+        u1.U_Name as dPmName,
+        pre.p_Name as pName,
+        <include refid="getProCompetentDepartment"/>
+        sd.*
+        from Sec_Document sd
+        left join Sec_Info sec on sec.Sec_Id=sd.Sec_Id
+        left join Sys_Department dp on dp.D_Id=sec.Sec_Contracting_department
+        left join SYS_Company c1 on c1.C_Id=sd.D_Manage_Consul
+        left join SYS_Company c2 on c2.C_Id=sd.D_Agent_Unit
+        left join SYS_Company c3 on c3.C_Id=sd.D_Person
+        left join SYS_Company c4 on c4.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c5 on c5.C_Id=sd.D_Entrusted_Cpy
+        left join Sys_Company c6 on c6.C_Id=sec.Sec_Agency
+        left join Sys_Company c7 on c7.C_Id=sd.D_Cid
+        left join Sys_Department dp1 on dp1.D_Id=sd.D_Did
+        left join Sys_User u1 on u1.U_Id=sd.D_Pm_Id
+        left join pre_project pre on pre.p_id=sd.P_id
+        where sd.D_Id=#{dId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and sd.Te_Id = #{params.teId}
+        </if>
+        <if test="params.dDeterminType!=null">
+            and sd.D_Determin_Type=#{params.dDeterminType}
+        </if>
+        <if test="params.dPriceMode!=null">
+            and sd.D_Price_Mode=#{params.dPriceMode}
+        </if>
+        <if test="params.dState!=null">
+            and sd.D_State=#{params.dState}
+        </if>
+        <if test="params.dPriceMode!=null">
+            and sd.D_Price_Mode=#{params.dPriceMode}
+        </if>
+        <if test="params.dPerformanceGuaranteeType!=null">
+            and sd.D_Performance_Guarantee_Type=#{params.dPerformanceGuaranteeType}
+        </if>
+        <if test="params.dQualiReview!=null">
+            and sd.D_Quali_Review=#{params.dQualiReview}
+        </if>
+        <if test="params.dIsEvaluateSeparation!=null">
+            and sd.D_Is_Evaluate_Separation=#{params.dIsEvaluateSeparation}
+        </if>
+        <if test="params.dBiddingMethod!=null">
+            and sd.D_Bidding_Method=#{params.dBiddingMethod}
+        </if>
+        <if test="params.dReceiveJointBidd!=null">
+            and sd.D_Receive_Joint_Bidd=#{params.dReceiveJointBidd}
+        </if>
+        <if test="params.dInvestorsQuali!=null">
+            and sd.D_Investors_Quali like concat('%',#{params.dInvestorsQuali},'%')
+        </if>
+        <if test="params.dBidderManager!=null">
+            and sd.D_Bidder_Manager like concat('%',#{params.dBidderManager},'%')
+        </if>
+        <if test="params.dScope!=null">
+            and sd.D_Scope like concat('%',#{params.dScope},'%')
+        </if>
+        <if test="params.dReleaseVersion!=null">
+            and sd.D_Release_Version like concat('%',#{params.dReleaseVersion},'%')
+        </if>
+        <if test="params.dCreateUname!=null">
+            and sd.D_Create_Uname like concat('%',#{params.dCreateUname},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.dAmountStart!=null">
+            and sd.D_Amount>#{params.dAmountStart}
+        </if>
+        <if test="params.dAmountEnd!=null">
+            and sd.D_Amount &lt; #{params.dAmountEnd}
+        </if>
+        <if test="params.dUpperLimitStart!=null">
+            and sd.D_Upper_Limit>#{params.dUpperLimitStart}
+        </if>
+        <if test="params.dUpperLimitEnd!=null">
+            and sd.D_Upper_Limit &lt; #{params.dUpperLimitEnd}
+        </if>
+        <if test="params.dCreateTimeStart!=null">
+            and sd.D_Create_Time>#{params.dCreateTimeStart}
+        </if>
+        <if test="params.dCreateTimeEnd!=null">
+            and sd.D_Create_Time &lt; #{params.dCreateTimeEnd}
+        </if>
+        <if test="params.secMoneyStart!=null">
+            and sec.Sec_Money>#{params.secMoneyStart}
+        </if>
+        <if test="params.secMoneyEnd!=null">
+            and sec.Sec_Money &lt; #{params.secMoneyEnd}
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and (case when sd.P_Id is null then sp.P_Id else sd.P_Id end) = #{params.pId}
+        </if>
+        <if test="params.secId != null and params.secId != ''">
+            and sd.Sec_Id = #{params.secId}
+        </if>
+    </sql>
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select ${selectClause}
+        from Sec_Document mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c3 on c3.C_Id=mn.D_Person
+        left join SYS_Company c1 on c1.C_Id=mn.D_Manage_Consul
+        left join SYS_Company c2 on c2.C_Id=mn.D_Agent_Unit
+        left join SYS_Company c4 on c4.C_Id=mn.D_Entrusted_Cpy
+        left join Sys_Company c7 on c7.C_Id=mn.D_Cid
+        left join Sys_Department dp1 on dp1.D_Id=mn.D_Did
+        left join Sys_User u1 on u1.U_Id=mn.D_Pm_Id
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join SYS_Department dpre on dpre.D_Id = pre.p_Competent_Department
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+        ${authSql}
+        <include refid="listFilterClass"/>
+    </select>
+
+    <select id="getSecDocumentListClass" resultType="com.jpmsoft.common.model.response.SecInfo.SecDocumentResponse">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Money as secMoney,
+        sec.Sec_Bidding_Type as secBiddingType,
+        c3.C_Name as dPersonName,
+        c1.C_Name as dManageConsulName,
+        c2.C_Name as dAgentUnitName,
+        c4.C_Name as dEntrustedCpyName,
+        c1.C_Abbreviation as dManageConAbbName,
+        c2.C_Abbreviation as dAgentAbbName,
+        c3.C_Abbreviation as dPersonAbbName,
+        c4.C_Abbreviation as dEntrustedCpyAbbName,
+        c7.C_Name as dCname,
+        dp1.D_Name as dDname,
+        u1.U_Name as dPmName,
+        case when pre.P_Name is null then sp.P_Name else pre.P_Name end as pName,
+        case when pre.P_Category is null then sp.p_Category else pre.P_Category end as pCategory,
+        case when pre.P_Build_Model is null then sp.P_Build_Model else pre.P_Build_Model end as pBuildModel,
+        case when dpre.D_Name is null then sp.D_Name else dpre.D_Name end as pCompetentDepartmentName,
+        mn.*,
+        case when mn.P_Id is null then sp.P_Id else mn.P_Id end as pId
+        from Sec_Document mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c3 on c3.C_Id=mn.D_Person
+        left join SYS_Company c1 on c1.C_Id=mn.D_Manage_Consul
+        left join SYS_Company c2 on c2.C_Id=mn.D_Agent_Unit
+        left join SYS_Company c4 on c4.C_Id=mn.D_Entrusted_Cpy
+        left join Sys_Company c7 on c7.C_Id=mn.D_Cid
+        left join Sys_Department dp1 on dp1.D_Id=mn.D_Did
+        left join Sys_User u1 on u1.U_Id=mn.D_Pm_Id
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join SYS_Department dpre on dpre.D_Id = pre.p_Competent_Department
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+        ${authSql}
+        <include refid="listFilterClass"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.D_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecDocumentListClassCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Document mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+        ${authSql}
+        <include refid="listFilterClass"/>
+    </select>
+
+    <sql id="listFilterClass">
+        <if test="params.isNew != null and params.isNew != ''">
+            and sbp.is_new = 1
+        </if>
+        <if test="params.pNameList!=null and params.pNameList.size()>0 ">
+            <choose>
+                <when test="params.pNameList.contains('空白数据')">
+                    and (
+                    (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) is null
+                    or
+                    (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) = ''
+                    )
+                </when>
+                <otherwise>
+                    and (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) in
+                    <foreach collection="params.pNameList" open="(" close=")" separator="," item="pName">
+                        #{pName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.secNameList!=null and params.secNameList.size()>0 ">
+            <choose>
+                <when test="params.secNameList.contains('空白数据')">
+                    and (sec.sec_name is null or sec.sec_name = '')
+                </when>
+                <otherwise>
+                    and sec.sec_name in
+                    <foreach collection="params.secNameList" open="(" close=")" separator="," item="secName">
+                        #{secName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategoryList!=null and params.pCategoryList.size()>0 ">
+            <choose>
+                <when test="params.pCategoryList.contains('空白数据')">
+                    and (
+                    (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) is null
+                    or
+                    (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) = ''
+                    )
+                </when>
+                <otherwise>
+                    and (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) in
+                    <foreach collection="params.pCategoryList" open="(" close=")" separator="," item="pCategory">
+                        #{pCategory}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.dCreateUnameList!=null and params.dCreateUnameList.size()>0 ">
+            <choose>
+                <when test="params.dCreateUnameList.contains('空白数据')">
+                    and (mn.d_Create_Uname is null or mn.d_Create_Uname = '')
+                </when>
+                <otherwise>
+                    and mn.d_Create_Uname in
+                    <foreach collection="params.dCreateUnameList" open="(" close=")" separator="," item="dCreateUname">
+                        #{dCreateUname}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.dStateList!=null and params.dStateList.size()>0">
+            <choose>
+                <when test="params.dStateList.contains('空白数据')">
+                    and (mn.d_State is null or mn.d_State = '')
+                </when>
+                <otherwise>
+                    and mn.d_State in
+                    <foreach collection="params.dStateList" open="(" close=")" separator="," item="dState">
+                        #{dState}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.dCreateTimeStr!=null and params.dCreateTimeStr!=''">
+            <include refid="getAllValuesDateFilter"/>
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and mn.P_id = #{params.pId}
+        </if>
+        <if test="params.secId != null and params.secId != ''">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+    </sql>
+
+    <sql id="getAllValuesDateFilter" databaseId="dm">
+        and to_char(mn.d_Create_Time,'yyyy-MM-dd') = #{params.createTimeStr}
+    </sql>
+
+    <sql id="getAllValuesDateFilter" databaseId="mysql">
+        and date_format(mn.d_Create_Time,'%Y-%m-%d') = #{params.createTimeStr}
+    </sql>
+
+    <select id="getSecDocumentList" resultMap="getSecDocument">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Money as secMoney,
+        sec.Sec_Bidding_Type as secBiddingType,
+        c3.C_Name as dPersonName,
+        c1.C_Name as dManageConsulName,
+        c2.C_Name as dAgentUnitName,
+        c4.C_Name as dEntrustedCpyName,
+        c1.C_Abbreviation as dManageConAbbName,
+        c2.C_Abbreviation as dAgentAbbName,
+        c3.C_Abbreviation as dPersonAbbName,
+        c4.C_Abbreviation as dEntrustedCpyAbbName,
+        c7.C_Name as dCname,
+        dp1.D_Name as dDname,
+        u1.U_Name as dPmName,
+        sd.*,
+        case when sd.P_Id is null then sp.P_Id else sd.P_Id end as pId
+        from Sec_Document sd
+        left join Sec_Info sec on sec.Sec_Id=sd.Sec_Id
+        left join SYS_Company c3 on c3.C_Id=sd.D_Person
+        left join SYS_Company c1 on c1.C_Id=sd.D_Manage_Consul
+        left join SYS_Company c2 on c2.C_Id=sd.D_Agent_Unit
+        left join SYS_Company c4 on c4.C_Id=sd.D_Entrusted_Cpy
+        left join Sys_Company c7 on c7.C_Id=sd.D_Cid
+        left join Sys_Department dp1 on dp1.D_Id=sd.D_Did
+        left join Sys_User u1 on u1.U_Id=sd.D_Pm_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = sd.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="dBidMonYearFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by sd.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by sd.D_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecDocumentListNJCJ"
+           resultMap="getSecDocumentNJCJ">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Money as secMoney,
+        sec.Sec_Bidding_Type as secBiddingType,
+        c3.C_Name as dPersonName,
+        c1.C_Name as dManageConsulName,
+        c2.C_Name as dAgentUnitName,
+        c4.C_Name as dEntrustedCpyName,
+        c1.C_Abbreviation as dManageConAbbName,
+        c2.C_Abbreviation as dAgentAbbName,
+        c3.C_Abbreviation as dPersonAbbName,
+        c4.C_Abbreviation as dEntrustedCpyAbbName,
+        c7.C_Name as dCname,
+        dp1.D_Name as dDname,
+        u1.U_Name as dPmName,
+        sd.*,
+        case
+        WHEN  ssr.Sr_Bid_Time is not null  then ssr.Sr_Bid_Time
+        WHEN  sd.D_New_Bid_Time  is not null Then sd.D_New_Bid_Time
+        ELSE  sd.D_Bid_Time END as dBidTime ,
+        ssr.Sr_Location as dNewLocation,
+        case when sd.P_Id is null then sp.P_Id else sd.P_Id end as pId
+        from Sec_Document sd
+        left join Sec_Info sec on sec.Sec_Id=sd.Sec_Id
+        left join SYS_Company c3 on c3.C_Id=sd.D_Person
+        left join SYS_Company c1 on c1.C_Id=sd.D_Manage_Consul
+        left join SYS_Company c2 on c2.C_Id=sd.D_Agent_Unit
+        left join SYS_Company c4 on c4.C_Id=sd.D_Entrusted_Cpy
+        left join Sys_Company c7 on c7.C_Id=sd.D_Cid
+        left join Sys_Department dp1 on dp1.D_Id=sd.D_Did
+        left join Sys_User u1 on u1.U_Id=sd.D_Pm_Id
+        left join Sec_Selection_Record ssr on ssr.Sec_Id=sd.Sec_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = sd.Sec_Id
+        where 1=1 and (ssr.State is null or ssr.State!=3)
+        <include refid="listFilter"/>
+        <include refid="dBidMonYearNJCJFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by sd.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by sd.D_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getSecDocumentListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Document sd
+        left join Sec_Info sec on sec.Sec_Id=sd.Sec_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = sd.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="dBidMonYearFilter"/>
+    </select>
+
+
+    <select id="getSecDocumentListByPids" resultMap="getSecDocument">
+        select
+        sp.P_Id as pId,
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Bidding_Type as secBiddingType,
+        c3.C_Name as dPersonName,
+        c1.C_Name as dManageConsulName,
+        c2.C_Name as dAgentUnitName,
+        c4.C_Name as dEntrustedCpyName,
+        c1.C_Abbreviation as dManageConAbbName,
+        c2.C_Abbreviation as dAgentAbbName,
+        c3.C_Abbreviation as dPersonAbbName,
+        c4.C_Abbreviation as dEntrustedCpyAbbName,
+        c7.C_Name as dCname,
+        dp1.D_Name as dDname,
+        u1.U_Name as dPmName,
+        sd.*,
+        case when sd.P_Id is null then sp.P_Id else sd.P_Id end as pId
+        from Sec_Document sd
+        left join Sec_Info sec on sec.Sec_Id=sd.Sec_Id
+        left join Sec_Project sp on sec.Sec_Id=sp.Sec_Id
+        left join SYS_Company c3 on c3.C_Id=sd.D_Person
+        left join SYS_Company c1 on c1.C_Id=sd.D_Manage_Consul
+        left join SYS_Company c2 on c2.C_Id=sd.D_Agent_Unit
+        left join SYS_Company c4 on c4.C_Id=sd.D_Entrusted_Cpy
+        left join Sys_Company c7 on c7.C_Id=sd.D_Cid
+        left join Sys_Department dp1 on dp1.D_Id=sd.D_Did
+        left join Sys_User u1 on u1.U_Id=sd.D_Pm_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = sd.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="dBidMonYearFilter"/>
+        and sp.P_Id in
+        <foreach collection="pIds" open="(" close=")" item="pId" separator=",">
+            #{pId}
+        </foreach>
+    </select>
+
+    <sql id="getSecDocumentProjectListSql">
+        select
+        distinct
+        mn.P_Id,
+        mn.P_Code,
+        mn.P_Name,
+        mn.P_Create_Time,
+        sd.D_Name as pCompetentDepartmentName,
+        (select count(1) from Sec_Info where 1=1
+        <if test="params.secFlowState!=null">
+            and Sec_Flow_State = #{params.secFlowState}
+        </if>
+        and Sec_Id in (select Sec_Id from Sec_Project where P_Id=mn.P_Id)) as secTotal,
+        (select sum(Sec_Money) from Sec_Info where 1=1
+        <if test="params.secFlowState!=null">
+            and Sec_Flow_State = #{params.secFlowState}
+        </if>
+        and Sec_Id in (select Sec_Id from Sec_Project where P_Id=mn.P_Id)) as secMoneyTotal,
+        (select Sec_Create_Uname from Sec_Info where
+        1=1
+        <if test="params.secFlowState!=null">
+            and Sec_Flow_State = #{params.secFlowState}
+        </if>
+        and
+        Sec_Id in (select Sec_Id from Sec_Project where P_Id=mn.P_Id) limit 1)
+        as secCreateUname
+        from Pre_Project mn
+        left join Sec_Project sp on mn.P_Id=sp.P_Id
+        left join Sec_Info sec on sec.Sec_Id=sp.Sec_Id
+        left join Sec_Document sdoc on sec.Sec_Id=sdoc.Sec_Id
+        left join Sys_Department sd on sd.D_Id=mn.P_Competent_Department
+        ${params.authSql}
+        and sdoc.D_Id is not null
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secFlowState!=null">
+            and sec.Sec_Flow_State = #{params.secFlowState}
+        </if>
+        order by mn.P_Create_Time desc
+    </sql>
+
+    <select id="getSecDocumentProjectList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecModularsGroupByProjectModel">
+        <include refid="getSecDocumentProjectListSql"/>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecDocumentProjectListCount" resultType="java.lang.Integer">
+        select count(1)
+        from
+        (
+        <include refid="getSecDocumentProjectListSql"/>
+        ) a
+    </select>
+
+
+    <select id="getSecDocumentListOne2Many" resultType="com.jpmsoft.common.model.response.SecInfo.SecDocumentResponse">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Money as secMoney,
+        c3.C_Name as dPersonName,
+        c1.C_Name as dManageConsulName,
+        c2.C_Name as dAgentUnitName,
+        c4.C_Name as dEntrustedCpyName,
+        c1.C_Abbreviation as dManageConAbbName,
+        c2.C_Abbreviation as dAgentAbbName,
+        c3.C_Abbreviation as dPersonAbbName,
+        c4.C_Abbreviation as dEntrustedCpyAbbName,
+        c7.C_Name as dCname,
+        dp1.D_Name as dDname,
+        u1.U_Name as dPmName,
+        <include refid="projectInfo"/>
+        sd.*,
+        case when sd.P_Id is null then sp.P_Id else sd.P_Id end as pId
+        from Sec_Document sd
+        left join Sec_Info sec on sec.Sec_Id=sd.Sec_Id
+        left join SYS_Company c3 on c3.C_Id=sd.D_Person
+        left join SYS_Company c1 on c1.C_Id=sd.D_Manage_Consul
+        left join SYS_Company c2 on c2.C_Id=sd.D_Agent_Unit
+        left join SYS_Company c4 on c4.C_Id=sd.D_Entrusted_Cpy
+        left join Sys_Company c7 on c7.C_Id=sd.D_Cid
+        left join Sys_Department dp1 on dp1.D_Id=sd.D_Did
+        left join Sys_User u1 on u1.U_Id=sd.D_Pm_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = sd.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="dBidMonYearFilter"/>
+        <include refid="pNameFilter"/>
+        order by pId asc
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecDocumentListOne2ManyCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Document sd
+        left join Sec_Info sec on sec.Sec_Id=sd.Sec_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = sd.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="dBidMonYearFilter"/>
+        <include refid="pNameFilter"/>
+    </select>
+
+
+
+    <sql id="getProCompetentDepartment">
+         (
+	        select
+	        sd.D_Name
+	        from Pre_Project pro
+	        left join Sec_Project sp on pro.P_Id=sp.P_Id
+	        left join Sys_Department sd on sd.D_Id=pro.P_Competent_Department
+	        where sd.D_Name is not null and sp.Sec_Id=sec.Sec_Id limit 1
+        ) as pCompetentDepartmentName,
+    </sql>
+    <!--************************************* dm *************************************-->
+
+    <sql id="projectInfo" databaseId="dm">
+      (select wm_concat(P_Id) from Sec_Project where Sec_Id=sd.Sec_Id) as pId,
+      (select wm_concat(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=sd.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="dm">
+        <if test="params.pName!=null">
+            and (select wm_concat(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=sd.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+
+    <sql id="dBidMonYearFilter" databaseId="dm">
+        <if test="params.dBidMonYear!=null">
+            and ( CASE
+            WHEN sd.D_New_Bid_Time is not null THEN to_char(sd.D_New_Bid_Time,'yyyy-MM')
+            ELSE to_char(sd.D_Bid_Time,'yyyy-MM')
+            END ) = #{params.dBidMonYear}
+        </if>
+    </sql>
+
+    <sql id="dBidMonYearNJCJFilter" databaseId="dm">
+        <if test="params.dBidMonYear!=null">
+            and (
+                (
+                CASE WHEN sd.D_New_Bid_Time is not null THEN to_char(sd.D_New_Bid_Time, 'yyyy-MM') ELSE to_char(sd.D_Bid_Time, 'yyyy-MM') END
+                ) = #{params.dBidMonYear}
+                or (
+                select to_char(ssr.Sr_Bid_Time, 'yyyy-MM') from Sec_Selection_Record ssr where  ssr.Sec_Id=sd.Sec_Id and ssr.State!=3 order by ssr.Sr_Bid_Time desc limit 1
+                )= #{params.dBidMonYear}
+            )
+        </if>
+    </sql>
+
+    <!--************************************* postgre *************************************-->
+    <sql id="projectInfo" databaseId="postgre">
+        (select string_agg(P_Id,',') from Sec_Project where Sec_Id = mn.Sec_Id)
+        as pId,
+      (select string_agg(pro.P_Name,',') from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="postgre">
+        <if test="params.pName!=null">
+            and (select string_agg(pro.P_Name,',') from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=mn.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+
+    <sql id="dBidMonYearFilter" databaseId="postgre">
+        <if test="params.dBidMonYear!=null">
+            and ( CASE
+            WHEN sd.D_New_Bid_Time is not null THEN to_char(sd.D_New_Bid_Time,'yyyy-MM')
+            ELSE to_char(sd.D_Bid_Time,'yyyy-MM')
+            END ) = #{params.dBidMonYear}
+        </if>
+    </sql>
+
+    <sql id="dBidMonYearNJCJFilter" databaseId="postgre">
+        <if test="params.dBidMonYear!=null">
+            and (
+            (
+            CASE WHEN sd.D_New_Bid_Time is not null THEN to_char(sd.D_New_Bid_Time, 'yyyy-MM') ELSE to_char(sd.D_Bid_Time, 'yyyy-MM') END
+            ) = #{params.dBidMonYear}
+            or (
+            select to_char(ssr.Sr_Bid_Time, 'yyyy-MM') from Sec_Selection_Record ssr where  ssr.Sec_Id=sd.Sec_Id and ssr.State=7 order by ssr.Sr_Bid_Time desc limit 1
+            )= #{params.dBidMonYear}
+            )
+        </if>
+    </sql>
+    <!--************************************* mysql *************************************-->
+
+    <sql id="projectInfo" databaseId="mysql">
+      (select GROUP_CONCAT(P_Id) from Sec_Project where Sec_Id=sd.Sec_Id) as pId,
+      (select GROUP_CONCAT(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=sd.Sec_Id) as pName,
+    </sql>
+
+
+    <sql id="pNameFilter" databaseId="mysql">
+        <if test="params.pName!=null">
+            and (select GROUP_CONCAT(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=sd.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+
+    <sql id="dBidMonYearFilter" databaseId="mysql">
+        <if test="params.dBidMonYear!=null">
+            and ( CASE
+            WHEN sd.D_New_Bid_Time is not null THEN date_format(sd.D_New_Bid_Time,'%Y-%m')
+            ELSE date_format(sd.D_Bid_Time,'%Y-%m')
+            END ) = #{params.dBidMonYear}
+        </if>
+    </sql>
+
+    <sql id="dBidMonYearNJCJFilter" databaseId="mysql">
+        <if test="params.dBidMonYear!=null">
+            and (
+            (
+            CASE WHEN sd.D_New_Bid_Time is not null THEN date_format(sd.D_New_Bid_Time, '%Y-%m') ELSE date_format(sd.D_Bid_Time, '%Y-%m') END
+            ) = #{params.dBidMonYear}
+            or (
+            select date_format(ssr.Sr_Bid_Time, '%Y-%m') from Sec_Selection_Record ssr where  ssr.Sec_Id=sd.Sec_Id and ssr.State=7 order by ssr.Sr_Bid_Time desc limit 1
+            )= #{params.dBidMonYear}
+            )
+        </if>
+    </sql>
+
+</mapper>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.MajproWeeklyNewspaperMapper">
+    <resultMap id="NoMajproWeeklyNewspaperRes" type="com.jpmsoft.common.model.response.NoMajproWeeklyNewspaperResponse">
+        <id column="pId" property="pId" />
+        <result column="pName" property="pName" />
+        <result column="pUseUnitName" property="pUseUnitName" />
+        <collection property="userList" ofType="com.jpmsoft.common.model.response.SysUserVo" column="pId" select="selectUserList"/>
+    </resultMap>
+
+    <select id="selectProids" resultType="java.lang.String">
+        select mn.P_Id
+        from majpro_weekly_newspaper mn
+        where mn.uploadtime between #{params.startTime} and #{params.endTime}
+    </select>
+    
+    <select id="getNoMajproWeeklyNewspaperList" resultMap="NoMajproWeeklyNewspaperRes">
+        select
+        mn.P_ID as pId,
+        mn.P_Name as pName,
+        sc.C_Name as pUseUnitName
+        from pre_project mn
+        left join sys_company sc on mn.P_Use_Unit = sc.C_ID
+        ${authSql}
+        and mn.P_ID in
+        <foreach item="item" index="index" collection="params.pIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        <if test="params.proName != null and params.proName != ''">
+            and mn.P_Name like CONCAT('%', #{params.proName}, '%')
+        </if>
+        <if test="params.pUseUnitName != null and params.pUseUnitName != ''">
+            and sc.C_Name like CONCAT('%', #{params.pUseUnitName}, '%')
+        </if>
+    </select>
+
+    <select id="selectUserList" resultType="com.jpmsoft.common.model.response.SysUserVo">
+        select mn.*
+        from SYS_User mn
+        left join SYS_Position_User_P udp on mn.U_ID = udp.U_ID
+        left join SYS_Position_P spp on udp.PP_ID = spp.PP_ID
+        left join SYS_Department_P sdp on sdp.PD_ID = spp.PD_ID
+        where sdp.P_ID = #{pId}
+    </select>
+</mapper>

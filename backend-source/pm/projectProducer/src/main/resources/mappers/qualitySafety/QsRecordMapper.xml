@@ -1,0 +1,1000 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.qualitySafety.QsRecordMapper">
+
+    <!--************************************* 公用 *************************************-->
+    <select id="getQsRecordByQsrId"
+            resultType="com.jpmsoft.common.model.response.Qs.QsRecordResponse">
+        select
+        con.Con_Name as conName,
+        pro.P_Name as pName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as  conMoneyTotal,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        qt.Qst_Name as qstName,
+        qt.Qst_Code as qstCode,
+        qt.Qst_Item as qstItem,
+        c1.C_Name as qsrCname,
+        c2.C_Name as qsrFzCname,
+        u1.U_Name as qsrXdUname,
+        mn.*
+        from  Qs_Record mn
+        left join  Qs_Type qt on qt.Qst_Id=mn.Qst_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join Sys_Company c1 on c1.C_Id=mn.Qsr_Cid
+        left join Sys_Company c2 on c2.C_Id=mn.Qsr_Fz_Cid
+        left join Sys_User u1 on u1.U_Id=mn.Qsr_Xd_Uid
+        left join  Sys_File f on f.FileID=mn.Qsr_Id
+        where mn.Qsr_Id=#{qsrId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.qsrReasonType!=null">
+            and mn.Qsr_Reason_Type = #{params.qsrReasonType}
+        </if>
+        <if test="params.qsrFormation!=null">
+            and mn.Qsr_Formation = #{params.qsrFormation}
+        </if>
+        <if test="params.qsrCategory!=null">
+            and mn.Qsr_Category = #{params.qsrCategory}
+        </if>
+        <if test="params.qsrPatrolObject!=null">
+            and mn.Qsr_Patrol_Object = #{params.qsrPatrolObject}
+        </if>
+        <if test="params.qsrHazardLevel!=null">
+            and mn.Qsr_Hazard_Level = #{params.qsrHazardLevel}
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.qsrType!=null">
+            and mn.Qsr_Type like concat('%',#{params.qsrType},'%')
+        </if>
+        <if test="params.qsrRectifyRealUname!=null">
+            and mn.Qsr_Rectify_Real_Uname like concat('%',#{params.qsrRectifyRealUname},'%')
+        </if>
+        <if test="params.qsrRectifyReply!=null">
+            and mn.Qsr_Rectify_Reply like concat('%',#{params.qsrRectifyReply},'%')
+        </if>
+    </sql>
+
+    <select id="getQsRecordList"
+            resultType="com.jpmsoft.common.model.response.Qs.QsRecordResponse">
+        select
+        con.Con_Name as conName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        f.file_relation_id as fileRelationId,
+        qt.Qst_Name as qstName,
+        qt.Qst_Code as qstCode,
+        qt.Qst_Item as qstItem,
+        c1.C_Name as qsrCname,
+        c2.C_Name as qsrFzCname,
+        u1.U_Name as qsrXdUname,
+        mn.*
+        from  Qs_Record mn
+        left join  Qs_Type qt on qt.Qst_Id=mn.Qst_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sys_Company c1 on c1.C_Id=mn.Qsr_Cid
+        left join Sys_Company c2 on c2.C_Id=mn.Qsr_Fz_Cid
+        left join Sys_User u1 on u1.U_Id=mn.Qsr_Xd_Uid
+        left join  Sys_File f on f.FileID=mn.Qsr_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Qsr_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getQsRecordLedgerList"
+            resultType="com.jpmsoft.common.model.response.Qs.QsRecordResponse">
+        select
+        pro.P_Id as pId,
+        pro.P_Name as pName,
+        responsibleUnit.C_Name as responsibleUnitName,
+        case
+            when mn.Qsr_Category = 1 then '安全问题'
+            else '质量问题'
+        end as problemCategory,
+        count(mn.Qsr_Id) as problemCount,
+        sum(case when mn.Qsr_State = 7 then 1 else 0 end) as rectifiedCount,
+        case
+            when count(mn.Qsr_Id) = 0 then 0
+            else sum(case when mn.Qsr_State = 7 then 1 else 0 end) * 100.0 / count(mn.Qsr_Id)
+        end as rectificationRate
+        from Qs_Record mn
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join Sys_User rectifyUser on rectifyUser.U_Id = mn.Qsr_Rectify_Uid
+        left join SYS_Company responsibleUnit on responsibleUnit.C_Id = rectifyUser.C_Id
+        ${params.authSql}
+        and pro.P_Id is not null
+        and mn.Qsr_Category in (0, 1)
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and pro.P_Id = #{params.pId}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName}, pro.P_Id) = true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.qsrCategory!=null">
+            and mn.Qsr_Category = #{params.qsrCategory}
+        </if>
+        <if test="params.responsibleUnitId!=null">
+            and responsibleUnit.C_Id = #{params.responsibleUnitId}
+        </if>
+        <if test="params.qsrState!=null">
+            and mn.qsr_State = #{params.qsrState}
+        </if>
+        <if test="params.responsibleUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.responsibleUnitName}, responsibleUnit.C_Id) = true
+                </when>
+                <otherwise>
+                    and responsibleUnit.c_Name like concat('%',#{params.responsibleUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        group by pro.P_Id, pro.P_Name, responsibleUnit.C_Id, responsibleUnit.C_Name, mn.Qsr_Category
+        <choose>
+            <when test="params.sortType!=null and
+                ((params.sortFiled=='p_Name' or params.sortFiled=='project_Name') or
+                (params.sortSideFiled=='pName' or params.sortSideFiled=='projectName'))">
+                order by pro.P_Name ${params.sortType}, max(mn.Qsr_Create_Time) DESC
+            </when>
+            <when test="params.sortType!=null and
+                ((params.sortFiled=='responsible_Unit_Name' or params.sortFiled=='responsibility_Unit_Name') or
+                (params.sortSideFiled=='responsibleUnitName' or params.sortSideFiled=='responsibilityUnitName'))">
+                order by responsibleUnit.C_Name ${params.sortType}, max(mn.Qsr_Create_Time) DESC
+            </when>
+            <when test="params.sortType!=null and
+                (params.sortFiled=='problem_Count' or params.sortSideFiled=='problemCount')">
+                order by problemCount ${params.sortType}, max(mn.Qsr_Create_Time) DESC
+            </when>
+            <when test="params.sortType!=null and
+                (params.sortFiled=='rectified_Count' or params.sortSideFiled=='rectifiedCount')">
+                order by rectifiedCount ${params.sortType}, max(mn.Qsr_Create_Time) DESC
+            </when>
+            <when test="params.sortType!=null and
+                (params.sortFiled=='rectification_Rate' or params.sortSideFiled=='rectificationRate')">
+                order by rectificationRate ${params.sortType}, max(mn.Qsr_Create_Time) DESC
+            </when>
+            <otherwise>
+                order by max(mn.Qsr_Create_Time) DESC, pro.P_Name ASC, responsibleUnit.C_Name ASC, mn.Qsr_Category ASC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="countMpcQualityAndSafety" resultType="com.jpmsoft.projectProducer.pojo.entity.multiproject.MpcQualityAndSafety">
+        select
+                (select count(1) from Qs_Record where qsr_Category = 1) securityTotalNum ,
+                (select count(1) from Qs_Record where qsr_State = 7 and qsr_Category = 1) safetyProblemNum,
+                (select count(1) from Qs_Record where qsr_Category = 0) qualityTotalNum,
+                (select count(1) from Qs_Record where qsr_State = 7 and qsr_Category = 0) qualitySafetyNum,
+                '1' type
+        from Qs_Record limit 1;
+    </select>
+
+    <!--************************************* dm *************************************-->
+    <select id="getYearQuarterMonthStatistics" databaseId="dm" resultType="Map">
+        select
+        (sum( case when qr.Qsr_State!=3 and to_char(qr.Qsr_State_Time,'yyyy')=to_char(now(),'yyyy') then 1 else 0 end))
+        allCount,
+        (sum( case when qr.Qsr_State=7 and to_char(qr.Qsr_State_Time,'yyyy')=to_char(now(),'yyyy') then 1 else 0 end))
+        closeCount,
+        (sum( case when qr.Qsr_State!=7 and qr.Qsr_State!=3 and to_char(qr.Qsr_State_Time,'yyyy')=to_char(now(),'yyyy')
+        then 1 else 0 end)) processCount
+        from  Qs_Record qr left join  Pre_Project pro on qr.P_Id=pro.P_Id
+        where Qsr_Category=#{qsrCategory}
+        <if test="teId!=null"> and qr.Te_Id = #{teId} </if>
+        <if test="pConstructionUnit!=null">
+            and pro.P_Construction_Unit=#{pConstructionUnit}
+        </if>
+        <if test="pCompetentDepartment!=null">
+            and pro.P_Competent_Department=#{pCompetentDepartment}
+        </if>
+        UNION ALL
+        select
+        (sum( case when Qsr_State!=3 and trunc((to_char(Qsr_State_Time,'mm')+2)/3)=trunc((to_char(sysdate,'mm')+2)/3)
+        then 1 else 0 end)) allCount,
+        (sum( case when Qsr_State=7 and trunc((to_char(Qsr_State_Time,'mm')+2)/3)=trunc((to_char(sysdate,'mm')+2)/3)
+        then 1 else 0 end)) closeCount,
+        (sum( case when Qsr_State!=7 and Qsr_State!=3 and
+        trunc((to_char(Qsr_State_Time,'mm')+2)/3)=trunc((to_char(sysdate,'mm')+2)/3) then 1 else 0 end)) processCount
+        from  Qs_Record qr left join  Pre_Project pro on qr.P_Id=pro.P_Id
+        where Qsr_Category=#{qsrCategory}
+        <if test="teId!=null"> and qr.Te_Id = #{teId} </if>
+        <if test="pConstructionUnit!=null">
+            and pro.P_Construction_Unit=#{pConstructionUnit}
+        </if>
+        <if test="pCompetentDepartment!=null">
+            and pro.P_Competent_Department=#{pCompetentDepartment}
+        </if>
+        UNION ALL
+        select
+        (sum( case when Qsr_State!=3 and to_char(Qsr_State_Time,'yyyy-mm')=to_char(now(),'yyyy-mm') then 1 else 0 end))
+        allCount,
+        (sum( case when Qsr_State=7 and to_char(Qsr_State_Time,'yyyy-mm')=to_char(now(),'yyyy-mm') then 1 else 0 end))
+        closeCount,
+        (sum( case when Qsr_State!=7 and Qsr_State!=3 and to_char(Qsr_State_Time,'yyyy-mm')=to_char(now(),'yyyy-mm')
+        then 1 else 0 end)) processCount
+        from  Qs_Record qr left join  Pre_Project pro on qr.P_Id=pro.P_Id
+        where Qsr_Category=#{qsrCategory}
+        <if test="teId!=null"> and qr.Te_Id = #{teId} </if>
+        <if test="pConstructionUnit!=null">
+            and pro.P_Construction_Unit=#{pConstructionUnit}
+        </if>
+        <if test="pCompetentDepartment!=null">
+            and pro.P_Competent_Department=#{pCompetentDepartment}
+        </if>
+    </select>
+
+    <select id="getLastSevenDaysCreate" databaseId="dm" resultType="Map">
+    select
+    (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 6,'yyyy-mm-dd')) then 1 else 0 end) )  "a",
+    (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 5,'yyyy-mm-dd')) then 1 else 0 end) ) "b",
+    (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 4,'yyyy-mm-dd')) then 1 else 0 end) ) "c",
+    (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 3,'yyyy-mm-dd')) then 1 else 0 end) ) "d",
+    (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 2,'yyyy-mm-dd')) then 1 else 0 end) ) "e",
+    (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 1,'yyyy-mm-dd')) then 1 else 0 end) ) "f",
+    (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') ,'yyyy-mm-dd')) then 1 else 0 end) ) "g"
+    from  Qs_Record where Qsr_Category=#{qsrCategory} <if test="teId!=null"> and Te_Id = #{teId} </if> and  Qsr_State!=3  and Qsr_Create_Time is not null
+    </select>
+
+    <select id="getLastSevenDaysCreateOther" databaseId="dm" resultType="Map">
+        select
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 6,'yyyy-mm-dd')) then 1 else 0 end) )  "a",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 5,'yyyy-mm-dd')) then 1 else 0 end) ) "b",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 4,'yyyy-mm-dd')) then 1 else 0 end) ) "c",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 3,'yyyy-mm-dd')) then 1 else 0 end) ) "d",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 2,'yyyy-mm-dd')) then 1 else 0 end) ) "e",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 1,'yyyy-mm-dd')) then 1 else 0 end) ) "f",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') ,'yyyy-mm-dd')) then 1 else 0 end) ) "g"
+        from  Qs_Record where Qsr_Category=#{qsrCategory} <if test="teId!=null"> and Te_Id = #{teId} </if> and  Qsr_State!=3  and Qsr_Time is not null
+    </select>
+
+    <select id="getLastSevenDaysClose" databaseId="dm" resultType="Map">
+        select
+        (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 6,'yyyy-mm-dd')) then 1 else 0 end) ) "a",
+        (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 5,'yyyy-mm-dd')) then 1 else 0 end) ) "b",
+        (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 4,'yyyy-mm-dd')) then 1 else 0 end) ) "c",
+        (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 3,'yyyy-mm-dd')) then 1 else 0 end) ) "d",
+        (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 2,'yyyy-mm-dd')) then 1 else 0 end) ) "e",
+        (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') - 1,'yyyy-mm-dd')) then 1 else 0 end) ) "f",
+        (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(trunc(sysdate, 'dd') ,'yyyy-mm-dd')) then 1 else 0 end) ) "g"
+        from  Qs_Record where Qsr_Category=#{qsrCategory} <if test="teId!=null"> and Te_Id = #{teId} </if> and  Qsr_State=7  and Qsr_State_Time is not null
+    </select>
+
+    <select id="getMonthlyCreateStats" databaseId="dm" resultType="Map">
+        SELECT
+        TO_CHAR(${timeColumn}, 'yyyy-mm') as "month",
+        COUNT(1) as "count"
+        FROM Qs_Record
+        WHERE Qsr_Category = #{qsrCategory}
+        <if test="teId != null"> AND Te_Id = #{teId} </if>
+        AND Qsr_State != 3
+        AND ${timeColumn} >= ADD_MONTHS(TRUNC(SYSDATE, 'mm'), -11)
+        GROUP BY TO_CHAR(${timeColumn}, 'yyyy-mm')
+        ORDER BY "month" ASC
+    </select>
+
+    <select id="getMonthlyCloseStats" databaseId="dm" resultType="Map">
+        SELECT
+        TO_CHAR(Qsr_State_Time, 'yyyy-mm') as "month",
+        COUNT(1) as "count"
+        FROM Qs_Record
+        WHERE Qsr_Category = #{qsrCategory}
+        <if test="teId != null"> AND Te_Id = #{teId} </if>
+        AND Qsr_State = 7
+        AND Qsr_State_Time >= ADD_MONTHS(TRUNC(SYSDATE, 'mm'), -11)
+        GROUP BY TO_CHAR(Qsr_State_Time, 'yyyy-mm')
+        ORDER BY "month" ASC
+    </select>
+
+
+    <select id="getWorkbenchDetailStatistics" databaseId="dm" resultType="Map">
+      select
+      (select count(1) from  Qs_Record
+      where now()>Qsr_Rectify_Require_Time and Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if>
+      and Qsr_State!=7 and Qsr_Category=#{qsrCategory}) as "overdueCount",
+      (select count(1) from  Qs_Record
+      where  Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if>  and Qsr_State!=7 and Qsr_Category=#{qsrCategory}) as "processCount",
+      (select count(1) from  Qs_Record
+      where  Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory}) as "recordCount",
+      (select count(1) from  Qs_Record
+      where  Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory} and DateDiff(dd,Qsr_Create_Time,getdate())=0) as "todayNew",
+      (select count(1) from Qs_Record
+      where Qsr_State != 3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category = #{qsrCategory} and DateDiff(mm, Qsr_Create_Time, getdate()) = 0) as "monthNew",
+      (select count(1) from  Qs_Record
+      where  Qsr_State=7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory}) as "closeCount",
+      (select count(1) from  Qs_Record
+      where  Qsr_State=7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory} and DateDiff(dd,Qsr_Create_Time,getdate())=0) as "todayClose",
+      (select count(1) from Qs_Record
+      where Qsr_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category = #{qsrCategory} and DateDiff(mm, Qsr_Create_Time, getdate()) = 0) as "monthClose"
+    </select>
+
+    <!--************************************* mysql *************************************-->
+
+    <select id="getYearQuarterMonthStatistics" databaseId="mysql" resultType="Map">
+        select
+        (sum( case when qr.Qsr_State!=3 and date_format(qr.Qsr_State_Time,'%Y')=date_format(now(),'%Y') then 1 else 0 end))
+        allCount,
+        (sum( case when qr.Qsr_State=7 and date_format(qr.Qsr_State_Time,'%Y')=date_format(now(),'%Y') then 1 else 0 end))
+        closeCount,
+        (sum( case when qr.Qsr_State!=7 and qr.Qsr_State!=3 and date_format(qr.Qsr_State_Time,'%Y')=date_format(now(),'%Y')
+        then 1 else 0 end)) processCount
+        from Qs_Record qr left join Pre_Project pro on qr.P_Id=pro.P_Id
+        where Qsr_Category=#{qsrCategory}
+        <if test="teId!=null"> and qr.Te_Id = #{teId} </if>
+        <if test="pConstructionUnit!=null">
+            and pro.P_Construction_Unit=#{pConstructionUnit}
+        </if>
+        <if test="pCompetentDepartment!=null">
+            and pro.P_Competent_Department=#{pCompetentDepartment}
+        </if>
+        UNION ALL
+        select
+        (sum( case when Qsr_State!=3 and  QUARTER(Qsr_State_Time) = QUARTER(NOW())
+        then 1 else 0 end)) allCount,
+        (sum( case when Qsr_State=7 and QUARTER(Qsr_State_Time) = QUARTER(NOW())
+        then 1 else 0 end)) closeCount,
+        (sum( case when Qsr_State!=7 and Qsr_State!=3 and QUARTER(Qsr_State_Time) = QUARTER(NOW())  then 1 else 0 end)) processCount
+        from Qs_Record qr left join Pre_Project pro on qr.P_Id=pro.P_Id
+        where Qsr_Category=#{qsrCategory}
+        <if test="teId!=null"> and qr.Te_Id = #{teId} </if>
+        <if test="pConstructionUnit!=null">
+            and pro.P_Construction_Unit=#{pConstructionUnit}
+        </if>
+        <if test="pCompetentDepartment!=null">
+            and pro.P_Competent_Department=#{pCompetentDepartment}
+        </if>
+        UNION ALL
+        select
+        (sum( case when Qsr_State!=3 and date_format(Qsr_State_Time,'%Y-%m')=date_format(now(),'%Y-%m') then 1 else 0 end))
+        allCount,
+        (sum( case when Qsr_State=7 and date_format(Qsr_State_Time,'%Y-%m')=date_format(now(),'%Y-%m') then 1 else 0 end))
+        closeCount,
+        (sum( case when Qsr_State!=7 and Qsr_State!=3 and date_format(Qsr_State_Time,'%Y-%m')=date_format(now(),'%Y-%m')
+        then 1 else 0 end)) processCount
+        from Qs_Record qr left join Pre_Project pro on qr.P_Id=pro.P_Id
+        where Qsr_Category=#{qsrCategory}
+        <if test="teId!=null"> and qr.Te_Id = #{teId} </if>
+        <if test="pConstructionUnit!=null">
+            and pro.P_Construction_Unit=#{pConstructionUnit}
+        </if>
+        <if test="pCompetentDepartment!=null">
+            and pro.P_Competent_Department=#{pCompetentDepartment}
+        </if>
+    </select>
+
+    <select id="getLastSevenDaysCreate" databaseId="mysql" resultType="Map">
+    select
+    (sum( case when (date_format(Qsr_Create_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-6) ,'%Y-%m-%d')) then 1 else 0 end) )  "a",
+    (sum( case when (date_format(Qsr_Create_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-5) ,'%Y-%m-%d')) then 1 else 0 end) ) "b",
+    (sum( case when (date_format(Qsr_Create_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-4) ,'%Y-%m-%d')) then 1 else 0 end) ) "c",
+    (sum( case when (date_format(Qsr_Create_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-3) ,'%Y-%m-%d')) then 1 else 0 end) ) "d",
+    (sum( case when (date_format(Qsr_Create_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-2) ,'%Y-%m-%d')) then 1 else 0 end) ) "e",
+    (sum( case when (date_format(Qsr_Create_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-1) ,'%Y-%m-%d')) then 1 else 0 end) ) "f",
+    (sum( case when (date_format(Qsr_Create_Time,'%Y-%m-%d')) =(date_format(now() ,'%Y-%m-%d')) then 1 else 0 end) ) "g"
+    from Qs_Record where Qsr_Category=#{qsrCategory} and <if test="teId!=null"> and Te_Id = #{teId} </if>  Qsr_State!=3  and Qsr_Create_Time is not null
+    </select>
+
+    <select id="getLastSevenDaysCreateOther" databaseId="mysql" resultType="Map">
+        select
+        (sum( case when (date_format(Qsr_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-6) ,'%Y-%m-%d')) then 1 else 0 end) )  "a",
+        (sum( case when (date_format(Qsr_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-5) ,'%Y-%m-%d')) then 1 else 0 end) ) "b",
+        (sum( case when (date_format(Qsr_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-4) ,'%Y-%m-%d')) then 1 else 0 end) ) "c",
+        (sum( case when (date_format(Qsr_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-3) ,'%Y-%m-%d')) then 1 else 0 end) ) "d",
+        (sum( case when (date_format(Qsr_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-2) ,'%Y-%m-%d')) then 1 else 0 end) ) "e",
+        (sum( case when (date_format(Qsr_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-1) ,'%Y-%m-%d')) then 1 else 0 end) ) "f",
+        (sum( case when (date_format(Qsr_Time,'%Y-%m-%d')) =(date_format(now() ,'%Y-%m-%d')) then 1 else 0 end) ) "g"
+        from Qs_Record where Qsr_Category=#{qsrCategory} and <if test="teId!=null"> and Te_Id = #{teId} </if>  Qsr_State!=3  and Qsr_Time is not null
+    </select>
+
+    <select id="getLastSevenDaysClose" databaseId="mysql" resultType="Map">
+        select
+        (sum( case when (date_format(Qsr_State_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-6) ,'%Y-%m-%d')) then 1 else 0 end) ) "a",
+        (sum( case when (date_format(Qsr_State_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-5) ,'%Y-%m-%d')) then 1 else 0 end) ) "b",
+        (sum( case when (date_format(Qsr_State_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-4) ,'%Y-%m-%d')) then 1 else 0 end) ) "c",
+        (sum( case when (date_format(Qsr_State_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-3) ,'%Y-%m-%d')) then 1 else 0 end) ) "d",
+        (sum( case when (date_format(Qsr_State_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-2) ,'%Y-%m-%d')) then 1 else 0 end) ) "e",
+        (sum( case when (date_format(Qsr_State_Time,'%Y-%m-%d')) =(date_format(adddate(now(),-1) ,'%Y-%m-%d')) then 1 else 0 end) ) "f",
+        (sum( case when (date_format(Qsr_State_Time,'%Y-%m-%d')) =(date_format(now() ,'%Y-%m-%d')) then 1 else 0 end) ) "g"
+        from Qs_Record where Qsr_Category=#{qsrCategory} <if test="teId!=null"> and Te_Id = #{teId} </if> and  Qsr_State=7  and Qsr_State_Time is not null
+    </select>
+
+
+    <select id="getMonthlyCreateStats" databaseId="mysql" resultType="Map">
+        SELECT
+        DATE_FORMAT(${timeColumn}, '%Y-%m') as month,
+        COUNT(1) as count
+        FROM Qs_Record
+        WHERE Qsr_Category = #{qsrCategory}
+        <if test="teId != null"> AND Te_Id = #{teId} </if>
+        AND Qsr_State != 3
+        AND ${timeColumn} >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 11 MONTH), '%Y-%m-01')
+        GROUP BY month
+        ORDER BY month ASC
+    </select>
+
+    <select id="getMonthlyCloseStats" databaseId="mysql" resultType="Map">
+        SELECT
+        DATE_FORMAT(Qsr_State_Time, '%Y-%m') as month,
+        COUNT(1) as count
+        FROM Qs_Record
+        WHERE Qsr_Category = #{qsrCategory}
+        <if test="teId != null"> AND Te_Id = #{teId} </if>
+        AND Qsr_State = 7
+        AND Qsr_State_Time >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 11 MONTH), '%Y-%m-01')
+        GROUP BY month
+        ORDER BY month ASC
+    </select>
+
+    <select id="getWorkbenchDetailStatistics" databaseId="mysql" resultType="Map">
+      select
+      (select count(1) from Qs_Record
+      where now()>Qsr_Rectify_Require_Time and Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if>
+      and Qsr_State!=7 and Qsr_Category=#{qsrCategory}) as "overdueCount",
+      (select count(1) from Qs_Record
+      where  Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_State!=7 and Qsr_Category=#{qsrCategory}) as "processCount",
+      (select count(1) from Qs_Record
+      where  Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory}) as "recordCount",
+      (select count(1) from Qs_Record
+      where  Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory} and DateDiff(Qsr_Create_Time,now())=0) as "todayNew",
+      (select count(1) from Qs_Record
+      where Qsr_State != 3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category = #{qsrCategory} and DATE_FORMAT(Qsr_Create_Time, '%Y-%m') = DATE_FORMAT(now(), '%Y-%m')) as "monthNew",
+      (select count(1) from Qs_Record
+      where  Qsr_State=7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory}) as "closeCount",
+      (select count(1) from Qs_Record
+      where  Qsr_State=7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory} and DateDiff(Qsr_Create_Time,now())=0) as "todayClose",
+      (select count(1) from Qs_Record
+      where Qsr_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category = #{qsrCategory} and DATE_FORMAT(Qsr_Create_Time, '%Y-%m') = DATE_FORMAT(now(), '%Y-%m')) as "monthClose"
+    </select>
+
+
+    <!--************************************* dm *************************************-->
+    <select id="getYearQuarterMonthStatistics" databaseId="postgre" resultType="Map">
+        select
+        (sum( case when qr.Qsr_State!=3 and to_char(qr.Qsr_State_Time,'yyyy')=to_char(now(),'yyyy') then 1 else 0 end))
+        allCount,
+        (sum( case when qr.Qsr_State=7 and to_char(qr.Qsr_State_Time,'yyyy')=to_char(now(),'yyyy') then 1 else 0 end))
+        closeCount,
+        (sum( case when qr.Qsr_State!=7 and qr.Qsr_State!=3 and to_char(qr.Qsr_State_Time,'yyyy')=to_char(now(),'yyyy')
+        then 1 else 0 end)) processCount
+        from  Qs_Record qr left join  Pre_Project pro on qr.P_Id=pro.P_Id
+        where Qsr_Category=#{qsrCategory}
+        <if test="teId!=null"> and qr.Te_Id = #{teId} </if>
+        <if test="pConstructionUnit!=null">
+            and pro.P_Construction_Unit=#{pConstructionUnit}
+        </if>
+        <if test="pCompetentDepartment!=null">
+            and pro.P_Competent_Department=#{pCompetentDepartment}
+        </if>
+        UNION ALL
+        select
+        (sum( case when Qsr_State!=3 and trunc((to_char(Qsr_State_Time,'mm')+2)/3)=trunc((to_char(sysdate,'mm')+2)/3)
+        then 1 else 0 end)) allCount,
+        (sum( case when Qsr_State=7 and trunc((to_char(Qsr_State_Time,'mm')+2)/3)=trunc((to_char(sysdate,'mm')+2)/3)
+        then 1 else 0 end)) closeCount,
+        (sum( case when Qsr_State!=7 and Qsr_State!=3 and
+        trunc((to_char(Qsr_State_Time,'mm')+2)/3)=trunc((to_char(sysdate,'mm')+2)/3) then 1 else 0 end)) processCount
+        from  Qs_Record qr left join  Pre_Project pro on qr.P_Id=pro.P_Id
+        where Qsr_Category=#{qsrCategory}
+        <if test="teId!=null"> and qr.Te_Id = #{teId} </if>
+        <if test="pConstructionUnit!=null">
+            and pro.P_Construction_Unit=#{pConstructionUnit}
+        </if>
+        <if test="pCompetentDepartment!=null">
+            and pro.P_Competent_Department=#{pCompetentDepartment}
+        </if>
+        UNION ALL
+        select
+        (sum( case when Qsr_State!=3 and to_char(Qsr_State_Time,'yyyy-mm')=to_char(now(),'yyyy-mm') then 1 else 0 end))
+        allCount,
+        (sum( case when Qsr_State=7 and to_char(Qsr_State_Time,'yyyy-mm')=to_char(now(),'yyyy-mm') then 1 else 0 end))
+        closeCount,
+        (sum( case when Qsr_State!=7 and Qsr_State!=3 and to_char(Qsr_State_Time,'yyyy-mm')=to_char(now(),'yyyy-mm')
+        then 1 else 0 end)) processCount
+        from  Qs_Record qr left join  Pre_Project pro on qr.P_Id=pro.P_Id
+        where Qsr_Category=#{qsrCategory}
+        <if test="teId!=null"> and qr.Te_Id = #{teId} </if>
+        <if test="pConstructionUnit!=null">
+            and pro.P_Construction_Unit=#{pConstructionUnit}
+        </if>
+        <if test="pCompetentDepartment!=null">
+            and pro.P_Competent_Department=#{pCompetentDepartment}
+        </if>
+    </select>
+
+    <select id="getLastSevenDaysCreate" databaseId="postgre" resultType="Map">
+        select
+            (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(sysdate- 6,'yyyy-mm-dd')) then 1 else 0 end) )  "a",
+            (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(sysdate- 5,'yyyy-mm-dd')) then 1 else 0 end) ) "b",
+            (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(sysdate- 4,'yyyy-mm-dd')) then 1 else 0 end) ) "c",
+            (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(sysdate- 3,'yyyy-mm-dd')) then 1 else 0 end) ) "d",
+            (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(sysdate- 2,'yyyy-mm-dd')) then 1 else 0 end) ) "e",
+            (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(sysdate- 1,'yyyy-mm-dd')) then 1 else 0 end) ) "f",
+            (sum( case when (to_char(Qsr_Create_Time,'yyyy-mm-dd')) =(to_char(sysdate ,'yyyy-mm-dd')) then 1 else 0 end) ) "g"
+        from  Qs_Record where Qsr_Category=#{qsrCategory} <if test="teId!=null"> and Te_Id = #{teId} </if> and  Qsr_State!=3  and Qsr_Create_Time is not null
+    </select>
+
+    <select id="getLastSevenDaysCreateOther" databaseId="postgre" resultType="Map">
+        select
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(sysdate- 6,'yyyy-mm-dd')) then 1 else 0 end) )  "a",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(sysdate- 5,'yyyy-mm-dd')) then 1 else 0 end) ) "b",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(sysdate- 4,'yyyy-mm-dd')) then 1 else 0 end) ) "c",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(sysdate- 3,'yyyy-mm-dd')) then 1 else 0 end) ) "d",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(sysdate- 2,'yyyy-mm-dd')) then 1 else 0 end) ) "e",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(sysdate- 1,'yyyy-mm-dd')) then 1 else 0 end) ) "f",
+        (sum( case when (to_char(Qsr_Time,'yyyy-mm-dd')) =(to_char(sysdate ,'yyyy-mm-dd')) then 1 else 0 end) ) "g"
+        from  Qs_Record where Qsr_Category=#{qsrCategory} <if test="teId!=null"> and Te_Id = #{teId} </if> and  Qsr_State!=3  and Qsr_Time is not null
+    </select>
+
+    <select id="getLastSevenDaysClose" databaseId="postgre" resultType="Map">
+        select
+            (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(sysdate- 6,'yyyy-mm-dd')) then 1 else 0 end) ) "a",
+            (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(sysdate - 5,'yyyy-mm-dd')) then 1 else 0 end) ) "b",
+            (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(sysdate- 4,'yyyy-mm-dd')) then 1 else 0 end) ) "c",
+            (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(sysdate - 3,'yyyy-mm-dd')) then 1 else 0 end) ) "d",
+            (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(sysdate- 2,'yyyy-mm-dd')) then 1 else 0 end) ) "e",
+            (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(sysdate - 1,'yyyy-mm-dd')) then 1 else 0 end) ) "f",
+            (sum( case when (to_char(Qsr_State_Time,'yyyy-mm-dd')) =(to_char(sysdate ,'yyyy-mm-dd')) then 1 else 0 end) ) "g"
+        from  Qs_Record where Qsr_Category=#{qsrCategory} <if test="teId!=null"> and Te_Id = #{teId} </if> and  Qsr_State=7  and Qsr_State_Time is not null
+    </select>
+
+    <select id="getWorkbenchDetailStatistics" databaseId="postgre" resultType="Map">
+        select
+            (select count(1) from  Qs_Record
+             where now()>Qsr_Rectify_Require_Time and Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if>
+               and Qsr_State!=7 and Qsr_Category=#{qsrCategory}) as "overdueCount",
+            (select count(1) from  Qs_Record
+             where  Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_State!=7 and Qsr_Category=#{qsrCategory}) as "processCount",
+            (select count(1) from  Qs_Record
+             where  Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory}) as "recordCount",
+            (select count(1) from  Qs_Record
+             where  Qsr_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory} and  date_part('day',cast(Qsr_Create_Time as TIMESTAMP)-cast(now() as TIMESTAMP))=0) as "todayNew",
+            (select count(1) from Qs_Record
+            where Qsr_State != 3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category = #{qsrCategory} and date_trunc('month', cast(Qsr_Create_Time as TIMESTAMP)) = date_trunc('month', now())) as "monthNew",
+            (select count(1) from  Qs_Record
+             where  Qsr_State=7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory}) as "closeCount",
+            (select count(1) from  Qs_Record
+             where  Qsr_State=7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category=#{qsrCategory} and date_part('day',cast(Qsr_Create_Time as TIMESTAMP)-cast(now() as TIMESTAMP))=0) as "todayClose",
+            (select count(1) from Qs_Record
+            where Qsr_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Category = #{qsrCategory} and date_trunc('month', cast(Qsr_Create_Time as TIMESTAMP)) = date_trunc('month', now())) as "monthClose"
+    </select>
+
+    <select id="getMonthlyCreateStats" databaseId="postgres" resultType="Map">
+        SELECT
+        TO_CHAR(${timeColumn}, 'YYYY-MM') as month,
+        COUNT(1) as count
+        FROM Qs_Record
+        WHERE Qsr_Category = #{qsrCategory}
+        <if test="teId != null"> AND Te_Id = #{teId} </if>
+        AND Qsr_State != 3
+        AND ${timeColumn} >= CURRENT_DATE - INTERVAL '11 months'
+        AND ${timeColumn} >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '11 months')
+        GROUP BY month
+        ORDER BY month ASC
+    </select>
+
+    <select id="getMonthlyCloseStats" databaseId="postgres" resultType="Map">
+        SELECT
+        TO_CHAR(Qsr_State_Time, 'YYYY-MM') as month,
+        COUNT(1) as count
+        FROM Qs_Record
+        WHERE Qsr_Category = #{qsrCategory}
+        <if test="teId != null"> AND Te_Id = #{teId} </if>
+        AND Qsr_State = '7'
+        AND Qsr_State_Time >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '11 months')
+        GROUP BY month
+        ORDER BY month ASC
+    </select>
+
+
+    <select id="countGroupByQstTypeIdList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QualitySafetyStatisticFowYWVO">
+        SELECT
+        qr.qst_id AS qstId,
+        COUNT(DISTINCT qr.qsr_id) AS count,
+        SUM(CASE WHEN rec.Qsr_Rectify_Status = '03' THEN 1 ELSE 0 END) AS qsFinish
+        FROM qs_record qr
+        LEFT JOIN Qs_Plan_Task qpt ON qpt.id = qr.pt_id
+        LEFT JOIN pre_project pp ON pp.p_id = qpt.p_id
+        LEFT JOIN Qs_Record rec ON rec.Pt_Id = qpt.id AND rec.qsr_id = qr.qsr_id
+        left join Qs_Type qt on qt.Qst_Id=qr.Qst_Id
+        <where>
+            qr.qst_id IS NOT NULL
+            <if test="request.ptType != null and request.ptType != ''">
+                and qpt.pt_type = #{request.ptType}
+            </if>
+            <if test="(request.qstIds == null or request.qstIds.size()==0) and (typeIdList == null or typeIdList.size()==0)">
+                <if test="request.qstId != null and request.qstId != ''">
+                    and qr.Qst_Id = #{request.qstId}
+                </if>
+            </if>
+            <if test="request.severityLevels != null and request.severityLevels.size()>0">
+                and qt.severity_level in
+                <foreach item="item" collection="request.severityLevels" separator="," close=")" index="index" open="(">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="request.state!=null">
+                and qpt.State=#{request.state}
+            </if>
+            <if test="request.pType != null and request.pType != ''">
+                and pp.P_Type = #{request.pType}
+            </if>
+            <if test="request.projectName != null and request.projectName != ''">
+                and pp.p_name like concat('%',#{request.projectName},'%')
+            </if>
+            <if test="request.pName != null and request.pName != ''">
+                and pp.p_name like concat('%',#{request.pName},'%')
+            </if>
+            <if test="request.ptEvaluationTimeFilterStart != null">
+                and qpt.pt_evaluation_time &gt;= #{request.ptEvaluationTimeFilterStart}
+            </if>
+            <if test="request.ptEvaluationTimeFilterEnd != null">
+                and qpt.pt_evaluation_time &lt;= #{request.ptEvaluationTimeFilterEnd}
+            </if>
+            <if test="typeIdList != null and typeIdList.size() > 0">
+                <if test="request.qstId != null and request.qstId != ''">
+                    and (qr.Qst_Id = #{request.qstId}  or
+                    qr.qst_id in
+                    <foreach collection="typeIdList" item="typeId" separator="," open="(" close=")">
+                        #{typeId}
+                    </foreach>)
+                </if>
+                <if test="request.qstId== null or request.qstId == ''">
+                    and qr.qst_id in
+                    <foreach collection="typeIdList" item="typeId" separator="," open="(" close=")">
+                        #{typeId}
+                    </foreach>
+                </if>
+            </if>
+            <if test="request.qstIds != null and request.qstIds.size() > 0">
+                <if test="request.qstId != null and request.qstId != ''">
+                    and (qr.Qst_Id = #{request.qstId}  or
+                    qr.qst_id in
+                    <foreach collection="request.qstIds" item="ids" separator="," open="(" close=")">
+                        #{ids}
+                    </foreach>)
+                </if>
+                <if test="request.qstId== null or request.qstId == ''">
+                    and qr.qst_id in
+                    <foreach collection="request.qstIds" item="ids" separator="," open="(" close=")">
+                        #{ids}
+                    </foreach>
+                </if>
+            </if>
+        </where>
+        GROUP BY qr.qst_id
+        ORDER BY COUNT(DISTINCT qr.qsr_id) DESC
+    </select>
+
+    <select id="countGroupByQstTypeIdListSum"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QualitySafetyStatisticFowYWVO">
+        SELECT
+        qr.qst_id AS qstId,
+        COUNT(DISTINCT qr.qsr_id) AS count,
+        SUM(CASE WHEN rec.Qsr_Rectify_Status = '03' THEN 1 ELSE 0 END) AS qsFinish
+        FROM qs_record qr
+        LEFT JOIN Qs_Plan_Task qpt ON qpt.id = qr.pt_id
+        LEFT JOIN pre_project pp ON pp.p_id = qpt.p_id
+        LEFT JOIN Qs_Record rec ON rec.Pt_Id = qpt.id AND rec.qsr_id = qr.qsr_id
+        left join Qs_Type qt on qt.Qst_Id=qr.Qst_Id
+        <where>
+            qr.qst_id IS NOT NULL
+            <if test="request.ptType != null and request.ptType != ''">
+                and qpt.pt_type = #{request.ptType}
+            </if>
+            <if test="request.severityLevels != null and request.severityLevels.size()>0">
+                and qt.severity_level in
+                <foreach item="item" collection="request.severityLevels" separator="," close=")" index="index" open="(">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="(request.qstIds == null or request.qstIds.size()==0) and (typeIdList == null or typeIdList.size()==0)">
+                <if test="request.qstId != null and request.qstId != ''">
+                    and qr.Qst_Id = #{request.qstId}
+                </if>
+            </if>
+            <if test="request.state!=null">
+                and qpt.State=#{request.state}
+            </if>
+            <if test="request.pType != null and request.pType != ''">
+                and pp.P_Type = #{request.pType}
+            </if>
+            <if test="request.projectName != null and request.projectName != ''">
+                and pp.p_name like concat('%',#{request.projectName},'%')
+            </if>
+            <if test="request.pName != null and request.pName != ''">
+                and pp.p_name like concat('%',#{request.pName},'%')
+            </if>
+            <if test="request.ptEvaluationTimeFilterStart != null">
+                and qpt.pt_evaluation_time &gt;= #{request.ptEvaluationTimeFilterStart}
+            </if>
+            <if test="request.ptEvaluationTimeFilterEnd != null">
+                and qpt.pt_evaluation_time &lt;= #{request.ptEvaluationTimeFilterEnd}
+            </if>
+            <if test="typeIdList != null and typeIdList.size() > 0">
+                <if test="request.qstId != null and request.qstId != ''">
+                    and (qr.Qst_Id = #{request.qstId}  or
+                    qr.qst_id in
+                    <foreach collection="typeIdList" item="typeId" separator="," open="(" close=")">
+                        #{typeId}
+                    </foreach>)
+                </if>
+                <if test="request.qstId== null or request.qstId == ''">
+                    and qr.qst_id in
+                    <foreach collection="typeIdList" item="typeId" separator="," open="(" close=")">
+                        #{typeId}
+                    </foreach>
+                </if>
+            </if>
+            <if test="request.qstIds != null and request.qstIds.size() > 0">
+                <if test="request.qstId != null and request.qstId != ''">
+                    and (qr.Qst_Id = #{request.qstId}  or
+                    qr.qst_id in
+                    <foreach collection="request.qstIds" item="ids" separator="," open="(" close=")">
+                        #{ids}
+                    </foreach>)
+                </if>
+                <if test="request.qstId== null or request.qstId == ''">
+                    and qr.qst_id in
+                    <foreach collection="request.qstIds" item="ids" separator="," open="(" close=")">
+                        #{ids}
+                    </foreach>
+                </if>
+            </if>
+        </where>
+        GROUP BY qr.qst_id
+        ORDER BY COUNT(DISTINCT qr.qsr_id) DESC
+    </select>
+
+
+    <select id="countGroupByQstTypeIdListImport"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QualitySafetyStatisticFowYWVO">
+        SELECT
+        qr.qst_id AS qstId,
+        COUNT(DISTINCT qr.qsr_id) AS count,
+        SUM(CASE WHEN rec.Qsr_Rectify_Status = '03' THEN 1 ELSE 0 END) AS qsFinish
+        FROM qs_record qr
+        LEFT JOIN Qs_Plan_Task qpt ON qpt.id = qr.pt_id
+        LEFT JOIN pre_project pp ON pp.p_id = qpt.p_id
+        LEFT JOIN Qs_Record rec ON rec.Pt_Id = qpt.id AND rec.qsr_id = qr.qsr_id
+        left join Qs_Type qt on qt.Qst_Id=qr.Qst_Id
+        <where>
+            qr.qst_id IS NOT NULL
+            <if test="request.ptType != null and request.ptType != ''">
+                and qpt.pt_type = #{request.ptType}
+            </if>
+            <if test="request.severityLevels != null and request.severityLevels.size()>0">
+                and qt.severity_level in
+                <foreach item="item" collection="request.severityLevels" separator="," close=")" index="index" open="(">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="(request.qstIds == null or request.qstIds.size()==0) and (typeIdList == null or typeIdList.size()==0)">
+                <if test="request.qstId != null and request.qstId != ''">
+                    and qr.Qst_Id = #{request.qstId}
+                </if>
+            </if>
+            <if test="request.state!=null">
+                and qpt.State=#{request.state}
+            </if>
+            <if test="request.pType != null and request.pType != ''">
+                and pp.P_Type = #{request.pType}
+            </if>
+            <if test="request.projectName != null and request.projectName != ''">
+                and pp.p_name like concat('%',#{request.projectName},'%')
+            </if>
+            <if test="request.pName != null and request.pName != ''">
+                and pp.p_name like concat('%',#{request.pName},'%')
+            </if>
+            <if test="request.ptEvaluationTimeFilterStart != null">
+                and qpt.pt_evaluation_time &gt;= #{request.ptEvaluationTimeFilterStart}
+            </if>
+            <if test="request.ptEvaluationTimeFilterEnd != null">
+                and qpt.pt_evaluation_time &lt;= #{request.ptEvaluationTimeFilterEnd}
+            </if>
+            <if test="typeIdList != null and typeIdList.size() > 0">
+                <if test="request.qstId != null and request.qstId != ''">
+                    and (qr.Qst_Id = #{request.qstId}  or
+                    qr.qst_id in
+                    <foreach collection="typeIdList" item="typeId" separator="," open="(" close=")">
+                        #{typeId}
+                    </foreach>)
+                </if>
+                <if test="request.qstId== null or request.qstId == ''">
+                    and qr.qst_id in
+                    <foreach collection="typeIdList" item="typeId" separator="," open="(" close=")">
+                        #{typeId}
+                    </foreach>
+                </if>
+            </if>
+            <if test="request.qstIds != null and request.qstIds.size() > 0">
+                <if test="request.qstId != null and request.qstId != ''">
+                    and (qr.Qst_Id = #{request.qstId}  or
+                    qr.qst_id in
+                    <foreach collection="request.qstIds" item="ids" separator="," open="(" close=")">
+                        #{ids}
+                    </foreach>)
+                </if>
+                <if test="request.qstId== null or request.qstId == ''">
+                    and qr.qst_id in
+                    <foreach collection="request.qstIds" item="ids" separator="," open="(" close=")">
+                        #{ids}
+                    </foreach>
+                </if>
+            </if>
+        </where>
+        GROUP BY qr.qst_id
+        ORDER BY COUNT(DISTINCT qr.qsr_id) DESC
+    </select>
+
+    <update id="updateRectifyStatus">
+        update Qs_Record set Qsr_Rectify_Status=#{qsrRectifyStatus} where Qsr_Id in
+        <foreach collection="qsrIdList" item="qsrId" open="(" separator="," close=")">
+            #{qsrId}
+        </foreach>
+    </update>
+
+    <update id="updateRectifyStatusByIds">
+        <if test="qsRecordList!=null and qsRecordList.size()>0">
+            <foreach collection="qsRecordList" index="index" item="item" open="" close="" separator=";">
+                update Qs_Record set Qsr_Rectify_Status=#{item.qsrRectifyStatus} where Qsr_Id=#{item.qsrId}
+            </foreach>
+        </if>
+    </update>
+
+    <sql id="proSafetyLedgerXcTime">
+        <if test="params.xcStart!=null">
+            and qpt.Pt_Evaluation_Time>#{params.xcStart}
+        </if>
+        <if test="params.xcEnd!=null">
+            and qpt.Pt_Evaluation_Time&lt;#{params.xcEnd}
+        </if>
+    </sql>
+
+    <select id="getWorkbenchDetailStatisticsList"
+            resultType="com.jpmsoft.common.model.response.Qs.QsRecordResponse">
+        select
+        con.Con_Name as conName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        f.file_relation_id as fileRelationId,
+        qt.Qst_Name as qstName,
+        qt.Qst_Code as qstCode,
+        qt.Qst_Item as qstItem,
+        c1.C_Name as qsrCname,
+        c2.C_Name as qsrFzCname,
+        u1.U_Name as qsrXdUname,
+        mn.*
+        from Qs_Record mn
+        left join Qs_Type qt on qt.Qst_Id=mn.Qst_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sys_Company c1 on c1.C_Id=mn.Qsr_Cid
+        left join Sys_Company c2 on c2.C_Id=mn.Qsr_Fz_Cid
+        left join Sys_User u1 on u1.U_Id=mn.Qsr_Xd_Uid
+        left join Sys_File f on f.FileID=mn.Qsr_Id
+        <where>
+            <if test="params.qsrCategory != null">
+                and mn.Qsr_Category = #{params.qsrCategory}
+            </if>
+            <if test="params.type != null and params.type != ''">
+                <include refid="workbenchDetailStatisticsListFilter"/>
+            </if>
+            <include refid="listFilter"/>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Qsr_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="workbenchDetailStatisticsListFilter" databaseId="dm">
+        <choose>
+            <when test="params.type == 'overdueCount'">
+                and now() &gt; mn.Qsr_Rectify_Require_Time
+                and mn.Qsr_State != 3
+                and mn.Qsr_State != 7
+            </when>
+            <when test="params.type == 'processCount'">
+                and mn.Qsr_State != 3 and mn.Qsr_State != 7
+            </when>
+            <when test="params.type == 'recordCount'">
+                and mn.Qsr_State != 3
+            </when>
+            <when test="params.type == 'todayNew'">
+                and mn.Qsr_State != 3
+                and DateDiff(dd, Qsr_Create_Time, getdate()) = 0
+            </when>
+            <when test="params.type == 'closeCount'">
+                and Qsr_State = 7
+            </when>
+            <when test="params.type == 'todayClose'">
+                and Qsr_State = 7
+                and DateDiff(dd, Qsr_Create_Time,getdate()) = 0
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="workbenchDetailStatisticsListFilter" databaseId="mysql">
+        <choose>
+            <when test="params.type == 'overdueCount'">
+                and now() &gt; mn.Qsr_Rectify_Require_Time
+                and mn.Qsr_State != 3
+                and mn.Qsr_State != 7
+            </when>
+            <when test="params.type == 'processCount'">
+                and mn.Qsr_State != 3
+                and mn.Qsr_State != 7
+            </when>
+            <when test="params.type == 'recordCount'">
+                and mn.Qsr_State != 3
+            </when>
+            <when test="params.type == 'todayNew'">
+                and mn.Qsr_State != 3
+                and DateDiff(Qsr_Create_Time, now()) = 0
+            </when>
+            <when test="params.type == 'closeCount'">
+                and Qsr_State = 7
+            </when>
+            <when test="params.type == 'todayClose'">
+                and Qsr_State = 7
+                and DateDiff(Qsr_Create_Time, now()) = 0
+            </when>
+        </choose>
+    </sql>
+</mapper>

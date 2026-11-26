@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConVisaFeeMapper">
+
+    <select id="getConVisaFeeByVfId" resultType="com.jpmsoft.common.model.response.Contract.ConVisaFeeResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Party_B_Id as conPartyBId,
+        con.con_Money_Tentative as conMoneyTentative,
+        con.con_Provisional_Pe as conProvisionalPe,
+        c1.C_Name as vfContractorName,
+        c2.C_Name as conPartyBName,
+        c1.C_Abbreviation as vfContractorAbbName,
+        c2.C_Abbreviation as conPartyBAbbName,
+        vr.Vr_Code as vrCode,
+        vr.Vr_Time as vrTime,
+        vr.Vr_Participant as vrParticipant,
+        vr.Vr_Place as vrPlace,
+        vr.Vr_Content as vrContent,
+        cl.Cl_Title as clTitle,
+        cl2.Cl_Title as vfClTitle,
+        cl2.Cl_Id as clId,
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        pro.P_Project_Director as pProjectDirector,
+        pro.P_Project_Director_Tel as pProjectDirectorTel,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        svis.Svis_Name as svisName,
+        svis.Svis_Code as svisCode,
+        svis.Svis_Project_Name as svisProjectName,
+        f.file_relation_id as fileRelationId,
+        (select csb.Csb_Estimate_Amt from Con_Sv_Budget csb where csb.Svis_Id=mn.Svis_Id and csb.State=7 limit 1) as  csbEstimateAmt,
+        mn.*
+        from Con_Visa_Fee mn
+        left join Con_Visa_Record vr on vr.Vr_Id=mn.Vr_Id
+        left join Con_Contact_List cl on cl.Cl_Id = vr.Vr_Cl_Id
+        left join Con_Contact_List cl2 on cl2.Cl_Id = mn.Cl_Id
+        <if test="conWhere==0">
+            left join Con_Contract con on con.Con_Id=vr.Con_Id
+        </if>
+        <if test="conWhere==1">
+            left join Con_Contract con on con.Con_Id=mn.Con_Id
+        </if>
+        left join SYS_Company c1 on c1.C_Id=mn.Vf_Contractor
+        left join Sys_File f on f.FileID=mn.Vf_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+        left join Con_Svis svis on svis.Svis_Id=mn.Svis_Id
+        where mn.Vf_Id=#{vfId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.vfContractor!=null">
+            and mn.Vf_Contractor = #{params.vfContractor}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.vfState!=null">
+            and mn.Vf_State = #{params.vfState}
+        </if>
+        <if test="params.vfAmountInvolved!=null">
+            and mn.Vf_Amount_Involved = #{params.vfAmountInvolved}
+        </if>
+        <if test="params.vfVisaCategory!=null">
+            and mn.Vf_Visa_Category = #{params.vfVisaCategory}
+        </if>
+        <if test="params.conId!=null">
+            and vr.Con_Id = #{params.conId}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and vpro.P_Name like concat('%',#{params.pName},'%')
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.vfCode!=null">
+            and mn.Vf_Code like concat('%',#{params.vfCode},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.svisCode!=null">
+            and svis.Svis_Code like concat('%',#{params.svisCode},'%')
+        </if>
+        <if test="params.svisProjectName!=null">
+            and svis.Svis_Project_Name like concat('%',#{params.svisProjectName},'%')
+        </if>
+        <if test="params.svisSubCode!=null">
+            and svis.Svis_Sub_Code like concat('%',#{params.svisSubCode},'%')
+        </if>
+    </sql>
+
+    <select id="getConVisaFeeList" resultType="com.jpmsoft.common.model.response.Contract.ConVisaFeeResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Project_Director as pProjectDirector,
+        pro.P_Project_Director_Tel as pProjectDirectorTel,
+        <if test="params.conWhere!=null">
+            con.Con_Name as conName,
+            con.Con_Code as conCode,
+            con.Con_Money_Total as conMoneyTotal,
+            con.Con_Party_B_Id as conPartyBId,
+            c2.C_Name as conPartyBName,
+            c2.C_Name_History as conPartyBNameHistory,
+            c2.C_Abbreviation as conPartyBAbbName,
+        </if>
+        vr.Vr_Code as vrCode,
+        c1.C_Name as vfContractorName,
+        c1.C_Name_History as vfContractorNameHistory,
+        c1.C_Abbreviation as vfContractorAbbName,
+        svis.Svis_Name as svisName,
+        svis.Svis_Code as svisCode,
+        svis.Svis_Project_Name as svisProjectName,
+        svis.Svis_Sub_Code as svisSubCode,
+        f.file_relation_id as fileRelationId,
+        (select csb.Csb_Estimate_Amt from Con_Sv_Budget csb where csb.Svis_Id=mn.Svis_Id and csb.State=7 limit 1) as  csbEstimateAmt,
+        mn.*
+        from Con_Visa_Fee mn
+        left join Con_Visa_Record vr on vr.Vr_Id=mn.Vr_Id
+        <if test="params.conWhere==0">
+            left join Con_Contract con on con.Con_Id=vr.Con_Id
+        </if>
+        <if test="params.conWhere==1">
+            left join Con_Contract con on con.Con_Id=mn.Con_Id
+        </if>
+        <if test="params.conWhere!=null">
+        left join SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+        </if>
+        left join SYS_Company c1 on c1.C_Id=mn.Vf_Contractor
+        left join Con_Svis svis on svis.Svis_Id=mn.Svis_Id
+        left join Sys_File f on f.FileID=mn.Vf_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Vf_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

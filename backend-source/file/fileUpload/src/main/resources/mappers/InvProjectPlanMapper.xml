@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.InvProjectPlanMapper">
+
+    <select id="getProYearInvListByCodes" resultType="com.jpmsoft.fileUpload.pojo.dto.ProYearInvPlanDto">
+        select
+        mn.Ipp_Year as IppYear,
+        pro.P_Code as pCode,
+        sum(Ipp_Release_Funds) as funds
+        from
+         Inv_Project_Plan mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        where pro.P_Code in
+        <foreach collection="pCodes" open="(" close=")" item="code" separator=",">
+            #{code}
+        </foreach>
+        group by mn.Ipp_Year,pro.P_Code
+    </select>
+
+    <select id="getProInvListByCodes" resultType="com.jpmsoft.fileUpload.pojo.dto.ProYearInvPlanDto">
+        select
+        pro.P_Code as pCode,
+        sum(Ipp_Release_Funds) as funds
+        from
+         Inv_Project_Plan mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        where pro.P_Code in
+        <foreach collection="pCodes" open="(" close=")" item="code" separator=",">
+            #{code}
+        </foreach>
+        group by pro.P_Code
+    </select>
+
+</mapper>

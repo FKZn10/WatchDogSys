@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.visaChange.ConEnBudgetMapper">
+
+    <select id="getConEnBudgetById" resultType="com.jpmsoft.common.model.response.DesignChange.ConEnBudgetResponse">
+        select con.Con_Name           as conName,
+               con.Con_Code           as conCode,
+               con.Con_Money_Total    as conMoneyTotal,
+               pro.P_Name             as pName,
+               proc.C_Name            as pConstructionUnitName,
+               proc.C_Abbreviation    as pConsAbbName,
+               prod.D_Name            as pCompetentDepartmentName,
+               c1.C_Name              as enbContractorName,
+               c1.C_Abbreviation      as enbContrAbbName,
+               c2.C_Name              as enbSupervisorName,
+               enis.Enis_Project_Name as enisProjectName,
+               enis.Enis_Name         as enisName,
+               enis.Enis_Code         as enisCode,
+               f.file_relation_id     as fileRelationId,
+               mn.*
+        from Con_En_Budget mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Company c1 on mn.Enb_Contractor_Id = c1.C_Id
+                 left join SYS_Company c2 on mn.Enb_Supervisor_Id = c2.C_Id
+                 left join Con_Enis enis on mn.Enis_Id = enis.Enis_Id
+                 left join Sys_File f on f.FileID = mn.Enb_Id
+        where mn.Enb_Id = #{enbId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.enbState!=null">
+            and mn.Enb_State=#{params.enbState}
+        </if>
+        <if test="params.enbContractorId!=null">
+            and mn.Enb_Contractor_Id=#{params.enbContractorId}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.enisCode!=null">
+            and enis.Enis_Code like concat('%',#{params.enisCode},'%')
+        </if>
+        <if test="params.enisProjectName!=null">
+            and enis.Enis_Project_Name like concat('%',#{params.enisProjectName},'%')
+        </if>
+        <if test="params.enisName!=null">
+            and enis.Enis_Name like concat('%',#{params.enisName},'%')
+        </if>
+        <if test="params.enisSubCode!=null">
+            and enis.Enis_Sub_Code like concat('%',#{params.enisSubCode},'%')
+        </if>
+    </sql>
+
+    <select id="getConEnBudgetList" resultType="com.jpmsoft.common.model.response.DesignChange.ConEnBudgetResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name_History as enbContractorNameHistory,
+        c1.C_Name as enbContractorName,
+        c1.C_Abbreviation as enbContrAbbName,
+        c2.C_Name as enbSupervisorName,
+        enis.Enis_Code as enisCode,
+        enis.Enis_Sub_Code as enisSubCode,
+        enis.Enis_Project_Name as enisProjectName,
+        enis.Enis_Name as enisName,
+        enis.Enis_Location as enisLocation,
+        enis.Enis_Content_Summary as enisContentSummary,
+        mn.*
+        from Con_En_Budget mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on mn.Enb_Contractor_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Enb_Supervisor_Id=c2.C_Id
+        left join Con_Enis enis on mn.Enis_Id=enis.Enis_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Enb_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getConEnBudgetListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Con_En_Budget mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join Con_Enis enis on mn.Enis_Id=enis.Enis_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+</mapper>

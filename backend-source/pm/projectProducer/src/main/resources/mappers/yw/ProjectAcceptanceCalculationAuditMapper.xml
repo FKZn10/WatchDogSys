@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.yw.ProjectAcceptanceCalculationAuditMapper">
+    <resultMap id="projectAcceptanceCalculationAuditModel"
+               type="com.jpmsoft.common.model.requestAndResponse.yw.ProjectAcceptanceCalculationAuditModel">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <collection property="znpjEvaluateBasisInformationQuarterVos"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.yw.ZNPJEvaluateBasisInformationQuarterVo"
+                    column="id" select="getZNPJEvaluateBasisInformationQuarterVo" fetchType="lazy" />
+    </resultMap>
+
+    <select id="getList"
+            resultMap="projectAcceptanceCalculationAuditModel">
+        select mn.*,con.Con_Name AS contractName
+        ,pro.P_Name AS projectName,pro.P_Type as projectType
+        ,comB.C_Name as contractSecondCompanyName
+        from project_acceptance_calculation_audit mn
+        left join Con_Contract con on mn.contract_id=con.Con_Id
+        left join sys_company comB on con.Con_Party_B_Id=comB.C_Id
+        left join Pre_Project pro on mn.project_id=pro.P_Id
+        <where>
+            1=1
+            <if test="params.projectName != null and params.projectName != ''">
+                and pro.P_Name like concat('%',#{params.projectName},'%')
+            </if>
+            <if test="params.projectType != null and params.projectType != ''">
+                and pro.P_Type=#{params.projectType}
+            </if>
+            <if test="params.contractName != null and params.contractName != ''">
+                and con.Con_Name like concat('%',#{params.contractName},'%')
+            </if>
+            <if test="params.contractSecondCompanyName != null and params.contractSecondCompanyName != ''">
+                and comB.C_Name like concat('%',#{params.contractSecondCompanyName},'%')
+            </if>
+            <if test="params.status!=null ">
+                and mn.status=#{params.status}
+            </if>
+            order by mn.create_time desc
+        </where>
+    </select>
+
+    <select id="getDetail"
+            resultMap="projectAcceptanceCalculationAuditModel">
+        select mn.*,con.Con_Name AS contractName
+             ,pro.P_Name AS projectName,pro.P_Type as projectType
+             ,comB.C_Name as contractSecondCompanyName
+        from project_acceptance_calculation_audit mn
+                 left join Con_Contract con on mn.contract_id=con.Con_Id
+                 left join sys_company comB on con.Con_Party_B_Id=comB.C_Id
+                 left join Pre_Project pro on mn.project_id=pro.P_Id
+        where mn.id=#{id}
+    </select>
+    <select id="getZNPJEvaluateBasisInformationQuarterVo"
+            resultType="com.jpmsoft.common.model.requestAndResponse.yw.ZNPJEvaluateBasisInformationQuarterVo">
+        select mn.*,con.Con_Name AS contractName,pro.P_Name AS projectName,c.C_Name AS companyName,c2.C_Name AS companyNameJl,zi.name AS indicatorName,
+        zi.type AS indicatorType,pro.P_Construction_Unit as projectConstructionUnit,
+        dep.D_Name AS projectConstructionUnitName,con.Con_Plan_End_Date as conPlanEndDate
+        from znpj_basis_information_quarter mn
+        left join Con_Contract con on mn.contract_id=con.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.project_id
+        left join SYS_Department dep on dep.D_Id=pro.P_Construction_Unit
+        left join SYS_Company c on c.C_Id=mn.company_id
+        left join SYS_Company c2 on c2.C_Id=mn.company_id_jl
+        left join znpj_indicator zi on mn.indicator_id=zi.id
+        where mn.source_id=#{id} and mn.source_code='ProjectAuditRecordYw'
+    </select>
+</mapper>

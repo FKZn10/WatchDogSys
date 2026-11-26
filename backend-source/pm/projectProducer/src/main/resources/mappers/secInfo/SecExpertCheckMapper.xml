@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecExpertCheckMapper">
+
+
+<!--    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertCheckVO" id="getSecExpertCheckAndDtl">
+        <id column="id" property="id"/>
+        <collection property="secExpertCheckDtls" ofType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertCheckDtlVO"
+                    column="id" select="getSecExpertCheckDtl">
+        </collection>
+    </resultMap>-->
+
+    <resultMap id="getSecExpertCheckModel" type="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecExpertCheckModel">
+        <id column="id" property="id"/>
+        <collection property="secSelectionRecordDtls"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecSelectionRecordDtlModel"
+                    column="srd_id" select="getSecSelectionRecordDtlModel">
+        </collection>
+    </resultMap>
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecExpertCheckModel"
+               id="getSecExpertCheckAndDtl" extends="getSecExpertCheckModel">
+        <id column="id" property="id"/>
+        <id column="fileRelationId" property="file_relation_id"/>
+        <collection property="secSelectionRecordDtls"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecSelectionRecordDtlModel">
+            <id property="srdId" column="srd_Id"/>
+            <id property="scdId" column="scd_Id"/>
+            <id property="status" column="status"/>
+            <id property="secdResult" column="secd_Result"/>
+            <id property="totalDeduction" column="total_Deduction"/>
+            <id property="exId" column="ex_Id"/>
+            <id property="ecId" column="ec_Id"/>
+        </collection>
+    </resultMap>
+
+
+    <select id="getSecExpertCheckDtl" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertCheckDtlVO">
+        select mn.*
+        from Sec_Expert_Check_Dtl mn
+        where mn.Ec_Id=#{id}
+        order by mn.Secd_Sort asc
+    </select>
+
+    <select id="getSecExpertCheckById" resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecExpertCheckModel">
+        select
+            mn.*,
+            srd.*,
+            sf.file_relation_id,
+            mn.id as ec_id
+        from Sec_Expert_Check mn
+                 left join Sec_Selection_Record_Dtl srd on srd.Sr_Id=mn.Sr_Id
+                 left join sys_file sf on sf.FileId = mn.id
+                 left join Pre_Project pro on pro.P_Id=mn.P_Id
+                 left join Sec_Info sec on mn.Sec_Id=sec.Sec_Id
+        where mn.id=#{id}
+        limit 1
+    </select>
+
+<!--    <select id="getSecdById" resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecSelectionRecordDtlModel">
+        select
+            mn.*,
+            srd.*,
+            se.*,
+            mn.id as scdId
+        from Sec_Expert_Check_Detail mn
+                 left join Sec_Selection_Record_Dtl srd on srd.Srd_Id=mn.Srd_Id
+                 left join Sec_Expert se on srd.Ex_Id=se.Ex_Id
+        where mn.ec_id=#{id}
+    </select>-->
+
+    <select id="getSecdById" resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecSelectionRecordDtlModel">
+        select
+            secd.*,
+            mn.*,
+            se.*,
+            secd.id as scdId,
+            mn.srd_id as srdId,
+            mn.sr_Id as srId,
+            se.ex_id as exId,
+            ec.id as ecId
+        from Sec_Selection_Record_Dtl mn
+                 join Sec_Expert_Check ec on ec.Sr_Id=mn.Sr_Id
+                  join Sec_Expert se on mn.Ex_Id=se.Ex_Id
+                  left join Sec_Expert_Check_Detail secd on secd.ec_id=ec.id and secd.srd_id=mn.srd_id
+        where ec.id=#{id}
+    </select>
+
+<!--    secd.id as scd_Id,
+    secd.total_Deduction,
+    secd.secd_Result,
+    secd.status,
+    sf.file_relation_id,
+    se.ex_id,-->
+    <select id="getSecExpertCheckList" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertCheckVO">
+        select
+            ex.Ex_Name as exName,
+            ex.Ex_Id_Type as exIdType,
+            ex.Ex_Id_Number as exIdNumber,
+            sec.Sec_Name as secName,
+            pro.P_Name as pName,
+            pro.P_Code as pCode,
+            mn.*
+        from Sec_Expert_Check mn
+                 left join Sec_Expert ex on ex.Ex_Id=mn.Ex_Id
+                 left join Pre_Project pro on pro.P_Id=mn.P_Id
+                 left join Sec_Info sec on mn.Sec_Id=sec.Sec_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.srId!=null">
+            and mn.Sr_Id = #{params.srId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.secName!=null">
+            and INSTR(sec.Sec_Name,#{params.secName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and INSTR(pro.P_Code,#{params.pCode})
+        </if>
+        <if test="params.exName!=null">
+            and INSTR(ex.Ex_Name,#{params.exName})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getSecSelectionRecordDtlModel"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecSelectionRecordDtlModel">
+        select c1.C_Name         as cName,
+               c1.C_Abbreviation as exContrAbbName,
+               c1.C_Name_History as cNameHistory,
+               mn.*,
+               se.*
+        from Sec_Selection_Record_Dtl mn
+                 left join Sec_Expert se on mn.Ex_Id = se.Ex_Id
+                 left join Sys_Company c1 on c1.C_Id = se.C_Id
+        where mn.Sr_Id = #{srId}
+    </select>
+
+    <!--<select id="getSecExpertCheckBySrId"  resultMap="getSecExpertCheckAndDtl">
+        select
+            mn.ex_id,
+            mn.p_id as pId,
+            mn.p_name as pName,
+            mn.sec_id as secId,
+            mn.sec_name as secName,
+            mn.sr_id as srId,
+            mn.se_mode as seMode,
+            mn.examine_uid as examineUid,
+            mn.examine_uname as examineUname,
+            mn.ec_assess_time as ecAssessTime,
+            mn.ec_time as ecTime,
+            mn.te_id as teId,
+            srd.*,
+            se.*,
+            se.ex_id,
+            mn.id as ec_id,
+            sf.file_relation_id
+        from Sec_Expert_Check mn
+                 left join Sec_Selection_Record_Dtl srd on srd.Sr_Id=mn.Sr_Id
+                 left join sys_file sf on sf.FileId = mn.id
+                 left join Sec_Expert se on srd.Ex_Id=se.Ex_Id
+                 left join Pre_Project pro on pro.P_Id=mn.P_Id
+                 left join Sec_Info sec on mn.Sec_Id=sec.Sec_Id
+        where mn.sr_Id=#{srId}
+    </select>-->
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecExpertCheckModel"
+               id="getSecSelectionRecord">
+        <id column="Sr_Id" property="srId"/>
+        <collection property="secSelectionRecordDtls"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecSelectionRecordDtlModel"
+                    column="Sr_Id" select="getSelectionRecordDtl">
+        </collection>
+    </resultMap>
+    <select id="getSelectionRecordDtl"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecSelectionRecordDtlModel">
+        select c1.C_Name         as cName,
+               c1.C_Abbreviation as exContrAbbName,
+               c1.C_Name_History as cNameHistory,
+               mn.*,
+               se.*
+        from Sec_Selection_Record_Dtl mn
+                 left join Sec_Expert se on mn.Ex_Id = se.Ex_Id
+                 left join Sys_Company c1 on c1.C_Id = se.C_Id
+        where mn.Sr_Id = #{srId}
+    </select>
+    <select id="getSecExpertCheckBySrId" resultMap="getSecSelectionRecord">
+        select
+            mn.sr_id,
+            pro.P_Name as pName,
+            pro.P_Code as pCode,
+            pro.P_Approve_Budget as pApproveBudget,
+            sec.Sec_Name as secName,
+            sec.Sec_Bidding_Type as secBiddingType,
+            sec.Sec_Place as secPlace,
+            sec.Sec_Remark as secRemark,
+            sec.Sec_Organize_Form as secOrganizeForm,
+            sec.Sec_Evaluate_Separation as secEvaluateSeparation,
+            sec.Sec_Quali_Review as secQualiReview,
+            sec.Sec_Bid_Time as secBidTime,
+            sec.Sec_Loaction as secLoaction,
+            sec.Sec_Investors_Quali as secInvestorsQuali,
+            sec.Sec_Type as secType,
+            sec.Sec_Section_Classify as secSectionClassify,
+            mn.sr_Create_Uid as examineUid,
+            mn.sr_Create_Uname as examineUname,
+            mn.sr_Create_Time as ecTime,
+            mn.sr_Mode as seMode,
+            mn.Sr_Bid_Time as ecAssessTime
+        from Sec_Selection_Record mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join SYS_Company c1 on c1.C_Id = sec.Sec_Tenderee
+                 left join SYS_Company c2 on c2.C_Id = sec.Sec_Agency
+                 left join SYS_Company c3 on c3.C_Id = mn.Sr_Company
+        where mn.Sr_Id = #{srId}
+    </select>
+
+    <select id="getSecExpertCheckTaskTimeout"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.secInfo.SecExpertCheckDTO">
+        select
+            pre_project.P_Name as pName,
+            pre_project.p_Code as pCode,
+            u.U_Name as createName,
+            u1.U_Name as doUserName,
+            sys_file.FileCreateUser as fileCreateId,
+            sys_file.FileCreateUserName as fileCreateName,
+            sys_file.FileFlowStatus as fileFlowStatusc,
+            sys_file.T_Code as  tCode,
+            sec.sr_Id as secSrId,
+            ssr.state_Time as stateTime,
+            sec.*,
+            ssr.sr_Id as srId,
+            us.u_Id as extractUId,
+            us.u_Name as extractUName
+        from
+            (select
+                 '待办' as taskType,
+                 Task_Return_Type  as  taskReturnType,
+                 TaskID as taskId,
+                 TaskID as  ctTaskid,
+                 TaskName as taskName,
+                 TaskUser as doUserId,
+                 TaskSendTime as createtime,
+                 TaskEntityID as fileId,
+                 TaskEntityID as taskentityid,
+                 TaskSendUser as createId,
+                 TaskCurrentActID as  actId
+             from
+                 sys_task
+             where
+                 1=1
+            <if test="params.taskName != null and params.taskName != ''">
+                  and TaskName like concat('%',#{params.taskName},'%')
+            </if>
+             UNION
+             select
+                 '沟通' as taskType,
+                 '' as  taskReturnType,
+                 CT_ID as taskId,
+                 CT_TaskID as  ctTaskid,
+                 CT_Name as taskName,
+                 CT_User as doUserId,
+                 CT_Time as createtime,
+                 CT_FileID as fileId ,
+                 CT_FileID as taskentityid,
+                 CT_SendUser as createId,
+                 CT_ActID as  actId
+             from
+                 sys_coordinationtask
+             where
+                 1=1
+        <if test="params.taskName != null and params.taskName != ''">
+            and CT_Name like concat('%',#{params.taskName},'%')
+        </if>
+            )t2
+                left join
+            sys_file
+            on t2.fileId = sys_file.FileID
+                left join
+            pre_project
+            on sys_file.FileProject = pre_project.P_ID
+                left join
+            SYS_User u
+            on u.U_ID=t2.createId
+                left join
+            SYS_User u1
+            on u1.U_ID=t2.doUserId
+                left join Sec_Expert_Check sec on sys_file.FileId = sec.id
+                left join Sec_Selection_Record ssr on ssr.Sr_Id = sec.sr_id
+                left join sys_Task_Processin tp on tp.tp_entityid = ssr.Sr_Id
+                left join sys_user us on tp.tp_user=us.U_ID
+                left  join  SYS_FlowActivity act on  act.ActID=tp.tp_actid
+        where
+            1=1
+        <if test="params.tCode != null">
+            and sys_file.t_Code = #{params.tCode}
+        </if>
+          and sys_file.FileFlowStatus &lt;&gt; 7
+        and ssr.state = 7
+        and sec.state &lt;&gt; 3
+        <if test="params.actName != null">
+            and tp.ActName = #{params.actName}
+        </if>
+        and act.ActType not like '%Gateway'
+    </select>
+</mapper>

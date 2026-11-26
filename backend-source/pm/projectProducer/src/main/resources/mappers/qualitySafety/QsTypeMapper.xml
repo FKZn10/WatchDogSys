@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.qualitySafety.QsTypeMapper">
+
+    <select id="getQsType" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsTypeVO">
+        select qst_id as qstId,qst_name as qstName,qst_code as qstCode,qst_parent_id as qstParentId
+        from qs_type
+        where qst_state=1 and qst_parent_id =#{params.qstId}
+    </select>
+    <select id="getQsTypeByParentId" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsTypeVO">
+        select qst_id as qstId,qst_name as qstName,qst_code as qstCode,qst_parent_id as qstParentId
+        from qs_type
+        where qst_state=1 and qst_parent_id=#{qstParentId}
+    </select>
+
+    <select id="getQsTypeList" resultType="com.jpmsoft.common.model.requestAndResponse.Qs.QsTypeModel">
+        select * from qs_type
+        <where>
+            <if test="params.qstName != null and params.qstName != ''">
+                and qst_name like concat('%',#{params.qstName},'%')
+            </if>
+            <if test="params.qstCode != null and params.qstCode != ''">
+                and qst_code like concat('%',#{params.qstCode},'%')
+            </if>
+            <if test="params.qstParentId != null and params.qstParentId != ''">
+                and qst_parent_id=#{params.qstParentId}
+            </if>
+            <if test="params.qstIsImportant != null">
+                and Qst_Is_Important=#{params.qstIsImportant}
+            </if>
+            <if test="params.severityLevel != null">
+                and severity_level=#{params.severityLevel}
+            </if>
+            <if test="params.qstCategory != null and params.qstCategory !='' ">
+                and Qst_Category=#{params.qstCategory}
+            </if>
+            <if test="params.qstCreateUname != null and params.qstCreateUname !='' ">
+                and Qst_Create_Uname like concat('%',#{params.qstCreateUname},'%')
+            </if>
+            <if test="params.qstState != null">
+                and Qst_State = #{params.qstState}
+            </if>
+        </where>
+        order by Qst_Sort
+    </select>
+
+    <select id="getQsTypeById" resultType="com.jpmsoft.projectProducer.pojo.entity.qualitySafety.QsType">
+        select * from qs_type where qst_id = #{qstId}
+    </select>
+
+    <select id="getAllChildByQstId" resultType="com.jpmsoft.projectProducer.pojo.entity.qualitySafety.QsType">
+        select * from  qs_type where qst_path like concat('%',#{qstId},'%')  and qst_id != #{qstId}
+    </select>
+
+    <select id="getQsTypeByQstIdList"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.qualitySafety.QsType">
+        select * from  qs_type
+        <where>
+            <if test="qstIdList != null and qstIdList.size()>0 ">
+                qst_id in
+                <foreach collection="qstIdList" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+    <select id="getQsRecordListByParams" resultType="com.jpmsoft.common.model.response.Qs.QsRecordResponse">
+        select
+        con.Con_Name as conName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        f.file_relation_id as fileRelationId,
+        c1.C_Name as qsrCname,
+        c2.C_Name as qsrFzCname,
+        u1.U_Name as qsrXdUname,
+        mn.*,qt.*
+        from  Qs_Record mn
+        left join Qs_Type qt on qt.Qst_Id=mn.Qst_Id
+        left join Qs_Plan_Task qpt on qpt.id = mn.Pt_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sys_Company c1 on c1.C_Id=mn.Qsr_Cid
+        left join Sys_Company c2 on c2.C_Id=mn.Qsr_Fz_Cid
+        left join Sys_User u1 on u1.U_Id=mn.Qsr_Xd_Uid
+        left join Sys_File f on f.FileID=mn.Qsr_Id
+        <where>
+            qpt.State!=3
+            <if test="params.startTime != null">
+                and mn.Qsr_Time >= #{params.startTime}
+            </if>
+            <if test="params.endTime != null">
+                and mn.Qsr_Time &lt;= #{params.endTime}
+            </if>
+            <if test="params.ptType != null">
+                and qpt.Pt_Type=#{params.ptType}
+            </if>
+        </where>
+    </select>
+
+    <update id="batchUpdateQsType">
+         <foreach collection="list" index="index" item="item"  separator=";" >
+             update qs_type
+                <set>
+                    <if test="item.qstPunish != null">
+                        qst_punish=#{item.qstPunish},
+                    </if>
+                    <if test="item.qstScore != null">
+                        qst_score=#{item.qstScore},
+                    </if>
+                    <if test="item.qstPath != null">
+                        qst_path=#{item.qstPath}
+                    </if>
+                </set>
+             where qst_id=#{item.qstId}
+         </foreach>
+    </update>
+</mapper>

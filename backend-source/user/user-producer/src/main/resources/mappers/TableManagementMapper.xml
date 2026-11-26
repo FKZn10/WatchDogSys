@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.TableInfoMapper">
+
+
+
+    <select id="selecttabledata" resultType="java.util.Map">
+        select  *  from  ${tableName}
+        <where>
+        <if test="valueStr!=null">
+            and ${key}=#{valueStr}
+        </if>
+        </where>
+         limit ${start},${size}
+    </select>
+
+    <select id="selecttabledatacount" resultType="int">
+        select  count(*)  from  ${tableName}  <where>
+        <if test="valueStr!=null">
+            and ${key}=#{valueStr}
+        </if>
+    </where>
+    </select>
+
+
+
+    <select id="getPatternName" resultType="String" databaseId="dm">
+        SELECT DISTINCT object_name FROM ALL_OBJECTS WHERE OBJECT_TYPE = 'SCH'
+    </select>
+
+
+    <select id="selectSysTable" resultType="com.jpmsoft.userProducer.pojo.vo.TableInfoVo" databaseId="dm">
+        select  SYS.ALL_ALL_TABLES.owner,SYS.ALL_ALL_TABLES.table_name as tableCode from SYS.ALL_ALL_TABLES  where  SYS.ALL_ALL_TABLES.owner=#{owner} order by  SYS.ALL_ALL_TABLES.table_name asc
+    </select>
+
+
+
+    <select id="getTableInfoList" resultType="com.jpmsoft.userProducer.pojo.vo.TableInfoVo" databaseId="dm">
+       select  SYS.ALL_ALL_TABLES.owner,SYS.ALL_ALL_TABLES.table_name as tableCode, Sys_Table.table_id, Sys_Table.table_name as tableName, Sys_Table.Table_CreateTime
+       from  SYS.ALL_ALL_TABLES
+       left  join  Sys_Table on  SYS.ALL_ALL_TABLES.table_name= Sys_Table.Table_Code
+       where SYS.ALL_ALL_TABLES.owner=#{owner} order by  SYS.ALL_ALL_TABLES.table_name asc
+    </select>
+
+    <select id="getTableColumn" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="dm">
+   select   lower(utc.table_name) as tableCode,utc.column_name as columnCode,column_id as columnId, data_type as dataType,data_Length as dataLength,data_Precision as dataPrecision,data_Scale as dataScale,constraint_type  as isPek
+from  SYS.user_tab_columns utc left  join SYS.USER_CONS_COLUMNS cols   on utc.table_Name=cols.table_Name and utc.column_Name=cols.column_Name left  join SYS.USER_CONSTRAINTS cons  on  cols.constraint_name = cons.constraint_name where utc.table_name in (select table_name from SYS.ALL_ALL_TABLES where owner=#{owner}) order by utc.table_name asc;
+    </select>
+
+
+    <select id="getTableColumnByTableCode1" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="dm">
+   select   utc.table_name as tableCode,utc.column_name as columnCode,column_id as columnId, data_type as dataType,data_Length as dataLength,data_Precision as dataPrecision,data_Scale as dataScale,constraint_type  as isPek
+from  SYS.user_tab_columns utc left  join SYS.USER_CONS_COLUMNS cols   on utc.table_Name=cols.table_Name and utc.column_Name=cols.column_Name left  join SYS.USER_CONSTRAINTS cons  on  cols.constraint_name = cons.constraint_name where utc.table_name=#{tableCode} order by utc.table_name asc;
+    </select>
+
+    <select id="getTableColumnByTableCode" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="dm">
+   select   lower(utc.table_name) as tableCode,utc.column_name as columnCode,column_id as columnId, data_type as dataType,data_Length as dataLength,data_Precision as dataPrecision,data_Scale as dataScale,constraint_type  as isPek
+from  SYS.user_tab_columns utc left  join SYS.USER_CONS_COLUMNS cols   on utc.table_Name=cols.table_Name and utc.column_Name=cols.column_Name left  join SYS.USER_CONSTRAINTS cons  on  cols.constraint_name = cons.constraint_name where utc.table_name in (select table_name from SYS.ALL_ALL_TABLES where owner=#{owner} and table_name=#{tableCode}) order by utc.table_name asc;
+    </select>
+    <select id="getTableByTableCode" resultType="com.jpmsoft.userProducer.pojo.vo.TableInfoVo" databaseId="dm">
+       select  SYS.ALL_ALL_TABLES.owner,SYS.ALL_ALL_TABLES.table_name as tableCode
+       from  SYS.ALL_ALL_TABLES where SYS.ALL_ALL_TABLES.owner=#{owner} and SYS.ALL_ALL_TABLES.table_name=#{tableCode}
+    </select>
+
+
+<select id="getTableColumnbByTableCodeAndColumnCode"  resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="dm">
+     select  lower(table_name) as tableCode,column_name as columnCode,column_id as columnId, data_type as dataType,data_Length as dataLength,data_Precision as dataPrecision,data_Scale as dataScale
+    from  SYS.user_tab_columns  where lower(table_name)=lower(#{tableCode})  and column_name=#{columnCode};
+</select>
+
+    <insert id="insertTableAndColumn" parameterType="List">
+        <foreach collection="sqlList" item="item" index="index">
+            ${item}
+        </foreach>
+    </insert>
+
+
+    <select id="getTableForeignKey"   resultType="com.jpmsoft.userProducer.pojo.vo.TableForeignKeyVo"  databaseId="dm">
+
+        select  FK_OWNER as fkOwner,  FK_TABLE as fkTable,  FK_COL as fkCol,  PK_OWNER as pkOwner,  PK_TABLE as pkTable, B.PK_COL as pkCol FROM ( SELECT  t1.owner AS FK_OWNER,  t1.table_name AS FK_TABLE,  t1.constraint_name AS FK      ,  t3.column_name AS FK_COL  , T2.OWNER AS PK_OWNER,  t2.table_name AS PK_TABLE,  t1.r_constraint_name AS PK      ,  T1.DELETE_RULE from    dba_constraints t1, dba_constraints t2,   DBA_CONS_COLUMNS t3 where  t1.constraint_type= 'R' and t2.constraint_type= 'P'   and t2.constraint_name= t1.r_constraint_name  and t3.constraint_name= t1.constraint_name  ) A LEFT JOIN ( SELECT T1.constraint_name AS PK, T2.column_name AS PK_COL  FROM  dba_constraints T1,  DBA_CONS_COLUMNS T2  WHERE  T1.CONSTRAINT_TYPE= 'P' AND T1.constraint_name= T2.constraint_name )B ON A.PK=B.PK
+        group  by  FK_OWNER,  FK_TABLE, FK_COL,  PK_OWNER,  PK_TABLE, B.PK_COL  having FK_OWNER=#{owner} and  PK_OWNER=#{owner};
+    </select>
+
+
+    <!--************************************* mysql *************************************-->
+
+
+
+
+
+    <select id="selectSysTable" resultType="com.jpmsoft.userProducer.pojo.vo.TableInfoVo" databaseId="mysql">
+         select  tab.TABLE_SCHEMA as  owner,tab.TABLE_NAME as tableCode
+         from  information_schema.tables as tab
+         where tab.TABLE_SCHEMA=#{owner} order by  tab.TABLE_NAME asc
+    </select>
+
+
+    <select id="getTableInfoList" resultType="com.jpmsoft.userProducer.pojo.vo.TableInfoVo" databaseId="mysql">
+         select  tab.TABLE_SCHEMA as  owner,tab.TABLE_NAME as tableCode,Sys_Table.table_id, Sys_Table.table_name as tableName, Sys_Table.Table_CreateTime
+         from  information_schema.tables as tab
+         left  join  Sys_Table on   tab.table_name= Sys_Table.Table_Code
+         where tab.TABLE_SCHEMA=#{owner} order by  tab.TABLE_NAME asc
+    </select>
+
+
+    <select id="getTableColumn" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="mysql">
+       select   table_name as tableCode,column_name as columnCode,data_type as dataType,IFNULL(character_maximum_length,numeric_precision)  as dataLength,ORDINAL_POSITION as columnId, column_type as columnType,numeric_precision as dataPrecision,numeric_scale as  dataScale,COLUMN_KEY as isPek
+       FROM INFORMATION_SCHEMA.Columns  where TABLE_SCHEMA = #{owner}  order by table_name asc;
+    </select>
+    <select id="getTableColumnByTableCode" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="mysql">
+       select   table_name as tableCode,column_name as columnCode,data_type as dataType,IFNULL(character_maximum_length,numeric_precision)  as dataLength,ORDINAL_POSITION as columnId, column_type as columnType,numeric_precision as dataPrecision,numeric_scale as  dataScale,COLUMN_KEY as isPek
+       FROM INFORMATION_SCHEMA.Columns  where TABLE_SCHEMA = #{owner} and lower(table_name)=lower(#{tableCode}) order by table_name asc;
+    </select>
+
+    <select id="getTableColumnByTableCode1" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="mysql">
+       select   table_name as tableCode,column_name as columnCode,data_type as dataType,IFNULL(character_maximum_length,numeric_precision)  as dataLength,ORDINAL_POSITION as columnId, column_type as columnType,numeric_precision as dataPrecision,numeric_scale as  dataScale,COLUMN_KEY as isPek
+       FROM INFORMATION_SCHEMA.Columns  where TABLE_SCHEMA = #{owner} and table_name=#{tableCode} order by table_name asc;
+    </select>
+    <select id="getPatternName" resultType="String" databaseId="mysql">
+       SHOW DATABASES;
+    </select>
+
+
+    <select id="getTableByTableCode" resultType="com.jpmsoft.userProducer.pojo.vo.TableInfoVo" databaseId="mysql">
+       select  tab.TABLE_SCHEMA as  owner,tab.TABLE_NAME as tableCode
+       from  information_schema.tables as tab where tab.TABLE_SCHEMA=#{owner} and tab.TABLE_NAME=#{tableCode}
+    </select>
+
+
+    <select id="getTableColumnbByTableCodeAndColumnCode"  resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="mysql">
+     select  lower(table_name) as tableCode,column_name as columnCode,ORDINAL_POSITION as columnId, data_type as dataType,IFNULL(character_maximum_length,numeric_precision) as dataLength, column_type as columnType,numeric_precision as dataPrecision,numeric_scale as  dataScale
+    from  INFORMATION_SCHEMA.Columns  where lower(table_name)=lower(#{tableCode})  and lower(column_name)=lower(#{columnCode});
+</select>
+    <!--************************************* postgre *************************************-->
+    <select id="selectSysTable" resultType="com.jpmsoft.userProducer.pojo.vo.TableInfoVo" databaseId="postgre">
+        select  tab.TABLE_SCHEMA as  owner,tab.TABLE_NAME as tableCode
+        from  information_schema.tables as tab
+
+        where tab.TABLE_SCHEMA=#{owner} order by  tab.TABLE_NAME asc
+    </select>
+
+    <select id="getTableInfoList" resultType="com.jpmsoft.userProducer.pojo.vo.TableInfoVo" databaseId="postgre">
+        select  tab.TABLE_SCHEMA as  owner,tab.TABLE_NAME as tableCode,Sys_Table.table_id, Sys_Table.table_name as tableName, Sys_Table.Table_CreateTime
+        from  information_schema.tables as tab
+                  left  join  Sys_Table on   tab.table_name= Sys_Table.Table_Code
+        where tab.TABLE_SCHEMA=#{owner} order by  tab.TABLE_NAME asc
+    </select>
+
+
+    <select id="getTableColumn" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="postgre">
+        select   table_name as tableCode,column_name as columnCode,data_type as dataType,IFNULL(character_maximum_length,numeric_precision)  as dataLength,ORDINAL_POSITION as columnId, column_type as columnType,numeric_precision as dataPrecision,numeric_scale as  dataScale,COLUMN_KEY as isPek
+        FROM INFORMATION_SCHEMA.Columns  where TABLE_SCHEMA =#{owner}   order by table_name asc;
+    </select>
+    <select id="getTableColumnByTableCode" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="postgre">
+        select   table_name as tableCode,column_name as columnCode,data_type as dataType,IFNULL(character_maximum_length,numeric_precision)  as dataLength,ORDINAL_POSITION as columnId, column_type as columnType,numeric_precision as dataPrecision,numeric_scale as  dataScale,COLUMN_KEY as isPek
+        FROM INFORMATION_SCHEMA.Columns  where TABLE_SCHEMA =#{owner}  and  lower(table_name)=lower(#{tableCode}) order by table_name asc;
+    </select>
+
+    <select id="getTableColumnByTableCode1" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="postgre">
+        select   table_name as tableCode,column_name as columnCode,data_type as dataType,IFNULL(character_maximum_length,numeric_precision)  as dataLength,ORDINAL_POSITION as columnId, column_type as columnType,numeric_precision as dataPrecision,numeric_scale as  dataScale,COLUMN_KEY as isPek
+        FROM INFORMATION_SCHEMA.Columns  where TABLE_SCHEMA =#{owner}  and  table_name=#{tableCode} order by table_name asc;
+    </select>
+
+    <select id="getPatternName" resultType="String" databaseId="postgre">
+       select datname from pg_database where datistemplate=false
+    </select>
+
+    <select id="getTableInfoList" resultType="com.jpmsoft.userProducer.pojo.vo.TableInfoVo" databaseId="postgre">
+        select  tab.TABLE_SCHEMA as  owner,tab.TABLE_NAME as tableCode,Sys_Table.table_id, Sys_Table.table_name as tableName, Sys_Table.Table_CreateTime
+        from  information_schema.tables as tab
+                  left  join  Sys_Table on   lower(tab.table_name)= lower(Sys_Table.Table_Code)
+        where tab.TABLE_SCHEMA=#{owner} and  tab.TABLE_SCHEMA=#{tableCode} order by  tab.TABLE_NAME asc
+    </select>
+
+
+    <select id="getTableColumn" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo" databaseId="postgre">
+        select   table_name as tableCode,column_name as columnCode,data_type as dataType,IFNULL(character_maximum_length,numeric_precision)  as dataLength,ORDINAL_POSITION as columnId, column_type as columnType,numeric_precision as dataPrecision,numeric_scale as  dataScale
+        FROM INFORMATION_SCHEMA.Columns  where lower(table_name) =lower(#{tableCode})   and  lower(column_name)=lower(#{columnCode}) order by table_name asc;
+    </select>
+</mapper>

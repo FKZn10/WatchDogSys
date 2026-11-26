@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConTaskDelegationMapper">
+
+    <select id="getConTaskDelegationByConId" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConTaskDelegationVo">
+        select pro.P_Name              as pName,
+               con.Con_Name            as conName,
+               con.Con_Code            as conCode,
+               con.Con_Money_Total     as conMoneyTotal,
+               con.Con_Pricing_Method  as conPricingMethod,
+               con.Con_Other_Valuation as conOtherValuation,
+               con1.Con_Name as conAnnualName,
+               con1.Con_Code as conAnnualCode,
+               con1.Con_Pricing_Method as conAnnualPricingMethod,
+               con1.Con_Other_Valuation as conAnnualOtherValuation,
+               c1.C_Name               as ctdCpyName,
+               c1.C_Abbreviation       as ctdCpyAbbName,
+               c2.C_Name               as ctdSoutCpyName,
+               c2.C_Abbreviation       as ctdSoutCpyAbbName,
+               c3.C_Name               as ctdQualityCpyName,
+               c3.C_Abbreviation       as ctdQualityCpyAbbName,
+               f.File_Relation_Id      as fileRelationId,
+               mn.*
+        from Con_Task_Delegation mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_Id
+                 left join Con_Contract con on mn.Con_Id = con.Con_Id
+                 left join Con_Contract con1 on mn.Con_Annual_Id=con1.Con_Id
+                 left join Sys_Company c1 on mn.Ctd_Cpy = c1.C_Id
+                 left join Sys_Company c2 on mn.Ctd_Sout_Cpy = c2.C_Id
+                 left join Sys_Company c3 on mn.Ctd_Quality_Cpy = c3.C_Id
+                 left join Sys_File f on mn.id = f.FileId
+        where mn.Con_Annual_Id = #{conId} and mn.state=7
+        order by mn.Create_Time desc
+    </select>
+
+
+    <select id="getConTaskDelegationById" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConTaskDelegationVo">
+        select pro.P_Name              as pName,
+               con.Con_Name            as conName,
+               con.Con_Code            as conCode,
+               con.Con_Money_Total     as conMoneyTotal,
+               con.Con_Pricing_Method  as conPricingMethod,
+               con.Con_Other_Valuation as conOtherValuation,
+               con1.Con_Name as conAnnualName,
+               con1.Con_Code as conAnnualCode,
+               con1.Con_Pricing_Method as conAnnualPricingMethod,
+               con1.Con_Other_Valuation as conAnnualOtherValuation,
+               c1.C_Name               as ctdCpyName,
+               c1.C_Abbreviation       as ctdCpyAbbName,
+               c2.C_Name               as ctdSoutCpyName,
+               c2.C_Abbreviation       as ctdSoutCpyAbbName,
+               c3.C_Name               as ctdQualityCpyName,
+               c3.C_Abbreviation       as ctdQualityCpyAbbName,
+               f.File_Relation_Id      as fileRelationId,
+               mn.*
+        from Con_Task_Delegation mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_Id
+                 left join Con_Contract con on mn.Con_Id = con.Con_Id
+                 left join Con_Contract con1 on mn.Con_Annual_Id=con1.Con_Id
+                 left join Sys_Company c1 on mn.Ctd_Cpy = c1.C_Id
+                 left join Sys_Company c2 on mn.Ctd_Sout_Cpy = c2.C_Id
+                 left join Sys_Company c3 on mn.Ctd_Quality_Cpy = c3.C_Id
+                 left join Sys_File f on mn.id = f.FileId
+        where mn.id = #{id}
+    </select>
+
+    <select id="getConTaskDelegationList" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConTaskDelegationVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Pricing_Method as conPricingMethod,
+        con.Con_Other_Valuation as conOtherValuation,
+        con1.Con_Name as conAnnualName,
+        con1.Con_Code as conAnnualCode,
+        con1.Con_Pricing_Method as conAnnualPricingMethod,
+        con1.Con_Other_Valuation as conAnnualOtherValuation,
+        c1.C_Name as ctdCpyName,
+        c1.C_Abbreviation as ctdCpyAbbName,
+        c2.C_Name as ctdSoutCpyName,
+        c2.C_Abbreviation as ctdSoutCpyAbbName,
+        c3.C_Name as ctdQualityCpyName,
+        c3.C_Abbreviation as ctdQualityCpyAbbName,
+        mn.*
+        from Con_Task_Delegation mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on mn.Con_Id=con.Con_Id
+        left join Con_Contract con1 on mn.Con_Annual_Id=con1.Con_Id
+        left join Sys_Company c1 on mn.Ctd_Cpy=c1.C_Id
+        left join Sys_Company c2 on mn.Ctd_Sout_Cpy=c2.C_Id
+        left join Sys_Company c3 on mn.Ctd_Quality_Cpy=c3.C_Id
+        ${params.authSql}
+        <if test="params.conId != null and params.conId != ''">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.ctdType!=null">
+            and mn.Ctd_Type=#{params.ctdType}
+        </if>
+        <if test="params.ctdProType!=null">
+            and mn.Ctd_Pro_Type=#{params.ctdProType}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.ctdCode!=null">
+            and INSTR(mn.Ctd_Code,#{params.ctdCode})
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.ctdProNo!=null">
+            and INSTR(mn.Ctd_Pro_No,#{params.ctdProNo})
+        </if>
+        <if test="params.ctdSuperviseNo!=null">
+            and INSTR(mn.Ctd_Supervise_No,#{params.ctdSuperviseNo})
+        </if>
+        <if test="params.ctdContacts!=null">
+            and INSTR(mn.Ctd_Contacts,#{params.ctdContacts})
+        </if>
+        <if test="params.ctdSoutContacts!=null">
+            and INSTR(mn.Ctd_Sout_Contacts,#{params.ctdSoutContacts})
+        </if>
+        <if test="params.ctdSampler!=null">
+            and INSTR(mn.Ctd_Sampler,#{params.ctdSampler})
+        </if>
+        <if test="params.ctdWitness!=null">
+            and INSTR(mn.Ctd_Witness,#{params.ctdWitness})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.conAnnualName!=null">
+            and INSTR(con1.Con_Name,#{params.conAnnualName})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

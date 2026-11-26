@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fundPlan.ProgressDeclarationDtlMapper">
+
+    <select id="selectByPdId" resultType="com.jpmsoft.projectProducer.pojo.dto.fundPlan.ProgressDeclarationDtlDTO">
+        select
+            con.con_code as conCode,
+            con.con_name as conName,
+            pro.p_name as pName,
+            con.Con_Money_Total as conMoneyTotal,
+            ccp.Cpp_Clause as cppClause,
+            ccp.Cpp_Name as cppName,
+            mn.*
+        from Progress_Declaration_Dtl mn
+         left join pre_project pro on mn.P_Id=pro.P_Id
+         left join con_contract con on con.Con_Id=mn.Con_Id
+         left join Con_Contract_Pay_Plan ccp on  ccp.Cpp_Id = mn.Cpp_Id
+         where mn.Pd_Id=#{pdId}
+    </select>
+
+    <select id="selectAllByContractList" resultType="com.jpmsoft.projectProducer.pojo.dto.fundPlan.ProgressContractPlanDTO">
+        select
+            mn.Pdd_Pay_Type as pddPayType,mn.Pdd_Contant as pddContant,pd.create_time as pddContantDate,mn.con_id as conId
+        from Progress_Declaration_Dtl mn
+                 left join Progress_Declaration pd on pd.id=mn.pd_id
+        <where>
+            pd.state = 7
+            <if test="conId!=null and conId.size()>0">
+                and mn.con_id in
+                <foreach collection="conId" open="(" close=")" separator="," item="id">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        order by pd.create_time desc
+    </select>
+
+    <select id="pddMoneyMountyAmt" resultType="com.jpmsoft.projectProducer.pojo.entity.fundPlan.ProgressDeclarationDtl">
+        select
+        mn.*
+        from Progress_Declaration_Dtl mn
+        left join Progress_Declaration pd on pd.id=mn.pd_id
+        <where>
+            pd.state = 7
+            <if test="ids!=null and ids.size()>0">
+                and mn.con_id in
+                <foreach collection="ids" open="(" close=")" separator="," item="id">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="selectProgerssData" resultType="com.jpmsoft.projectProducer.pojo.entity.fundPlan.ProgressDeclarationDtl">
+        select
+        mn.*
+        from Progress_Declaration_Dtl mn
+        left join Progress_Declaration pd on pd.id=mn.pd_id
+        <where>
+            pd.state = 7
+            <if test="id!=null and id!= ''">
+                and pd.id  = #{id}
+            </if>
+        </where>
+    </select>
+
+    <select id="getiProgressDeclarationId" resultType="com.jpmsoft.projectProducer.pojo.dto.fundPlan.ProgressDeclarationDtlDTO">
+        select
+        mn.*,pd.Create_Uid as createUid,pd.Create_Uname as createUname,pd.Create_Time as createTime
+        from Progress_Declaration_Dtl mn
+        left join Progress_Declaration pd on pd.id=mn.pd_id
+        <where>
+            pd.state = 7
+            <if test="id!=null and id!= ''">
+                and mn.pd_id  = #{id}
+
+            </if>
+        </where>
+    </select>
+</mapper>

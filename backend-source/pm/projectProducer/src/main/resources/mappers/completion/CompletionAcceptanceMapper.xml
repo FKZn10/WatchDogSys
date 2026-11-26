@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.completion.CompletionAcceptanceMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.Construction.CompletionAcceptanceResponse"
+               id="selectCompletionAcceptance">
+        <id column="Ca_Id" property="caId"/>
+        <collection property="compAccepCompanys"
+                    ofType="com.jpmsoft.common.model.response.Construction.CompletionAcceptanceCompanyVo"
+                    column="Ca_Id" select="selectcompAccepCompanys">
+        </collection>
+        <collection property="completionAcceptanceSections"
+                    ofType="com.jpmsoft.common.model.response.Construction.CompletionAcceptanceSectionVo"
+                    column="Ca_Id" select="selectCompletionAcceptanceSection">
+        </collection>
+        <collection property="completionAcceptanceContracts"
+                    ofType="com.jpmsoft.common.model.response.Construction.CompletionAcceptanceContractVo"
+                    column="Ca_Id" select="selectCompletionAcceptanceContract">
+        </collection>
+    </resultMap>
+
+    <select id="selectCompletionAcceptanceSection"
+            resultType="com.jpmsoft.common.model.response.Construction.CompletionAcceptanceSectionVo">
+        select sec.Sec_Name as secName,
+               mn.*
+        from Completion_Acceptance_Section mn
+                 left join Sec_Info sec on mn.Sec_Id = sec.Sec_Id
+        where mn.Ca_Id = #{caId}
+    </select>
+
+    <select id="selectCompletionAcceptanceContract"
+            resultType="com.jpmsoft.common.model.response.Construction.CompletionAcceptanceContractVo">
+        select con.Con_Name            as conName,
+               con.Con_Money_Total     as conMoneyTotal,
+               con.Con_Pricing_Method  as conPricingMethod,
+               con.Con_Other_Valuation as conOtherValuation,
+               mn.*
+        from Completion_Acceptance_Contract mn
+                 left join Con_Contract con on mn.Con_Id = con.Con_Id
+        where mn.Ca_Id = #{caId}
+    </select>
+
+    <select id="selectcompAccepCompanys"
+            resultType="com.jpmsoft.common.model.response.Construction.CompletionAcceptanceCompanyVo">
+        select c1.C_Name         as cName,
+               c1.C_Abbreviation as cAbbName,
+               mn.*
+        from Completion_Acceptance_Company mn
+                 left join SYS_Company c1 on C1.C_Id = mn.C_Id
+        where mn.Ca_Id = #{caId}
+    </select>
+
+    <select id="getCompletionAcceptanceById" resultMap="selectCompletionAcceptance">
+        select con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               con.Con_Money_Total as conMoneyTotal,
+               pro.P_Name          as pName,
+               c1.C_Name           as caContractorName,
+               c2.C_Name           as caSupervisorName,
+               c3.C_Name           as caApplicantName,
+               c1.C_Abbreviation   as caContractorAbbName,
+               c2.C_Abbreviation   as caSupervisorAbbName,
+               c3.C_Abbreviation   as caApplicantAbbName,
+               sec.Sec_Name        as secName,
+               f.file_relation_id  as fileRelationId,
+               mn.*
+        from Completion_Acceptance mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join SYS_Company c1 on mn.Ca_Contractor_Id = c1.C_Id
+                 left join SYS_Company c2 on mn.Ca_Supervisor_Id = c2.C_Id
+                 left join SYS_Company c3 on mn.Ca_Applicant = c3.C_Id
+                 left join Sys_File f on f.FileID = mn.Ca_Id
+        where mn.Ca_Id = #{caId}
+    </select>
+
+
+    <select id="getCompletionAcceptanceLastByPidAndType" resultMap="selectCompletionAcceptance">
+        select con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               con.Con_Money_Total as conMoneyTotal,
+               pro.P_Name          as pName,
+               c1.C_Name           as caContractorName,
+               c2.C_Name           as caSupervisorName,
+               c3.C_Name           as caApplicantName,
+               c1.C_Abbreviation   as caContractorAbbName,
+               c2.C_Abbreviation   as caSupervisorAbbName,
+               c3.C_Abbreviation   as caApplicantAbbName,
+               sec.Sec_Name        as secName,
+               f.file_relation_id  as fileRelationId,
+               mn.*
+        from Completion_Acceptance mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join SYS_Company c1 on mn.Ca_Contractor_Id = c1.C_Id
+                 left join SYS_Company c2 on mn.Ca_Supervisor_Id = c2.C_Id
+                 left join SYS_Company c3 on mn.Ca_Applicant = c3.C_Id
+                 left join Sys_File f on f.FileID = mn.Ca_Id
+        where mn.P_Id = #{params.pId}
+        <if test="params.caType != null and params.caType != ''">
+            and mn.Ca_Type=#{params.caType}
+        </if>
+        and mn.Ca_State=7
+        order by mn.Ca_State_Time desc
+        limit 1
+    </select>
+
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.caType!=null">
+            and mn.Ca_Type =#{params.caType}
+        </if>
+        <if test="params.caState!=null">
+            and mn.Ca_State =#{params.caState}
+        </if>
+        <if test="params.caContractorId!=null">
+            and mn.Ca_Contractor_Id =#{params.caContractorId}
+        </if>
+        <if test="params.caSupervisorId!=null">
+            and mn.Ca_Supervisor_Id =#{params.caSupervisorId}
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.caApplicantName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.caApplicantName},c3.C_Id)=true
+                </when>
+                <otherwise>
+                    and c3.C_Name like concat('%',#{params.caApplicantName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.caCreateUname!=null">
+            and mn.Ca_Create_Uname like concat('%',#{params.caCreateUname},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.caContractorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.caContractorName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.caContractorName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <!--区间筛选-->
+        <if test="params.caCreateTimeStart!=null">
+            and mn.Ca_Create_Time > #{params.caCreateTimeStart}
+        </if>
+        <if test="params.caCreateTimeEnd!=null">
+            and mn.Ca_Create_Time &lt; #{params.caCreateTimeEnd}
+        </if>
+        <if test="params.caDateStart!=null">
+            and mn.Ca_Date > #{params.caDateStart}
+        </if>
+        <if test="params.caDateEnd!=null">
+            and mn.Ca_Date &lt; #{params.caDateEnd}
+        </if>
+        <if test="params.secGroupName!=null">
+            and mn.Ca_Id in
+            (select cas.Ca_Id from Completion_Acceptance_Section cas
+            left join Sec_Info si on si.Sec_Id=cas.Sec_Id where INSTR(si.Sec_Name,#{params.secGroupName}))
+        </if>
+    </sql>
+
+    <select id="getCompletionAcceptanceList"
+            resultType="com.jpmsoft.common.model.response.Construction.CompletionAcceptanceResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        c1.C_Name_History as caContractorNameHistory,
+        c2.C_Name_History as caSupervisorNameHistory,
+        c1.C_Name as caContractorName,
+        c2.C_Name as caSupervisorName,
+        c3.C_Name as caApplicantName,
+        c1.C_Abbreviation as caContractorAbbName,
+        c2.C_Abbreviation as caSupervisorAbbName,
+        c3.C_Abbreviation as caApplicantAbbName,
+        sec.Sec_Name as secName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        (select
+        <include refid="groupConcatSecName"/>
+        from Completion_Acceptance_Section cas
+        left join Sec_Info si on si.Sec_Id=cas.Sec_Id where cas.Ca_Id=mn.Ca_Id) as secGroupName,
+        mn.*
+        from Completion_Acceptance mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Ca_Contractor_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Ca_Supervisor_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Ca_Applicant = c3.C_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ca_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getCompletionAcceptanceMoneySum"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.completion.CompletionAcceptanceMoneySumVo">
+        select
+        sum(mn.Ca_Con_Money) as caConMoneySum,
+        sum(mn.Ca_Settlement_Money) as caSettlementMoneySum
+        from Completion_Acceptance mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Ca_Contractor_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Ca_Supervisor_Id=c2.C_Id
+        left join SYS_Company c3 on mn.Ca_Applicant = c3.C_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+    </select>
+
+    <sql id="groupConcatSecName" databaseId="mysql">
+        group_concat(si.Sec_Name)
+    </sql>
+
+    <sql id="groupConcatSecName" databaseId="dm">
+        wm_concat(si.Sec_Name)
+    </sql>
+
+    <sql id="groupConcatSecName" databaseId="postgre">
+        string_agg(si.Sec_Name,',')
+    </sql>
+</mapper>

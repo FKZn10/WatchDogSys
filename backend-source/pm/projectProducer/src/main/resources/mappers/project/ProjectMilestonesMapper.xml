@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProjectMilestonesMapper">
+    <resultMap id="projectMilestonesResponse"
+               type="com.jpmsoft.common.model.response.milestones.ProjectMilestonesResponse">
+        <id column="pms_id" property="pmsId"/>
+        <result column="p_id" property="pId"/>
+        <result column="create_uid" property="createUid"/>
+        <result column="create_uname" property="createUname"/>
+        <result column="create_time" property="createTime"/>
+
+        <collection property="milestones" select="getMilestones" column="pms_id"
+                    ofType="com.jpmsoft.common.model.response.milestones.ProjectMilestoneResponse">
+            <result column="pm_id" property="pmId"/>
+            <result column="pms_id" property="pmsId"/>
+            <result column="title" property="title"/>
+            <result column="description" property="description"/>
+            <result column="sort" property="sort"/>
+            <result column="status" property="status"/>
+            <result column="content" property="content"/>
+            <result column="start_time" property="startTime"/>
+            <result column="end_time" property="endTime"/>
+            <result column="unit_id" property="unitId"/>
+            <result column="unit_name" property="unitName"/>
+            <result column="user_id" property="userId"/>
+            <result column="result" property="result"/>
+            <result column="create_uid" property="createUid"/>
+            <result column="create_uname" property="createUname"/>
+            <result column="create_time" property="createTime"/>
+        </collection>
+    </resultMap>
+
+    <select id="getMilestones" parameterType="String"
+            resultType="com.jpmsoft.common.model.response.milestones.ProjectMilestoneResponse">
+        select dep.D_Name         as unitName,
+               f.file_relation_id as fileRelationId,
+               mn.*
+        from Project_Milestone mn
+                 left join SYS_Department dep on dep.D_ID = mn.unit_id
+                 left join Sys_File f on f.FileID = mn.pm_id
+        where mn.pms_id = #{pmsId}
+        order by mn.sort asc
+    </select>
+
+    <select id="findCountByPId" resultType="java.lang.Integer">
+        select count(1)
+        from Project_Milestones
+        where p_id = #{pid}
+    </select>
+
+    <select id="getProjectMilestonesList" resultMap="projectMilestonesResponse" parameterType="Map">
+        select
+        pro.P_Id,
+        pro.P_Name,
+        pro.P_Code,
+        c1.C_Name as pConstructionUnitName,
+        mn.*
+        from Project_Milestones mn
+        left join Pre_Project pro on pro.P_Id=mn.p_id
+        left join SYS_Company c1 on c1.C_Id=pro.P_Construction_Unit
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and pro.Te_Id = #{params.teId}
+        </if>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getProjectMilestonesListCount" resultType="java.lang.Integer">
+        select count(1) from Project_Milestones mn
+        left join Pre_Project pro on pro.P_Id=mn.p_id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and pro.Te_Id = #{params.teId}
+        </if>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+    </select>
+    <select id="getProjectMilestonesByPmsId" resultMap="projectMilestonesResponse" parameterType="String">
+        select pro.P_Id,
+               pro.P_Name,
+               pro.P_Code,
+               c1.C_Name as pConstructionUnitName,
+               mn.*
+        from Project_Milestones mn
+                 left join Pre_Project pro on pro.P_Id = mn.p_id
+                 left join SYS_Company c1 on c1.C_Id = pro.P_Construction_Unit
+        where mn.pms_id = #{pmsId}
+    </select>
+</mapper>

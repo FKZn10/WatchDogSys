@@ -1,0 +1,1413 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecInfoMapper">
+
+    <!--************************************* 公用 *************************************-->
+    <select id="getSecInfoBySecInfoIds" resultType="com.jpmsoft.projectProducer.pojo.dto.secInfo.SecInfoDto">
+        select
+        *
+        from Sec_Info
+        where Sec_Id in
+        <foreach collection="secIds" open="(" close=")" separator="," item="secId">
+            #{secId}
+        </foreach>
+    </select>
+
+
+    <select id="getSecInfoListGroupByProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecInfoResponse">
+        select
+        c.C_Name_History as tendereeNameHistory,
+        c.C_Name as tendereeName,
+        c.C_Abbreviation as tendereeAbbName,
+        <include refid="SecInfo"/>
+        from Sec_Info sec
+        left join SYS_Company c on c.C_ID=sec.Sec_Tenderee
+        where sec.Sec_Id in
+        <foreach collection="secIds" open="(" close=")" item="secId" separator=",">
+            #{secId}
+        </foreach>
+    </select>
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecInfoResponse" id="SecInfoList">
+        <id column="secId" property="secId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="secId" select="selectSecInfoProjectInfo">
+        </collection>
+    </resultMap>
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecInfoResponse" id="SecInfoById">
+        <id column="secId" property="secId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="secId" select="selectSecInfoProjectInfo">
+        </collection>
+        <collection property="secInfoBudgets"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecInfoBudgetModel"
+                    column="secId" select="selectSecInfoBudget">
+        </collection>
+    </resultMap>
+
+    <select id="selectSecInfoBudget"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecInfoBudgetModel">
+        select mn.*
+        from Sec_Info_Budget mn
+        where mn.Sec_Id = #{secId}
+    </select>
+
+    <select id="selectSecInfoProjectInfo" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        where mn.Sec_Id=#{secId}
+    </select>
+
+    <select id="getSecInfoById" resultMap="SecInfoById">
+        select
+        c1.C_Name as tendereeName,
+        c1.C_Abbreviation as tendereeAbbName,
+        c2.C_Name as secAgencyName,
+        c2.C_Abbreviation as secAgencyAbbName,
+        dp.D_Name as secContractingDepartmentName,
+        u2.U_Name as secContactsName,
+        u3.U_Name as secDelegateName,
+        <include refid="SecInfo"/>
+        from Sec_Info sec
+        left join SYS_Company c1 on c1.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c2 on c2.C_ID=sec.Sec_Agency
+        left join SYS_Department dp on dp.D_ID=sec.Sec_Contracting_Department
+        left join Sys_User u2 on u2.U_ID=sec.Sec_Contacts
+        left join Sys_User u3 on u3.U_ID=sec.Sec_Delegate
+        where sec.Sec_Id=#{secId}
+    </select>
+
+    <select id="getSecInfoByName" resultType="com.jpmsoft.common.model.response.SecInfo.SecInfoResponse">
+        select
+        c1.C_Name as tendereeName,
+        c1.C_Abbreviation as tendereeAbbName,
+        c2.C_Name as secAgencyName,
+        c2.C_Abbreviation as secAgencyAbbName,
+        dp.D_Name as secContractingDepartmentName,
+        u2.U_Name as secContactsName,
+        u3.U_Name as secDelegateName,
+        <include refid="SecInfo"/>
+        from Sec_Info sec
+        left join SYS_Company c1 on c1.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c2 on c2.C_ID=sec.Sec_Agency
+        left join SYS_Department dp on dp.D_ID=sec.Sec_Contracting_Department
+        left join Sys_User u2 on u2.U_ID=sec.Sec_Contacts
+        left join Sys_User u3 on u3.U_ID=sec.Sec_Delegate
+        where sec.sec_name=#{secName}
+    </select>
+
+    <select id="getSecInfoByPId" resultMap="SecInfoList">
+        select
+        c.C_Name_History as tendereeNameHistory,
+        c.C_Name as tendereeName,
+        c.C_Abbreviation as tendereeAbbName,
+        c1.C_Name as secAgencyName,
+        c1.C_Abbreviation as secAgencyAbbName,
+        dp.D_Name as secContractingDepartmentName,
+        sd.D_Bid_Time as dBidTime,
+        sd.D_Location as dLocation,
+        sfe.focusCount,
+        sbp.is_new as isNew,
+        <include refid="SecInfo"/>
+        from Sec_Info sec
+        left join SYS_Company c on c.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c1 on c1.C_ID=sec.Sec_Agency
+        left join SYS_Department dp on dp.D_ID=sec.Sec_Contracting_Department
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id = sec.Bp_Id
+        left join (
+        select sfe.sec_id, count(1) as focusCount
+        from Sec_Focus_Expert sfe
+        where sfe.state = 7
+        group by sfe.sec_id
+        ) sfe on sfe.sec_id = sec.Sec_Id
+        left join Sec_Document sd on sd.Sec_Id = sec.Sec_Id and sd.D_State = 7
+        AND sd.d_state_time = (
+        SELECT MAX(sd2.d_state_time)
+        FROM Sec_Document sd2
+        WHERE sd2.Sec_Id = sec.Sec_Id
+        AND sd2.D_State = 7
+        )
+        where sec.Sec_Id in
+        (select sp.Sec_Id
+        from Sec_Project sp
+        left join Pre_Project pro on sp.P_ID=pro.P_Id
+        where pro.P_Id=#{params.secPid}
+        )
+        <if test="params.filterWinNotice==true">
+            and (sec.Sec_Id in
+            (select Sec_Id from Sec_Win_Notice where Wn_State=7
+            <if test="params.uType!=null and params.cId!=null">
+                and Wn_Id in( select Wn_Id from Sec_Win_Unit where Wu_Company_Id=#{params.cId})
+            </if>
+            )
+            <if test="params.filterBidType==true">
+                or sec.Sec_Bidding_Type='03'
+            </if>
+            )
+        </if>
+        <if test="params.teId!=null">
+            and sec.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secFlowState!=null">
+            and sec.Sec_Flow_State = #{params.secFlowState}
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.isbdType!=null">
+            and sec.isbd_Type = #{params.isbdType}
+        </if>
+        <if test="params.secBiddingType!=null">
+            and sec.Sec_Bidding_Type = #{params.secBiddingType}
+        </if>
+        <if test="params.secSectionClassify!=null and params.secSectionClassify!=''">
+            and sec.Sec_Section_Classify in
+            <foreach collection="params.secSectionClassify.split(',')" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.secTypes != null and params.secTypes.size() > 0">
+            and sec.Sec_Type in
+            <foreach collection="params.secTypes" item="tp" separator="," open="(" close=")">
+                #{tp}
+            </foreach>
+        </if>
+        <if test="params.secBiddingTypes != null and params.secBiddingTypes.size() > 0">
+            and sec.Sec_Bidding_Type in
+            <foreach collection="params.secBiddingTypes" item="tp" separator="," open="(" close=")">
+                #{tp}
+            </foreach>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by sec.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by sec.Sec_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getSecInfoByPIdCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Info sec
+        left join SYS_Company c on c.C_ID=sec.Sec_Tenderee
+        where sec.Sec_Id in
+        (select sp.Sec_Id
+        from Sec_Project sp
+        left join Pre_Project pro on sp.P_ID=pro.P_Id
+        where pro.P_Id=#{params.secPid}
+        )
+        <if test="params.filterWinNotice==true">
+            and (sec.Sec_Id in (select Sec_Id from Sec_Win_Notice where Wn_State=7
+            <if test="params.uType!=null and params.cId!=null">
+                and Wn_Id in( select Wn_Id from Sec_Win_Unit where Wu_Company_Id=#{params.cId})
+            </if>
+            )
+            <if test="params.filterBidType==true">
+                or sec.Sec_Bidding_Type='03'
+            </if>
+            )
+        </if>
+        <if test="params.teId!=null">
+            and sec.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secFlowState!=null">
+            and sec.Sec_Flow_State = #{params.secFlowState}
+        </if>
+        <if test="params.isbdType!=null">
+            and sec.isbd_Type = #{params.isbdType}
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.secBiddingType!=null">
+            and sec.Sec_Bidding_Type = #{params.secBiddingType}
+        </if>
+        <if test="params.secSectionClassify!=null and params.secSectionClassify!=''">
+            and sec.Sec_Section_Classify in
+            <foreach collection="params.secSectionClassify.split(',')" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.secTypes != null and params.secTypes.size() > 0">
+            and sec.Sec_Type in
+            <foreach collection="params.secTypes" item="tp" separator="," open="(" close=")">
+                #{tp}
+            </foreach>
+        </if>
+        <if test="params.secBiddingTypes != null and params.secBiddingTypes.size() > 0">
+            and sec.Sec_Bidding_Type in
+            <foreach collection="params.secBiddingTypes" item="tp" separator="," open="(" close=")">
+                #{tp}
+            </foreach>
+        </if>
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.unitName != null and params.unitName != ''">
+            and (
+            (sec.Sec_Bidding_Type = '06' and
+            (select c.C_Name
+            from Sec_Inquiry_Record sir
+            left join SYS_Company c on c.C_ID = sir.Sir_Intended_Unit
+            where sir.Sec_Id = sec.Sec_Id
+            and sir.State = 7
+            order by sir.State_Time desc
+            limit 1)
+            like concat('%',#{params.unitName},'%'))
+            or
+            (sec.Sec_Bidding_Type != '06' and
+            (select c.C_Name
+            from Sec_Win_Notice wn
+            left join Sys_Company c on c.C_Id = wn.Wn_Win_Unit
+            where wn.Sec_Id = sec.Sec_Id
+            and wn.Wn_State = 7
+            order by wn.Wn_State_Time desc
+            limit 1)
+            like concat('%',#{params.unitName},'%')))
+        </if>
+        <if test="params.amount != null">
+            and (
+            (sec.Sec_Bidding_Type = '06' and
+            (select sir.Sir_Con_Money from Sec_Inquiry_Record sir where sir.Sec_Id = sec.Sec_Id and sir.State = 7 order by sir.State_Time desc limit 1) = #{params.amount}
+            )
+            or
+            (sec.Sec_Bidding_Type != '06' and
+            (select wn.Wn_Amount from Sec_Win_Notice wn where wn.Sec_Id = sec.Sec_Id and wn.Wn_State = 7 order by wn.Wn_State_Time desc limit 1) = #{params.amount}
+            ))
+        </if>
+        <if test="params.amountStart != null">
+            and (
+            (sec.Sec_Bidding_Type = '06' and
+            (select sir.Sir_Con_Money from Sec_Inquiry_Record sir where sir.Sec_Id = sec.Sec_Id and sir.State = 7 order by sir.State_Time desc limit 1) &gt;= #{params.amountStart}
+            )
+            or
+            (sec.Sec_Bidding_Type != '06' and
+            (select wn.Wn_Amount from Sec_Win_Notice wn where wn.Sec_Id = sec.Sec_Id and wn.Wn_State = 7 order by wn.Wn_State_Time desc limit 1) &gt;= #{params.amountStart}
+            ))
+        </if>
+        <if test="params.amountEnd != null">
+            and (
+            (sec.Sec_Bidding_Type = '06' and
+            (select sir.Sir_Con_Money from Sec_Inquiry_Record sir where sir.Sec_Id = sec.Sec_Id and sir.State = 7 order by sir.State_Time desc limit 1) &lt;= #{params.amountEnd}
+            )
+            or
+            (sec.Sec_Bidding_Type != '06' and
+            (select wn.Wn_Amount from Sec_Win_Notice wn where wn.Sec_Id = sec.Sec_Id and wn.Wn_State = 7 order by wn.Wn_State_Time desc limit 1) &lt;= #{params.amountEnd}
+            ))
+        </if>
+        <include refid="commentaryTimeFilter"/>
+        <if test="params.commentaryTimeStart != null">
+            and (
+            (sec.Sec_Bidding_Type = '06' and
+            (select sir.Sir_Evaluation_Time from Sec_Inquiry_Record sir where sir.Sec_Id = sec.Sec_Id and sir.State = 7 order by sir.State_Time desc limit 1) &gt;= #{params.commentaryTimeStart}
+            )
+            or
+            (sec.Sec_Bidding_Type != '06' and
+            (select wn.Wn_Evaluation_Time from Sec_Win_Notice wn where wn.Sec_Id = sec.Sec_Id and wn.Wn_State = 7 order by wn.Wn_State_Time desc limit 1) &gt;= #{params.commentaryTimeStart}
+            ))
+        </if>
+        <if test="params.commentaryTimeEnd != null">
+            and (
+            (sec.Sec_Bidding_Type = '06' and
+            (select sir.Sir_Evaluation_Time from Sec_Inquiry_Record sir where sir.Sec_Id = sec.Sec_Id and sir.State = 7 order by sir.State_Time desc limit 1) &lt;= #{params.commentaryTimeEnd}
+            )
+            or
+            (sec.Sec_Bidding_Type != '06' and
+            (select wn.Wn_Evaluation_Time from Sec_Win_Notice wn where wn.Sec_Id = sec.Sec_Id and wn.Wn_State = 7 order by wn.Wn_State_Time desc limit 1) &lt;= #{params.commentaryTimeEnd}
+            ))
+        </if>
+        <if test="params.purchaseNumber != null and params.purchaseNumber != ''">
+            and sec.Purchase_Number like concat('%',#{params.purchaseNumber},'%')
+        </if>
+        <if test="params.teId!=null">
+            and sec.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secYear!=null">
+            and sec.Sec_Year=#{params.secYear}
+        </if>
+        <if test="params.secBiddingType!=null">
+            and sec.Sec_Bidding_Type=#{params.secBiddingType}
+        </if>
+        <if test="params.secConType!=null">
+            and sec.Sec_Con_Type=#{params.secConType}
+        </if>
+        <if test="params.bpId!=null">
+            and sec.Bp_Id=#{params.bpId}
+        </if>
+        <if test="params.bpState!=null">
+            and bp.State=#{params.bpState}
+        </if>
+        <if test="params.secType!=null">
+            and sec.Sec_Type=#{params.secType}
+        </if>
+        <if test="params.secContractingType!=null">
+            and sec.Sec_Contracting_Type=#{params.secContractingType}
+        </if>
+        <if test="params.secFlowState!=null">
+            and sec.Sec_Flow_State=#{params.secFlowState}
+        </if>
+        <if test="params.secDeterminType!=null">
+            and sec.Sec_Determin_Type=#{params.secDeterminType}
+        </if>
+        <if test="params.secOrganizeForm!=null">
+            and sec.Sec_Organize_Form=#{params.secOrganizeForm}
+        </if>
+        <if test="params.secPricingMethod!=null">
+            and sec.Sec_Pricing_Method=#{params.secPricingMethod}
+        </if>
+        <if test="params.secConsortium!=null">
+            and sec.Sec_Consortium=#{params.secConsortium}
+        </if>
+        <if test="params.secSubpackage!=null">
+            and sec.Sec_Subpackage=#{params.secSubpackage}
+        </if>
+        <if test="params.secEnterprise!=null">
+            and sec.Sec_Enterprise=#{params.secEnterprise}
+        </if>
+        <if test="params.secImport!=null">
+            and sec.Sec_Import=#{params.secImport}
+        </if>
+        <if test="params.secProjectNature!=null">
+            and sec.Sec_Project_Nature=#{params.secProjectNature}
+        </if>
+        <if test="params.secSourceFund!=null">
+            and sec.Sec_Source_Fund=#{params.secSourceFund}
+        </if>
+        <if test="params.excludeCostCsf!=null and params.excludeCostCsf==true">
+            and sec.Sec_Cost_Type!='02' and sec.Sec_Cost_Type!='03' and sec.Sec_Section_Classify!='/'
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.secCode!=null">
+            and sec.Sec_Code like concat('%',#{params.secCode},'%')
+        </if>
+        <if test="params.secCreateUname!=null">
+            and sec.Sec_Create_Uname like concat('%',#{params.secCreateUname},'%')
+        </if>
+        <if test="params.secApprovalTitle!=null">
+            and sec.Sec_Approval_Title like concat('%',#{params.secApprovalTitle},'%')
+        </if>
+        <if test="params.secApprovalNum!=null">
+            and sec.Sec_Approval_Num like concat('%',#{params.secApprovalNum},'%')
+        </if>
+        <if test="params.secTradingPlace!=null">
+            and sec.Sec_Trading_Place like concat('%',#{params.secTradingPlace},'%')
+        </if>
+        <if test="params.secPlace!=null">
+            and sec.Sec_Place like concat('%',#{params.secPlace},'%')
+        </if>
+        <if test="params.secRemark!=null">
+            and sec.Sec_Remark like concat('%',#{params.secRemark},'%')
+        </if>
+        <if test="params.tendereeName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.tendereeName},c.C_Id)=true
+                </when>
+                <otherwise>
+                    and c.C_Name like concat('%',#{params.tendereeName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <!--区间查询-->
+        <if test="params.secBiddingCycleStart!=null">
+            and sec.Sec_Bidding_Cycle>#{params.secBiddingCycleStart}
+        </if>
+        <if test="params.secBiddingCycleEnd!=null">
+            and sec.Sec_Bidding_Cycle &lt; #{params.secBiddingCycleEnd}
+        </if>
+        <if test="params.scMoneyStart!=null">
+            and sec.Sec_Money>#{params.scMoneyStart}
+        </if>
+        <if test="params.scMoneyEnd!=null">
+            and sec.Sec_Money &lt; #{params.scMoneyEnd}
+        </if>
+        <if test="params.secStartTimeStart!=null">
+            and sec.Sec_Start_Time>#{params.secStartTimeStart}
+        </if>
+        <if test="params.secStartTimeEnd!=null">
+            and sec.Sec_Start_Time &lt; #{params.secStartTimeEnd}
+        </if>
+        <if test="params.secEndTimeStart!=null">
+            and sec.Sec_End_Time>#{params.secEndTimeStart}
+        </if>
+        <if test="params.secEndTimeEnd!=null">
+            and sec.Sec_End_Time &lt; #{params.secEndTimeEnd}
+        </if>
+        <if test="params.secCreateTimeStart!=null">
+            and sec.Sec_Create_Time>#{params.secCreateTimeStart}
+        </if>
+        <if test="params.secCreateTimeEnd!=null">
+            and sec.Sec_Create_Time &lt; #{params.secCreateTimeEnd}
+        </if>
+        <if test="params.secTypes!=null and params.secTypes.size()>0">
+            and sec.Sec_Type  in
+            <foreach collection="params.secTypes" item="tp" separator="," open="(" close=")">
+                    #{tp}
+            </foreach>
+        </if>
+        <if test="params.secBiddingTypes!=null and params.secBiddingTypes.size()>0">
+            and sec.Sec_Bidding_Type in
+            <foreach collection="params.secBiddingTypes" item="tp" separator="," open="(" close=")">
+                 #{tp}
+            </foreach>
+        </if>
+        <if test="params.excludeCancel!=null and params.excludeCancel!=''">
+            ${params.excludeCancel}
+        </if>
+        <if test="params.secConTypes!=null">
+            and sec.Sec_Con_Type in
+            <foreach collection="params.secConTypes" open="(" close=")" item="item" separator=",">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.filterWinNotice==true">
+            and sec.Sec_Id in (select Sec_Id from Sec_Win_Notice where Wn_State=7)
+        </if>
+        <if test="params.filterCompleted==true">
+            and (select sum(
+            case when sec.Sec_Bidding_Type='05' then (select count(*) from Sec_Price_Resultsf pr where pr.State=7 and pr.Sec_Id=sec.Sec_Id)
+            else
+            (case when sec.Sec_Bidding_Type='03' then (select count(*) from Sec_Entrust se where se.State=7 and se.Sec_Id=sec.Sec_Id)
+            else  (select count(*) from Sec_Win_Notice wn where wn.Wn_State=7 and wn.Sec_Id=sec.Sec_Id) end )
+            end
+            )) > 0
+        </if>
+        and sec.Sec_Id in
+        (select mn.Sec_Id
+        from Sec_Project mn
+        left join Pre_Project pro on mn.P_ID=pro.P_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.secPid!=null">
+            and pro.P_Id=#{params.secPid}
+        </if>
+        <if test="params.pId!=null">
+            and pro.P_Id=#{params.pId}
+        </if>
+        <if test="params.cId!=null">
+            and pro.P_Construction_Unit = #{params.cId}
+        </if>
+        <if test="params.pBuildModel!=null">
+            and pro.P_Build_Model = #{params.pBuildModel}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type = #{params.pType}
+        </if>
+        <if test="params.pCampus != null and params.pCampus != ''">
+            and pro.P_Campus = #{params.pCampus}
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.pName!=null">
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </if>
+            </otherwise>
+        </choose>
+        )
+    </sql>
+
+    <sql id="commentaryTimeFilter" databaseId="mysql">
+        <if test="params.commentaryTime != null and params.commentaryTime != ''">
+            and (
+            (sec.Sec_Bidding_Type = '06' and
+            DATE_FORMAT((select sir.Sir_Evaluation_Time
+            from Sec_Inquiry_Record sir
+            where sir.Sec_Id = sec.Sec_Id and sir.State = 7
+            order by sir.State_Time desc
+            limit 1), '%Y-%m-%d') = DATE_FORMAT(#{params.commentaryTime}, '%Y-%m-%d')
+            )
+            or
+            (sec.Sec_Bidding_Type != '06' and
+            DATE_FORMAT((select wn.Wn_Evaluation_Time
+            from Sec_Win_Notice wn
+            where wn.Sec_Id = sec.Sec_Id and wn.Wn_State = 7
+            order by wn.Wn_State_Time desc
+            limit 1), '%Y-%m-%d') = DATE_FORMAT(#{params.commentaryTime}, '%Y-%m-%d')
+            ))
+        </if>
+    </sql>
+
+    <sql id="commentaryTimeFilter" databaseId="dm">
+        <if test="params.commentaryTime != null and params.commentaryTime != ''">
+            and (
+            (sec.Sec_Bidding_Type = '06' and
+            TO_CHAR((select sir.Sir_Evaluation_Time
+            from Sec_Inquiry_Record sir
+            where sir.Sec_Id = sec.Sec_Id and sir.State = 7
+            order by sir.State_Time desc
+            limit 1), 'YYYY-MM-DD') = TO_CHAR(#{params.commentaryTime}, 'YYYY-MM-DD')
+            )
+            or
+            (sec.Sec_Bidding_Type != '06' and
+            TO_CHAR((select wn.Wn_Evaluation_Time
+            from Sec_Win_Notice wn
+            where wn.Sec_Id = sec.Sec_Id and wn.Wn_State = 7
+            order by wn.Wn_State_Time desc
+            limit 1), 'YYYY-MM-DD') = TO_CHAR(#{params.commentaryTime}, 'YYYY-MM-DD')
+            ))
+        </if>
+    </sql>
+
+    <select id="getSecInfoList" resultMap="SecInfoList">
+        select
+        c.C_Name_History as tendereeNameHistory,
+        c.C_Name as tendereeName,
+        c.C_Abbreviation as tendereeAbbName,
+        c1.C_Name as secAgencyName,
+        c1.C_Abbreviation as secAgencyAbbName,
+        dp.D_Name as secContractingDepartmentName,
+        u2.U_Name as secContactsName,
+        u3.U_Name as secDelegateName,
+        <include refid="getProCompetentDepartment"/>
+        case when sec.Sec_Bidding_Type = '06' then (
+        select sir.Sir_Con_Money
+        from Sec_Inquiry_Record sir
+        where sir.Sec_Id = sec.Sec_Id and sir.State = 7
+        order by sir.State_Time desc
+        limit 1
+        )
+        else (
+        select wn.Wn_Amount
+        from Sec_Win_Notice wn
+        where wn.Sec_Id = sec.Sec_Id and wn.Wn_State = 7
+        order by wn.Wn_State_Time desc
+        limit 1
+        ) end as amount,
+        case when sec.Sec_Bidding_Type = '06' then (
+        select sir.Sir_Intended_Unit
+        from Sec_Inquiry_Record sir
+        where sir.Sec_Id = sec.Sec_Id and sir.State = 7
+        order by sir.State_Time desc
+        limit 1
+        )
+        else (
+        select wn.Wn_Win_Unit
+        from Sec_Win_Notice wn
+        where wn.Sec_Id = sec.Sec_Id and wn.Wn_State = 7
+        order by wn.Wn_State_Time desc
+        limit 1
+        ) end as unit,
+        case when sec.Sec_Bidding_Type = '06' then (
+        select c.C_Name
+        from Sec_Inquiry_Record sir
+        left join SYS_Company c on c.C_ID = sir.Sir_Intended_Unit
+        where sir.Sec_Id = sec.Sec_Id and sir.State = 7
+        order by sir.State_Time desc
+        limit 1
+        )
+        else (
+        select c.C_Name
+        from Sec_Win_Notice wn
+        left join Sys_Company c on c.C_Id = wn.Wn_Win_Unit
+        where wn.Sec_Id = sec.Sec_Id and wn.Wn_State = 7
+        order by wn.Wn_State_Time desc
+        limit 1
+        ) end as unitName,
+        case when sec.Sec_Bidding_Type = '06' then (
+        select sir.Sir_Evaluation_Time
+        from Sec_Inquiry_Record sir
+        where sir.Sec_Id = sec.Sec_Id and sir.State = 7
+        order by sir.State_Time desc
+        limit 1
+        )
+        else (
+        select wn.Wn_Evaluation_Time
+        from Sec_Win_Notice wn
+        where wn.Sec_Id = sec.Sec_Id and wn.Wn_State = 7
+        order by wn.Wn_State_Time desc
+        limit 1
+        ) end as commentaryTime,
+        bp.State as bpState,
+        (select wn.Wn_State from Sec_Win_Notice wn where wn.Sec_Id = sec.Sec_Id order by wn.Wn_State_Time desc limit 1) as wnState,
+        (select wn.Wn_Id from Sec_Win_Notice wn where wn.Sec_Id = sec.Sec_Id order by wn.Wn_State_Time desc limit 1) as wnId,
+        <include refid="SecInfo"/>
+        from Sec_Info sec
+        left join SYS_Company c on c.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c1 on c1.C_ID=sec.Sec_Agency
+        left join SYS_Department dp on dp.D_ID=sec.Sec_Contracting_Department
+        left join Sys_User u2 on u2.U_ID=sec.Sec_Contacts
+        left join Sys_User u3 on u3.U_ID=sec.Sec_Delegate
+        <if test="params.bpState != null">
+            inner join Sec_Bidding_Plan bp on bp.Bp_Id=sec.Bp_Id
+        </if>
+        <if test="params.bpState == null">
+            left join Sec_Bidding_Plan bp on bp.Bp_Id=sec.Bp_Id
+        </if>
+        <where>
+            <include refid="listFilter"/>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by sec.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by sec.Sec_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecInfoListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Info sec
+        left join SYS_Company c on c.C_ID=sec.Sec_Tenderee
+        <if test="params.bpState != null">
+            inner join Sec_Bidding_Plan bp on bp.Bp_Id=sec.Bp_Id
+        </if>
+        <if test="params.bpState == null">
+            left join Sec_Bidding_Plan bp on bp.Bp_Id=sec.Bp_Id
+        </if>
+        <where>
+            <include refid="listFilter"/>
+        </where>
+    </select>
+
+
+    <sql id="SecInfo">
+        sec.Sec_Id as  secId,
+        sec.Sec_Name as  secName,
+        sec.Sec_Code as  secCode,
+        sec.Sec_Parent_Id as  secParentId,
+        sec.Sec_Year as  secYear,
+        sec.Sec_Bidding_Type as  secBiddingType,
+        sec.Sec_Con_Type as  secConType,
+        sec.Sec_Type as  secType,
+        sec.Sec_Type_Str as secTypeStr,
+        sec.Sec_Money as  secMoney,
+        sec.Sec_Start_Time as  secStartTime,
+        sec.Sec_End_Time  as  secEndTime,
+        sec.Sec_Remark as  secRemark,
+        sec.Sec_Flow_Time as  secFlowTime,
+        sec.Sec_Flow_State as  secFlowState,
+        sec.Sec_Create_Uid as  secCreateUid,
+        sec.Sec_Create_Uname as  secCreateUname,
+        sec.Sec_Create_Time as  secCreateTime,
+        sec.Sec_Pid as  secPid,
+        sec.Sec_Tenderee as  secTenderee,
+        sec.Sec_Features as  secFeatures,
+        sec.Sec_Place as  secPlace,
+        sec.Sec_Scale as  secScale,
+        sec.Bp_Id as bpId,
+        sec.Sec_Rate as secRate,
+        sec.Sec_Other_Valuation as secOtherValuation,
+        sec.Sec_Determin_Type as secDeterminType,
+        sec.Sec_Trading_Place as secTradingPlace,
+        sec.Sec_Organize_Form as secOrganizeForm,
+        sec.Sec_Bidding_Cycle as secBiddingCycle,
+        sec.Sec_Approval_Title as secApprovalTitle,
+        sec.Sec_Approval_Num as secApprovalNum,
+        sec.Sec_Approval_Time as secApprovalTime,
+        sec.Sec_Approval_File as secApprovalFile,
+        sec.Sec_Pricing_Method as secPricingMethod,
+        sec.Sec_Purchase_Type as secPurchaseType,
+        sec.Sec_Buy_Org            as secBuyOrg,
+        sec.Sec_Buy_Type           as secBuyType,
+        sec.Project_Overview       as projectOverview,
+        sec.Sec_Department         as secDepartment,
+        sec.Meeting_Number         as meetingNumber,
+        sec.Finish_Date            as finishDate,
+        sec.Contact_Email          as contactEmail,
+        sec.Contact_Landline_Phone as contactLandlinePhone,
+        sec.Contact_Person_Phone   as contactPersonPhone,
+        sec.Contact_Person         as contactPerson,
+        sec.Funds_Project          as fundsProject,
+        sec.Budget_Manager_Name    as budgetManagerName,
+        sec.Budget_Manager_Account as budgetManagerAccount,
+        sec.Funds_Department       as fundsDepartment,
+        sec.Funds_Name             as fundsName,
+        sec.Funds_Account          as fundsAccount,
+        sec.Sec_Eval_Method as secEvalMethod,
+        sec.Sec_Evaluate_Separation as secEvaluateSeparation,
+        sec.Sec_Duration as secDuration,
+        sec.Sec_Quali_Review as secQualiReview,
+        sec.Sec_Investors_Quali as secInvestorsQuali,
+        sec.Sec_Valuation_File as secValuationFile,
+        sec.Sec_Bid_Time as secBidTime,
+        sec.Sec_Loaction as secLoaction,
+        sec.Sec_Agency as secAgency,
+        sec.Sec_Contracting_department as secContractingDepartment,
+        sec.Sec_Plan_Open_Time as secPlanOpenTime,
+        sec.Sec_Contracting_Type as secContractingType,
+        sec.Sec_Consortium as secConsortium,
+        sec.Sec_Subpackage as secSubpackage,
+        sec.Sec_Project_Nature as secProjectNature,
+        sec.Sec_Enterprise as secEnterprise,
+        sec.Sec_Import as secImport,
+        sec.Sec_Source_Fund as secSourceFund,
+        sec.Sec_Funds_Received as secFundsReceived,
+        sec.Sec_Subscriber as secSubscriber,
+        sec.Sec_Contacts as secContacts,
+        sec.Sec_Contacts_Phone as secContactsPhone,
+        sec.Sec_Contacts_Tel as secContactsTel,
+        sec.Sec_Contacts_Email as secContactsEmail,
+        sec.Sec_Delegate as secDelegate,
+        sec.Sec_Internet_Day as secInternetDay,
+        sec.Sec_Announce as secAnnounce,
+        sec.Sec_Signing_Day as secSigningDay,
+        sec.Sec_Pay_Method as secPayMethod,
+        sec.Sec_Arrival_Day as secArrivalDay,
+        sec.Sec_Rece_Addr as secReceAddr,
+        sec.Sec_Supplier as secSupplier,
+        sec.Sec_Supplier_Name as secSupplierName,
+        sec.Sec_Supplier_Phone as secSupplierPhone,
+        sec.Sec_Supplier_Tel as secSupplierTel,
+        sec.Sec_Supplier_Email as secSupplierEmail,
+        sec.Sec_Supplier_Addr as secSupplierAddr,
+        sec.Sec_Proof_File as secProofFile,
+        sec.Sec_Blank_File as secBlankFile,
+        sec.Sec_Other_File as secOtherFile,
+        sec.Sec_Other_Img as secOtherImg,
+        sec.Sec_Constr_Addr as secConstrAddr,
+        sec.Sec_Constr_Day as secConstrDay,
+        sec.Sec_Catalog as secCatalog,
+        sec.Sec_Pro_Category as secProCategory,
+        sec.Sec_Arrival as secArrival,
+        sec.Sec_Single_Source as secSingleSource,
+        sec.Sec_Content as secContent,
+        sec.Sec_Gs_Amt as secGsAmt,
+        sec.Sec_Tenderee_Name as secTendereeName,
+        sec.Sec_Agency_Cname as secAgencyCname,
+        sec.Sec_Pro_Own as secProOwn,
+        sec.Sec_Entry_Code as secEntryCode,
+        sec.Sec_Entry_Name as secEntryName,
+        sec.Sec_Catalog_Name as secCatalogName,
+        sec.service_period  servicePeriod,
+        sec.procurement_des procurementDes,
+        sec.procurement_purpose procurementPurpose,
+        sec.annual_procurement_plan annualProcurementPlan,
+        sec.intended_public_date intendedPublicDate,
+        sec.planned_procurement_time plannedProcurementTime,
+        sec.budget_determination_method budgetDeterminationMethod,
+        sec.funding_implementation_status fundingImplementationStatus,
+        sec.procurement_requirements procurementRequirements,
+        sec.project_self_inspection projectSelfInspection,
+        sec.project_explanation projectExplanation,
+        sec.procurement_list_doc procurementListDoc,
+        sec.procurement_plan_doc procurementPlanDoc,
+        sec.no_intention_disclose_doc noIntentionDiscloseDoc,
+        sec.support_materials_doc supportMaterialsDoc,
+        sec.expenditure_approval_doc expenditureApprovalDoc,
+        sec.demand_survey_doc demandSurveyDoc,
+        sec.other_doc otherDoc,
+        sec.sec_division  secDivision,
+        sec.plan_entry_time planEntryTime,
+        sec.budget_money budgetMoney,
+        sec.ie_id ieId,
+        sec.ie_detail_id ieDetailId,
+        sec.ib_id ibId,
+        sec.ib_detail_id ibDetailId,
+        sec.isbd_type isbdType,
+        sec.isbd_sort isbdSort,
+        sec.Sec_Section_Classify as secSectionClassify,
+        sec.Sec_Order_Number as secOrderNumber,
+        sec.project_category as projectCategory,
+        sec.project_initiating_unit as projectInitiatingUnit,
+        sec.project_owner as projectOwner,
+        sec.Purchase_Number as purchaseNumber
+    </sql>
+
+
+    <select id="getSecProjectListSum" resultType="java.math.BigDecimal">
+        select ifnull(sum(ls.secMoneyTotal),0)
+        from (
+        select
+        mn.P_Id as pId,
+        ifnull(cnt.secTotal,0) as secTotal,
+        ifnull(amt.secMoneyTotal,0) as secMoneyTotal,
+        amt.secCreateUname as secCreateUname
+        from Pre_Project mn
+        left join Sys_Department sd on sd.D_Id = mn.P_Competent_Department
+        left join SYS_Company c11 on c11.C_Id = mn.P_Use_Unit
+        inner join (
+        select distinct sp.P_Id
+        from Sec_Project sp
+        <if test="params.state!=null">
+            left join Sec_Info sec on sec.Sec_Id = sp.Sec_Id
+            left join Sec_Bidding_Plan sbp on sbp.Bp_Id = sec.Bp_Id
+            where sec.Sec_Flow_State = #{params.state}
+            <if test="params.isNew != null and params.isNew == '1'.toString() ">
+                and sbp.is_new = '1'
+            </if>
+            <if test="params.isNew == null or params.isNew == ''">
+                and (sbp.is_new is null or sbp.is_new = '')
+            </if>
+        </if>
+        ) ep on ep.P_Id = mn.P_Id
+        left join (
+        select
+        sp.P_Id,
+        count(1) as secTotal
+        from Sec_Project sp
+        inner join Sec_Info si on si.Sec_Id = sp.Sec_Id
+        <where>
+            <if test="params.state!=null">
+                and si.Sec_Flow_State = #{params.state}
+            </if>
+        </where>
+        group by sp.P_Id
+        ) cnt on cnt.P_Id = mn.P_Id
+        left join (
+        select
+        sp.P_Id,
+        sum(si.Sec_Money) as secMoneyTotal,
+        max(case
+        when si.Sec_Create_Time = mx.maxCreateTime then si.Sec_Create_Uname
+        end) as secCreateUname
+        from Sec_Project sp
+        inner join Sec_Info si on si.Sec_Id = sp.Sec_Id
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id = si.Bp_Id
+        left join (
+        select
+        sp2.P_Id,
+        max(si2.Sec_Create_Time) as maxCreateTime
+        from Sec_Project sp2
+        inner join Sec_Info si2 on si2.Sec_Id = sp2.Sec_Id
+        left join Sec_Bidding_Plan sbp2 on sbp2.Bp_Id = si2.Bp_Id
+        <where>
+            <if test="params.state!=null">
+                and si2.Sec_Flow_State = #{params.state}
+            </if>
+            <if test="params.isNew != null and params.isNew == '1'.toString() ">
+                and sbp2.is_new = '1'
+            </if>
+            <if test="params.isNew == null or params.isNew == ''">
+                and (sbp2.is_new is null or sbp2.is_new = '')
+            </if>
+        </where>
+        group by sp2.P_Id
+        ) mx on mx.P_Id = sp.P_Id
+        <where>
+            <if test="params.state!=null">
+                and si.Sec_Flow_State = #{params.state}
+            </if>
+            <if test="params.isNew != null and params.isNew == '1'.toString() ">
+                and sbp.is_new = '1'
+            </if>
+            <if test="params.isNew == null or params.isNew == ''">
+                and (sbp.is_new is null or sbp.is_new = '')
+            </if>
+        </where>
+        group by sp.P_Id
+        ) amt on amt.P_Id = mn.P_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pCreateUid!=null">
+            and mn.P_Create_User_ID = #{params.pCreateUid}
+        </if>
+        <if test="params.pBuildModel!=null">
+            and mn.P_Build_Model = #{params.pBuildModel}
+        </if>
+        <if test="params.pBuildModelList!=null and params.pBuildModelList.size()>0 ">
+            and mn.P_Build_Model in
+            <foreach collection="params.pBuildModelList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pType!=null">
+                and mn.P_Type = #{params.pType}
+            </if>
+            <if test="params.pTypeList!=null and params.pTypeList.size()>0 ">
+                and mn.P_Type in
+                <foreach collection="params.pTypeList" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.pCreateUname!=null">
+                and mn.P_Create_User_Name like concat('%',#{params.pCreateUname},'%')
+            </if>
+            <if test="params.pCompetentDepartmentName!=null">
+                and sd.D_Name like concat('%',#{params.pCompetentDepartmentName},'%')
+            </if>
+            <if test="params.pUseUnit!=null">
+                and (mn.P_Use_Unit like concat('%',#{params.pUseUnit},'%')
+                or c11.C_Name like concat('%',#{params.pUseUnit},'%'))
+            </if>
+            <if test="params.pUseUnitList!=null and params.pUseUnitList.size()>0 ">
+                and (mn.P_Use_Unit in
+                <foreach collection="params.pUseUnitList" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                or c11.C_Name in
+                <foreach collection="params.pUseUnitList" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                )
+            </if>
+            <if test="params.pImpCompany!=null">
+                and mn.P_Imp_Company like concat('%',#{params.pImpCompany},'%')
+            </if>
+            <if test="params.pImpCompanyList!=null and params.pImpCompanyList.size()>0 ">
+                and mn.P_Imp_Company in
+                <foreach collection="params.pImpCompanyList" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},mn.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and mn.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.projectNameList!=null and params.projectNameList.size()>0 ">
+                and mn.P_Name in
+                <foreach collection="params.projectNameList" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+                and sd.D_Name in
+                <foreach collection="params.pCompetentDepartmentNameList" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.pCode!=null">
+                and mn.P_Code like concat('%',#{params.pCode},'%')
+            </if>
+
+            <if test="params.secTotalStart!=null">
+                and ifnull(cnt.secTotal,0) &gt;= #{params.secTotalStart}
+            </if>
+            <if test="params.secTotalEnd!=null">
+                and ifnull(cnt.secTotal,0) &lt;= #{params.secTotalEnd}
+            </if>
+            <if test="params.secMoneyTotalStart!=null">
+                and ifnull(amt.secMoneyTotal,0) &gt;= #{params.secMoneyTotalStart}
+            </if>
+            <if test="params.secMoneyTotalEnd!=null">
+                and ifnull(amt.secMoneyTotal,0) &lt;= #{params.secMoneyTotalEnd}
+            </if>
+            <if test="params.secCreateUname!=null and params.secCreateUname!=''">
+                and amt.secCreateUname like concat('%',#{params.secCreateUname},'%')
+            </if>
+        ) ls
+    </select>
+
+    <select id="getSecProjectList" resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecProjectModel">
+        select
+        mn.P_Id as pId,
+        mn.P_Name as pName,
+        mn.P_Code as pCode,
+        mn.P_Use_Unit as pUseUnit,
+        ifnull(c11.C_Name, mn.P_Use_Unit) as pUseUnitName,
+        mn.P_Imp_Company as pImpCompany,
+        mn.P_Build_Model as pBuildModel,
+        mn.P_Type as pType,
+        ifnull(cnt.secTotal, 0) as secTotal,
+        amt.secMoneyTotal as secMoneyTotal,
+        amt.secCreateUname as secCreateUname,
+        sd.D_Name as pCompetentDepartmentName,
+        mn.P_Create_User_ID as pCreateUid,
+        mn.P_Create_User_Name as pCreateUname
+        from Pre_Project mn
+        left join Sys_Department sd on sd.D_Id = mn.P_Competent_Department
+        left join SYS_Company c11 on c11.C_Id = mn.P_Use_Unit
+        inner join (
+        select distinct sp.P_Id
+        from Sec_Project sp
+        <if test="params.state!=null">
+            left join Sec_Info sec on sec.Sec_Id = sp.Sec_Id
+            left join Sec_Bidding_Plan sbp on sbp.Bp_Id = sec.Bp_Id
+            where sec.Sec_Flow_State = #{params.state}
+            <if test="params.isNew != null and params.isNew == '1'.toString() ">
+                and sbp.is_new = '1'
+            </if>
+            <if test="params.isNew == null or params.isNew == ''">
+                and (sbp.is_new is null or sbp.is_new = '')
+            </if>
+        </if>
+        ) ep on ep.P_Id = mn.P_Id
+        left join (
+        select sp.P_Id, count(1) as secTotal
+        from Sec_Project sp
+        inner join Sec_Info si on si.Sec_Id = sp.Sec_Id
+        <where>
+            <if test="params.state!=null">
+                and si.Sec_Flow_State = #{params.state}
+            </if>
+        </where>
+        group by sp.P_Id
+        ) cnt on cnt.P_Id = mn.P_Id
+        left join (
+        select
+        sp.P_Id,
+        sum(si.Sec_Money) as secMoneyTotal,
+        max(case
+        when si.Sec_Create_Time = mx.maxCreateTime then si.Sec_Create_Uname
+        end) as secCreateUname
+        from Sec_Project sp
+        inner join Sec_Info si on si.Sec_Id = sp.Sec_Id
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id = si.Bp_Id
+        left join (
+        select
+        sp2.P_Id,
+        max(si2.Sec_Create_Time) as maxCreateTime
+        from Sec_Project sp2
+        inner join Sec_Info si2 on si2.Sec_Id = sp2.Sec_Id
+        left join Sec_Bidding_Plan sbp2 on sbp2.Bp_Id = si2.Bp_Id
+        <where>
+            <if test="params.state!=null">
+                and si2.Sec_Flow_State = #{params.state}
+            </if>
+            <if test="params.isNew != null and params.isNew == '1'.toString() ">
+                and sbp2.is_new = '1'
+            </if>
+            <if test="params.isNew == null or params.isNew == ''">
+                and (sbp2.is_new is null or sbp2.is_new = '')
+            </if>
+        </where>
+        group by sp2.P_Id
+        ) mx on mx.P_Id = sp.P_Id
+        <where>
+            <if test="params.state!=null">
+                and si.Sec_Flow_State = #{params.state}
+            </if>
+            <if test="params.isNew != null and params.isNew == '1'.toString() ">
+                and sbp.is_new = '1'
+            </if>
+            <if test="params.isNew == null or params.isNew == ''">
+                and (sbp.is_new is null or sbp.is_new = '')
+            </if>
+        </where>
+        group by sp.P_Id
+        ) amt on amt.P_Id = mn.P_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pCreateUid!=null">
+            and mn.P_Create_User_ID=#{params.pCreateUid}
+        </if>
+        <if test="params.pBuildModel!=null">
+            and mn.P_Build_Model=#{params.pBuildModel}
+        </if>
+        <if test="params.pBuildModelList!=null and params.pBuildModelList.size()>0 ">
+            and mn.P_Build_Model in
+            <foreach collection="params.pBuildModelList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pType!=null">
+            and mn.P_Type=#{params.pType}
+        </if>
+        <if test="params.pTypeList!=null and params.pTypeList.size()>0 ">
+            and mn.P_Type in
+            <foreach collection="params.pTypeList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pCreateUname!=null">
+            and sd.P_Create_User_Name like concat('%',#{params.pCreateUname},'%')
+        </if>
+        <if test="params.pCompetentDepartmentName!=null">
+            and sd.D_Name like concat('%',#{params.pCompetentDepartmentName},'%')
+        </if>
+        <if test="params.pUseUnit!=null">
+            and (mn.P_Use_Unit like concat('%',#{params.pUseUnit},'%')
+            or c11.C_Name like concat('%',#{params.pUseUnit},'%'))
+        </if>
+        <if test="params.pUseUnitList!=null and params.pUseUnitList.size()>0 ">
+            and (mn.P_Use_Unit in
+            <foreach collection="params.pUseUnitList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+            or c11.C_Name in
+            <foreach collection="params.pUseUnitList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+            )
+        </if>
+        <if test="params.pImpCompany!=null">
+            and mn.P_Imp_Company like concat('%',#{params.pImpCompany},'%')
+        </if>
+        <if test="params.pImpCompanyList!=null and params.pImpCompanyList.size()>0 ">
+            and mn.P_Imp_Company in
+            <foreach collection="params.pImpCompanyList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and mn.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.projectNameList!=null and params.projectNameList.size()>0 ">
+            and mn.P_Name in
+            <foreach collection="params.projectNameList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            and mn.D_Name in
+            <foreach collection="params.pCompetentDepartmentNameList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pCode!=null">
+            and mn.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        and mn.P_Id in (select sp.P_Id from Sec_Project sp
+        <if test="params.state!=null">
+            left join Sec_Info sec on sp.Sec_Id=sec.Sec_Id
+            left join Sec_Bidding_Plan sbp on sbp.Bp_Id = sec.Bp_Id
+            where sec.Sec_Flow_State = #{params.state}
+            <if test="params.isNew != null and params.isNew == '1'.toString() ">
+                and sbp.is_new = '1'
+            </if>
+            <if test="params.isNew == null or params.isNew == ''">
+                and (sbp.is_new is null or sbp.is_new = '')
+            </if>
+        </if>
+        )
+        <if test="params.secTotalStart!=null">
+            and ifnull(cnt.secTotal,0) >= #{params.secTotalStart}
+        </if>
+        <if test="params.secTotalEnd!=null">
+            and ifnull(cnt.secTotal,0) &lt;= #{params.secTotalEnd}
+        </if>
+        <if test="params.secMoneyTotalStart!=null">
+            and ifnull(amt.secMoneyTotal,0) >= #{params.secMoneyTotalStart}
+        </if>
+        <if test="params.secMoneyTotalEnd!=null">
+            and ifnull(amt.secMoneyTotal,0) &lt;= #{params.secMoneyTotalEnd}
+        </if>
+        <if test="params.secCreateUname!=null and params.secCreateUname!=''">
+            and amt.secCreateUname like concat('%',#{params.secCreateUname},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.P_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getSecInfoListOne2Many" resultType="com.jpmsoft.common.model.response.SecInfo.SecInfoResponse">
+        select
+        c.C_Name_History as tendereeNameHistory,
+        c.C_Abbreviation as tendereeAbbName,
+        c.C_Name as tendereeName,
+        c1.C_Abbreviation as secAgencyAbbName,
+        c1.C_Name as secAgencyName,
+        dp.D_Name as secContractingDepartmentName,
+        bp.is_new as isNew,
+        <include refid="projectInfo"/>
+        <include refid="SecInfo"/>
+        from Sec_Info sec
+        left join SYS_Company c on c.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c1 on c1.C_ID=sec.Sec_Agency
+        left join SYS_Department dp on dp.D_ID=sec.Sec_Contracting_Department
+        left join Sec_Bidding_Plan bp on bp.Bp_Id = sec.Bp_Id
+        <where>
+            <include refid="listFilter"/>
+        </where>
+        <choose>
+            <when test="_databaseId == 'dm'">
+                order by cast(pId as varchar) asc
+            </when>
+            <otherwise>
+                order by pId asc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecInfoListOne2ManyCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Info sec
+        left join SYS_Company c on c.C_ID=sec.Sec_Tenderee
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        <where>
+            <include refid="listFilter"/>
+        </where>
+    </select>
+
+
+    <sql id="getProCompetentDepartment">
+        (select sd.D_Name
+         from Pre_Project pro
+                  left join Sec_Project sp on pro.P_Id = sp.P_Id
+                  left join Sys_Department sd on sd.D_Id = pro.P_Competent_Department
+         where sd.D_Name is not null
+           and sp.Sec_Id = sec.Sec_Id limit 1)
+        as pCompetentDepartmentName,
+    </sql>
+
+    <!--************************************* dm *************************************-->
+    <sql id="projectInfo" databaseId="dm">
+      (select wm_concat(P_Id) from Sec_Project where Sec_Id = sec.Sec_Id) as pId,
+      (select wm_concat(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=sec.Sec_Id) as pName,
+    </sql>
+    <!--************************************* postgre *************************************-->
+    <sql id="projectInfo" databaseId="postgre">
+        (select string_agg(P_Id,',') from Sec_Project where Sec_Id = mn.Sec_Id)  as pId,
+        (select string_agg(pro.P_Name,',') from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+    <!--************************************* mysql *************************************-->
+    <sql id="projectInfo" databaseId="mysql">
+            (select GROUP_CONCAT(P_Id) from Sec_Project where Sec_Id = sec.Sec_Id)
+            as pId,
+      (select GROUP_CONCAT(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=sec.Sec_Id) as pName,
+    </sql>
+
+    <select id="countMpcBiddingSituation"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.multiproject.MpcBiddingSituation">
+        select ifnull((select sum(dc_amount) from Sec_Doc_Control where state = 7), 0)   actualAmout,
+               ifnull((select count(1) from Sec_Bidding_Plan where state = 7), 0)        planNum,
+               ifnull((select count(1) from Sec_Info where sec_flow_state = 7), 0)       actualNumber,
+               ifnull((select sum(sec_money) from Sec_Info where sec_flow_state = 7), 0) planAmount,
+               '1'                                                                       sourceType
+    </select>
+    <select id="getNodeTableState" resultType="java.util.Map">
+        select
+        <foreach collection="tbs" separator="," item="tb">
+            (select ${tb.stateField} from ${tb.table} where ${tb.stateField}!=3 and ${tb.secIdField}=#{secId} limit 1) as ${tb.table}
+        </foreach>
+    </select>
+
+    <select id="getValueByCodeWithPid"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecInfoTZResponse">
+        select *  from   Sec_Info si inner join  Sec_Project sp on si.Sec_Id=sp.Sec_Id
+        inner join Pre_Project pp on sp.P_Id=pp.P_Id
+        <if test="projectIdList!=null and projectIdList.size()>0 ">
+            where pp.P_Id in
+            <foreach collection="projectIdList" item="projectId" index="index" open="(" separator="," close=")">
+                #{projectId}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="getInvestmentSecInfo" resultType="com.jpmsoft.common.model.response.SecInfo.SecInfoResponse">
+       select si.* from  Sec_Info si left join Sec_Project sp on si.Sec_Id=sp.Sec_Id
+       <where>
+           <if test="params.projectId!=null and params.projectId!='' ">
+               and sp.p_id = #{params.projectId}
+           </if>
+          <if test="params.isbdSectionName!=null and params.isbdSectionName!='' ">
+              and si.Sec_Name = #{params.isbdSectionName}
+          </if>
+           <if test="params.ieId!=null and params.ieId!='' ">
+               and si.ie_id = #{params.ieId}
+           </if>
+          <if test="params.ieDetailId!=null and params.ieDetailId!='' ">
+              and si.ie_detail_id = #{params.ieDetailId}
+          </if>
+           <if test="params.ibId!=null and params.ibId!='' ">
+               and si.ib_id = #{params.ibId}
+           </if>
+          <if test="params.ibDetailId!=null and params.ibDetailId!='' ">
+              and si.ib_detail_id = #{params.ibDetailId}
+          </if>
+       </where>
+       limit 1
+    </select>
+
+    <resultMap id="SecInfoWithPublicityMap" type="com.jpmsoft.common.model.response.SecInfo.SecInfoResponse">
+
+        <!-- 主表 Sec_Info 字段 -->
+        <id property="secId" column="Sec_Id"/>
+        <result property="secName" column="Sec_Name"/>
+        <result property="secType" column="Sec_Type"/>
+        <result property="secFlowState" column="Sec_Flow_State"/>
+        <result property="secMoney" column="Sec_Money"/>
+        <result property="secCreateTime" column="Sec_Create_Time"/>
+
+        <!-- 关联项目信息 -->
+        <result property="pId" column="P_Id"/>
+        <result property="pName" column="P_Name"/>
+        <result property="pCode" column="P_Code"/>
+        <result property="pType" column="P_Type"/>
+        <result property="pCampus" column="P_Campus"/>
+
+        <!-- 嵌套列表：Sec_Publicity_Results -->
+        <collection property="secPublicityResults" ofType="com.jpmsoft.common.model.response.SecInfo.SecPublicityResultsResponse">
+            <id property="prId" column="Pr_Id"/>
+            <result property="prBidWinner" column="Pr_Bid_Winner"/>
+            <result property="prBidAmount" column="Pr_Bid_Amount"/>
+            <result property="prBidWinnerName" column="C_Name"/>
+        </collection>
+
+    </resultMap>
+
+
+    <select id="getSecInfoListGDGY" resultMap="SecInfoWithPublicityMap">
+        SELECT
+        si.*,
+
+        p.P_Id,
+        p.P_Name,
+        p.P_Code,
+        p.P_Type,
+        p.P_Campus,
+
+        spr.Pr_Id,
+        spr.Pr_Bid_Winner,
+        spr.Pr_Bid_Amount,
+        sc.C_Name AS prBidWinnerName
+        FROM Sec_Info si
+        LEFT JOIN Pre_Project p ON si.Sec_Pid = p.P_Id AND p.deleted = 0
+        LEFT JOIN Sec_Publicity_Results spr ON si.Sec_Id = spr.Sec_Id
+        LEFT JOIN sys_company sc ON spr.Pr_Bid_Winner = sc.C_Id
+        WHERE 1=1
+        <if test="request.secName != null and request.secName != ''">
+            AND si.Sec_Name LIKE CONCAT('%', #{request.secName}, '%')
+        </if>
+        <if test="request.secType != null and request.secType != ''">
+            AND si.Sec_Type = #{request.secType}
+        </if>
+        <if test="request.secFlowState != null">
+            AND si.Sec_Flow_State = #{request.secFlowState}
+        </if>
+        <if test="request.pName != null and request.pName != ''">
+            AND p.P_Name LIKE CONCAT('%', #{request.pName}, '%')
+        </if>
+        ORDER BY si.Sec_Create_Time DESC
+    </select>
+
+
+</mapper>

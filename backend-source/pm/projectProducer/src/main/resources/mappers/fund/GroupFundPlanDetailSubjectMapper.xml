@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.GroupFundPlanDetailSubjectMapper">
+    <select id="getByGfpId" resultType="com.jpmsoft.common.model.requestAndResponse.fund.GroupFundPlanDetailSubjectDTO">
+        select
+        mn.*,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.Isbd_Fee_Type_Name ELSE iebd.Isbd_Fee_Type_Name END as
+        Isbd_Fee_Type_Name,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.Isbd_Type ELSE iebd.Isbd_Type END as Isbd_Type,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.Isbd_Section_Type ELSE iebd.Isbd_Section_Type END as
+        Isbd_Section_Type,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.Isbd_Section_Name ELSE iebd.Isbd_Section_Name END as
+        Isbd_Section_Name,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.Isbd_Amount ELSE iebd.Isbd_Amount END as Isbd_Amount,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.Isbd_Remark ELSE iebd.Isbd_Remark END as Isbd_Remark,
+        ibbd.Isbd_Budget_Amount,
+        ibbd.Isbd_Budget_Remark,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.Action_Display ELSE iebd.Action_Display END as Action_Display,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.sort ELSE iebd.sort END as sort,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.ie_detail_id ELSE iebd.ie_detail_id END as ie_detail_id,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.change_Type ELSE iebd.change_Type END as change_Type,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.work_measure ELSE iebd.work_measure END as work_measure,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.unit ELSE iebd.unit END as unit,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.unit_Price ELSE iebd.unit_Price END as unit_Price,
+        CASE WHEN mn.Ibb_Id IS NOT NULL THEN ibbd.level_Code ELSE iebd.level_Code END as level_Code
+        from Group_Fund_Plan_Detail_Subject mn
+        left join Investment_Budget_Breakdown_Details ibbd on mn.Ibb_Id = ibbd.id
+        left join Investment_Estimate_Breakdown_Details iebd on mn.ieb_Id = iebd.id
+        where mn.gfp_Id = #{id}
+    </select>
+</mapper>

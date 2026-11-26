@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecOtherProcurementMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecOtherProcurementModel"
+               id="SecOtherProcurement">
+        <id column="Sop_Id" property="sopId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Sop_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_OtherProcurement sop on sop.Sec_Id=sec.Sec_Id
+        where sop.Sop_Id=#{sopId}
+    </select>
+
+
+    <select id="getSecOtherProcurementById" resultMap="SecOtherProcurement">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Type as secType,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Sec_OtherProcurement mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sys_File f on f.FileID=mn.Sop_Id
+        where mn.Sop_Id=#{sopId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+        <if test="params.sopType!=null">
+            and mn.Sop_Type = #{params.sopType}
+        </if>
+        <if test="params.sopState!=null">
+            and mn.Sop_State = #{params.sopState}
+        </if>
+        <if test="params.sopEvaluation!=null">
+            and mn.Sop_Evaluation = #{params.sopEvaluation}
+        </if>
+        <if test="params.sopPurchaseMethod!=null">
+            and mn.Sop_Purchase_Method = #{params.sopPurchaseMethod}
+        </if>
+        <if test="params.sopCode!=null">
+            and mn.Sop_Code like concat('%',#{params.sopCode},'%')
+        </if>
+    </sql>
+
+    <select id="getSecOtherProcurementList" resultMap="SecOtherProcurement">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        mn.*
+        from  Sec_OtherProcurement mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sop_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecOtherProcurementListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  Sec_OtherProcurement mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+</mapper>

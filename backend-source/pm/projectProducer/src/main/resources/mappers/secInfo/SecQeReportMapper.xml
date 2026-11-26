@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecQeReportMapper">
+
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecQeReportResponse" id="getQeReport">
+        <id column="Qer_Id" property="qerId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Qer_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_QE_Report qer on qer.Sec_Id=sec.Sec_Id
+        where qer.Qer_Id=#{qerId}
+    </select>
+
+
+    <select id="getQeReportByQerId" resultMap="getQeReport">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        qer.*
+        from  Sec_QE_Report qer
+        left join  Sec_Info sec on sec.Sec_Id=qer.Sec_Id
+        where qer.Qer_Id=#{qerId}
+    </select>
+
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecQeReportResponse" id="getQeReportList">
+        <id column="Qer_Id" property="qerId"/>
+        <id column="Sec_Id" property="secId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Qer_Id" select="getSecInfoProject">
+        </collection>
+        <collection property="sqGroupDtls" ofType="com.jpmsoft.common.model.response.SecInfo.SecQeGroupDtlResponse"
+                    column="Sec_Id" select="getSecGroupDtl">
+        </collection>
+    </resultMap>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.qerState!=null">
+            and mn.Qer_State = #{params.qerState}
+        </if>
+        <if test="params.qerBidderNum!=null">
+            and mn.Qer_Bidder_Num = #{params.qerBidderNum}
+        </if>
+        <if test="params.qerBidderNumAdopt!=null">
+            and mn.Qer_Bidder_Num_Adopt = #{params.qerBidderNumAdopt}
+        </if>
+        <if test="params.qerDate!=null">
+            and mn.Qer_Date = #{params.qerDate}
+        </if>
+        <if test="params.qerRemark!=null">
+            and mn.Qer_Remark like concat('%',#{params.qerRemark},'%')
+        </if>
+        <if test="params.qerCreateUname!=null">
+            and mn.Qer_Create_Uname like concat('%',#{params.qerCreateUname},'%')
+        </if>
+        <if test="params.qerResult!=null">
+            and mn.Qer_Result like concat('%',#{params.qerResult},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.qerCreateTimeStart!=null">
+            and mn.Qer_Create_Time>#{params.qerCreateTimeStart}
+        </if>
+        <if test="params.qerCreateTimeEnd!=null">
+            and mn.Qer_Create_Time &lt; #{params.qerCreateTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getSecGroupDtl" resultType="com.jpmsoft.common.model.response.SecInfo.SecQeGroupDtlResponse">
+        select
+        su.U_Name as qegdUname,
+        dt.*
+        from  Sec_QE_Group_Dtl dt
+        left join   Sys_User su on dt.Qegd_Uid=su.U_Id
+        left join   Sec_QE_Group sq on dt.Qeg_Id=sq.Qeg_Id
+        where sq.Sec_Id=#{secId}
+        order by dt.Qegd_Sort asc
+    </select>
+
+    <select id="getQeReportList" resultMap="getQeReportList">
+        select
+        sec.Sec_Name as secName,
+        mn.*
+        from  Sec_QE_Report mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Qer_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getQeReportListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  Sec_QE_Report mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+</mapper>

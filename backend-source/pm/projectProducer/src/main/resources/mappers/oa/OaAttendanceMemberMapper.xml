@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaAttendanceMemberMapper">
+
+    <select id="getEnabledAttendanceMemberByUid"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.oa.OaAttendanceMember">
+        select mn.*
+        from OA_Attendance_Member mn
+        inner join OA_Attendance_Group ag on ag.Ag_Id = mn.Ag_Id
+        where mn.Am_Uid = #{amUid}
+          and ag.Ag_State &lt;&gt; 0
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.agId!=null">
+            and mn.Ag_Id = #{params.agId}
+        </if>
+        <if test="params.agName!=null">
+            and ag.Ag_Name like concat('%',#{params.agName},'%')
+        </if>
+        <if test="params.amUname!=null">
+            and mn.Am_Uname like concat('%',#{params.amUname},'%')
+        </if>
+    </sql>
+
+    <select id="getAttendanceMemberList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceMemberModel">
+        select
+        ag.Ag_Name as agName,
+        pp.PP_Name as ppName,
+        dp.PD_Name as pdName,
+        u.U_MTel as uMtel,
+        u.U_Tel as uTel,
+        c1.C_Name as Cname,
+        c1.C_Name as cAbbName,
+        mn.*
+        from  OA_Attendance_Member mn
+        left join  OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        left join  SYS_Position_P pp on pp.Pp_Id=mn.Pp_Id
+        left join  SYS_Department_P dp on pp.Pd_Id=dp.Pd_Id
+        left join  SYS_User u on u.U_ID=mn.Am_Uid
+        left join  SYS_Company c1 on u.C_ID=c1.C_ID
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by ag.Ag_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getAttendanceMemberListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  OA_Attendance_Member mn
+        left join  OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        left join  SYS_Position_P pp on pp.Pp_Id=mn.Pp_Id
+        left join  SYS_Department_P dp on pp.Pd_Id=dp.Pd_Id
+        left join  SYS_User u on u.U_ID=mn.Am_Uid
+        left join  SYS_Company c1 on u.C_ID=c1.C_ID
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+</mapper>

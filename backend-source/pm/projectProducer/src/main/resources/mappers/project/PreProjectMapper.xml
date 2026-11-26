@@ -1,0 +1,4023 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper">
+    <!--************************************* 公用 *************************************-->
+
+    <select id="getProjectDivision" resultType="String">
+        select
+        <if test="province==null and city==null">
+            distinct province
+        </if>
+        <if test="province!=null and city==null">
+            distinct city
+        </if>
+        <if test="province!=null and city!=null">
+            distinct P_Each_District
+        </if>
+        from Pre_Project
+        <where>
+            <if test="province!=null and province!=''">
+                and province= #{province}
+            </if>
+            <if test="city!=null and city!=''">
+                and city= #{city}
+            </if>
+        </where>
+    </select>
+
+    <select id="getProjectCjGsGsFenJie" resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectCjGsGsFenJieVO">
+        select
+            (select count(*) from Investment_Budget_Breakdown where project_Id=#{pid} and state=7) as budgetBreakdown,
+            (select count(*) from Investment_Estimate_Breakdown where project_Id=#{pid} and state=7) as estimateBreakdown,
+            (select bd_money from Inv_Budget_Declare where p_id=#{pid} and bd_state=7) as budgetAmt,
+            (select SUM(pay_approval) from con_pay where p_id=#{pid} and pay_state=7) as payAmt
+    </select>
+
+
+    <select id="getApproveBudgetAndRate" resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectApproveBudgetRateDTO">
+        select
+        (select  P_Approve_Budget from pre_project where P_Id=#{pId}) as pApproveBudget,
+        (select sum(Con_Money_Total) from con_contract where Con_Project_Id=#{pId}) as conMoneyTotalSum
+    </select>
+
+
+    <sql id="projectFundStatisticsFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id=#{params.teId}
+        </if>
+        <if test="params.pProjectStage!=null">
+            and mn.P_Project_Stage=#{params.pProjectStage}
+        </if>
+        <if test="params.pProjectStatus!=null">
+            and mn.P_Project_Status=#{params.pProjectStatus}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_ID=#{params.pId}
+        </if>
+        <if test="params.pParentId!=null">
+            and mn.P_Parent_ID=#{params.pParentId}
+        </if>
+        <if test="params.parentProject!=null">
+            <if test="params.parentProject==1">
+                and (mn.P_Parent_ID='0' or mn.P_Parent_ID is null)
+            </if>
+            <if test="params.parentProject==2">
+                and mn.P_Parent_ID!='0' and mn.P_Parent_ID is not null
+            </if>
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(mn.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and INSTR(mn.P_Code,#{params.pCode})
+        </if>
+        <if test="params.pUseUnit!=null">
+            and (mn.P_Use_Unit like concat('%',#{params.pUseUnit},'%')
+            or c11.C_Name like concat('%',#{params.pUseUnit},'%'))
+        </if>
+        <if test="params.pConstructionUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.pConstructionUnitName},c2.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c2.C_Name,#{params.pConstructionUnitName})
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+    <sql id="payApplicationDateFilter" databaseId="mysql">
+        and DATE_FORMAT(pay.Pay_Application_Date,'%Y') =
+        #{params.year}
+    </sql>
+    <sql id="payApplicationDateFilter" databaseId="dm">
+        and to_char(pay.Pay_Application_Date,'yyyy') =
+        #{params.year}
+    </sql>
+    <sql id="payApplicationDateFilter" databaseId="postgre">
+        and to_char(pay.Pay_Application_Date,'yyyy') =
+        #{params.year}
+    </sql>
+    <select id="getProjectFundStatisticsSum"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectFundStatisticsSumVO">
+        select
+        sum(a.pCalculateRoughlyAmount) as pCalculateRoughlyAmountSum,
+        sum(a.pEstimateAmount) as pEstimateAmountSum,
+        sum(a.pApproveBudget) as pApproveBudgetSum,
+        sum(a.pFinalAccounts) as pFinalAccountsSum,
+        sum(a.secMoneyTotal) as secMoneyTotalSum,
+        sum(a.conMoneyTotal) as conMoneyTotalSum,
+        sum(a.conPayApprovalTotal) as conPayApprovalTotalSum,
+        sum(a.conPayYearTotal) as conPayYearTotalSum,
+        sum(a.unPayAmtTotal) as unPayAmtTotalSum,
+        sum(a.proPayApprovalTotal) as proPayApprovalTotalSum,
+        sum(a.saApprovedAmtTotal) as saApprovedAmtTotalSum
+        from (
+        select
+        mn.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+        mn.P_Estimate_Amount as pEstimateAmount,
+        mn.P_Approve_Budget as pApproveBudget,
+        mn.P_Final_Accounts as pFinalAccounts,
+        (select sum(sec.Sec_Money) from sec_info sec
+        left join Sec_Project sp on sp.Sec_Id=sec.Sec_Id where sec.Sec_Flow_State=7 and sp.P_ID=mn.P_ID) as
+        secMoneyTotal,
+        (select sum(cc.Con_Money_Total) from Con_Contract cc where cc.Con_Project_Id=mn.P_ID and
+        cc.Con_Approval_State=7) as conMoneyTotal,
+        (select sum(pay.Pay_Apply) from Con_Pay pay where pay.P_Id=mn.P_Id and pay.Con_Id is not null and
+        pay.Pay_State=7 and pay.Pay_Category='01') as conPayApprovalTotal,
+        (select sum(pay.Pay_Apply) from Con_Pay pay where pay.P_Id=mn.P_Id and pay.Con_Id is not null and
+        pay.Pay_State=7 and pay.Pay_Category='01'
+        <include refid="payApplicationDateFilter"/>
+        ) as conPayYearTotal,
+        (select sum(pay.Pay_Payable-pay.Pay_Apply) from Con_Pay pay where pay.P_Id=mn.P_Id and pay.Con_Id is not null
+        and pay.Pay_State=7 and pay.Pay_Category='01') as unPayAmtTotal,
+        (select sum(pay.Pay_Apply) from Con_Pay pay where pay.P_Id=mn.P_Id and pay.Con_Id is null and pay.Pay_State=7
+        and pay.Pay_Category='02') as proPayApprovalTotal,
+        (select sum(sam.Sa_Approved_Amt) from Inv_Settlement_Apply sam where sam.P_Id=mn.P_Id and sam.Sa_State=7) as
+        saApprovedAmtTotal
+        from Pre_Project mn
+        left join SYS_Company c2 on c2.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c11 on c11.C_Id=mn.P_Use_Unit
+        ${params.authSql}
+        <include refid="projectFundStatisticsFilter"/>
+        ) a
+    </select>
+
+    <select id="getProjectFundStatistics"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectFundStatisticsVO">
+        select
+        mn.P_Id as pId,
+        mn.P_Name as pName,
+        mn.P_Code as pCode,
+        mn.P_Use_Unit as pUseUnit,
+        ifnull(c11.C_Name, mn.P_Use_Unit) as pUseUnitName,
+        mn.P_Construction_Unit as pConstructionUnit,
+        mn.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+        mn.P_Estimate_Amount as pEstimateAmount,
+        mn.P_Approve_Budget as pApproveBudget,
+        mn.P_Final_Accounts as pFinalAccounts,
+        mn.P_Project_Stage as pProjectStage,
+        mn.P_PLan_Start_Date as pPLanStartDate,
+        mn.P_Plan_Complete_Date as pPlanCompleteDate,
+        mn.P_Project_Status as pProjectStatus,
+        mn.P_Parent_ID as pParentId,
+        c2.C_Name as pConstructionUnitName,
+        (select sum(sec.Sec_Money) from sec_info sec
+        left join Sec_Project sp on sp.Sec_Id=sec.Sec_Id where sec.Sec_Flow_State=7 and sp.P_ID=mn.P_ID) as
+        secMoneyTotal,
+        (select sum(cc.Con_Money_Total) from Con_Contract cc where cc.Con_Project_Id=mn.P_ID and
+        cc.Con_Approval_State=7) as conMoneyTotal,
+        (select sum(pay.Pay_Apply) from Con_Pay pay where pay.P_Id=mn.P_Id and pay.Con_Id is not null and
+        pay.Pay_State=7 and pay.Pay_Category='01') as conPayApprovalTotal,
+        (select sum(pay.Pay_Apply) from Con_Pay pay where pay.P_Id=mn.P_Id and pay.Con_Id is not null and
+        pay.Pay_State=7 and pay.Pay_Category='01'
+        <include refid="payApplicationDateFilter"/>
+        ) as conPayYearTotal,
+        (select sum(pay.Pay_Payable-pay.Pay_Apply) from Con_Pay pay where pay.P_Id=mn.P_Id and pay.Con_Id is not null
+        and pay.Pay_State=7 and pay.Pay_Category='01') as unPayAmtTotal,
+        (select sum(pay.Pay_Apply) from Con_Pay pay where pay.P_Id=mn.P_Id and pay.Con_Id is null and pay.Pay_State=7
+        and pay.Pay_Category='02') as proPayApprovalTotal,
+        (select sum(sam.Sa_Approved_Amt) from Inv_Settlement_Apply sam where sam.P_Id=mn.P_Id and sam.Sa_State=7) as
+        saApprovedAmtTotal
+        from Pre_Project mn
+        left join SYS_Company c2 on c2.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c11 on c11.C_Id=mn.P_Use_Unit
+        ${params.authSql}
+        <include refid="projectFundStatisticsFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.P_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getAllProjectByOrganization" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select
+        <include refid="entityFields"/>
+        from Pre_Project mn
+        where mn.deleted = false
+        and mn.P_Id in ( select distinct d.P_Id from SYS_Department_P d left join SYS_Position_P p on p.PD_ID=d.PD_ID
+        left join SYS_Position_User_P pup on pup.PP_ID=p.PP_ID where pup.U_Id=#{uid} )
+    </select>
+
+    <select id="getUserAllPid" resultType="String">
+        select mn.P_Id
+        from Pre_Project mn ${authSql}
+        <if test="teId!=null">
+            and mn.Te_Id=#{teId}
+        </if>
+    </select>
+
+    <select id="getProApprovalInfo" resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProApprovalInfoVo">
+        select mn.P_Committee_Approva_Document as pCommApprDoc,
+               mn.P_Apply_Tilte                as pApplyTilte,
+               mn.P_Approve_Budget_Code        as pApprBudgetCode,
+               mn.P_Approve_Budget_Date        as pApprBudgetDate,
+               mn.P_Approve_Budget             as pApproveBudget
+        from Pre_Project mn
+        where mn.P_Id = #{pId}
+    </select>
+
+    <select id="getProMonthlyReport" resultType="com.jpmsoft.common.model.export.response.MonthlyReportExportModel">
+        select
+        P_ID as pId,
+        P_Name as pName,
+        P_Overview as pOverview,
+        <include refid="pConsPeriodFiled"/>
+        P_Imp_State as pImpState,
+        P_Is_Project_Approval as pIsProjectApproval,
+        P_Type as pType,
+        P_Inv_Total as pInvTotal,
+        P_Inv_Caliber as pInvCaliber,
+        P_PLan_Start_Date as pPLanStartDate,
+        P_Plan_Complete_Date as pPlanCompleteDate,
+        P_Build_Model as pBuildModel,
+        P_Imp_Company as pImpCompany,
+        d.D_Name as pDepartmentName,
+        P_Use_Unit as pUseUnit
+        from Pre_Project mn
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        where
+        mn.deleted=false
+        and State=7
+        and mn.P_Id in (
+        select P_Id from Oa_Annual_Plan_Dtl apd
+        left join Oa_Annual_Plan ap on ap.id=apd.Ap_Id
+        where ap.Ap_Year=#{year}
+        )
+        <if test="sortFiled!=null and sortType!=null">
+            order by ${sortFiled} ${sortType}
+        </if>
+        <if test="start!=null and size!=null">
+            limit #{start},#{size}
+        </if>
+    </select>
+
+    <select id="getProInvInfoByPid" resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProInvInfoModel">
+        select P_ID                   as pId,
+               P_Code                 as pCode,
+               P_Name                 as pName,
+               P_Longitude            as pLongitude,
+               P_Latitude             as pLatitude,
+               P_Use_Unit             as pUseUnit,
+               P_Actual_Start_Time    as pActualStartTime,
+               P_Actual_Complete_Date as pActualCompleteDate,
+               P_Inv_Total            as pInvTotal,
+               P_PLan_Start_Date      as pPlanStartDate,
+               P_Competent_Department as pCompetentDepartment,
+               d.D_Name               as pCompetentDepartmentName,
+               P_Plan_Complete_Date   as pPlanCompleteDate
+        from Pre_Project mn
+                 left join SYS_Department d on mn.P_Competent_Department = d.D_Id
+        where P_Id = #{pId}
+    </select>
+
+    <select id="getInvestmentDate" resultType="com.jpmsoft.common.model.response.Project.InvestmentAccountModel">
+        select po.P_Id                       as pId,
+               po.P_Name                     as pName,
+               Bd_Money                      as bdMoney,
+               ''                            as bdDocNun,
+               Ipp_Id                        as ippId,
+               Ipp_Doc_Number                as ippDocNumber,
+               Ipp_Release_Funds             as ippReleaseFunds,
+               ''                            as sourceFunds,
+               Con_Name                      as conName,
+               con.Con_Id                    as conId,
+               Con_Code                      as conCode,
+               Con_Money_Total               as conMoneyTotal,
+               Pay_Id                        as payId,
+               Pay_Apply                     as payApply,
+               Pay_Type                      as payType,
+               Pay_Type_Detailed             as payTypeDetailed,
+               Pay_Apply_Owner               as payApplyOwner,
+               Pay_Approved_Settlement_Price as payApprovedSettlementPrice
+        from Pre_Project po
+                 left join Con_Contract con on po.P_Id = con.Con_Project_Id
+                 left join Con_Pay pay on con.Con_Id = pay.Con_Id
+                 left join Inv_Project_Plan ipp on po.P_Id = ipp.P_Id
+                 left join Inv_Budget_Declare ibd on po.P_Id = ibd.P_Id
+        where (ibd.Bd_Money is not null
+           or ipp.Ipp_Release_Funds is not null
+           or con.Con_Money_Total is not null
+           or pay.Pay_Apply is not null)
+            <if test="teId!=null">
+                and po.Te_Id = #{teId}
+            </if>
+    </select>
+
+    <sql id="projectCategoryDetailsFilter">
+        <if test="params.projectCategoryDetails != null and params.projectCategoryDetails != ''">
+            and mn.project_category_details like concat('%',#{params.projectCategoryDetails},'%')
+        </if>
+    </sql>
+
+    <sql id="allPreProjectFromAndFilter">
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        <if test="authSql!=null and authSql!=''">
+            ${authSql}
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pType!=null">
+            and mn.P_Type = #{params.pType}
+        </if>
+        <if test="params.state!=null">
+            and (mn.State = #{params.state} or (mn.ppr_id is not null and mn.State != 3))
+        </if>
+        <if test="params.pCategory!=null">
+            and mn.P_Category = #{params.pCategory}
+        </if>
+        <if test="params.pStatus!=null">
+            and mn.P_Status = #{params.pStatus}
+        </if>
+        <if test="params.pRegion!=null">
+            and mn.P_Region like concat('%',#{params.pRegion},'%')
+        </if>
+        <if test="params.pProjectStage!=null">
+            and mn.P_Project_Stage = #{params.pProjectStage}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and mn.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and mn.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pName!=null">
+            and mn.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.pApplyName!=null">
+            and mn.P_Apply_Name like concat('%',#{params.pApplyName},'%')
+        </if>
+        <if test="params.dataSourceType != null and params.dataSourceType != ''">
+            and mn.data_source_type = #{params.dataSourceType}
+        </if>
+        <include refid="projectCategoryDetailsFilter"/>
+        and mn.deleted=#{deleted}
+    </sql>
+
+    <sql id="allPreProjectQuery">
+        select
+        mn.P_ID as pId,
+        mn.P_Name as pName,
+        mn.P_Parent_Id as pParentId,
+        mn.P_Longitude as pLongitude,
+        mn.P_Latitude as pLatitude,
+        mn.data_source_type dataSourceType
+        <include refid="allPreProjectFromAndFilter"/>
+    </sql>
+
+    <select id="getAllPreProject" resultType="com.jpmsoft.common.model.response.Project.PreProjectWhenGetAllResponse">
+        <include refid="allPreProjectQuery"/>
+    </select>
+
+    <!-- 子项目计数及合同汇总沿用原来的未删除条件，不附加权限条件。 -->
+    <select id="getProjectChildrenByParentIds"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectWhenGetAllResponse">
+        select mn.P_ID as pId, mn.P_Parent_ID as pParentId
+        from Pre_Project mn
+        where mn.deleted = false
+        and mn.P_Parent_ID in
+        <foreach collection="parentIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+    </select>
+
+    <!-- havingChild 沿用原 getAllPreProject 的可见性筛选，仅查询当前页父项目。 -->
+    <select id="getVisibleChildParentIds" resultType="java.lang.String">
+        select distinct mn.P_Parent_ID
+        <include refid="allPreProjectFromAndFilter"/>
+        and mn.P_Parent_ID in
+        <foreach collection="parentIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+    </select>
+
+
+    <select id="getPreProjectById" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c1.c_Creditcode as pConstructionUnitCreditCode,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c4.C_Name as pAuditUnitName,
+        c5.C_Name as pCostUnitName,
+        c6.C_Name as pCanYanApplyUnitName,
+        c7.C_Name as pCanYanApprovalUnitName,
+        c8.C_Name as pLegalUnitName,
+        c9.C_Name as pRecordIssueUnitName,
+        c10.C_Name as pTransferUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name as pParentName,
+        parent.P_code as pParentCode,
+        cpl.P_Name as cplName,
+        f.file_relation_id as fileRelationId,
+        us1.U_Name as pProjectManagerName,
+        us2.U_Name as pProjectLeaderName,us3.U_Name as pEngineerName,
+        us4.U_Name as pEngineerLeaderName,d2.D_Name as pDepartmentName,
+        <include refid="entityFields"/>,mn.P_Committee_Approva_Document as pCommitteeApprovaDocument,c11.C_Name as pUseUnitName,
+         mn.p_Project_Form_Type_Remark as pProjectFormTypeRemark ,mn.p_Build_Model_Remark as pBuildModelRemark ,mn.p_Professional_Type_Remark as pProfessionalTypeRemark,
+        mn.p_Build_Type_Remark as pBuildTypeRemark,
+        ifnull(c11.C_Name, mn.P_Use_Unit) as pUseUnitName
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Company c4 on c4.C_Id=mn.P_Audit_Unit
+        left join SYS_Company c5 on c5.C_Id=mn.P_Cost_Unit
+        left join SYS_Company c6 on c6.C_Id=mn.P_Can_Yan_Apply_Unit
+        left join SYS_Company c7 on c7.C_Id=mn.P_Can_Yan_Approval_Unit
+        left join SYS_Company c8 on c8.C_Id=mn.P_Legal_Unit
+        left join SYS_Company c9 on c9.C_Id=mn.P_Record_Issue_Unit
+        left join SYS_Company c10 on c10.C_Id=mn.P_Transfer_Unit
+        left join SYS_Company c11 on c11.C_Id=mn.P_Use_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join SYS_Department d2 on mn.P_Department = d2.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        left join Pro_Construction_Plan_List cpl on cpl.Cpl_Id=mn.Cpl_Id
+        left join Sys_User us1 on us1.U_Id=mn.P_Project_Manager
+        left join Sys_User us2 on us2.U_Id=mn.P_Project_Leader
+        left join Sys_User us3 on us3.U_Id=mn.P_Engineer
+        left join Sys_User us4 on us4.U_Id=mn.P_Engineer_Leader
+        left join Sys_File f on f.FileID=mn.P_ID
+        where mn.P_Id=#{id}
+    </select>
+
+    <sql id="getPreProjectListFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and mn.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.pParentId!=null">
+            and mn.P_Parent_ID = #{params.pParentId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_ID = #{params.pId}
+        </if>
+        <if test="params.pType!=null">
+            and mn.P_Type = #{params.pType}
+        </if>
+        <if test="params.pProjectStage!=null">
+            and mn.P_Project_Stage = #{params.pProjectStage}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and mn.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pIsProjectApproval!=null">
+            and mn.P_Is_Project_Approval = #{params.pIsProjectApproval}
+        </if>
+        <if test="params.pStatus!=null">
+            and mn.P_Status = #{params.pStatus}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.pAdvanceFund!=null">
+            and mn.P_Advance_Fund = #{params.pAdvanceFund}
+        </if>
+        <if test="params.pCorporateRisk!=null">
+            and mn.P_Corporate_Risk = #{params.pCorporateRisk}
+        </if>
+        <if test="params.pSuperviseType!=null">
+            and mn.P_Supervise_Type = #{params.pSuperviseType}
+        </if>
+        <if test="params.pGroupType!=null">
+            and mn.P_Group_Type = #{params.pGroupType}
+        </if>
+        <if test="params.pMajorType!=null">
+            and mn.P_Major_Type = #{params.pMajorType}
+        </if>
+        <if test="params.pTotalDuration!=null">
+            and mn.P_Total_Duration = #{params.pTotalDuration}
+        </if>
+        <if test="params.pProjectStatus!=null">
+            and mn.P_Project_Status = #{params.pProjectStatus}
+        </if>
+        <if test="params.pImpState!=null">
+            and mn.P_Imp_State = #{params.pImpState}
+        </if>
+        <if test="params.pBuildModel!=null">
+            and mn.P_Build_Model = #{params.pBuildModel}
+        </if>
+        <if test="params.pInvCaliber!=null">
+            and mn.P_Inv_Caliber = #{params.pInvCaliber}
+        </if>
+        <if test="params.pCheckType!=null">
+            and mn.P_Check_Type = #{params.pCheckType}
+        </if>
+        <if test="params.pRegion!=null">
+            and mn.P_Region like concat('%',#{params.pRegion},'%')
+        </if>
+        <if test="params.pNature!=null">
+            and mn.P_Nature = #{params.pNature}
+        </if>
+        <if test="params.pInvCategory!=null">
+            and mn.P_Inv_Category = #{params.pInvCategory}
+        </if>
+        <if test="params.containDiscard!=null and params.containDiscard==0">
+            and mn.State != 3
+        </if>
+        <if test="params.containsContract==true">
+            and exists (select 1 from Con_Contract where Con_Project_Id=mn.P_Id
+            <if test="params.conCategory!=null">
+                and Con_Category=#{params.conCategory}
+            </if>
+            <if test="params.conType!=null">
+                and Con_Type=#{params.conType} and Con_Approval_State=7
+            </if>
+            )
+        </if>
+        <if test="params.pProjectAbbreviation!=null">
+            and mn.P_Project_Abbreviation like concat('%',#{params.pProjectAbbreviation},'%')
+        </if>
+        <if test="params.pOriginalName!=null">
+            and mn.P_Origina_lName like concat('%',#{params.pOriginalName},'%')
+        </if>
+        <if test="params.pApplyName!=null">
+            and mn.P_Apply_Name like concat('%',#{params.pApplyName},'%')
+        </if>
+        <if test="params.pSafetyFiling!=null">
+            and mn.P_Safety_Filing like concat('%',#{params.pSafetyFiling},'%')
+        </if>
+        <if test="params.pNameInitials!=null">
+            and mn.P_Name_Initials like concat('%',#{params.pNameInitials},'%')
+        </if>
+        <if test="params.pLongitude!=null">
+            and mn.P_Longitude like concat('%',#{params.pLongitude},'%')
+        </if>
+        <if test="params.pLatitude!=null">
+            and mn.P_Latitude like concat('%',#{params.pLatitude},'%')
+        </if>
+        <if test="params.pUseUnit!=null">
+            and (mn.P_Use_Unit like concat('%',#{params.pUseUnit},'%')
+            or c11.C_Name like concat('%',#{params.pUseUnit},'%'))
+        </if>
+        <if test="params.pAddress!=null">
+            and mn.P_Address like concat('%',#{params.pAddress},'%')
+        </if>
+        <if test="params.pIntroduction!=null">
+            and mn.P_Introduction like concat('%',#{params.pIntroduction},'%')
+        </if>
+        <if test="params.pProjectDirector!=null">
+            and mn.P_Project_Director like concat('%',#{params.pProjectDirector},'%')
+        </if>
+        <if test="params.pLandArea!=null">
+            and mn.P_Land_Area like concat('%',#{params.pLandArea},'%')
+        </if>
+        <if test="params.pProjectCode!=null">
+            and mn.P_Project_Code like concat('%',#{params.pProjectCode},'%')
+        </if>
+        <if test="params.pCompetentDepartmentName!=null">
+            and d.D_Name like concat('%',#{params.pCompetentDepartmentName},'%')
+        </if>
+        <if test="params.pDepartmentName!=null">
+            and d2.D_Name like concat('%',#{params.pDepartmentName},'%')
+        </if>
+        <if test="params.pAssignmentNo!=null">
+            and mn.P_Assignment_No like concat('%',#{params.pAssignmentNo},'%')
+        </if>
+        <if test="params.pConstructionUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.pConstructionUnitName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.pConstructionUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.projectName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.projectName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and mn.P_Name like concat('%',#{params.projectName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and mn.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and mn.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.pOverview!=null">
+            and mn.P_Overview like concat('%',#{params.pOverview},'%')
+        </if>
+        <if test="params.pImpCompany!=null">
+            and mn.P_Imp_Company like concat('%',#{params.pImpCompany},'%')
+        </if>
+        <if test="params.pApplyTilte!=null">
+            and mn.P_Apply_Tilte like concat('%',#{params.pApplyTilte},'%')
+        </if>
+        <if test="params.pApproveBudgetCode!=null">
+            and mn.P_Approve_Budget_Code like concat('%',#{params.pApproveBudgetCode},'%')
+        </if>
+        <if test="params.pInvTilte!=null">
+            and mn.P_Inv_Tilte like concat('%',#{params.pInvTilte},'%')
+        </if>
+        <if test="params.pInvCode!=null">
+            and mn.P_Inv_Code like concat('%',#{params.pInvCode},'%')
+        </if>
+        <if test="params.pApprovalUnit!=null">
+            and mn.P_Approval_Unit like concat('%',#{params.pApprovalUnit},'%')
+        </if>
+         <if test="params.pCreateUserName!=null">
+            and mn.P_Create_User_Name like concat('%',#{params.pCreateUserName},'%')
+        </if>
+        <if test="params.constructionAreaStart!=null">
+            and mn.P_Construction_Area >= #{params.constructionAreaStart}
+        </if>
+        <if test="params.constructionAreaEnd!=null">
+            and mn.P_Construction_Area &lt;= #{params.constructionAreaEnd}
+        </if>
+        <if test="params.handoverStart!=null">
+            and mn.P_Handover_Date >= #{params.handoverStart}
+        </if>
+        <if test="params.handoverEnd!=null">
+            and mn.P_Handover_Date &lt;= #{params.handoverEnd}
+        </if>
+        <if test="params.interventionStart!=null">
+            and mn.P_Intervention_Date >= #{params.interventionStart}
+        </if>
+        <if test="params.interventionEnd!=null">
+            and mn.P_Intervention_Date &lt;= #{params.interventionEnd}
+        </if>
+        <if test="params.acceptanceRecordStart!=null">
+            and mn.P_Acceptance_Record_Date >= #{params.acceptanceRecordStart}
+        </if>
+        <if test="params.acceptanceRecordEnd!=null">
+            and mn.P_Acceptance_Record_Date &lt;= #{params.acceptanceRecordEnd}
+        </if>
+        <if test="params.actualCompleteStart!=null">
+            and mn.P_Actual_Complete_Date >= #{params.actualCompleteStart}
+        </if>
+        <if test="params.actualCompleteEnd!=null">
+            and mn.P_Actual_Complete_Date &lt;= #{params.actualCompleteEnd}
+        </if>
+        <if test="params.approveBudgetStart!=null">
+            and mn.P_Approve_Budget_Date >= #{params.approveBudgetStart}
+        </if>
+        <if test="params.approveBudgetEnd!=null">
+            and mn.P_Approve_Budget_Date &lt;= #{params.approveBudgetEnd}
+        </if>
+        <if test="params.pPlanStartDate!=null">
+            and DATE_FORMAT(mn.P_PLan_Start_Date,'%Y-%m-%d') = DATE_FORMAT(#{params.pPlanStartDate},'%Y-%m-%d')
+        </if>
+        <if test="params.pPlanCompleteDate!=null">
+            and DATE_FORMAT(mn.P_PLan_Complete_Date,'%Y-%m-%d') = DATE_FORMAT(#{params.pPlanCompleteDate},'%Y-%m-%d')
+        </if>
+         <if test="params.pActualStartTime!=null">
+            and DATE_FORMAT(mn.P_Actual_Start_Time,'%Y-%m-%d') = DATE_FORMAT(#{params.pActualStartTime},'%Y-%m-%d')
+        </if>
+        <if test="params.pActualStartTime!=null">
+            and DATE_FORMAT(mn.P_Actual_Complete_Time,'%Y-%m-%d') = DATE_FORMAT(#{params.pActualStartTime},'%Y-%m-%d')
+        </if>
+        <if test="params.planStartStart!=null">
+            and mn.P_PLan_Start_Date >= #{params.planStartStart} and mn.P_PLan_Start_Date is not null
+        </if>
+        <if test="params.planStartEnd!=null">
+            and mn.P_PLan_End_Date &lt;= #{params.planStartEnd} and mn.P_PLan_End_Date is not null
+        </if>
+        <if test="params.pFinalAccountsReportStart!=null">
+            and mn.P_Final_Accounts_Report_Date >= #{params.pFinalAccountsReportStart}
+        </if>
+        <if test="params.pFinalAccountsReportEnd!=null">
+            and mn.P_Final_Accounts_Report_Date &lt;= #{params.pFinalAccountsReportEnd}
+        </if>
+        <if test="params.createStart!=null">
+            and mn.P_Create_Time >= #{params.createStart}
+        </if>
+        <if test="params.createEnd!=null">
+            and mn.P_Create_Time &lt;= #{params.createEnd}
+        </if>
+        <if test="params.itemStart!=null">
+            and mn.P_Item_Time >= #{params.itemStart}
+        </if>
+        <if test="params.itemEnd!=null">
+            and mn.P_Item_Time &lt; #{params.itemEnd}
+        </if>
+        <if test="params.receiptStart!=null">
+            and mn.P_Receipt_Time >= #{params.receiptStart}
+        </if>
+        <if test="params.receiptEnd!=null">
+            and mn.P_Receipt_Time &lt;= #{params.receiptEnd}
+        </if>
+        <if test="params.updateStart!=null">
+            and mn.P_Update_Time >= #{params.updateStart}
+        </if>
+        <if test="params.updateEnd!=null">
+            and mn.P_Update_Time &lt;= #{params.updateEnd}
+        </if>
+        <if test="params.actualStartStart!=null">
+            and mn.P_Actual_Start_Time >= #{params.actualStartStart} and mn.P_Actual_Start_Time is not null
+        </if>
+        <if test="params.actualStartEnd!=null">
+            and mn.P_Actual_End_Time &lt;= #{params.actualStartEnd} and mn.P_Actual_End_Time is not null
+        </if>
+        <if test="params.preItemStart!=null">
+            and mn.P_Pre_Item_Time >= #{params.preItemStart}
+        </if>
+        <if test="params.preItemEnd!=null">
+            and mn.P_Pre_Item_Time &lt;= #{params.preItemEnd}
+        </if>
+        <if test="params.latitudeStart!=null">
+            and mn.P_Latitude >= #{params.latitudeStart}
+        </if>
+        <if test="params.latitudeEnd!=null">
+            and mn.P_Latitude &lt;= #{params.latitudeEnd}
+        </if>
+        <if test="params.longitudeStart!=null">
+            and mn.P_Longitude >= #{params.longitudeStart}
+        </if>
+        <if test="params.longitudeEnd!=null">
+            and mn.P_Longitude &lt;= #{params.longitudeEnd}
+        </if>
+        <if test="params.pBuildingScaleStart!=null">
+            and mn.P_Building_Scale >= #{params.pBuildingScaleStart}
+        </if>
+        <if test="params.pBuildingScaleEnd!=null">
+            and mn.P_Building_Scale &lt;= #{params.pBuildingScaleEnd}
+        </if>
+        <if test="params.pInterventionYear!=null">
+            and mn.P_Intervention_Year = #{params.pInterventionYear}
+        </if>
+        <if test="params.pInterventionYearStart!=null">
+            and mn.P_Intervention_Year >= #{params.pInterventionYearStart}
+        </if>
+        <if test="params.pInterventionYearEnd!=null">
+            and mn.P_Intervention_Year &lt;= #{params.pInterventionYearEnd}
+        </if>
+        <if test="params.pInterventionEndYearStart!=null">
+            and mn.P_Intervention_End_Year >= #{params.pInterventionEndYearStart}
+        </if>
+        <if test="params.pInterventionEndYearEnd!=null">
+            and mn.P_Intervention_End_Year &lt;= #{params.pInterventionEndYearEnd}
+        </if>
+        <if test="params.pInvTotalStart!=null">
+            and mn.P_Inv_Total >= #{params.pInvTotalStart}
+        </if>
+        <if test="params.pInvTotalEnd!=null">
+            and mn.P_Inv_Total &lt;= #{params.pInvTotalEnd}
+        </if>
+        <if test="params.pInvDateStart!=null">
+            and mn.P_Inv_Date >= #{params.pInvDateStart}
+        </if>
+        <if test="params.pInvDateEnd!=null">
+            and mn.P_Inv_Date &lt;= #{params.pInvDateEnd}
+        </if>
+        <if test="params.pCalculateRoughlyAmountStart!=null">
+            and mn.P_Calculate_Roughly_Amount >= #{params.pCalculateRoughlyAmountStart}
+        </if>
+        <if test="params.pCalculateRoughlyAmountEnd!=null">
+            and mn.P_Calculate_Roughly_Amount &lt;= #{params.pCalculateRoughlyAmountEnd}
+        </if>
+        <if test="params.pEstimateAmountStart!=null">
+            and mn.P_Estimate_Amount >= #{params.pEstimateAmountStart}
+        </if>
+        <if test="params.pEstimateAmountEnd!=null">
+            and mn.P_Estimate_Amount &lt;= #{params.pEstimateAmountEnd}
+        </if>
+        <if test="params.pApproveBudgetStart!=null">
+            and mn.P_Approve_Budget >= #{params.pApproveBudgetStart}
+        </if>
+        <if test="params.pApproveBudgetEnd!=null">
+            and mn.P_Approve_Budget &lt;= #{params.pApproveBudgetEnd}
+        </if>
+        <if test="params.pTotalDurationStart!=null">
+            and mn.P_Total_Duration >= #{params.pTotalDurationStart}
+        </if>
+        <if test="params.pTotalDurationEnd!=null">
+            and mn.P_Total_Duration &lt;= #{params.pTotalDurationEnd}
+        </if>
+        <if test="params.pActualTotalDurationStart!=null">
+            and mn.P_Actual_Total_Duration >= #{params.pActualTotalDurationStart}
+        </if>
+        <if test="params.pActualTotalDurationEnd!=null">
+            and mn.P_Actual_Total_Duration &lt;= #{params.pActualTotalDurationEnd}
+        </if>
+        <if test="params.pConstructionCostStart!=null">
+            and mn.P_Construction_Cost >= #{params.pConstructionCostStart}
+        </if>
+        <if test="params.pConstructionCostEnd!=null">
+            and mn.P_Construction_Cost &lt;= #{params.pConstructionCostEnd}
+        </if>
+        <include refid="constrStartEndFilter"/>
+        <include refid="constructionFilter"/>
+        <if test="params.filterParentCollection!=null">
+            <if test="params.filterParentCollection==true">
+                and (mn.P_Parent_ID is not null and mn.P_Parent_ID!='0' )
+            </if>
+            <if test="params.filterParentCollection==false">
+                and (mn.P_Parent_ID is null or mn.P_Parent_ID = '0' )
+            </if>
+        </if>
+        <if test="params.statisticsArchive==true">
+            and exists (select 1 from Archive_File arf
+            left join Archive ap on arf.Ap_Id=ap.Ap_Id
+            where ap.Ap_State=1 and arf.Af_State=1 and ap.P_Id=mn.P_Id)
+        </if>
+        <if test="params.pCategory != null and params.pCategory != ''">
+            and mn.p_Category = #{params.pCategory}
+        </if>
+        <include refid="projectCategoryDetailsFilter"/>
+        <if test="params.pCampus != null and params.pCampus != ''">
+            and mn.p_Campus = #{params.pCampus}
+        </if>
+        <if test="params.fsCostCode != null and params.fsCostCode != ''">
+            and exists (select 1 from Pro_Sources_Funds psf where psf.P_ID=mn.P_ID and psf.Fs_Cost_Code like concat('%',#{params.fsCostCode},'%'))
+        </if>
+        <if test="params.pBuildingScale != null">
+            and mn.P_Building_Scale = #{params.pBuildingScale}
+        </if>
+        <if test="params.pInterventionDate != null">
+            and mn.P_Intervention_Date = #{params.pInterventionDate}
+        </if>
+    </sql>
+
+    <!-- 汇总、合同项目筛选及计数共用关联，保留筛选及权限所需别名。 -->
+    <sql id="projectStatisticsFilterJoins">
+            left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2
+        on c2.C_Id=mn.P_Agent_Construction_Unit
+            left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+            left join SYS_Company c11 on c11.C_Id=mn.P_Use_Unit
+            left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+            left join SYS_Department d2 on mn.P_Department=d2.D_Id
+            left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+    </sql>
+
+    <sql id="projectStatisticsMatchedIds">
+        select mn.P_ID
+        from Pre_Project mn
+        <include refid="projectStatisticsFilterJoins"/>
+        ${params.authSql}
+        and mn.deleted = false
+        <include refid="getPreProjectListFilter"/>
+    </sql>
+
+    <sql id="projectStatisticsArchiveCounts">
+        select
+        ar.P_Id,
+        count(*) as archive_count
+        from Archive_File af
+        left join Archive ar on af.Ap_Id = ar.Ap_Id
+        left join SYS_FileAnnex sfa on sfa.file_id = af.Af_Annex_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.projectLatestArchiveMd5Join">
+            <property name="fileAlias" value="af"/>
+            <property name="archiveAlias" value="ar"/>
+        </include>
+        where ar.Ap_State = 1
+        and af.Af_State = 1
+        and (sfa.File_MD5_Code is null
+        or latest_md5.max_key is not null)
+        group by ar.P_Id
+    </sql>
+
+    <!-- 达梦：限定匹配项目，保留项目内原始去重排序规则，状态在去重后过滤。 -->
+    <sql id="projectStatisticsArchiveCounts" databaseId="dm">
+        select ranked.P_Id, count(*) as archive_count
+        from (
+        select project_files.*,
+        max(project_files.rank_key) over (
+        partition by project_files.P_Id, project_files.file_md5
+        ) as max_key
+        from (
+        select ar.P_Id, ar.Ap_State, af.Af_State,
+        annex.File_MD5_Code as file_md5,
+        <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.archiveMd5RankKey">
+            <property name="fileAlias" value="af"/>
+        </include>
+        as rank_key
+        from Archive ar
+        inner join Archive_File af on af.Ap_Id = ar.Ap_Id
+        left join SYS_FileAnnex annex on annex.file_id = af.Af_Annex_Id
+        where ar.P_Id in (
+        <include refid="projectStatisticsMatchedIds"/>
+        )
+        ) project_files
+        ) ranked
+        where ranked.Ap_State = 1 and ranked.Af_State = 1
+        and (ranked.file_md5 is null or ranked.rank_key = ranked.max_key)
+        group by ranked.P_Id
+    </sql>
+
+    <select id="getPreProjectAmtSum" resultType="com.jpmsoft.common.model.response.Project.ProAmtSumModel">
+        select
+        <if test="params.statisticsArchive==true">
+            SUM(ac.archive_count) as archiveFileTotalSum,
+        </if>
+        sum(mn.P_Inv_Total) as pInvTotalSum,
+        sum(mn.P_Calculate_Roughly_Amount) as pCalculateRoughlyAmountSum,
+        sum(mn.P_Estimate_Amount) as pEstimateAmountSum,
+        sum(mn.P_Approve_Budget) as pApproveBudgetSum
+<!--        sum((select SUM(Con_Money_Total) from Con_Contract conf ${params.conAuthSql} and conf.Con_Project_Id=mn.P_Id and conf.Con_Approval_State=7-->
+<!--        <if test="params.conCategory!=null">-->
+<!--            and conf.Con_Category=#{params.conCategory}-->
+<!--        </if>-->
+<!--        )) as conMoneyTotalSum,-->
+<!--        sum((select count(*) from Con_Contract conf ${params.conAuthSql} and conf.Con_Project_Id=mn.P_Id and conf.Con_Approval_State=7-->
+<!--        <if test="params.conCategory!=null">-->
+<!--            and conf.Con_Category=#{params.conCategory}-->
+<!--        </if>-->
+<!--        )) as contractSum-->
+        ,coalesce(sum(childs.child_count), 0) as childProjectSum
+        from Pre_Project mn
+        <include refid="projectStatisticsFilterJoins"/>
+        left join (select child.P_Parent_ID, count(*) as child_count
+        from Pre_Project child
+        where child.P_Cm_Mode = '02'
+        and child.deleted = false
+        group by child.P_Parent_ID
+        ) childs on childs.P_Parent_ID = mn.P_ID
+        <if test="params.statisticsArchive==true">
+            left join (
+            <include refid="projectStatisticsArchiveCounts"/>
+            ) ac on ac.P_Id = mn.P_Id
+        </if>
+        ${params.authSql}
+        and mn.deleted = false
+        <if test="exclude==true">
+            and mn.state!=3 and mn.state!=0
+        </if>
+        <include refid="getPreProjectListFilter"/>
+    </select>
+
+    <select id="getPreProjectConSum" resultType="com.jpmsoft.common.model.response.Project.ProAmtSumModel">
+        select
+        COUNT(*) as contractSum,
+        SUM(Con_Money_Total) as conMoneyTotalSum
+        from  Con_Contract conf ${params.conAuthSql} and conf.Con_Approval_State=7
+        <if test="params.conCategory!=null">
+            and conf.Con_Category=#{params.conCategory}
+        </if>
+        and  conf.Con_Project_Id in (select mn.P_ID
+        from Pre_Project mn
+        <include refid="projectStatisticsFilterJoins"/>
+        ${params.authSql}
+        and mn.deleted = false
+        <if test="exclude==true">
+            and mn.state!=3 and mn.state!=0
+        </if>
+        <include refid="getPreProjectListFilter"/>)
+    </select>
+
+<!--    <resultMap type="com.jpmsoft.common.model.response.Project.PreProjectResponse" id="getPreProjectAndContype">-->
+<!--        <id column="pId" property="pId"/>-->
+<!--        <collection property="conTypeStatistics"-->
+<!--                    ofType="com.jpmsoft.projectProducer.pojo.vo.contract.ConTypeStatisticsVO"-->
+<!--                    column="pId" select="getConTypeStatistics">-->
+<!--        </collection>-->
+<!--    </resultMap>-->
+
+    <select id="getConTypeStatistics" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConTypeStatisticsVO">
+        select
+           conf.Con_Project_Id as pId,
+            conf.Con_Type as conType
+        from Con_Contract conf
+        ${conAuthSql}
+        and conf.Con_Approval_State = 7
+        and  conf.Con_Project_Id in
+        <foreach collection="projectIds" separator="," open="(" close=")" item="id">
+            #{id}
+        </foreach>
+    </select>
+
+
+    <select id="getPreProjectList" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select
+        c1.C_Name_History as pConstructionUnitNameHistory,
+        c2.C_Name_History as pAgentUnitNameHistory,
+        c3.C_Name_History as pDesignUnitNameHistory,
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c4.C_Name as pAuditUnitName,
+        c5.C_Name as pCostUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        d2.D_Name as pDepartmentName,
+        parent.P_Name as pParentName,
+        parent.P_Name_History as pParentNameHistory,
+        parent.P_code as pParentCode,
+        mn.p_Category as pCategory,
+        us1.U_Name as pProjectManagerName,
+        us2.U_Name as pProjectLeaderName,
+        us3.U_Name as pEngineerName,
+        us4.U_Name as pEngineerLeaderName,
+<!--        <if test="params.statisticsConNum==true">-->
+<!--            (select count(*) from Con_Contract conf ${params.conAuthSql} and conf.Con_Project_Id=mn.P_Id and conf.Con_Approval_State=7-->
+<!--            <if test="params.conCategory!=null">-->
+<!--                and conf.Con_Category=#{params.conCategory}-->
+<!--            </if>-->
+<!--            ) as conNumTotal,-->
+<!--            (select SUM(Con_Money_Total) from Con_Contract conf ${params.conAuthSql} and  conf.Con_Project_Id=mn.P_Id and conf.Con_Approval_State=7-->
+<!--            <if test="params.conCategory!=null">-->
+<!--                and conf.Con_Category=#{params.conCategory}-->
+<!--            </if>-->
+<!--            ) as conMoneyTotalSum,-->
+<!--        </if>-->
+        <if test="params.statisticsArchive==true">
+            ifnull(ac.archive_count, 0) as archiveFileSum,
+        </if>
+        (select afa.Fa_Type from Archive_Filing_Apply afa where afa.P_Id=mn.P_Id and afa.Fa_State=7 order by afa.Fa_State_Time desc limit 1)
+        as faType,
+        ifnull(c11.C_Name, mn.P_Use_Unit) as pUseUnitName,
+        <include refid="entityFields"/>
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Company c4 on c4.C_Id=mn.P_Audit_Unit
+        left join SYS_Company c5 on c5.C_Id=mn.P_Cost_Unit
+        left join SYS_Company c11 on c11.C_Id=mn.P_Use_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join SYS_Department d2 on mn.P_Department = d2.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        left join Sys_User us1 on us1.U_Id=mn.P_Project_Manager
+        left join Sys_User us2 on us2.U_Id=mn.P_Project_Leader
+        left join Sys_User us3 on us3.U_Id=mn.P_Engineer
+        left join Sys_User us4 on us4.U_Id=mn.P_Engineer_Leader
+        <if test="params.statisticsArchive==true">
+            left join (
+            <include refid="projectStatisticsArchiveCounts"/>
+            ) ac on ac.P_Id = mn.P_Id
+        </if>
+        ${params.authSql}
+        and mn.deleted = false
+        <include refid="getPreProjectListFilter"/>
+        <choose>
+            <when test="params.sortFiled!=null and params.sortFiled == 'archive_File_Sum' and params.sortType!=null">
+                order by archiveFileSum ${params.sortType}
+            </when>
+            <when test="params.sortFiled!=null and params.sortFiled == 'p_Competent_Department_Name' and params.sortType!=null">
+                order by d.D_Name ${params.sortType}
+            </when>
+            <when test="params.sortFiled!=null and params.sortType!=null">
+                order by ISNULL(mn.${params.sortFiled}),mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortSideFiled!=null and params.sortType!=null">
+                order by ISNULL(${params.sortSideFiled}),${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.P_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getProjectListExcel" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select
+        c1.C_Name_History as pConstructionUnitNameHistory,
+        c2.C_Name_History as pAgentUnitNameHistory,
+        c3.C_Name_History as pDesignUnitNameHistory,
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c4.C_Name as pAuditUnitName,
+        c5.C_Name as pCostUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name as pParentName,
+        parent.P_Name_History as pParentNameHistory,
+        parent.P_code as pParentCode,
+        mn.p_Category as pCategory,
+        <!--        <if test="params.statisticsConNum==true">-->
+        <!--            (select count(*) from Con_Contract conf ${params.conAuthSql} and conf.Con_Project_Id=mn.P_Id and conf.Con_Approval_State=7-->
+        <!--            <if test="params.conCategory!=null">-->
+        <!--                and conf.Con_Category=#{params.conCategory}-->
+        <!--            </if>-->
+        <!--            ) as conNumTotal,-->
+        <!--            (select SUM(Con_Money_Total) from Con_Contract conf ${params.conAuthSql} and  conf.Con_Project_Id=mn.P_Id and conf.Con_Approval_State=7-->
+        <!--            <if test="params.conCategory!=null">-->
+        <!--                and conf.Con_Category=#{params.conCategory}-->
+        <!--            </if>-->
+        <!--            ) as conMoneyTotalSum,-->
+        <!--        </if>-->
+        <if test="params.statisticsArchive==true">
+            ifnull(ac.archive_count, 0) as archiveFileSum,
+        </if>
+        (select afa.Fa_Type from Archive_Filing_Apply afa  where afa.P_Id=mn.P_Id and afa.Fa_State=7 order by afa.Fa_State_Time desc limit 1)
+        as faType,
+        <include refid="entityFields"/>,
+        ifnull(c11.C_Name, mn.P_Use_Unit) as pUseUnitName
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Company c4 on c4.C_Id=mn.P_Audit_Unit
+        left join SYS_Company c5 on c5.C_Id=mn.P_Cost_Unit
+        left join SYS_Company c11 on c11.C_Id=mn.P_Use_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        <if test="params.statisticsArchive==true">
+            left join (
+            select
+            ar.P_Id,
+            count(*) as archive_count
+            from Archive_File af
+            left join Archive ar on af.Ap_Id = ar.Ap_Id
+            left join SYS_FileAnnex sfa on sfa.file_id = af.Af_Annex_Id
+            <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.projectLatestArchiveMd5Join">
+                <property name="fileAlias" value="af"/>
+                <property name="archiveAlias" value="ar"/>
+            </include>
+            where ar.Ap_State = 1
+            and af.Af_State = 1
+            and (sfa.File_MD5_Code is null
+            or latest_md5.max_key is not null)
+            group by ar.P_Id
+            ) ac on ac.P_Id = mn.P_Id
+        </if>
+        ${params.authSql}
+        and mn.deleted = false
+        <include refid="getPreProjectListFilter"/>
+        <choose>
+            <when test="params.sortFiled!=null and params.sortFiled == 'archive_File_Sum' and params.sortType!=null">
+                order by archiveFileSum ${params.sortType}
+            </when>
+            <when test="params.sortFiled!=null and params.sortFiled == 'p_Competent_Department_Name' and params.sortType!=null">
+                order by d.D_Name ${params.sortType}
+            </when>
+            <when test="params.sortFiled!=null and params.sortType!=null">
+                order by ISNULL(mn.${params.sortFiled}),mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortSideFiled!=null and params.sortType!=null">
+                order by ISNULL(${params.sortSideFiled}),${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.P_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getLatestPanoramaFiles" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select ppo.P_Id as pId, ppo.Ppo_File as ppoFile
+        from Project_Panorama_Overview ppo
+        where ppo.P_Id in
+        <foreach collection="projectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+        and not exists (
+            select 1
+            from Project_Panorama_Overview latest
+            where latest.P_Id = ppo.P_Id
+              and (
+                  latest.Ppo_Create_Time > ppo.Ppo_Create_Time
+                  or (latest.Ppo_Create_Time is not null and ppo.Ppo_Create_Time is null)
+                  or ((latest.Ppo_Create_Time = ppo.Ppo_Create_Time
+                       or (latest.Ppo_Create_Time is null and ppo.Ppo_Create_Time is null))
+                      and latest.Ppo_Id > ppo.Ppo_Id)
+              )
+        )
+    </select>
+
+    <select id="getProjectProgressAmounts" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select conf.Con_Project_Id as pId,
+        coalesce(sum(conf.Con_Money_Total), 0) as conMoneyTotalSum,
+        coalesce(sum(pay.payAmount), 0) as conPayAmount
+        from Con_Contract conf
+        left join (
+        select Con_Id, sum(Pay_Apply) as payAmount
+        from Con_Pay
+        where Pay_State = 7
+        group by Con_Id
+        ) pay on pay.Con_Id = conf.Con_Id
+        ${conAuthSql}
+        and conf.Con_Approval_State != 3 and conf.Con_Approval_State != 0
+        and conf.Con_Project_Id in
+        <foreach collection="projectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+        group by conf.Con_Project_Id
+    </select>
+
+    <select id="getProjectListConSum" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select
+        conf.Con_Project_Id as pId,
+        count(*)  as conNumTotal,
+        SUM(Con_Money_Total) as conMoneyTotalSum
+        from Con_Contract conf
+        ${params.conAuthSql}
+        and conf.Con_Approval_State!=3 and conf.Con_Approval_State!=0
+        <if test="params.conCategory!=null">
+            and conf.Con_Category=#{params.conCategory}
+        </if>
+        and  conf.Con_Project_Id in
+        <foreach collection="projectIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        group by conf.Con_Project_Id
+    </select>
+
+    <select id="getPreProjectListCount" resultType="java.lang.Integer">
+        select
+        count(*)
+        from Pre_Project mn
+        <include refid="projectStatisticsFilterJoins"/>
+        ${params.authSql}
+        and mn.deleted = false
+        <include refid="getPreProjectListFilter"/>
+    </select>
+
+
+    <select id="getAllProjectList" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select
+        c1.C_Name_History as pConstructionUnitNameHistory,
+        c2.C_Name_History as pAgentUnitNameHistory,
+        c3.C_Name_History as pDesignUnitNameHistory,
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name as pParentName,
+        parent.P_Name_History as pParentNameHistory,
+        parent.P_code as pParentCode,
+        <include refid="entityFields"/>,
+        ifnull(c11.C_Name, mn.P_Use_Unit) as pUseUnitName
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Company c11 on c11.C_Id=mn.P_Use_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        ${params.authSql}
+        and mn.deleted = false
+        <include refid="getPreProjectListFilter"/>
+    </select>
+
+
+    <sql id="projectStreamlineFilter">
+        <if test="params.formalProject!=null">
+            <if test="params.formalProject==true">
+                and not (mn.State != 3 and mn.State != 7 and mn.ppr_id is not null)
+            </if>
+            <if test="params.formalProject==false">
+                and (mn.State != 3 and mn.State != 7 and mn.ppr_id is not null)
+            </if>
+        </if>
+        <if test="params.pCmMode!=null">
+            and mn.P_Cm_Mode = #{params.pCmMode}
+        </if>
+        <if test="params.pCategory != null">
+            and mn.p_Category = #{params.pCategory}
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pCompDep!=null">
+            and mn.P_Competent_Department = #{params.pCompDep}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and mn.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.pParentId!=null">
+            and mn.P_Parent_ID = #{params.pParentId}
+        </if>
+        <if test="params.pStatus!=null">
+            and mn.P_Status = #{params.pStatus}
+        </if>
+        <if test="params.state!=null">
+            and (mn.state = #{params.state} or (mn.ppr_id is not null and mn.state != 3))
+        </if>
+        <if test="params.pprIdFilter != null and params.pprIdFilter != ''">
+            and (mn.Ppr_Id is null or mn.Ppr_Id = '') or (mn.Ppr_Id is not null and mn.state = 7)
+        </if>
+        <if test="params.pSecType!=null">
+            and mn.p_sec_type = #{params.pSecType}
+        </if>
+        <if test="params.pSuperviseType!=null">
+            and mn.P_Supervise_Type = #{params.pSuperviseType}
+        </if>
+        <if test="params.pGroupType!=null">
+            and mn.P_Group_Type = #{params.pGroupType}
+        </if>
+        <if test="params.pAdvanceFund!=null">
+            and mn.P_Advance_Fund = #{params.pAdvanceFund}
+        </if>
+        <if test="params.pCorporateRisk!=null">
+            and mn.P_Corporate_Risk = #{params.pCorporateRisk}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.containDiscard!=null and params.containDiscard==0">
+            and mn.State != 3
+        </if>
+        <if test="params.pProjectStage!=null">
+            and mn.P_Project_Stage = #{params.pProjectStage}
+        </if>
+        <if test="params.pApplyName!=null">
+            and mn.P_Apply_Name like concat('%',#{params.pApplyName},'%')
+        </if>
+        <if test="params.pAssignmentNo!=null">
+            and mn.P_Assignment_No like concat('%',#{params.pAssignmentNo},'%')
+        </if>
+        <if test="params.pInvCategory!=null">
+            and mn.P_Inv_Category = #{params.pInvCategory}
+        </if>
+        <if test="params.pConstructionUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.pConstructionUnitName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.pConstructionUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and mn.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and mn.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.pSafetyFiling!=null">
+            and mn.P_Safety_Filing like concat('%',#{params.pSafetyFiling},'%')
+        </if>
+        <if test="params.filterParentCollection!=null">
+            <if test="params.filterParentCollection==true">
+                and (mn.P_Parent_ID is not null and mn.P_Parent_ID!='0' )
+            </if>
+            <if test="params.filterParentCollection==false">
+                and (mn.P_Parent_ID is null or mn.P_Parent_ID='0' )
+            </if>
+        </if>
+        <if test="params.planFilter != null">
+            AND NOT EXISTS (
+            SELECT 1 FROM inv_plan_year
+            WHERE p_Id = mn.P_ID AND p_Id IS NOT NULL
+            )
+        </if>
+        <if test="params.excludePa==1">
+            and mn.P_Id not in (select P_Id from Pro_Assignment where P_Id is not null and Pa_State!=3)
+        </if>
+        <if test="params.conTypes!=null">
+            and mn.P_Id in (select Con_Project_Id from Con_Contract where Con_Approval_State=7 and Con_Type in
+            <foreach collection="params.conTypes" open="(" close=")" separator="," item="tp">#{tp}</foreach>
+            )
+        </if>
+        <if test="params.cpdCodes!=null">
+            and mn.P_Id in (select cp.P_Id from Project_Cp cp left join Project_Cp_Dtl cpd on cp.Cp_Id=cpd.Cp_Id
+            where cp.State=7 and cpd.Cpd_State=7 and cpd.Cpd_Status=1 and cpd.Cpd_Code in
+            <foreach collection="params.cpdCodes" open="(" close=")" separator="," item="cpdCode">#{cpdCode}</foreach>
+            )
+        </if>
+        <if test="params.containsAnnual==true">
+            and mn.P_Id in (select apd.P_Id from Oa_Annual_Plan_Dtl apd left join Oa_Annual_Plan ap on ap.id=apd.Ap_Id
+            where ap.State=7
+            <if test="params.apYear!=null">
+                and Ap_Year=#{params.apYear}
+            </if>
+            )
+        </if>
+        <if test="params.projectIds != null and params.projectIds.size()>0">
+            and mn.P_Id IN
+            <foreach collection="params.projectIds" separator="," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.haveGantPlan!=null and params.haveGantPlan==true">
+            and (select count(*) from Gantt_Plan gtp where gtp.p_id=mn.p_id and gtp.Plan_State=7)>0
+        </if>
+        <if test="params.filterByPlanState!=null and params.filterByPlanState=='true'">
+            AND (SELECT count(*) FROM gantt_plan gp WHERE gp.p_id = mn.p_id AND gp.plan_state != 3) = 0
+        </if>
+        <if test="params.outlineProjectFilter != null and params.outlineProjectFilter != ''">
+            and not exists(select 1 from Outline_Project_Manage opm where opm.P_Id = mn.P_ID and opm.state != 3 and opm.Opm_Code = #{params.outlineProjectFilter})
+        </if>
+        <if test="params.ganttPlanFilter != null and params.ganttPlanFilter != ''">
+            and exists(select 1 from Gantt_Plan gp where gp.P_Id = mn.P_ID and gp.Plan_State = 7)
+        </if>
+        <if test="params.tenderPlanFilter != null and params.tenderPlanFilter == true">
+            and not exists(select 1 from Sec_Bidding_Project kbp left join Sec_Bidding_Plan ksbp on kbp.bp_Id = ksbp.bp_Id where kbp.P_Id = mn.P_ID and ksbp.state != 3)
+        </if>
+        <if test="params.excludePIds != null and params.excludePIds.size()>0">
+            and mn.P_Id NOT IN
+            <foreach collection="params.excludePIds" separator="," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.excludePNames != null and params.excludePNames.size()>0">
+            and mn.P_Name NOT IN
+            <foreach collection="params.excludePNames" separator="," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pCompetentDepartmentName != null and params.pCompetentDepartmentName != ''">
+            and d.D_Name like concat('%',#{params.pCompetentDepartmentName},'%')
+        </if>
+        <if test="params.pType != null and params.pType != ''">
+            and mn.P_Type = #{params.pType}
+        </if>
+        <if test="params.pCreateUserName != null and params.pCreateUserName != ''">
+            and mn.P_Create_User_Name like concat('%',#{params.pCreateUserName},'%')
+        </if>
+        <if test="params.biddingPlanNew != null and params.biddingPlanNew != ''">
+            and exists (
+            select 1
+            from Sec_Bidding_Project sbpp
+            left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sbpp.Bp_Id
+            where sbpp.P_Id = mn.P_ID
+            and sbp.State = 7
+            and sbp.is_new = 1)
+        </if>
+        <if test="params.biddingPlanOld != null and params.biddingPlanOld != ''">
+            and not exists (
+            select 1
+            from Sec_Bidding_Project sbpp
+            left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sbpp.Bp_Id
+            where sbpp.P_Id = mn.P_ID
+            and sbp.State = 7
+            and sbp.is_new = 1)
+        </if>
+    </sql>
+
+    <select id="getProjectStreamlineList"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectStreamlineResponse">
+        select
+        c1.C_Name_History as pConstructionUnitNameHistory,
+        c2.C_Name_History as pAgentUnitNameHistory,
+        c3.C_Name_History as pDesignUnitNameHistory,
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name_History as pParentNameHistory,
+        parent.P_Name as pParentName,
+        mn.P_Imp_Company as pImpCompany,
+        pmu.u_name as pProjectManagerName,
+        mn.p_Category as pCategory,
+        <include refid="entityStreamlineFields"/>
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        left join Sys_user pmu on mn.p_Project_Manager=pmu.u_id
+        <if test="params.authSql != null and params.authSql !=''">
+            ${params.authSql}
+        </if>
+        <if test="params.noAuth != null">
+            WHERE 1=1
+        </if>
+        and mn.deleted = false
+        <include refid="projectStreamlineFilter"/>
+        <include refid="pNamePinYinSort"/>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getProjectListForInvPlan"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectStreamlineResponse">
+        select
+        c1.C_Name_History as pConstructionUnitNameHistory,
+        c2.C_Name_History as pAgentUnitNameHistory,
+        c3.C_Name_History as pDesignUnitNameHistory,
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name_History as pParentNameHistory,
+        parent.P_Name as pParentName,
+        mn.P_Imp_Company as pImpCompany,
+        ipv.Ipv_P_Type,
+        (select
+        u.U_Name as managerName
+        from
+        SYS_User u
+        left join SYS_Position_User_P pu on u.U_ID=pu.U_ID
+        left join SYS_Position_P p on pu.PP_ID=p.PP_ID
+        left join SYS_Department_P d on d.PD_ID=p.PD_ID
+        WHERE d.P_Id = mn.p_id AND p.PP_Name = '项目经理' limit 1) as managerName,
+        <include refid="entityStreamlineFields"/>
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        Left join Inv_Plan_Year ipv ON mn.p_id = ipv.p_id and ipv.Ipv_Declare_Year =#{params.icmReportingYear} and Ipv_State != 1
+        <if test="params.noAuth == null">
+            ${params.authSql}
+        </if>
+        <if test="params.noAuth != null">
+            WHERE 1=1
+        </if>
+        and mn.deleted = false
+        <if test="params.pCompetentDepartmentList != null">
+            and mn.P_Competent_Department IN
+            <foreach collection="params.pCompetentDepartmentList" separator="," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+        <include refid="projectStreamlineFilter"/>
+        <if test="params.icmReportingMonth!=null and params.icmReportingYear!=null and params.invPlanFlag!=null ">
+            and mn.P_Id IN (SELECT ipy.P_Id FROM Inv_Plan_Year ipy WHERE ipy.Ipv_Declare_Year = #{params.icmReportingYear}
+            and ipy.ipv_state = 7
+            <if test="params.ipvTypeList != null">
+                and ipy.Ipv_P_Type IN
+                <foreach collection="params.ipvTypeList" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            )
+            AND mn.P_Id NOT IN (SELECT icm.P_Id FROM Inv_Complete_Month icm
+            WHERE icm.Icm_Reporting_Month = #{params.icmReportingMonth}
+            and icm.Icm_Reporting_Year = #{params.icmReportingYear})
+
+            <if test="params.transferStatusList!=null and params.transferStatusList.size()>0">
+                OR mn.P_Id IN (SELECT icm.P_Id FROM Inv_Complete_Month icm left join Inv_Plan_Year ipyr on icm.Ipv_Id = ipyr.Ipv_Id
+                WHERE icm.Icm_Reporting_Month = #{params.icmReportingMonth}
+                and icm.Icm_Reporting_Year = #{params.icmReportingYear}
+                and icm.transfer_status not in
+                <foreach item="item" collection="params.transferStatusList" open="(" separator="," close=")" index="index">
+                    #{item}
+                </foreach>
+                <if test="params.ipvTypeList != null">
+                    and ipyr.Ipv_P_Type IN
+                    <foreach collection="params.ipvTypeList" separator="," open="(" close=")" item="item">
+                        #{item}
+                    </foreach>
+                </if>
+                )
+            </if>
+
+        </if>
+        <if test="params.icmReportingMonth!=null and params.icmReportingYear!=null and params.invPlanFlag==null ">
+            and mn.P_Id IN (SELECT icm.P_Id FROM Inv_Complete_Month icm
+            WHERE icm.Icm_Reporting_Month = #{params.icmReportingMonth}
+            and icm.Icm_Reporting_Year = #{params.icmReportingYear}
+            <if test="params.planCompleteResultList!= null and params.planCompleteResultList.size()>0">
+                and icm.plan_complete_result IN
+                <foreach collection="params.planCompleteResultList" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.completeResultList!= null and params.completeResultList.size()>0">
+                and icm.complete_result IN
+                <foreach collection="params.completeResultList" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.monthCumulativeInvProportion!= null">
+                and icm.month_cumulative_inv_proportion &lt; #{params.monthCumulativeInvProportion}
+            </if>
+            )
+        </if>
+        <include refid="pNamePinYinSort"/>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getDepartmentListForInvPlan"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectStreamlineResponse">
+        select
+        distinct mn.P_Competent_Department,
+        d.D_Name as pCompetentDepartmentName
+        from Pre_Project mn
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+            WHERE mn.deleted = false
+        <if test="params.icmReportingYear!=null">
+            and mn.P_Id IN (SELECT ipy.P_Id FROM Inv_Plan_Year ipy WHERE ipy.Ipv_Declare_Year = #{params.icmReportingYear}
+            and ipy.ipv_state = 7
+            )
+        </if>
+    </select>
+
+    <select id="getProjectStreamlineListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        left join Sys_user pmu on mn.p_Project_Manager=pmu.u_id
+        <if test="params.authSql != null and params.authSql !=''">
+            ${params.authSql}
+        </if>
+        <if test="params.noAuth != null">
+            WHERE 1=1
+        </if>
+        and mn.deleted = false
+        <include refid="projectStreamlineFilter"/>
+    </select>
+
+    <select id="getProjectListForInvPlanCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        <if test="params.noAuth == null">
+            ${params.authSql}
+        </if>
+        <if test="params.noAuth != null">
+            WHERE 1=1
+        </if>
+        and mn.deleted = false
+        <if test="params.pCompetentDepartmentList != null">
+            and mn.P_Competent_Department IN
+            <foreach collection="params.pCompetentDepartmentList" separator="," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+        <include refid="projectStreamlineFilter"/>
+        <if test="params.icmReportingMonth!=null and params.icmReportingYear!=null and params.invPlanFlag!=null ">
+            and mn.P_Id IN (SELECT ipy.P_Id FROM Inv_Plan_Year ipy WHERE ipy.Ipv_Declare_Year = #{params.icmReportingYear}
+            and ipy.ipv_state = 7
+            <if test="params.ipvTypeList != null">
+                and ipy.Ipv_P_Type IN
+                <foreach collection="params.ipvTypeList" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            )
+            AND mn.P_Id NOT IN (SELECT icm.P_Id FROM Inv_Complete_Month icm
+            WHERE icm.Icm_Reporting_Month = #{params.icmReportingMonth}
+            and icm.Icm_Reporting_Year = #{params.icmReportingYear})
+
+            <if test="params.transferStatusList!=null and params.transferStatusList.size()>0">
+                OR mn.P_Id IN (SELECT icm.P_Id FROM Inv_Complete_Month icm left join Inv_Plan_Year ipyr on icm.Ipv_Id = ipyr.Ipv_Id
+                WHERE icm.Icm_Reporting_Month = #{params.icmReportingMonth}
+                and icm.Icm_Reporting_Year = #{params.icmReportingYear}
+                and icm.transfer_status not in
+                <foreach item="item" collection="params.transferStatusList" open="(" separator="," close=")" index="index">
+                    #{item}
+                </foreach>
+                <if test="params.ipvTypeList != null">
+                    and ipyr.Ipv_P_Type IN
+                    <foreach collection="params.ipvTypeList" separator="," open="(" close=")" item="item">
+                        #{item}
+                    </foreach>
+                </if>
+                )
+            </if>
+
+        </if>
+        <if test="params.icmReportingMonth!=null and params.icmReportingYear!=null and params.invPlanFlag==null ">
+            and mn.P_Id IN (SELECT icm.P_Id FROM Inv_Complete_Month icm
+            WHERE icm.Icm_Reporting_Month = #{params.icmReportingMonth}
+            and icm.Icm_Reporting_Year = #{params.icmReportingYear}
+            <if test="params.planCompleteResultList!= null and params.planCompleteResultList.size()>0">
+                and icm.plan_complete_result IN
+                <foreach collection="params.planCompleteResultList" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.completeResultList!= null and params.completeResultList.size()>0">
+                and icm.complete_result IN
+                <foreach collection="params.completeResultList" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.monthCumulativeInvProportion!= null">
+                and icm.month_cumulative_inv_proportion &lt; #{params.monthCumulativeInvProportion}
+            </if>
+            )
+        </if>
+    </select>
+
+    <select id="getAllAuthProjectId" resultType="String">
+        select
+            mn.P_Id
+        from Pre_Project mn
+            ${authSql}
+        and mn.deleted = false
+    </select>
+
+    <sql id="listFilterNoAuth">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and mn.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.pParentId!=null">
+            and mn.P_Parent_ID = #{params.pParentId}
+        </if>
+        <if test="params.pStatus!=null">
+            and mn.P_Status = #{params.pStatus}
+        </if>
+        <if test="params.state!=null">
+            and (mn.state = #{params.state} or (mn.ppr_id is not null and mn.state != 3))
+        </if>
+        <if test="params.pSuperviseType!=null">
+            and mn.P_Supervise_Type = #{params.pSuperviseType}
+        </if>
+        <if test="params.pGroupType!=null">
+            and mn.P_Group_Type = #{params.pGroupType}
+        </if>
+        <if test="params.pImpState!=null">
+            and mn.P_Imp_State = #{params.pImpState}
+        </if>
+        <if test="params.pAdvanceFund!=null">
+            and mn.P_Advance_Fund = #{params.pAdvanceFund}
+        </if>
+        <if test="params.pCorporateRisk!=null">
+            and mn.P_Corporate_Risk = #{params.pCorporateRisk}
+        </if>
+        <if test="params.pBuildModel!=null">
+            and mn.P_Build_Model = #{params.pBuildModel}
+        </if>
+        <if test="params.pInvCaliber!=null">
+            and mn.P_Inv_Caliber = #{params.pInvCaliber}
+        </if>
+        <if test="params.pIsProjectApproval!=null">
+            and mn.P_Is_Project_Approval = #{params.pIsProjectApproval}
+        </if>
+        <if test="params.pCheckType!=null">
+            and mn.P_Check_Type = #{params.pCheckType}
+        </if>
+        <if test="params.containDiscard!=null and params.containDiscard==0">
+            and mn.State != 3
+        </if>
+        <if test="params.pNature!=null">
+            and mn.P_Nature = #{params.pNature}
+        </if>
+        <if test="params.pApplyName!=null">
+            and mn.P_Apply_Name like concat('%',#{params.pApplyName},'%')
+        </if>
+        <if test="params.pAssignmentNo!=null">
+            and mn.P_Assignment_No like concat('%',#{params.pAssignmentNo},'%')
+        </if>
+        <if test="params.pCreateUserName!=null">
+            and mn.P_Create_User_Name like concat('%',#{params.pCreateUserName},'%')
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.pConstructionUnitName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.pConstructionUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and mn.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and mn.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.pSafetyFiling!=null">
+            and mn.P_Safety_Filing like concat('%',#{params.pSafetyFiling},'%')
+        </if>
+        <if test="params.pOverview!=null">
+            and mn.P_Overview like concat('%',#{params.pOverview},'%')
+        </if>
+        <if test="params.pImpCompany!=null">
+            and mn.P_Imp_Company like concat('%',#{params.pImpCompany},'%')
+        </if>
+        <if test="params.pApplyTilte!=null">
+            and mn.P_Apply_Tilte like concat('%',#{params.pApplyTilte},'%')
+        </if>
+        <if test="params.pApproveBudgetCode!=null">
+            and mn.P_Approve_Budget_Code like concat('%',#{params.pApproveBudgetCode},'%')
+        </if>
+        <if test="params.pInvTilte!=null">
+            and mn.P_Inv_Tilte like concat('%',#{params.pInvTilte},'%')
+        </if>
+        <if test="params.pInvCode!=null">
+            and mn.P_Inv_Code like concat('%',#{params.pInvCode},'%')
+        </if>
+        <if test="params.filterParentCollection!=null">
+            <if test="params.filterParentCollection==true">
+                and (mn.P_Parent_ID is not null and mn.P_Parent_ID!='0' )
+            </if>
+            <if test="params.filterParentCollection==false">
+                and (mn.P_Parent_ID is null or mn.P_Parent_ID='0' )
+            </if>
+        </if>
+        <if test="params.pBuildingScaleStart!=null">
+            and mn.P_Building_Scale >= #{params.pBuildingScaleStart}
+        </if>
+        <if test="params.pBuildingScaleEnd!=null">
+            and mn.P_Building_Scale &lt;= #{params.pBuildingScaleEnd}
+        </if>
+        <if test="params.pInterventionYearStart!=null">
+            and mn.P_Intervention_Year >= #{params.pInterventionYearStart}
+        </if>
+        <if test="params.pInterventionYearEnd!=null">
+            and mn.P_Intervention_Year &lt;= #{params.pInterventionYearEnd}
+        </if>
+        <if test="params.pInterventionEndYearStart!=null">
+            and mn.P_Intervention_End_Year >= #{params.pInterventionEndYearStart}
+        </if>
+        <if test="params.pInterventionEndYearEnd!=null">
+            and mn.P_Intervention_End_Year &lt;= #{params.pInterventionEndYearEnd}
+        </if>
+        <if test="params.pInvTotalStart!=null">
+            and mn.P_Inv_Total >= #{params.pInvTotalStart}
+        </if>
+        <if test="params.pInvTotalEnd!=null">
+            and mn.P_Inv_Total &lt;= #{params.pInvTotalEnd}
+        </if>
+        <if test="params.pInvDateStart!=null">
+            and mn.P_Inv_Date >= #{params.pInvDateStart}
+        </if>
+        <if test="params.pInvDateEnd!=null">
+            and mn.P_Inv_Date &lt;= #{params.pInvDateEnd}
+        </if>
+        <if test="params.pCalculateRoughlyAmountStart!=null">
+            and mn.P_Calculate_Roughly_Amount >= #{params.pCalculateRoughlyAmountStart}
+        </if>
+        <if test="params.pCalculateRoughlyAmountEnd!=null">
+            and mn.P_Calculate_Roughly_Amount &lt;= #{params.pCalculateRoughlyAmountEnd}
+        </if>
+        <if test="params.pEstimateAmountStart!=null">
+            and mn.P_Estimate_Amount >= #{params.pEstimateAmountStart}
+        </if>
+        <if test="params.pEstimateAmountEnd!=null">
+            and mn.P_Estimate_Amount &lt;= #{params.pEstimateAmountEnd}
+        </if>
+        <if test="params.pApproveBudgetStart!=null">
+            and mn.P_Approve_Budget >= #{params.pApproveBudgetStart}
+        </if>
+        <if test="params.pApproveBudgetEnd!=null">
+            and mn.P_Approve_Budget &lt;= #{params.pApproveBudgetEnd}
+        </if>
+        <if test="params.pTotalDurationStart!=null">
+            and mn.P_Total_Duration >= #{params.pTotalDurationStart}
+        </if>
+        <if test="params.pTotalDurationEnd!=null">
+            and mn.P_Total_Duration &lt;= #{params.pTotalDurationEnd}
+        </if>
+        <if test="params.pActualTotalDurationStart!=null">
+            and mn.P_Actual_Total_Duration >= #{params.pActualTotalDurationStart}
+        </if>
+        <if test="params.pActualTotalDurationEnd!=null">
+            and mn.P_Actual_Total_Duration &lt;= #{params.pActualTotalDurationEnd}
+        </if>
+        <if test="params.actualCompleteStart!=null">
+            and mn.P_Actual_Complete_Date >= #{params.actualCompleteStart}
+        </if>
+        <if test="params.actualCompleteEnd!=null">
+            and mn.P_Actual_Complete_Date &lt;= #{params.actualCompleteEnd}
+        </if>
+        <if test="params.actualStartStart!=null">
+            and mn.P_Actual_Start_Time >= #{params.actualStartStart}
+        </if>
+        <if test="params.actualStartEnd!=null">
+            and mn.P_Actual_Start_Time &lt;= #{params.actualStartEnd}
+        </if>
+        <if test="params.approveBudgetStart!=null">
+            and mn.P_Approve_Budget_Date >= #{params.approveBudgetStart}
+        </if>
+        <if test="params.approveBudgetEnd!=null">
+            and mn.P_Approve_Budget_Date &lt;= #{params.approveBudgetEnd}
+        </if>
+        <if test="params.pInterventionYear!=null">
+            and mn.P_Intervention_Year = #{params.pInterventionYear}
+        </if>
+        <if test="params.pType!=null">
+            and mn.P_Type = #{params.pType}
+        </if>
+        <include refid="constrStartEndFilter"/>
+        <include refid="constructionFilter"/>
+    </sql>
+
+    <select id="getProjectListNoAuth"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectStreamlineResponse">
+        select
+        c1.C_Name_History as pConstructionUnitNameHistory,
+        c2.C_Name_History as pAgentUnitNameHistory,
+        c3.C_Name_History as pDesignUnitNameHistory,
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        c4.c_Name as pUseUnitName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name_History as pParentNameHistory,
+        parent.P_Name as pParentName,
+        mn.p_Project_Director_Tel as pProjectDirectorTel,
+        <include refid="entityStreamlineFields"/>
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Company c4 on c4.C_Id=mn.P_Use_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        where mn.deleted = false
+        <include refid="listFilterNoAuth"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.P_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getProjectListNoAuthCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        where mn.deleted = false
+        <include refid="listFilterNoAuth"/>
+    </select>
+
+
+    <select id="getProjectListBackstage"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectStreamlineResponse">
+        select
+        c1.C_Name_History as pConstructionUnitNameHistory,
+        c2.C_Name_History as pAgentUnitNameHistory,
+        c3.C_Name_History as pDesignUnitNameHistory,
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name_History as pParentNameHistory,
+        parent.P_Name as pParentName,
+        <include refid="entityStreamlineFields"/>
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        where mn.deleted = false
+        <include refid="listFilterNoAuth"/>
+        <if test="params.depIds!=null and params.depIds.size()>0">
+            and mn.P_Competent_Department in
+            <foreach collection="params.depIds" open="(" close=")" item="depId" separator=",">
+                #{depId}
+            </foreach>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.P_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="entityFields">
+        mn.P_ID as pId,
+        mn.PR_ID as prId,
+        mn.P_Code as pCode,
+        mn.P_Parent_ID as pParentId,
+        mn.P_Name as pName,
+        mn.P_Project_Abbreviation as pProjectAbbreviation,
+        mn.P_Original_Name as pOriginalName,
+        mn.P_Name_Initials as pNameInitials,
+        mn.P_Project_Code as pProjectCode,
+        mn.P_Address as pAddress,
+        mn.P_Region as pRegion,
+        mn.P_Construction_Area as pConstructionArea,
+        mn.P_Longitude as pLongitude,
+        mn.P_Latitude as pLatitude,
+        mn.P_Overview as pOverview,
+        mn.P_Volume_Rate as pVolumeRate,
+        mn.P_Land_Area as pLandArea,
+        mn.P_Seat as pSeat,
+        mn.P_Number_Of_Elevators as pNumberOfElevators,
+        mn.P_Max_Height as pMaxHeight,
+        mn.P_Parking_Number as pParkingNumber,
+        mn.P_Buildings_Number as pBuildingsNumber,
+        mn.P_Design_Life as pDesignLife,
+        mn.P_Super_Structure as pSuperStructure,
+        mn.P_Basic_Structure as pBasicStructure,
+        mn.P_Ground_Floors as pGroundFloors,
+        mn.P_Under_Ground_Floors as pUnderGroundFloors,
+        mn.P_Is_Gas as pIsGas,
+        mn.P_Basement_Area as pBasementArea,
+        mn.P_Is_Air_Defense as pIsAirDefense,
+        mn.P_Air_Defense_Area as pAirDefenseArea,
+        mn.P_Type as pType,
+        mn.P_Major_Type as pMajorType,
+        mn.P_Construction_Unit as pConstructionUnit,
+        mn.P_Competent_Department as pCompetentDepartment,
+        mn.P_Project_Director as pProjectDirector,
+        mn.P_Project_Stage as pProjectStage,
+        mn.P_Project_Status as pProjectStatus,
+        mn.P_PLan_Start_Date as pPlanStartDate,
+        mn.P_Plan_Complete_Date as pPlanCompleteDate,
+        mn.P_Total_Duration as pTotalDuration,
+        mn.P_Actual_Start_Time as pActualStartTime,
+        mn.P_Actual_Complete_Date as pActualCompleteDate,
+        mn.P_Actual_Total_Duration as pActualTotalDuration,
+        mn.P_Intervention_Date as pInterventionDate,
+        mn.P_Intervention_Year as pInterventionYear,
+        mn.P_Receipt_Time as pReceiptTime,
+        mn.P_Acceptance_Record_Date as pAcceptanceRecordDate,
+        mn.P_Handover_Date as pHandoverDate,
+        mn.P_Is_Project_Summary as pIsProjectSummary,
+        mn.P_Use_Unit as pUseUnit,
+        mn.P_Sources_Funds as pSourcesFunds,
+        mn.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+        mn.P_Estimate_Amount as pEstimateAmount,
+        mn.P_Approve_Budget as pApproveBudget,
+        mn.P_Approve_Budget_Code as pApproveBudgetCode,
+        mn.P_Approve_Budget_Date as pApproveBudgetDate,
+        mn.P_Final_Accounts as pFinalAccounts,
+        mn.P_Final_Accounts_Report_Date as pFinalAccountsReportDate,
+        mn.P_Construction_Project_Planning_Permit_Code as pConstructionProjectPlanningPermitCode,
+        mn.P_Construction_Land_Planning_PermitCode as pConstructionLandPlanningPermitcode,
+        mn.P_Opinions_On_Site_Selection_For_Construction_Projects_Code as pOpinionsOnSiteSelectionForConstructionProjectsCode,
+        mn.P_Land_Use_Right_Assignment_Contract_Code as pLandUseRightAssignmentContractCode,
+        mn.P_Feasibility_Study_Approval_Code as pFeasibilityStudyApprovalCode,
+        mn.P_EIA_Approval_Code as pEiaApprovalCode,
+        mn.P_Is_Agent_Construction as pIsAgentConstruction,
+        mn.P_Agent_Construction_Unit as pAgentConstructionUnit,
+        mn.P_Design_Grade as pDesignGrade,
+        mn.P_Is_Prefabricated as pIsPrefabricated,
+        mn.P_Four_New_Technologies as pFourNewTechnologies,
+        mn.P_BIM_Technology as pBimTechnology,
+        mn.P_Is_EPC as pIsEpc,
+        mn.P_Is_Sponge_City as pIsSpongeCity,
+        mn.P_Is_Regular_Mode as pIsRegularMode,
+        mn.P_Is_Design_And_Construction_Integration as pIsDesignAndConstructionIntegration,
+        mn.P_Design_And_Construction_Integration_Unit as  pDesignAndConstructionIntegrationUnit,
+        mn.P_Is_Whole_Process_Management as pIsWholeProcessManagement,
+        mn.P_Whole_Process_Management_Unit as pWholeProcessManagementUnit,
+        mn.P_Construction_Cooperation as pConstructionCooperation,
+        mn.P_Status as pStatus,
+        mn.P_Create_User_ID as pCreateUserId,
+        mn.P_Create_User_Name as pCreateUserName,
+        mn.P_Create_Time as pCreateTime,
+        mn.P_Update_User_ID as pUpdateUserId,
+        mn.P_Update_Time as pUpdateTime,
+        mn.P_Serial_Number as pSerialNumber,
+        mn.deleted as deleted,
+        mn.P_Assignment_No as pAssignmentNo,
+        mn.P_Raise_Funds as pRaiseFunds,
+        mn.P_Introduction as pIntroduction,
+        mn.P_Land_Warrant as pLandWarrant,
+        mn.P_Parking_Number_Un as pParkingNumberUn,
+        mn.P_Parking_Number_On as pParkingNumberOn,
+        mn.P_Item_Number as pItemNumber,
+        mn.P_Pre_Item_Number as pPreItemNumber,
+        mn.P_Pre_Item_Time as pPreItemTime,
+        mn.P_Item_Time as pItemTime,
+        mn.P_Site_Area as pSiteArea,
+        mn.P_Cm_Mode as pCmMode,
+        mn.P_Name_History as pNameHistory,
+        mn.P_Assignment_File as pAssignmentFile,
+        mn.P_Committee_Approva_Document as pCommitteeApprovaDocument,
+        mn.P_City_Leader_Meeting_Minutes as pCityLeaderMeetingMinutes,
+        mn.P_City_Leader_Instructions as pCityLeaderInstructions,
+        mn.P_Other as pOther,
+        mn.P_Nature as pNature,
+        mn.P_Reported_Amount as pReportedAmount,
+        mn.P_Approva_Document as pApprovaDocument,
+        mn.P_Leader_Meeting_Minutes as pLeaderMeetingMinutes,
+        mn.P_Leader_Instructions as pLeaderInstructions,
+        mn.P_Project_Director_Tel as pProjectDirectorTel,
+        mn.P_Construction_Cost as pConstructionCost,
+        mn.P_Contract_Price as pContractPrice,
+        mn.P_Purchase_Price as pPurchasePrice,
+        mn.P_Estimate_File as pEstimateFile,
+        mn.P_Scale_Describe as pScaleDescribe,
+        mn.P_Bim as pBim,
+        mn.P_Smart_Site as pSmartSite,
+        mn.P_Management_System as pManagementSystem,
+        mn.P_New_Technology as pNewTechnology,
+        mn.P_New_Material as pNewMaterial,
+        mn.P_New_Craft as pNewCraft,
+        mn.P_Save_Energy as pSaveEnergy,
+        mn.P_Save_Land as pSaveLand,
+        mn.P_Save_Water as pSaveWater,
+        mn.P_Save_Material as pSaveMaterial,
+        mn.P_Digital_Construction as pDigitalConstruction,
+        mn.P_Green_Construction as pGreenConstruction,
+        mn.P_Centralized_Construction as pCentralizedConstruction,
+        mn.P_Contracting_Mode as pContractingMode,
+        mn.P_Process_Consulting as pProcessConsulting,
+        mn.P_Engineer_Responsible as pEngineerResponsible,
+        mn.P_Is_Project_Approval  as pIsProjectApproval,
+        mn.P_Building_Scale  as pBuildingScale,
+        mn.P_Building_Unit  as pBuildingUnit,
+        mn.State as state,
+        mn.State_Time as stateTime,
+        mn.P_Supervise_Type as pSuperviseType,
+        mn.P_Group_Type as pGroupType,
+        mn.P_Remark_Planned as pRemarkPlanned,
+        mn.P_Plan_Number as pPlanNumber,
+        mn.P_Cons_Release as pConsRelease,
+        mn.P_Imp_Company as pImpCompany,
+        mn.P_Imp_State as pImpState,
+        mn.P_Apply_Tilte as pApplyTilte,
+        mn.P_Inv_Total as pInvTotal,
+        mn.P_Inv_Caliber as pInvCaliber,
+        mn.P_Inv_Tilte as pInvTilte,
+        mn.P_Inv_Code as pInvCode,
+        mn.P_Inv_Date as pInvDate,
+        mn.P_Inv_File as pInvFile,
+        mn.P_Pass_Video as pPassVideo,
+        mn.P_Build_Model as pBuildModel,
+        mn.P_Intervention_End_Year as  pInterventionEndYear,
+        mn.P_Each_District as pEachDistrict,
+        mn.P_Approval_Unit as  pApprovalUnit,
+        mn.P_Construction_Start as  pConstructionStart,
+        mn.P_Construction_End as  pConstructionEnd,
+        mn.P_Check_Type as  pCheckType,
+        mn.P_Progress_Situation as pProgressSituation,
+        mn.P_Record_Number as pRecordNumber,
+        mn.P_Category as pCategory,
+        mn.P_Economic_File as pEconomicFile,
+        mn.P_Proposal_File as pProposalFile,
+        mn.P_Report_File as pReportFile,
+        mn.P_Inv_Category as pInvCategory,
+        mn.P_Advance_Fund as pAdvanceFund,
+        mn.P_Corporate_Risk as pCorporateRisk,
+        mn.P_Safety_Filing as pSafetyFiling,
+        mn.Cpl_Id as cplId,
+        mn.P_Apply_Name as pApplyName,
+        mn.P_Fiscal_Budget as pFiscalBudget,
+        mn.P_Campus as pCampus,
+        mn.P_Audit_Unit as pAuditUnit,
+        mn.P_Cost_Unit  as pCostUnit,
+        mn.P_Opinion_File  as pOpinionFile,
+        mn.P_Plan_File  as pPlanFile,
+        mn.P_Feasibility_File  as pFeasibilityFile,
+        mn.P_Approve_File  as pApproveFile,
+        mn.P_Sbgjgzf_Amt  as pSbgjgzfAmt,
+        mn.P_Gcjsqt_Amt  as pGcjsqtAmt,
+        mn.P_Yb_Amt  as pYbAmt,
+        mn.P_Construction_File  as pConstructionFile,
+        mn.P_Sbgjgzf_File  as pSbgjgzfFile,
+        mn.P_Gcjsqt_File  as pGcjsqtFile,
+        mn.P_Yb_File  as pYbFile,
+        mn.P_Rate  as pRate,
+        mn.P_Weight  as pWeight,
+        mn.P_Contact as pContact,
+        mn.P_Contact_Phone as pContactPhone,
+        mn.P_Repair_Project as pRepairProject,
+        mn.P_Project_Basis as pProjectBasis,
+        mn.P_Content as pContent,
+        mn.P_Sec_Type as pSecType,
+        mn.P_Funds_Sources as pFundsSources,
+        mn.P_Initial_Approval_Number as pInitialApprovalNumber,
+        mn.P_Initial_Approval_Amount as pInitialApprovalAmount,
+        mn.P_Settlement_Audit_Report_Date as pSettlementAuditReportDate,
+        mn.P_Settlement_Audit_Amount as pSettlementAuditAmount,
+        mn.P_Address_Detail as pAddressDetail,
+        mn.total_building_scale as totalBuildingScale,
+        mn.P_Project_Form_Type as pProjectFormType,
+        mn.P_Project_Number as pProjectNumber,
+        mn.P_Approval_Investment_Amount as pApprovalInvestmentAmount,
+        mn.P_Record_Num as pRecordNum,
+        mn.P_Can_Yan_Apply_Unit as pCanYanApplyUnit,
+        mn.P_Can_Yan_Approval_Unit as pCanYanApprovalUnit,
+        mn.P_Record_Date as pRecordDate,
+        mn.P_Record_File as pRecordFile,
+        mn.P_Record_Amount as pRecordAmount,
+        mn.P_Legal_Unit as pLegalUnit,
+        mn.P_Record_Issue_Unit as pRecordIssueUnit,
+        mn.P_Apply_File as pApplyFile,
+        mn.P_Apply_Date as pApplyDate,
+        mn.P_Approval_Amount as pApprovalAmount,
+        mn.P_Investment_Constitute as pInvestmentConstitute,
+        mn.P_Build_Type as pBuildType,
+        mn.P_Build_Year as pBuildYear,
+        mn.P_Professional_Type as pProfessionalType,
+        mn.P_Transfer_Unit as pTransferUnit,
+        mn.P_Project_Manager as pProjectManager,
+        mn.P_Project_Leader as pProjectLeader,
+        mn.P_Engineer as pEngineer,
+        mn.P_Engineer_Leader as pEngineerLeader,
+        mn.comprehensive_plan_department_contact_user_id,
+        mn.comprehensive_plan_department_contact_user_name,
+        mn.office_contact_user_id,
+        mn.office_contact_user_name,
+        mn.comprehensive_technology_department_contact_user_id,
+        mn.comprehensive_technology_department_contact_user_name,
+        mn.pm_department_contact_user_id,
+        mn.pm_department_contact_user_name,
+        mn.Pr_Committee_Project_Code prCommitteeProjectCode,
+        mn.Pr_Committee_Approva_Document prCommitteeApprovaDocument,
+        mn.Pr_City_Leader_Meeting_Minutes prCityLeaderMeetingMinutes,
+        mn.Pr_City_Leader_Instructions prCityLeaderInstructions,
+        mn.Pr_Other prOther,
+        mn.is_group_investment as isGroupInvestment,
+        mn.project_nature as projectNature,
+        mn.project_investment_category as projectInvestmentCategory,
+        mn.project_category_details as projectCategoryDetails,
+        mn.project_category as projectCategory,
+        mn.is_history as isHistory,
+        mn.project_owner as projectOwner,
+        mn.project_initiating_unit as projectInitiatingUnit,
+        mn.P_Investment_Constitute_Remark as pInvestmentConstituteRemark,
+        mn.P_Item_Time_New as pItemTimeNew,
+        mn.P_Feasibility_Title as pFeasibilityTitle,
+        mn.P_Feasibility_Time as pFeasibilityTime,
+        mn.P_Approve_Budget_Name as pApproveBudgetName,
+        mn.p_Approve_Budget_Date_New as pApproveBudgetDateNew,
+        mn.P_Construction_Time as pConstructionTime,
+        mn.P_Construction_Land_Time as pConstructionLandTime,
+        mn.P_Opinions_On_Time as pOpinionsOnTime,
+        mn.P_Land_Use_Time as pLandUseTime,
+        mn.P_Engineering_Construction_Code as pEngineeringConstructionCode,
+        mn.P_Engineering_Construction_Time as pEngineeringConstructionTime,
+        mn.ppr_id as pprId
+    </sql>
+
+    <sql id="entityStreamlineFields">
+        mn.P_ID as pId,
+        mn.P_Parent_ID as pParentId,
+        mn.P_Code as pCode,
+        mn.P_Name as pName,
+        mn.P_Project_Code as pProjectCode,
+        mn.P_Construction_Unit as pConstructionUnit,
+        mn.P_Assignment_No as pAssignmentNo,
+        mn.P_Overview as pOverview,
+        mn.P_Project_Abbreviation as pProjectAbbreviation,
+        mn.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+        mn.P_Project_Stage as pProjectStage,
+        mn.P_Project_Status as pProjectStatus,
+        mn.P_Competent_Department as pCompetentDepartment,
+        mn.P_Major_Type as pMajorType,
+        mn.P_Region as pRegion,
+        mn.P_Longitude as pLongitude,
+        mn.P_Latitude as pLatitude,
+        mn.P_Project_Director as pProjectDirector,
+        mn.P_Intervention_Year as pInterventionYear,
+        mn.P_Name_Initials as pNameInitials,
+        mn.P_Is_Agent_Construction as pIsAgentConstruction,
+        mn.P_Agent_Construction_Unit as pAgentConstructionUnit,
+        mn.P_Design_And_Construction_Integration_Unit as pDesignAndConstructionIntegrationUnit,
+        mn.P_Address as pAddress,
+        mn.P_Name_History as pNameHistory,
+        mn.P_Approve_Budget as pApproveBudget,
+        mn.P_Scale_Describe as pScaleDescribe,
+        mn.P_Use_Unit as pUseUnit,
+        mn.P_PLan_Start_Date as pPlanStartDate,
+        mn.P_Nature as pNature,
+        mn.P_Estimate_Amount as pEstimateAmount,
+        mn.P_Plan_Complete_Date as pPlanCompleteDate,
+        mn.P_Each_District as pEachDistrict,
+        mn.P_Inv_Total as pInvTotal,
+        mn.P_Approve_Budget_Code as pApproveBudgetCode,
+        mn.P_Approve_Budget_Date as pApproveBudgetDate,
+        mn.P_Approval_Unit as  pApprovalUnit,
+        mn.P_Build_Model as pBuildModel,
+        mn.P_Inv_Category as pInvCategory,
+        mn.P_Type as pType,
+        mn.P_Advance_Fund as pAdvanceFund,
+        mn.P_Corporate_Risk as pCorporateRisk,
+        mn.P_Safety_Filing as pSafetyFiling,
+        mn.P_Apply_Name as pApplyName,
+        mn.P_Fiscal_Budget as pFiscalBudget,
+        mn.P_Auth_Type as pAuthType,
+        mn.p_sec_type as pSecType,
+        mn.p_imp_company as pImpCompany,
+        mn.P_EngineeringSpecialty as pEngineeringspecialty,
+        mn.P_Final_Accounts as pFinalAccounts,
+        mn.p_apply_file as pApplyFile,
+        mn.p_approve_budget as pApproveBudget,
+        mn.p_record_amount as pRecordAmount,
+        mn.p_approval_amount as pApprovalAmount,
+        mn.p_inv_total as pInvTotal,
+        mn.p_project_form_type as pProjectFormType,
+        mn.P_Create_User_ID as pCreateUserId,
+        mn.P_Create_User_Name as pCreateUserName,
+        mn.P_Create_Time as pCreateTime,
+        mn.State as state,
+        mn.State_Time as stateTime,
+        mn.p_Project_Manager as pProjectManager,
+        mn.p_Smart_Code as pSmartCode,
+        mn.P_Campus as pCampus,
+        mn.P_Sources_Funds as pSourcesFunds,
+        mn.P_Professional_Type as pProfessionalType,
+        mn.P_Professional_Type_Remark as pProfessionalTypeRemark
+    </sql>
+
+    <!--************************************* dm *************************************-->
+    <sql id="pNamePinYinSort" databaseId="dm">
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null and params.sortFiled!='p_Name'">
+                order by ISNULL(mn.${params.sortFiled}),mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortSideFiled!=null and params.sortType!=null and params.sortFiled!='p_Name'">
+                order by ISNULL(${params.sortSideFiled}),${params.sortSideFiled} ${params.sortType}
+            </when>
+            <when test="params.sortFiled=='p_Name'">
+                order by NLSSORT(mn.P_Name,'NLS_SORT = SCHINESE_PINYIN_M')
+            </when>
+            <otherwise>
+                order by mn.P_Create_Time DESC
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="pConsPeriodFiled" databaseId="dm">
+        concat (to_char(P_Construction_Start,'yyyy'),'~',to_char(P_Construction_End,'yyyy')) as pConsPeriod,
+    </sql>
+
+    <sql id="constructionFilter" databaseId="dm">
+        <if test="params.constructionFilter==true">
+            and (months_between(to_date(now(),'yyyy-mm-dd') , to_date(mn.P_Construction_Start,'yyyy-mm-dd'))>=0
+            and months_between(to_date(mn.P_Construction_End,'yyyy-mm-dd') , to_date(now(),'yyyy-mm-dd'))>=0
+            )
+        </if>
+    </sql>
+
+    <sql id="constrStartEndFilter" databaseId="dm">
+        <if test="params.pConstructionStartStart!=null">
+            and months_between(to_date(mn.P_Construction_Start,'yyyy-mm-dd') ,
+            to_date(#{params.pConstructionStartStart},'yyyy-mm-dd')) &lt;= 0
+        </if>
+        <if test="params.pConstructionStartEnd!=null">
+            and months_between(to_date(mn.P_Construction_Start,'yyyy-mm-dd') ,
+            to_date(#{params.pConstructionStartEnd},'yyyy-mm-dd')) >= 0
+        </if>
+        <if test="params.pConstructionEndStart!=null">
+            and months_between(to_date(mn.P_Construction_End,'yyyy-mm-dd') ,
+            to_date(#{params.pConstructionEndStart},'yyyy-mm-dd')) &lt;= 0
+        </if>
+        <if test="params.pConstructionEndEnd!=null">
+            and months_between(to_date(mn.P_Construction_End,'yyyy-mm-dd') ,
+            to_date(#{params.pConstructionEndEnd},'yyyy-mm-dd')) >= 0
+        </if>
+    </sql>
+
+    <select id="getWorkbenchOverviewModel" databaseId="dm"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Workbench.WorkbenchOverviewModel">
+        select (select count(1)
+                from Qs_Record
+                where Qsr_Category = 0 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Rectify_Require_Time &lt; now() and (Qsr_State != 7 and Qsr_State != 3))                    as qualityOverdue,
+                (select count(1)
+                from Qs_Record
+                where Qsr_Category = 0 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and Qsr_Rectify_Require_Time &lt; now()
+                and (Qsr_State != 7 and Qsr_State != 3)
+                and DateDiff(month, Qsr_Create_Time, getdate()) = 0)                as qualityOverdueMonth,
+                (select count(1)
+                from Qs_Record
+                where Qsr_Category = 0 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                <choose>
+                    <when test="qsAddToday == 'true' ">
+                        and DateDiff(dd, Qsr_Time, getdate()) = 0
+                    </when>
+                    <otherwise>
+                        and DateDiff(dd, Qsr_Create_Time, getdate()) = 0
+                    </otherwise>
+                </choose>
+                  )                                                   as qualityToday,
+                (select count(1)
+                from Qs_Record
+                where Qsr_Category = 0 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and DateDiff(month,
+                <choose>
+                    <when test="qsAddToday == 'true'">Qsr_Time</when>
+                    <otherwise>Qsr_Create_Time</otherwise>
+                </choose>, getdate()) = 0) as qualityTodayMonth,
+               (select count(1)
+                from Qs_Record
+                where Qsr_Category = 1 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and Qsr_Rectify_Require_Time &lt; now()
+                  and (Qsr_State != 7 and Qsr_State != 3))                                                                                 as securityOverdue,
+                (select count(1)
+                from Qs_Record
+                where Qsr_Category = 1 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and Qsr_Rectify_Require_Time &lt; now()
+                and (Qsr_State != 7 and Qsr_State != 3)
+                and DateDiff(month, Qsr_Create_Time, getdate()) = 0)                as securityOverdueMonth,
+               (select count(1)
+                from Qs_Record
+                where Qsr_Category = 1 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                <choose>
+                    <when test="qsAddToday == 'true'  ">
+                        and DateDiff(dd, Qsr_Time, getdate()) = 0
+                    </when>
+                    <otherwise>
+                        and DateDiff(dd, Qsr_Create_Time, getdate()) = 0
+                    </otherwise>
+                </choose>
+                  )                                                   as securityToday,
+               (select count(1)
+               from Qs_Record
+               where Qsr_Category = 1 <if test="teId!=null"> and Te_Id = #{teId} </if>
+               and DateDiff(month,
+               <choose>
+                   <when test="qsAddToday == 'true'">Qsr_Time</when>
+                   <otherwise>Qsr_Create_Time</otherwise>
+               </choose>, getdate()) = 0) as securityMonth,
+               (select count(1) from Risk_Warn where 1=1 <if test="teId!=null"> and Te_Id = #{teId} </if>)                                                                       as riskWarnCount,
+               (select count(1) from Risk_Warn where (Rw_State != 7 or Rw_State is null)
+                    <if test="teId!=null"> and Te_Id = #{teId} </if>        )                                         as riskWarnUntreated,
+               (select count(1) from Con_Contract where Con_Approval_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> )    as contractCount,
+               (select sum(Con_Money_Total)
+                from Con_Contract
+                where Con_Approval_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> )  as contractAmt,
+               (select count(1)
+                from Con_Pay
+                where Pay_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and DateDiff(month, Pay_Create_Time, getdate()) = 0)                                                as payMonth,
+                (NVL((select sum(Pay_Apply) from Con_Pay where Pay_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and Pay_Type != '02' and Pay_Type != '0201'), 0)
+                + NVL((select sum(Pay_Apply_Owner)
+                from Con_Pay
+                where Pay_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and (Pay_Type = '02' or Pay_Type = '0201')), 0))                                                  as payAmt,
+                (select sum(Ipv_Planned_Investment)
+                from Inv_Plan_Year
+                where Ipv_Declare_Year = #{year} <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and Ipv_State = 7)                                                                                  as planYearAmt,
+               ((select sum(a.Icm_Monthly_Investment)
+                 from Inv_Complete_Month a
+                 left join Inv_Plan_Year b on b.Ipv_Id = a.Ipv_Id
+                 where b.Ipv_Declare_Year = #{year} <if test="teId!=null"> and Te_Id = #{teId} </if>
+                 and b.Ipv_State = 7
+                 and (a.Icm_State = 7 or cast(a.transfer_status as int) = 7))
+                   / (select sum(Ipv_Planned_Investment)
+                      from Inv_Plan_Year
+                      where Ipv_Declare_Year = #{year} <if test="teId!=null"> and Te_Id = #{teId} </if>
+                        and Ipv_State = 7))                                                                           as planYearRatio,
+               (select count(1)
+                from Gantt_Plan
+                where Plan_State != 3 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and ((Plan_Actual_End is null and Plan_End &lt; now()) or Plan_End &lt; Plan_Actual_End))                   as ganttPlanOverdue,
+               (select count(1)
+                from Gantt_Plan
+                where Plan_State != 3 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and Plan_Finish_State = 0
+                  and to_number(Plan_End - now()) between 0 and 30)                                                          as ganttPlanTemporary,
+               (select count(1) from Con_EC where Ec_State = 7
+                 <if test="teId!=null"> and Te_Id = #{teId} </if>   )                                              as conEcCount,
+               (select count(1)
+                from Con_EC
+                where Ec_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and DateDiff(month, Ec_Create_Time, getdate()) = 0)                                                 as conEcMonth,
+               (select count(distinct P_Construction_Unit) from Pre_Project
+                where 1=1 <if test="teId!=null"> and Te_Id = #{teId} </if> )                                          as proUnitCount,
+               (select count(distinct sup.U_Id) from SYS_Position_User_P sup left join Sys_User su on sup.U_Id=su.U_Id
+                where 1=1 <if test="teId!=null"> and su.Te_Id = #{teId} </if> )                                    as proUserCount
+    </select>
+
+
+
+    <!--************************************* postgre *************************************-->
+    <sql id="pNamePinYinSort" databaseId="postgre">
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortSideFiled!=null and params.sortType!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.P_Create_Time DESC
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="pConsPeriodFiled" databaseId="postgre">
+        concat(to_char(P_Construction_Start,'yyyy'),'~',to_char(P_Construction_End,'yyyy')) as pConsPeriod,
+    </sql>
+
+    <sql id="constructionFilter" databaseId="postgre">
+        <if test="params.constructionFilter==true">
+            and (
+            EXTRACT(MONTH  from age(now(), mn.P_Construction_Start)) >=0
+            and  EXTRACT(MONTH  from age(mn.P_Construction_End,  now())) >=0
+            )
+        </if>
+    </sql>
+
+    <sql id="constrStartEndFilter" databaseId="postgre">
+        <if test="params.pConstructionStartStart!=null">
+            and EXTRACT(MONTH  from age(mn.P_Construction_Start, #{params.pConstructionStartStart}) &lt;= 0
+        </if>
+        <if test="params.pConstructionStartEnd!=null">
+            and EXTRACT(MONTH  from age(mn.P_Construction_Start, #{params.pConstructionStartEnd}) >= 0
+        </if>
+        <if test="params.pConstructionEndStart!=null">
+            and EXTRACT(MONTH  from age(mn.P_Construction_End, #{params.pConstructionEndStart})  &lt;= 0
+        </if>
+        <if test="params.pConstructionEndEnd!=null">
+            and EXTRACT(MONTH  from age(mn.P_Construction_End, #{params.pConstructionEndEnd})  >= 0
+        </if>
+    </sql>
+
+    <select id="getWorkbenchOverviewModel" databaseId="postgre"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Workbench.WorkbenchOverviewModel">
+    select
+        (select count(1) from Qs_Record where Qsr_Category = 0 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Rectify_Require_Time &lt; now() and (Qsr_State != 7 or Qsr_State != 3))  as qualityOverdue,
+        (select count(1) from Qs_Record where Qsr_Category = 0 <if test="teId!=null"> and Te_Id = #{teId}</if>
+        <choose>
+            <when test="qsAddToday == 'true'  ">
+                and date_part('day',cast(Qsr_Time as TIMESTAMP)-cast(now() as TIMESTAMP)) = 0
+            </when>
+            <otherwise>
+                and date_part('day',cast(Qsr_Create_Time as TIMESTAMP)-cast(now() as TIMESTAMP)) = 0
+            </otherwise>
+        </choose>
+         ) as qualityToday,
+        (select count(1) from Qs_Record where Qsr_Category = 1 <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Rectify_Require_Time &lt; now() and (Qsr_State != 7 or Qsr_State != 3)) as securityOverdue,
+        (select count(1) from Qs_Record where Qsr_Category = 1 <if test="teId!=null"> and Te_Id = #{teId} </if>
+        <choose>
+            <when test="qsAddToday == 'true'  ">
+                and date_part('day',cast(Qsr_Time as TIMESTAMP)-cast(now() as TIMESTAMP)) = 0
+            </when>
+            <otherwise>
+                and date_part('day',cast(Qsr_Create_Time as TIMESTAMP)-cast(now() as TIMESTAMP)) = 0
+            </otherwise>
+        </choose>
+        ) as securityToday,
+        (select count(1) from Risk_Warn where 1=1 <if test="teId!=null"> and Te_Id = #{teId} </if> ) as riskWarnCount,
+        (select count(1) from Risk_Warn where (Rw_State != 7 or Rw_State is null) <if test="teId!=null"> and Te_Id = #{teId} </if> ) as riskWarnUntreated,
+        (select count(1) from Con_Contract where Con_Approval_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>) as contractCount,
+        (select sum(Con_Money_Total) from Con_Contract where Con_Approval_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>) as contractAmt,
+        (select count(1) from Con_Pay where Pay_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> and  date_part('month',cast(Pay_Create_Time as TIMESTAMP)-cast(now() as TIMESTAMP))= 0) as payMonth,
+        (COALESCE((select sum(Pay_Apply) from Con_Pay where Pay_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Pay_Type != '02' and Pay_Type != '0201'), 0)
+        + COALESCE((select sum(Pay_Apply_Owner) from Con_Pay where Pay_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> and (Pay_Type = '02' or Pay_Type = '0201')), 0)) as payAmt,
+        (select sum(Ipv_Planned_Investment) from Inv_Plan_Year where Ipv_Declare_Year = #{year} and Ipv_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>) as planYearAmt,
+        ((select sum(a.Icm_Monthly_Investment)
+        from Inv_Complete_Month a
+        left join Inv_Plan_Year b on b.Ipv_Id = a.Ipv_Id
+        where b.Ipv_Declare_Year = #{year} <if test="teId!=null"> and Te_Id = #{teId} </if>
+        and b.Ipv_State = 7
+        and (a.Icm_State = 7 or cast(a.transfer_status as int) = 7))
+            / (select sum(Ipv_Planned_Investment) from Inv_Plan_Year where Ipv_Declare_Year = #{year} and Ipv_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>)) as planYearRatio,
+        (select count(1) from Gantt_Plan where Plan_State != 3 <if test="teId!=null"> and Te_Id = #{teId} </if> and ((Plan_Actual_End is null and Plan_End &lt; now()) or Plan_End &lt; Plan_Actual_End)) as ganttPlanOverdue,
+        (select count(1) from Gantt_Plan where Plan_State != 3 <if test="teId!=null"> and Te_Id = #{teId} </if> and Plan_Finish_State = 0 and date_part('day',cast(Plan_End as TIMESTAMP)-cast(now() as TIMESTAMP)) between 0 and 30) as ganttPlanTemporary,
+        (select count(1) from Con_EC where Ec_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>) as conEcCount,
+        (select count(1) from Con_EC where Ec_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> and date_part('month',cast(Ec_Create_Time as TIMESTAMP)-cast(now() as TIMESTAMP))= 0) as conEcMonth,
+        (select count(distinct P_Construction_Unit) from Pre_Project where 1=1 <if test="teId!=null"> and Te_Id = #{teId} </if>) as proUnitCount,
+        (select count(distinct sup.U_Id) from SYS_Position_User_P sup left join Sys_User su on su.U_Id=sup.U_Id where 1=1 <if test="teId!=null"> and su.Te_Id = #{teId} </if>) as proUserCount
+    </select>
+
+    <!--************************************* mysql *************************************-->
+
+    <sql id="pNamePinYinSort" databaseId="mysql">
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortSideFiled!=null and params.sortType!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.P_Create_Time DESC
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="pConsPeriodFiled" databaseId="mysql">
+        concat
+        (DATE_FORMAT(P_Construction_Start,'%Y'),'~',DATE_FORMAT(P_Construction_End,'%Y'))
+        as pConsPeriod,
+    </sql>
+
+    <sql id="constructionFilter" databaseId="mysql">
+        <if test="params.constructionFilter==true">
+            and (DATE_FORMAT(now(),'%Y-%m') >= DATE_FORMAT(mn.P_Construction_Start,'%Y-%m')
+            and DATE_FORMAT(mn.P_Construction_End,'%Y-%m') >= DATE_FORMAT(now(),'%Y-%m')
+            )
+        </if>
+    </sql>
+
+    <sql id="constrStartEndFilter" databaseId="mysql">
+        <if test="params.pConstructionStartStart!=null">
+            and DATE_FORMAT(mn.P_Construction_Start,'%Y-%m') >= DATE_FORMAT(#{params.pConstructionStartStart},'%Y-%m')
+        </if>
+        <if test="params.pConstructionStartEnd!=null">
+            and DATE_FORMAT(mn.P_Construction_Start,'%Y-%m') &lt;= DATE_FORMAT(#{params.pConstructionStartEnd},'%Y-%m')
+        </if>
+        <if test="params.pConstructionEndStart!=null">
+            and DATE_FORMAT(mn.P_Construction_End,'%Y-%m') >= DATE_FORMAT(#{params.pConstructionEndStart},'%Y-%m')
+        </if>
+        <if test="params.pConstructionEndEnd!=null">
+            and DATE_FORMAT(mn.P_Construction_End,'%Y-%m') &lt;= DATE_FORMAT(#{params.pConstructionEndEnd},'%Y-%m')
+        </if>
+    </sql>
+
+    <select id="getWorkbenchOverviewModel" databaseId="mysql"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Workbench.WorkbenchOverviewModel">
+        select (select count(1)
+                from Qs_Record
+                where Qsr_Category = 0  <if test="teId!=null"> and Te_Id = #{teId} </if> and Qsr_Rectify_Require_Time &lt; now() and (Qsr_State != 7 and Qsr_State != 3))                    as qualityOverdue,
+                (select count(1)
+                from Qs_Record
+                where Qsr_Category = 0 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and Qsr_Rectify_Require_Time &lt; now()
+                and (Qsr_State != 7 and Qsr_State != 3)
+                and DATE_FORMAT(Qsr_Create_Time, '%Y%m') = DATE_FORMAT(now(), '%Y%m'))           as qualityOverdueMonth,
+               (select count(1)
+                from Qs_Record
+                where Qsr_Category = 0 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                <choose>
+                    <when test="qsAddToday == 'true'  ">
+                        and DateDiff(Qsr_Time, now()) = 0
+                    </when>
+                    <otherwise>
+                        and DateDiff(Qsr_Create_Time, now()) = 0
+                    </otherwise>
+                </choose>
+                ) as qualityToday,
+                (select count(1)
+                from Qs_Record
+                where Qsr_Category = 0 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and DATE_FORMAT(
+                <choose>
+                    <when test="qsAddToday == 'true'">Qsr_Time</when>
+                    <otherwise>Qsr_Create_Time</otherwise>
+                </choose>
+                , '%Y%m') = DATE_FORMAT(now(), '%Y%m'))                                     as qualityMonth,
+               (select count(1)
+                from Qs_Record
+                where Qsr_Category = 1 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and Qsr_Rectify_Require_Time &lt; now()
+                  and (Qsr_State != 7 and Qsr_State != 3))                                                                                 as securityOverdue,
+                (select count(1)
+                from Qs_Record
+                where Qsr_Category = 1 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and Qsr_Rectify_Require_Time &lt; now()
+                and (Qsr_State != 7 and Qsr_State != 3)
+                and DATE_FORMAT(Qsr_Create_Time, '%Y%m') = DATE_FORMAT(now(), '%Y%m'))           as securityOverdueMonth,
+               (select count(1)
+                from Qs_Record
+                where Qsr_Category = 1 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                <choose>
+                    <when test="qsAddToday == 'true'  ">
+                        and DateDiff(Qsr_Time, now()) = 0
+                    </when>
+                    <otherwise>
+                        and DateDiff(Qsr_Create_Time, now()) = 0
+                    </otherwise>
+                </choose>
+                 )       as securityToday,
+                (select count(1)
+                from Qs_Record
+                where Qsr_Category = 1 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and DATE_FORMAT(
+                <choose>
+                    <when test="qsAddToday == 'true'">Qsr_Time</when>
+                    <otherwise>Qsr_Create_Time</otherwise>
+                </choose>
+                , '%Y%m') = DATE_FORMAT(now(), '%Y%m'))   as securityMonth,
+               (select count(1) from Risk_Warn where 1=1 <if test="teId!=null"> and Te_Id = #{teId} </if>)                                       as riskWarnCount,
+               (select count(1) from Risk_Warn where Rw_State != 7 <if test="teId!=null"> and Te_Id = #{teId} </if> or Rw_State is null)        as riskWarnUntreated,
+               (select count(1) from Con_Contract where Con_Approval_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>)                  as contractCount,
+               (select sum(Con_Money_Total)
+                from Con_Contract
+                where Con_Approval_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>)                                  as contractAmt,
+               (select count(1)
+                from Con_Pay
+                where Pay_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and PERIOD_DIFF(DATE_FORMAT(Pay_Create_Time, '%Y%m'), DATE_FORMAT(now(), '%Y%m')) = 0)    as payMonth,
+                (IFNULL((select sum(Pay_Apply) from Con_Pay where Pay_State = 7 and Pay_Type != '02' and Pay_Type != '0201'), 0)
+                + IFNULL((select sum(Pay_Apply_Owner)
+                from Con_Pay
+                where Pay_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and (Pay_Type = '02' or Pay_Type = '0201')), 0))     as payAmt,
+                (select sum(Ipv_Planned_Investment)
+                from Inv_Plan_Year
+                where Ipv_Declare_Year = #{year} <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and Ipv_State = 7)    as planYearAmt,
+               ((select sum(a.Icm_Monthly_Investment)
+                 from Inv_Complete_Month a
+                 left join Inv_Plan_Year b on b.Ipv_Id = a.Ipv_Id
+                 where b.Ipv_Declare_Year = #{year} <if test="teId!=null"> and Te_Id = #{teId} </if>
+                 and b.Ipv_State = 7
+                 and (a.Icm_State = 7 or cast(a.transfer_status as unsigned) = 7))
+                   / (select sum(Ipv_Planned_Investment)
+                      from Inv_Plan_Year
+                      where Ipv_Declare_Year = #{year} <if test="teId!=null"> and Te_Id = #{teId} </if>
+                        and Ipv_State = 7))     as planYearRatio,
+               (select count(1)
+                from Gantt_Plan
+                where Plan_State != 3 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and ((Plan_Actual_End is null and Plan_End &lt; now()) or Plan_End &lt; Plan_Actual_End))  as ganttPlanOverdue,
+               (select count(1)
+                from Gantt_Plan
+                where Plan_State != 3
+                  and Plan_Finish_State = 0 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and TIMESTAMPDIFF(DAY,DATE_FORMAT(NOW(), '%Y-%m-%d') ,DATE_FORMAT(Plan_End, '%Y-%m-%d')) between 0 and 30 )  as ganttPlanTemporary,
+               (select count(1) from Con_EC where Ec_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>)        as conEcCount,
+               (select count(1)
+                from Con_EC
+                where Ec_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                  and PERIOD_DIFF(DATE_FORMAT(Ec_Create_Time, '%Y%m'), DATE_FORMAT(now(), '%Y%m')) = 0)                                     as conEcMonth,
+               (select count(distinct P_Construction_Unit) from Pre_Project where 1=1 <if test="teId!=null"> and Te_Id = #{teId} </if>)                                          as proUnitCount,
+               (select count(distinct sup.U_Id) from SYS_Position_User_P sup left join Sys_User su on su.U_ID=sup.U_Id where 1=1 <if test="teId!=null"> and su.Te_Id = #{teId} </if>)    as proUserCount
+    </select>
+    <select id="getValueByCodeWithPid" resultType="java.lang.Object">
+        select distinct ${value} as dbValue
+        from Pre_Project mn
+        left join gantt_milestone_statistics gms on gms.P_Id=mn.P_Id
+        <if test="projectIds!=null and projectIds.size()>0 ">
+            where mn.P_Id in
+            <foreach collection="projectIds" item="projectId" index="index" open="(" separator="," close=")">
+                #{projectId}
+            </foreach>
+        </if>
+    </select>
+    <select id="getCompanyValueByCodeWithPid" resultType="com.jpmsoft.common.model.FilterObject" >
+        select distinct ${value} as dbValue,com.C_Name as label from Pre_Project mn
+        left join SYS_Company com on com.C_Id=${value}
+        <if test="projectIds!=null and projectIds.size()>0 ">
+            where mn.P_Id in
+            <foreach collection="projectIds" item="projectId" index="index" open="(" separator="," close=")">
+                #{projectId}
+            </foreach>
+        </if>
+    </select>
+    <select id="getPersonValueByCodeWithPid" resultType="com.jpmsoft.common.model.FilterObject" >
+        select distinct ${value} as dbValue,u.U_Name as label from Pre_Project mn
+        left join SYS_User u on u.U_ID=${value}
+        <if test="projectIds!=null and projectIds.size()>0 ">
+            where mn.P_Id in
+            <foreach collection="projectIds" item="projectId" index="index" open="(" separator="," close=")">
+                #{projectId}
+            </foreach>
+        </if>
+    </select>
+    <select id="getProjectTZList" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+         select
+        c1.C_Name_History as pConstructionUnitNameHistory,
+        c2.C_Name_History as pAgentUnitNameHistory,
+        c3.C_Name_History as pDesignUnitNameHistory,
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c4.C_Name as pAuditUnitName,
+        c5.C_Name as pCostUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name as pParentName,
+        parent.P_Name_History as pParentNameHistory,
+        parent.P_code as pParentCode,
+        <if test="params.statisticsArchive==true">
+            ifnull(ac.archive_count, 0) as archiveFileSum,
+        </if>
+        (select afa.Fa_Type from Archive_Filing_Apply afa  where afa.P_Id=mn.P_Id and afa.Fa_State=7 order by afa.Fa_State_Time desc limit 1)
+        as faType,
+        mn. p_Department as pDepartment,
+        <include refid="entityFields"/>,
+        case when (mn.State !=3 and mn.State != 7 and mn.ppr_id is not null) or gms.P_Project_Stage is null then '00'
+        else gms.P_Project_Stage end as pProjectStageOrganization
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Company c4 on c4.C_Id=mn.P_Audit_Unit
+        left join SYS_Company c5 on c5.C_Id=mn.P_Cost_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        left join (
+            select P_Id, max(P_Project_Stage) as P_Project_Stage
+            from gantt_milestone_statistics
+            group by P_Id
+        ) gms on gms.P_Id=mn.P_Id
+        <if test="params.statisticsArchive==true">
+            left join (
+            select
+            ar.P_Id,
+            count(*) as archive_count
+            from Archive_File af
+            left join Archive ar on af.Ap_Id = ar.Ap_Id
+            left join SYS_FileAnnex sfa on sfa.file_id = af.Af_Annex_Id
+            <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.projectLatestArchiveMd5Join">
+                <property name="fileAlias" value="af"/>
+                <property name="archiveAlias" value="ar"/>
+            </include>
+            where ar.Ap_State = 1
+            and af.Af_State = 1
+            and (sfa.File_MD5_Code is null
+            or latest_md5.max_key is not null)
+            group by ar.P_Id
+            ) ac on ac.P_Id = mn.P_Id
+        </if>
+        <if test="params.authSql != null and params.authSql != '' ">
+        ${params.authSql}
+        </if>
+        <if test="params.authSql == null or params.authSql == '' ">
+        where 1=1
+        </if>
+        and mn.deleted = false and mn.P_Create_Time is not null
+        <include refid="getPreProjectTZListFilter"/>
+        <choose>
+            <when test="params.sortFiled!=null and params.sortFiled == 'archive_File_Sum' and params.sortType!=null">
+                order by archiveFileSum ${params.sortType}
+            </when>
+            <when test="params.sortFiled!=null and params.sortFiled == 'p_Competent_Department_Name' and params.sortType!=null">
+                order by d.D_Name ${params.sortType}
+            </when>
+            <when test="params.sortFiled!=null and params.sortType!=null">
+                order by ISNULL(mn.${params.sortFiled}),mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortSideFiled!=null and params.sortType!=null">
+                order by ISNULL(${params.sortSideFiled}),${params.sortSideFiled} ${params.sortType}
+            </when>
+            <when test="params.sortCJDZ!=null">
+                order by  ${params.sortCJDZ}
+            </when>
+            <otherwise>
+                order by mn.P_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getProjectTZListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Company c4 on c4.C_Id=mn.P_Audit_Unit
+        left join SYS_Company c5 on c5.C_Id=mn.P_Cost_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        left join (
+            select P_Id, max(P_Project_Stage) as P_Project_Stage
+            from gantt_milestone_statistics
+            group by P_Id
+        ) gms on gms.P_Id=mn.P_Id
+        <if test="params.authSql != null and params.authSql != '' ">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql == null or params.authSql == '' ">
+            where 1=1
+        </if>
+        and mn.deleted = false and mn.P_Create_Time is not null
+        <include refid="getPreProjectTZListFilter"/>
+
+    </select>
+
+    <select id="getPreProjectConSumTZ" resultType="com.jpmsoft.common.model.response.Project.ProAmtSumModel">
+          select
+        COUNT(*) as contractSum,
+        SUM(Con_Money_Total) as conMoneyTotalSum
+        from  Con_Contract conf
+        where conf.Con_Approval_State=7
+        <if test="params.conCategory!=null">
+            and conf.Con_Category=#{params.conCategory}
+        </if>
+        and  conf.Con_Project_Id in (select mn.P_ID
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        ${params.authSql}
+        and mn.deleted = false
+        <if test="exclude==true">
+            and mn.state!=3 and mn.state!=0
+        </if>
+        <include refid="getPreProjectTZListFilter"/>)
+    </select>
+    <select id="getPreProjectAmtSumTZ" resultType="com.jpmsoft.common.model.response.Project.ProAmtSumModel">
+         select
+        <if test="params.statisticsArchive==true">
+            SUM((select count(*) from Archive_File arf
+            left join Archive ap on arf.Ap_Id=ap.Ap_Id
+            left join SYS_FileAnnex sfa on sfa.file_id = arf.Af_Annex_Id
+            <include refid="com.jpmsoft.projectProducer.mapper.archive.ArchiveFileMapper.projectLatestArchiveMd5Join">
+                <property name="fileAlias" value="arf"/>
+                <property name="archiveAlias" value="ap"/>
+            </include>
+            where ap.Ap_State=1 and arf.Af_State=1 and ap.P_Id=mn.P_Id
+            and (sfa.File_MD5_Code is null or latest_md5.max_key is not null))) as archiveFileTotalSum,
+        </if>
+        sum(mn.P_Inv_Total) as pInvTotalSum,
+        sum(mn.P_Calculate_Roughly_Amount) as pCalculateRoughlyAmountSum,
+        sum(mn.P_Estimate_Amount) as pEstimateAmountSum,
+        sum(mn.P_Approve_Budget) as pApproveBudgetSum
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        ${params.authSql}
+        and mn.deleted = false
+        <if test="exclude==true">
+            and mn.state!=3 and mn.state!=0
+        </if>
+        <include refid="getPreProjectTZListFilter"/>
+    </select>
+    <select id="getPreProjectTZListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        <if test="params.authSql != null and params.authSql != '' ">
+        ${params.authSql}
+        </if>
+        <if test="params.authSql == null or params.authSql == '' ">
+        where 1=1
+        </if>
+        and mn.deleted = false
+        <include refid="getPreProjectTZListFilter"/>
+    </select>
+
+
+    <select id="queryDockptPreList" resultType="com.jpmsoft.projectProducer.pojo.vo.sys.SysUserVo">
+        select
+        p.PP_ID as ppId,
+        p.PD_ID as pdId,
+        p.PP_Name as ppName,
+        c.C_Name as cName,
+        c.C_Type as cType,
+        plv.PL_Name as plName,
+        d.PD_Name as pdName,
+        pu.Pup_Id as pupId,
+        pu.Pup_Sort as pupSort,
+        pro.P_Name as projectName
+        from
+        SYS_User u
+        left join SYS_Position_User_P pu on u.U_ID=pu.U_ID
+        left join SYS_Position_P p on pu.PP_ID=p.PP_ID
+        left join SYS_Department_P d on d.PD_ID=p.PD_ID
+        left join SYS_Company c on c.C_ID=u.C_ID
+        left join SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        left join Pre_Project pro on pro.P_Id= d.P_Id
+        <where>
+            <if test="cId!=null">
+                 u.C_ID=#{cId}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="getSYSDepartmentPList" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select p_Id as pId from SYS_Department_P
+        <where>
+            <if test="pdIds != null and pdIds.size()>0 ">
+                PD_ID in
+                <foreach collection="pdIds" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+
+    <select id="getPreprojectStaList" resultType="com.jpmsoft.common.model.response.Project.PreProjectApplicationStaResponse">
+        SELECT
+            pro.p_id AS pId,
+            pro.p_name AS pName,
+            dep.d_id as dId,
+            dep.d_name AS pCompetentDepartmentName,
+            COUNT(file.FileProject) AS fileCount,
+            COUNT(DISTINCT file.FileTitle) AS fileModuleCount,
+            (select fileCountSum from project_file_sum where pId = pro.p_id) as fileCountSum,
+            (select fileModuleCountSum from project_file_sum where pId = pro.p_id) as fileModuleCountSum
+        FROM pre_project pro
+                 LEFT JOIN sys_department dep ON pro.p_Competent_Department = dep.d_id
+                 LEFT JOIN sys_file file ON pro.p_id = file.FileProject
+                 and file.FileTitle is not null and file.FileFlowStatus = 7
+        <include refid="FileCreateDate1"/>
+        <where>
+            pro.p_id IS NOT NULL and pro.state = 7 and pro.p_name is not null
+            <if test="request.pName != null and request.pName != '' ">
+                and pro.p_name like concat('%',#{request.pName},'%')
+            </if>
+            <if test="request.pCompetentDepartmentName != null and request.pCompetentDepartmentName != '' ">
+                and dep.d_name like concat('%',#{request.pCompetentDepartmentName},'%')
+            </if>
+
+        </where>
+        GROUP BY pro.p_id, pro.p_name, dep.d_name, dep.d_id  ORDER by fileModuleCount desc
+    </select>
+
+    <sql id="FileCreateDate1" databaseId="dm">
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            AND  trunc(file.FileCreateDate)
+            &gt;= TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD')
+        </if>
+        <if test="(request.rangeTimeStart==null or request.rangeTimeStart=='') and  (request.rangeTimeEnd!=null and request.rangeTimeEnd!='') ">
+            AND  trunc(file.FileCreateDate)
+            &lt;= TO_DATE(#{request.rangeTimeEnd}, 'YYYY-MM-DD')
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  request.rangeTimeEnd!=null and request.rangeTimeEnd!='' ">
+            AND  trunc(file.FileCreateDate)
+            BETWEEN TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD') AND TO_DATE(#{request.rangeTimeEnd}, 'YYYY-MM-DD')
+        </if>
+    </sql>
+
+    <sql id="FileCreateDate1" databaseId="mysql">
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            AND  DATE(file.FileCreateDate) &gt;= #{request.rangeTimeStart}
+        </if>
+        <if test="(request.rangeTimeStart==null or request.rangeTimeStart=='') and  (request.rangeTimeEnd!=null and request.rangeTimeEnd!='') ">
+            AND  DATE(file.FileCreateDate) &lt;= #{request.rangeTimeEnd}
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  request.rangeTimeEnd!=null and request.rangeTimeEnd!='' ">
+            AND  DATE(file.FileCreateDate) BETWEEN #{request.rangeTimeStart} AND #{request.rangeTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getPreprojectStaByPId" resultType="com.jpmsoft.common.model.response.Project.PreProjectApplicationStaResponse">
+        SELECT
+        file.FileTitle AS fileModuleName,
+        COUNT(file.FileProject) AS fileCountSum,
+        <include refid="FileCreateDate2"/>
+        FROM sys_file file
+        LEFT JOIN pre_project pro ON pro.p_id = file.FileProject
+        LEFT JOIN sys_department dep ON pro.p_Competent_Department = dep.d_id
+        <where>
+            pro.p_id IS NOT NULL and pro.state = 7 and file.FileTitle IS NOT NULL and file.FileFlowStatus = 7 and pro.p_name is not null
+            <if test="request.pId != null and request.pId != '' ">
+                and file.FileProject  = #{request.pId}
+            </if>
+            <if test="request.pCompetentDepartmentName != null and request.pCompetentDepartmentName != '' ">
+                and dep.d_name like concat('%',#{request.pCompetentDepartmentName},'%')
+            </if>
+<!--            <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">-->
+<!--                AND  trunc(file.FileCreateDate)-->
+<!--                &gt;= TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD')-->
+<!--            </if>-->
+<!--            <if test="(request.rangeTimeStart==null or request.rangeTimeStart=='') and  (request.rangeTimeEnd!=null and request.rangeTimeEnd!='') ">-->
+<!--                AND  trunc(file.FileCreateDate)-->
+<!--                &lt;= TO_DATE(#{request.rangeTimeEnd}, 'YYYY-MM-DD')-->
+<!--            </if>-->
+<!--            <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  request.rangeTimeEnd!=null and request.rangeTimeEnd!='' ">-->
+<!--                AND  trunc(file.FileCreateDate)-->
+<!--                BETWEEN TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD') AND TO_DATE(#{request.rangeTimeEnd}, 'YYYY-MM-DD')-->
+<!--            </if>-->
+        </where>
+        GROUP BY file.FileTitle ORDER by fileCount desc
+    </select>
+
+    <sql id="FileCreateDate2" databaseId="dm">
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  request.rangeTimeEnd!=null and request.rangeTimeEnd!='' ">
+            COUNT(CASE
+            WHEN trunc(file.FileCreateDate) BETWEEN TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD') AND TO_DATE(#{request.rangeTimeEnd}, 'YYYY-MM-DD')
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN trunc(file.FileCreateDate) &gt;= TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD')
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN trunc(file.FileCreateDate) &lt;= TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD')
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+    </sql>
+
+    <sql id="FileCreateDate2" databaseId="mysql">
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  request.rangeTimeEnd!=null and request.rangeTimeEnd!='' ">
+            COUNT(CASE
+            WHEN DATE(file.FileCreateDate) BETWEEN DATE(#{request.rangeTimeStart}) AND DATE(#{request.rangeTimeEnd})
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN DATE(file.FileCreateDate) &gt;= DATE(#{request.rangeTimeStart})
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN DATE(file.FileCreateDate) &lt;= DATE(#{request.rangeTimeStart})
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+    </sql>
+
+    <select id="getApplicationStaList" resultType="com.jpmsoft.common.model.response.Project.PreProjectApplicationStaResponse">
+        SELECT
+        file.FileTitle as fileModuleName,
+        <include refid="FileCreateDate3"/>
+        (select fileModuleCountSum from project_fileTitle_sum where fileModuleName = file.FileTitle) as fileModuleCountSum,
+        (select fileCountSum from project_fileTitle_sum where fileModuleName = file.FileTitle) as fileCountSum
+        from sys_file file
+        left join pre_project pro on pro.p_id = file.FileProject
+        <where>
+            file.FileTitle is not null and file.FileFlowStatus = 7 and file.Fileproject is not null and pro.p_name is not null
+            <if test="request.fileModuleName != null and request.fileModuleName != '' ">
+                and file.FileTitle like concat('%',#{request.fileModuleName},'%')
+            </if>
+
+            <if test="request.pId != null and request.pId != '' ">
+                and file.FileProject  = #{request.pId}
+            </if>
+        </where>
+        GROUP BY file.FileTitle order by fileModuleCount desc
+    </select>
+
+    <sql id="FileCreateDate3" databaseId="dm">
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  request.rangeTimeEnd!=null and request.rangeTimeEnd!='' ">
+            COUNT(CASE
+            WHEN trunc(file.FileCreateDate) BETWEEN TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD') AND TO_DATE(#{request.rangeTimeEnd}, 'YYYY-MM-DD')
+            THEN file.FileTitle
+            END) AS fileModuleCount,
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN trunc(file.FileCreateDate) &gt;= TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD')
+            THEN file.FileTitle
+            END) AS fileModuleCount,
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN trunc(file.FileCreateDate) &lt;= TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD')
+            THEN file.FileTitle
+            END) AS fileModuleCount,
+        </if>
+
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  request.rangeTimeEnd!=null and request.rangeTimeEnd!='' ">
+            COUNT(DISTINCT CASE
+            WHEN trunc(file.FileCreateDate) BETWEEN TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD') AND TO_DATE(#{request.rangeTimeEnd}, 'YYYY-MM-DD')
+            THEN file.FileProject
+            END) AS fileCount,
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(DISTINCT CASE
+            WHEN trunc(file.FileCreateDate) &gt;= TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD')
+            THEN file.FileProject
+            END) AS fileCount,
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(DISTINCT CASE
+            WHEN trunc(file.FileCreateDate) &lt;= TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD')
+            THEN file.FileProject
+            END) AS fileCount,
+        </if>
+    </sql>
+
+    <sql id="FileCreateDate3" databaseId="mysql">
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  request.rangeTimeEnd!=null and request.rangeTimeEnd!='' ">
+            COUNT(CASE
+            WHEN DATE(file.FileCreateDate) BETWEEN DATE(#{request.rangeTimeStart}) AND DATE(#{request.rangeTimeEnd})
+            THEN file.FileTitle
+            END) AS fileModuleCount,
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN DATE(file.FileCreateDate) &gt;= DATE(#{request.rangeTimeStart})
+            THEN file.FileTitle
+            END) AS fileModuleCount,
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN DATE(file.FileCreateDate) &lt;= DATE(#{request.rangeTimeStart})
+            THEN file.FileTitle
+            END) AS fileModuleCount,
+        </if>
+
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  request.rangeTimeEnd!=null and request.rangeTimeEnd!='' ">
+            COUNT(DISTINCT CASE
+            WHEN DATE(file.FileCreateDate) BETWEEN DATE(#{request.rangeTimeStart}) AND DATE(#{request.rangeTimeEnd})
+            THEN file.FileProject
+            END) AS fileCount,
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(DISTINCT CASE
+            WHEN DATE(file.FileCreateDate) &gt;= DATE(#{request.rangeTimeStart})
+            THEN file.FileProject
+            END) AS fileCount,
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(DISTINCT CASE
+            WHEN DATE(file.FileCreateDate) &lt;= DATE(#{request.rangeTimeStart})
+            THEN file.FileProject
+            END) AS fileCount,
+        </if>
+    </sql>
+
+    <select id="getApplicationStaByPId" resultType="com.jpmsoft.common.model.response.Project.PreProjectApplicationStaResponse">
+        SELECT
+            pro.p_name as pName,
+        count(file.FileProject) as fileCountSum,
+        <include refid="FileCreateDate4"/>
+        from sys_file file
+                 left join pre_project pro on pro.p_id = file.FileProject
+        <where>
+            file.FileTitle is not null and file.FileFlowStatus = 7 and  file.Fileproject is not null and pro.p_name is not null
+            <if test="request.fileModuleName != null and request.fileModuleName != '' ">
+                and file.FileTitle = #{request.fileModuleName}
+            </if>
+        </where>
+        group by pro.p_name order by fileCount desc
+    </select>
+
+    <sql id="FileCreateDate4" databaseId="dm">
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  request.rangeTimeEnd!=null and request.rangeTimeEnd!='' ">
+            COUNT(CASE
+            WHEN trunc(file.FileCreateDate) BETWEEN TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD') AND TO_DATE(#{request.rangeTimeEnd}, 'YYYY-MM-DD')
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN trunc(file.FileCreateDate) &gt;= TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD')
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN trunc(file.FileCreateDate) &lt;= TO_DATE(#{request.rangeTimeStart}, 'YYYY-MM-DD')
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+    </sql>
+
+    <sql id="FileCreateDate4" databaseId="mysql">
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  request.rangeTimeEnd!=null and request.rangeTimeEnd!='' ">
+            COUNT(CASE
+            WHEN DATE(file.FileCreateDate) BETWEEN DATE(#{request.rangeTimeStart}) AND DATE(#{request.rangeTimeEnd})
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN DATE(file.FileCreateDate) &gt;= DATE(#{request.rangeTimeStart})
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+        <if test="request.rangeTimeStart!=null and request.rangeTimeStart!='' and  (request.rangeTimeEnd==null or request.rangeTimeEnd=='') ">
+            COUNT(CASE
+            WHEN DATE(file.FileCreateDate) &lt;= DATE(#{request.rangeTimeStart})
+            THEN file.FileProject
+            END) AS fileCount
+        </if>
+    </sql>
+
+    <select id="getProjectListChildProjectSum" resultType="java.lang.Integer">
+        select count(1) from pre_project mn
+        where mn.P_Parent_ID = #{pId} and mn.deleted = false
+
+    </select>
+    <select id="getUserDepartment" resultType="java.lang.String">
+        select d.D_Id from
+            SYS_Position_User pu
+                left join  SYS_Position p on pu.P_Id=p.P_Id
+                left join  SYS_Department d on d.D_Id=p.D_Id
+        where pu.U_Id=#{uId}
+    </select>
+    <select id="getChildProjectIds" resultType="java.lang.String">
+        select
+        mn.P_Id
+        from
+        pre_project mn
+        where
+        mn.P_Parent_ID = #{pId} and mn.deleted = false
+    </select>
+
+    <select id="getProjectListByPCompetentDepartmentName" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select
+            mn.*,
+            d.D_Name as pCompetentDepartmentName
+        from
+            pre_project mn
+        left join Sys_Department d on d.D_Id=mn.P_Competent_Department
+        where
+        mn.p_id in
+        <foreach collection="pIds" item="pid" open="(" close=")" separator=",">
+            #{pid}
+        </foreach>
+    </select>
+
+    <select id="getProjectContractChangeList" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        SELECT
+        mn.*,
+        IFNULL(ec_unreported.unreported, 0) + IFNULL(vf_unreported.unreported, 0) AS ecChangeVisaAmount,
+        IFNULL(ec_reported.reported, 0) + IFNULL(vf_reported.reported, 0) AS ecChangeVisaApprovedAmount,
+        IFNULL(ec_zanlie_reported.zanlie_reported, 0)
+        + IFNULL(vf_zanlie_reported.zanlie_vf_reported, 0) AS zanLieReportedAmount,
+        IFNULL(ec_zangujia_reported.zangujia_reported, 0)
+        + IFNULL(vf_zangujia_reported.zangujia_vf_reported, 0) AS zanGuReportedAmount
+        FROM pre_project mn
+        LEFT JOIN (
+        SELECT
+        p_id,
+        SUM(ec_apply_money) AS reported
+        FROM con_ec
+        WHERE ec_state = 7
+        GROUP BY p_id
+        ) ec_reported ON mn.p_id = ec_reported.p_id
+        LEFT JOIN (
+        SELECT
+        p_id,
+        SUM(ec_apply_money) AS unreported
+        FROM con_ec
+        WHERE ec_state NOT IN (7, 0, 3)
+        GROUP BY p_id
+        ) ec_unreported ON mn.p_id = ec_unreported.p_id
+        LEFT JOIN (
+        SELECT
+        p_id,
+        SUM(vf_apply_money) AS reported
+        FROM con_visa_fee
+        WHERE vf_state = 7
+        GROUP BY p_id
+        ) vf_reported ON mn.p_id = vf_reported.p_id
+        LEFT JOIN (
+        SELECT
+        p_id,
+        SUM(vf_apply_money) AS unreported
+        FROM con_visa_fee
+        WHERE vf_state NOT IN (7, 0, 3)
+        GROUP BY p_id
+        ) vf_unreported ON mn.p_id = vf_unreported.p_id
+        LEFT JOIN (
+        SELECT
+        p_id,
+        SUM(ec_apply_money) AS zanlie_reported
+        FROM con_ec
+        WHERE ec_state = 7
+        AND ec_data_separate_type = '01'
+        GROUP BY p_id
+        ) ec_zanlie_reported ON mn.p_id = ec_zanlie_reported.p_id
+        LEFT JOIN (
+        SELECT
+        p_id,
+        SUM(ec_apply_money) AS zangujia_reported
+        FROM con_ec
+        WHERE ec_state = 7
+        AND ec_data_separate_type = '02'
+        GROUP BY p_id
+        ) ec_zangujia_reported ON mn.p_id = ec_zangujia_reported.p_id
+        LEFT JOIN (
+        SELECT
+        p_id,
+        SUM(vf_apply_money) AS zanlie_vf_reported
+        FROM con_visa_fee
+        WHERE vf_state = 7
+        AND vf_data_separate_type = '01'
+        GROUP BY p_id
+        ) vf_zanlie_reported ON mn.p_id = vf_zanlie_reported.p_id
+        LEFT JOIN (
+        SELECT
+        p_id,
+        SUM(vf_apply_money) AS zangujia_vf_reported
+        FROM con_visa_fee
+        WHERE vf_state = 7
+        AND vf_data_separate_type = '02'
+        GROUP BY p_id
+        ) vf_zangujia_reported ON mn.p_id = vf_zangujia_reported.p_id
+        WHERE
+        (
+        ec_reported.p_id IS NOT NULL OR
+        ec_unreported.p_id IS NOT NULL OR
+        vf_reported.p_id IS NOT NULL OR
+        vf_unreported.p_id IS NOT NULL
+        )
+        <if test="params.pId != null and params.pId != ''">
+            AND mn.p_id = #{params.pId}
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            AND mn.p_name LIKE CONCAT('%', #{params.pName}, '%')
+        </if>
+        <if test="params.pCode != null and params.pCode != ''">
+            AND mn.p_Code LIKE CONCAT('%', #{params.pCode}, '%')
+        </if>
+    </select>
+
+
+    <select id="getProjectContractChangeListBypId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConEcAndVisFeeModel">
+        SELECT * FROM (
+        SELECT
+        'EC' AS type,
+        ec.ec_id AS id,
+        ec.p_id AS pId,
+        ec.con_id AS conId,
+        p.p_name AS pName,
+        con.con_name AS conName,
+        ec.ec_Name AS pConName,
+        IFNULL(ec.ec_apply_money, 0) AS budgetAmount,
+        ec.ec_state AS state,
+        ec.ec_Content AS remark,
+        ec.ec_Code AS approvalId
+        FROM con_ec ec
+        left join con_contract con on ec.con_id = con.con_id
+        LEFT JOIN pre_project p ON ec.p_id = p.p_id
+        WHERE 1=1
+        <if test="params.pId != null and params.pId != ''">
+            AND ec.p_id = #{params.pId}
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            AND p.p_name LIKE CONCAT('%', #{params.pName}, '%')
+        </if>
+        <if test="params.conId != null and params.conId != ''">
+            AND ec.con_id = #{params.conId}
+        </if>
+        <if test="params.approvalId != null and params.approvalId != ''">
+            AND ec.ec_Code LIKE CONCAT('%', #{params.approvalId}, '%')
+        </if>
+        <if test="params.budgetAmount != null">
+            AND ec.ec_apply_money LIKE CONCAT('%', #{params.budgetAmount}, '%')
+        </if>
+        <if test="params.pConName != null">
+            AND ec.ec_Name LIKE CONCAT('%', #{params.pConName}, '%')
+        </if>
+        <if test="params.dataSeparateType != null and params.dataSeparateType != ''">
+            AND ec.ec_Data_Separate_Type = #{params.dataSeparateType}
+        </if>
+        AND ec.ec_state NOT IN (0,3)
+        UNION ALL
+        SELECT
+        'VF' AS type,
+        vf.vf_id AS id,
+        vf.p_id AS pId,
+        vf.con_id AS conId,
+        p.p_name AS pName,
+        con.con_name AS conName,
+        vf.vf_Location AS pConName,
+        IFNULL(vf.vf_Apply_Money, 0) AS budgetAmount,
+        vf.vf_state AS state,
+        vf.vf_Content AS remark,
+        vf.vf_Code AS approvalId
+        FROM con_visa_fee vf
+        LEFT JOIN pre_project p ON vf.p_id = p.p_id
+        left join con_contract con on vf.con_id = con.con_id
+        WHERE 1=1
+        <if test="params.pId != null and params.pId != ''">
+            AND vf.p_id = #{params.pId}
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            AND p.p_name LIKE CONCAT('%', #{pName}, '%')
+        </if>
+        <if test="params.conId != null and params.conId != ''">
+            AND vf.con_id = #{params.conId}
+        </if>
+        <if test="params.approvalId != null and params.approvalId != ''">
+            AND vf.vf_Code LIKE CONCAT('%', #{params.approvalId}, '%')
+        </if>
+        <if test="params.budgetAmount != null">
+            AND vf.vf_Apply_Money LIKE CONCAT('%', #{params.budgetAmount}, '%')
+        </if>
+        <if test="params.pConName != null">
+            AND vf.vf_Location LIKE CONCAT('%', #{params.pConName}, '%')
+        </if>
+        <if test="params.dataSeparateType != null and params.dataSeparateType != ''">
+            AND vf.vf_Data_Separate_Type = #{params.dataSeparateType}
+        </if>
+        AND vf.vf_state NOT IN (0, 3)
+        ) t
+        <if test="params.type != null and params.type != ''">
+            WHERE t.type = #{params.type}
+        </if>
+    </select>
+
+    <sql id="getPreProjectTZListFilter">
+        <if test="params.pStatus!=null">
+            and mn.P_Status = #{params.pStatus}
+        </if>
+        <if test="params.projectProjectStage!=null">
+            and mn.P_Type = #{params.pType}
+        </if>
+        <if test="params.noReserves != null and params.noReserves != ''">
+            and not (mn.State != 3 and mn.State != 7 and mn.ppr_id is not null)
+        </if>
+        <if test="params.pProjectStageOrganization != null and params.pProjectStageOrganization != ''">
+            and (case when mn.State != 3 and mn.State != 7 and mn.ppr_id is not null then '00'
+            else gms.P_Project_Stage end) = #{params.pProjectStageOrganization}
+        </if>
+        <if test="params.pProjectStageOrganizations != null and params.pProjectStageOrganizations.size()>0 ">
+            <choose>
+                <when test="params.pProjectStageOrganizations.contains('空白数据')">
+                    and (case when mn.State != 3 and mn.State != 7 and mn.ppr_id is not null then '00'
+                    else gms.P_Project_Stage end is null or case when mn.State != 3 and mn.State != 7 and mn.ppr_id is not null then '00'
+                    else gms.P_Project_Stage end = '')
+                </when>
+                <otherwise>
+                    and (case when mn.State != 3 and mn.State != 7 and mn.ppr_id is not null then '00'
+                    else gms.P_Project_Stage end) in
+                    <foreach collection="params.pProjectStageOrganizations" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and mn.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pDepartment!=null">
+            and mn.p_Department = #{params.pDepartment}
+        </if>
+        <if test="params.projectProjectStage != null and params.projectProjectStage.size()>0 ">
+            <choose>
+                <when test="params.projectProjectStage.contains('空白数据')">
+                    and (mn.P_Project_Stage is null or mn.P_Project_Stage = '')
+                </when>
+                <otherwise>
+                    and mn.P_Project_Stage in
+                    <foreach collection="params.projectProjectStage" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.projectCode != null and params.projectCode.size()>0 ">
+            <choose>
+                <when test="params.projectCode.contains('空白数据')">
+                    and (mn.P_Code is null or mn.P_Code = '')
+                </when>
+                <otherwise>
+                    and mn.P_Code in
+                    <foreach collection="params.projectCode" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.projectName != null and params.projectName.size()>0 ">
+            <choose>
+                <when test="params.projectName.contains('空白数据')">
+                    and (mn.P_Name is null or mn.P_Name = '')
+                </when>
+                <otherwise>
+                    and mn.P_Name in
+                    <foreach collection="params.projectName" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.projectRegion!=null">
+            and mn.P_Region like concat('%',#{params.projectRegion},'%')
+        </if>
+        <if test="params.projectLongitude!=null ">
+            and mn.P_Longitude =#{params.pLongitude}
+        </if>
+        <if test="params.projectLatitude!=null ">
+            and mn.P_Latitude =#{params.pLatitude}
+        </if>
+        <if test="params.projectOverview!=null and params.projectOverview.size()>0">
+            <choose>
+                <when test="params.projectOverview.contains('空白数据')">
+                    and (mn.P_Overview is null or mn.P_Overview = '')
+                </when>
+                <otherwise>
+                    and mn.P_Overview in
+                    <foreach collection="params.projectOverview" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.projectConstructionUnit!=null">
+            and mn.P_Construction_Unit = #{params.projectConstructionUnit}
+        </if>
+        <if test="params.projectApproveBudget!=null">
+            and mn.P_Approve_Budget in
+            <foreach collection="params.projectApproveBudget" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.projectApproveBudgetCode!=null">
+            <choose>
+                <when test="params.projectApproveBudgetCode.contains('空白数据')">
+                    and (mn.P_Approve_Budget_Code is null or mn.P_Approve_Budget_Code = '')
+                </when>
+                <otherwise>
+                    and mn.P_Approve_Budget_Code in
+                    <foreach collection="params.projectApproveBudgetCode" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.projectApproveBudgetDate!=null">
+            and mn.P_Approve_Budget_Date = #{params.projectApproveBudgetDate}
+        </if>
+        <if test="params.projectCreateUserName!=null">
+            <choose>
+                <when test="params.projectCreateUserName.contains('空白数据')">
+                    and (mn.P_Create_User_Name is null or mn.P_Create_User_Name = '')
+                </when>
+                <otherwise>
+                    and mn.P_Create_User_Name in
+                    <foreach collection="params.projectCreateUserName" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <include refid="dateFormatFilterStartTime"/>
+        <if test="params.state!=null">
+            and (mn.state in
+            <foreach collection="params.state" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach> or (mn.ppr_id is not null and mn.state != 3))
+        </if>
+        <if test="params.stateList != null and params.stateList.size()>0">
+            and (mn.state in
+            <foreach collection="params.stateList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>)
+        </if>
+        <if test="params.projectBuildModel!=null">
+            <choose>
+                <when test="params.projectBuildModel.contains('空白数据')">
+                    and (mn.P_Build_Model is null or mn.P_Build_Model = '')
+                </when>
+                <otherwise>
+                    and mn.P_Build_Model in
+                    <foreach collection="params.projectBuildModel" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pProjectFormType!=null">
+            <choose>
+                <when test="params.pProjectFormType.contains('空白数据')">
+                    and (mn.P_Project_Form_Type is null or mn.P_Project_Form_Type = '')
+                </when>
+                <otherwise>
+                    and mn.P_Project_Form_Type in
+                    <foreach collection="params.pProjectFormType" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pProjectNumber!=null">
+            <choose>
+                <when test="params.pProjectNumber.contains('空白数据')">
+                    and (mn.P_Project_Number is null or mn.P_Project_Number = '')
+                </when>
+                <otherwise>
+                    and mn.P_Project_Number in
+                    <foreach collection="params.pProjectNumber" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pApprovalInvestmentAmount!=null">
+            <choose>
+                <when test="params.pApprovalInvestmentAmount.contains('空白数据')">
+                    and (mn.P_Approval_Investment_Amount is null or mn.P_Approval_Investment_Amount = '')
+                </when>
+                <otherwise>
+                    and mn.P_Approval_Investment_Amount in
+                    <foreach collection="params.pApprovalInvestmentAmount" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCanYanApplyUnit!=null">
+            <choose>
+                <when test="params.pCanYanApplyUnit.contains('空白数据')">
+                    and (mn.P_Can_Yan_Apply_Unit is null or mn.P_Can_Yan_Apply_Unit = '')
+                </when>
+                <otherwise>
+                    and mn.P_Can_Yan_Apply_Unit in
+                    <foreach collection="params.pCanYanApplyUnit" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCanYanApprovalUnit!=null">
+            <choose>
+                <when test="params.pCanYanApprovalUnit.contains('空白数据')">
+                    and (mn.P_Can_Yan_Approval_Unit is null or mn.P_Can_Yan_Approval_Unit = '')
+                </when>
+                <otherwise>
+                    and mn.P_Can_Yan_Approval_Unit in
+                    <foreach collection="params.pCanYanApprovalUnit" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pRecordNum!=null">
+            <choose>
+                <when test="params.pRecordNum.contains('空白数据')">
+                    and (mn.P_Record_Num is null or mn.P_Record_Num = '')
+                </when>
+                <otherwise>
+                    and mn.P_Record_Num in
+                    <foreach collection="params.pRecordNum" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pRecordDate!=null">
+            and mn.P_Record_Date = #{params.pRecordDate}
+        </if>
+        <if test="params.pRecordAmount!=null">
+            <choose>
+                <when test="params.pRecordAmount.contains('空白数据')">
+                    and (mn.P_Record_Amount is null or mn.P_Record_Amount = '')
+                </when>
+                <otherwise>
+                    and mn.P_Record_Amount in
+                    <foreach collection="params.pRecordAmount" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pLegalUnit!=null">
+            <choose>
+                <when test="params.pLegalUnit.contains('空白数据')">
+                    and (mn.P_Legal_Unit is null or mn.P_Legal_Unit = '')
+                </when>
+                <otherwise>
+                    and mn.P_Legal_Unit in
+                    <foreach collection="params.pLegalUnit" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pRecordIssueUnit!=null">
+            <choose>
+                <when test="params.pRecordIssueUnit.contains('空白数据')">
+                    and (mn.P_Record_Issue_Unit is null or mn.P_Record_Issue_Unit = '')
+                </when>
+                <otherwise>
+                    and mn.P_Record_Issue_Unit in
+                    <foreach collection="params.pRecordIssueUnit" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pApplyDate!=null">
+            and mn.P_Apply_Date= #{params.pApplyDate}
+        </if>
+        <if test="params.pBuildYear!=null">
+            <choose>
+                <when test="params.pBuildYear.contains('空白数据')">
+                    and (mn.P_Build_Year is null or mn.P_Build_Year = '')
+                </when>
+                <otherwise>
+                    and mn.P_Build_Year in
+                    <foreach collection="params.pBuildYear" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pApprovalAmount!=null">
+            <choose>
+                <when test="params.pApprovalAmount.contains('空白数据')">
+                    and (mn.P_Approval_Amount is null or mn.P_Approval_Amount = '')
+                </when>
+                <otherwise>
+                    and mn.P_Approval_Amount in
+                    <foreach collection="params.pApprovalAmount" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pBuildType!=null">
+            <choose>
+                <when test="params.pBuildType.contains('空白数据')">
+                    and (mn.P_Build_Type is null or mn.P_Build_Type = '')
+                </when>
+                <otherwise>
+                    and mn.P_Build_Type in
+                    <foreach collection="params.pBuildType" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pProfessionalType!=null">
+            <choose>
+                <when test="params.pProfessionalType.contains('空白数据')">
+                    and (mn.P_Professional_Type is null or mn.P_Professional_Type = '')
+                </when>
+                <otherwise>
+                    and mn.P_Professional_Type in
+                    <foreach collection="params.pProfessionalType" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pTransferUnit!=null">
+            <choose>
+                <when test="params.pTransferUnit.contains('空白数据')">
+                    and (mn.P_Transfer_Unit is null or mn.P_Transfer_Unit = '')
+                </when>
+                <otherwise>
+                    and mn.P_Transfer_Unit in
+                    <foreach collection="params.pTransferUnit" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pProjectManager!=null">
+            <choose>
+                <when test="params.pProjectManager.contains('空白数据')">
+                    and (mn.P_Project_Manager is null or mn.P_Project_Manager = '')
+                </when>
+                <otherwise>
+                    and mn.P_Project_Manager in
+                    <foreach collection="params.pProjectManager" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pProjectLeader!=null">
+            <choose>
+                <when test="params.pProjectLeader.contains('空白数据')">
+                    and (mn.P_Project_Leader is null or mn.P_Project_Leader = '')
+                </when>
+                <otherwise>
+                    and mn.P_Project_Leader in
+                    <foreach collection="params.pProjectLeader" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pEngineer!=null">
+            <choose>
+                <when test="params.pEngineer.contains('空白数据')">
+                    and (mn.P_Engineer is null or mn.P_Engineer = '')
+                </when>
+                <otherwise>
+                    and mn.P_Engineer in
+                    <foreach collection="params.pEngineer" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pEngineerLeader!=null">
+            <choose>
+                <when test="params.pEngineerLeader.contains('空白数据')">
+                    and (mn.P_Engineer_Leader is null or mn.P_Engineer_Leader = '')
+                </when>
+                <otherwise>
+                    and mn.P_Engineer_Leader in
+                    <foreach collection="params.pEngineerLeader" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.projectDepartment!=null">
+            and mn.P_Department= #{params.projectDepartment}
+        </if>
+        <include refid="constrStartEndFilter"/>
+        <include refid="constructionFilter"/>
+        <if test="params.filterParentCollection!=null">
+            <if test="params.filterParentCollection==true">
+                and (mn.P_Parent_ID is not null and mn.P_Parent_ID!='0' )
+            </if>
+            <if test="params.filterParentCollection==false">
+                and (mn.P_Parent_ID is null or mn.P_Parent_ID = '0' )
+            </if>
+        </if>
+        <if test="params.statisticsArchive==true">
+            and (select count(*) from Archive_File arf
+            left join Archive ap on arf.Ap_Id=ap.Ap_Id
+            where ap.Ap_State=1 and arf.Af_State=1 and ap.P_Id=mn.P_Id) > 0
+        </if>
+    </sql>
+
+    <sql id="dateFormatFilterStartTime" databaseId="dm">
+        <if test="params.projectCreateTime!=null">
+            and TRUNC(mn.P_Create_Time) = TRUNC(#{params.projectCreateTime})
+        </if>
+    </sql>
+
+    <sql id="dateFormatFilterStartTime" databaseId="mysql">
+        <if test="params.projectCreateTime!=null">
+            and DATE(mn.P_Create_Time) = DATE(#{params.projectCreateTime})
+        </if>
+    </sql>
+
+    <!--************************************* 公共SQL 其他xml使用 *************************************-->
+    <sql id="commonProjectSelectFields">
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        pro.P_Code as pCode,
+        pro.P_Agent_Construction_Unit as pAgentConstructionUnit,
+        pro.P_Type as pType,
+        pro.P_Major_Type as pMajorType,
+        pro.P_Use_Unit as pUseUnit,
+        pro.P_Imp_Company as pImpCompany,
+        pro.P_Competent_Department as pCompetentDepartment,
+        pro.P_Construction_Unit as pConstructionUnit,
+        pro.P_Approval_Unit as pApprovalUnit,
+        pro.P_Build_Model as pBuildModel,
+        pro.P_Each_District as pEachDistrict,
+        pro.P_Inv_Total as pInvTotal,
+        pro.P_Region as pRegion,
+        pro.P_Project_Stage as pProjectStage,
+        pro.P_Overview as pOverview,
+        pro.P_Project_Code as pProjectCode,
+        pro.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+        pro.P_Advance_Fund as pAdvanceFund,
+        pro.P_Corporate_Risk as pCorporateRisk,
+        pro.P_Approve_Budget as pApproveBudget,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Name as pConsName,
+        proc.C_Abbreviation as pConsAbbName,
+        pAgentc.C_Name as pAgentUnitName,
+        prod.D_Name as pCompetentDepartmentName,
+        prod.D_Name as pCompDepName,
+        pro.p_Plan_Start_Date as pPlanStartDate,
+        pro.p_Plan_Complete_Date as pPlanCompleteDate,
+        pro.P_Campus as pCampus,
+        pro.p_Category as pCategory,
+    </sql>
+
+    <!--******** 以本表单项目关联 mn为当前查询主体表别名 ********-->
+    <sql id="commonProjectSelectLinks">
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Company pAgentc on pAgentc.C_Id=pro.P_Agent_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+    </sql>
+
+    <!--******** 以本非当前表单项目关联 pro为项目表别名 ********-->
+    <sql id="commonOtherProjectSelectLinks">
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Company pAgentc on pAgentc.C_Id=pro.P_Agent_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+    </sql>
+</mapper>

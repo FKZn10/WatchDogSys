@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConMeasurePriceMapper">
+    <select id="getConMeasurePriceList"
+            resultType="com.jpmsoft.common.model.response.Contract.ConMeasurePriceResponse">
+        select
+        mn.*,
+        pp.P_Name as pName,
+        con.Con_Name as conName
+        from Con_Measure_Price mn
+        left join Pre_Project pp on mn.p_id = pp.p_id
+        left join Con_Contract con on mn.Con_Id = con.Con_Id
+        <choose>
+            <when test="params.authSql != null and params.authSql != ''">
+                ${params.authSql}
+            </when>
+            <otherwise>
+                where 1=1
+            </otherwise>
+        </choose>
+        <include refid="dateFilter"/>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.createUname != null and params.createUname != ''">
+            and mn.create_uname = #{params.createUname}
+        </if>
+        <if test="params.state != null">
+            and mn.state = #{params.state}
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and mn.p_id = #{params.pId}
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            and pp.p_name like concat('%', #{params.pName}, '%')
+        </if>
+        <if test="params.conId != null and params.conId != ''">
+            and mn.con_id = #{params.conId}
+        </if>
+        <if test="params.conName != null and params.conName != ''">
+            and con.con_name like concat('%', #{params.conName}, '%')
+        </if>
+        <if test="params.cmpPeriod != null and params.cmpPeriod != ''">
+            and mn.cmp_period = #{params.cmpPeriod}
+        </if>
+        <if test="params.cmpCurrentAmount != null">
+            and mn.cmp_current_amount = #{params.cmpCurrentAmount}
+        </if>
+        <if test="params.cmpAccumulatedAmount != null">
+            and mn.cmp_accumulated_amount = #{params.cmpAccumulatedAmount}
+        </if>
+        <if test="params.cmpPayableAmount != null">
+            and mn.cmp_payable_amount = #{params.cmpPayableAmount}
+        </if>
+        <if test="params.cmpDeductibleAmount != null">
+            and mn.cmp_deductible_amount = #{params.cmpDeductibleAmount}
+        </if>
+        <if test="params.cmpActualPayment != null">
+            and mn.cmp_actual_payment = #{params.cmpActualPayment}
+        </if>
+        <if test="params.cmpRemark != null and params.cmpRemark != ''">
+            and mn.cmp_remark like concat('%', #{params.cmpRemark}, '%')
+        </if>
+        <if test="params.cmpType != null and params.cmpType != ''">
+            and mn.cmp_type = #{params.cmpType}
+        </if>
+        <if test="params.filterUsed != null and params.filterUsed != ''">
+            and not exists (
+            select 1
+            from Con_Pay cp
+            where cp.cmp_Id = mn.id
+            and cp.Pay_State != 3
+            <if test="params.payId != null and params.payId != ''">
+                and cp.Pay_Id != #{params.payId}
+            </if>)
+        </if>
+        <if test="params.filterUsedGfp != null and params.filterUsedGfp != ''">
+            and not exists (
+            select 1
+            from Group_Fund_Plan_Detail gfpd
+            left join Group_Fund_Plan gfp on gfpd.gfp_id = gfp.id
+            where gfp.State != 3
+            and gfp.del_flag = 0
+            and gfpd.cmp_Id = mn.id
+            <if test="params.gfpId != null and params.gfpId != ''">
+                and gfp.id != #{params.gfpId}
+            </if>)
+        </if>
+    </sql>
+
+    <sql id="dateFilter" databaseId="dm">
+        <if test="params.stateTime != null and params.stateTime != ''">
+            and TRUNC(mn.state_time) = TO_DATE(#{params.stateTime}, 'YYYY-MM-DD')
+        </if>
+        <if test="params.createTime != null and params.createTime != ''">
+            and TRUNC(mn.create_time) = TO_DATE(#{params.createTime}, 'YYYY-MM-DD')
+        </if>
+        <if test="params.cmpDeclareStartTime != null and params.cmpDeclareStartTime != ''">
+            and TRUNC(mn.cmp_declare_time) &gt;= TO_DATE(#{params.cmpDeclareStartTime}, 'YYYY-MM-DD')
+        </if>
+        <if test="params.cmpDeclareEndTime != null and params.cmpDeclareEndTime != ''">
+            and TRUNC(mn.cmp_declare_time) &lt; TO_DATE(#{params.cmpDeclareEndTime}, 'YYYY-MM-DD')
+        </if>
+    </sql>
+
+    <sql id="dateFilter" databaseId="mysql">
+        <if test="params.stateTime != null and params.stateTime != ''">
+            and DATE(mn.state_time) = STR_TO_DATE(#{params.stateTime}, '%Y-%m-%d')
+        </if>
+        <if test="params.createTime != null and params.createTime != ''">
+            and DATE(mn.create_time) = STR_TO_DATE(#{params.createTime}, '%Y-%m-%d')
+        </if>
+        <if test="params.cmpDeclareStartTime != null and params.cmpDeclareStartTime != ''">
+            and DATE(mn.cmp_declare_time) &gt;= STR_TO_DATE(#{params.cmpDeclareStartTime}, '%Y-%m-%d')
+        </if>
+        <if test="params.cmpDeclareEndTime != null and params.cmpDeclareEndTime != ''">
+            and DATE(mn.cmp_declare_time) &lt; STR_TO_DATE(#{params.cmpDeclareEndTime}, '%Y-%m-%d')
+        </if>
+    </sql>
+
+    <select id="getConMeasurePriceById"
+            resultType="com.jpmsoft.common.model.response.Contract.ConMeasurePriceResponse">
+        select
+        mn.*,
+        pp.P_Name as pName,
+        con.Con_Name as conName
+        from Con_Measure_Price mn
+        left join Pre_Project pp on mn.p_id = pp.p_id
+        left join Con_Contract con on mn.Con_Id = con.Con_Id
+        where mn.id = #{id}
+    </select>
+</mapper>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysTOrganizationMapper">
+    <select id="getSysTOrganizationById" resultType="com.jpmsoft.userProducer.pojo.vo.SysTOrganizationVo">
+        select c1.C_Name         as toCName,
+               c1.C_Abbreviation as toCAbbName,
+               mn.*
+        from SYS_T_Organization mn
+                 left join SYS_Company c1 on c1.C_Id = mn.TO_Cid
+        where mn.TO_ID = #{id}
+    </select>
+
+    <select id="getSysTOrganizationList" resultType="com.jpmsoft.userProducer.pojo.vo.SysTOrganizationVo">
+        select c1.C_Name as toCName,
+        c1.C_Abbreviation as toCAbbName,
+        mn.*
+        from SYS_T_Organization mn
+        left join SYS_Company c1 on c1.C_Id = mn.TO_Cid
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id=#{params.teId}
+            </if>
+            <if test="params.toCid!=null">
+                and mn.TO_Cid=#{params.toCid}
+            </if>
+            <if test="params.toStatus!=null">
+                and mn.TO_Status=#{params.toStatus}
+            </if>
+            <if test="params.toName!=null">
+                and INSTR(mn.TO_Name,#{params.toName})
+            </if>
+            <if test="params.toCreateUname!=null">
+                and INSTR(mn.TO_Create_Uname,#{params.toCreateUname})
+            </if>
+            <if test="params.toCName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.userProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.toCName},c1.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c1.C_Name,#{params.toCName})
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.TO_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

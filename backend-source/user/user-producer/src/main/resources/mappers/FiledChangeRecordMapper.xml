@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.FiledChangeRecordMapper">
+
+
+<!--    SELECT * FROM (-->
+<!--    SELECT ROW_NUMBER() OVER(PARTITION BY Fcr_Filed ORDER BY Fcr_Update_Time DESC) RN,-->
+<!--    T.*-->
+<!--    FROM Sys_Filed_Change_Record T   where Fcr_Key=#{fcrKey}-->
+<!--    ) WHERE RN = 1;-->
+
+    <!-- ********************************** dm **********************************-->
+    <select id="getFiledLastChangeByKey" databaseId="dm"
+            resultType="com.jpmsoft.userProducer.pojo.entity.FiledChangeRecord">
+        select * from  Sys_Filed_Change_Record where  Fcr_Id in (
+            select a.Fcr_Id from (
+             select
+                 first_value(Fcr_Id) as Fcr_Id,
+                 max(Fcr_Update_Time) as fcrUpdateTime
+             from Sys_Filed_Change_Record  where  Fcr_Key=#{fcrKey}
+             group by Fcr_Filed
+           ) a
+        )
+    </select>
+
+    <!-- ********************************** mysql **********************************-->
+
+    <select id="getFiledLastChangeByKey" databaseId="mysql"
+            resultType="com.jpmsoft.userProducer.pojo.entity.FiledChangeRecord">
+        SELECT
+        Fcr_Filed as fcrFiled,
+        ANY_VALUE(Fcr_Old) as fcrOld,
+        max(Fcr_Update_Time) as fcrUpdateTime
+        FROM Sys_Filed_Change_Record
+        WHERE Fcr_Key = #{fcrKey}
+        GROUP BY Fcr_Filed
+    </select>
+
+
+    <!-- ********************************** postgre **********************************-->
+
+    <select id="getFiledLastChangeByKey" databaseId="postgre"
+            resultType="com.jpmsoft.userProducer.pojo.entity.FiledChangeRecord">
+        select
+        Fcr_Filed as fcrFiled,
+        max(Fcr_Old) as fcrOld,
+        max(Fcr_Update_Time) as fcrUpdateTime
+        from Sys_Filed_Change_Record
+        where Fcr_Key = #{fcrKey}
+        group by Fcr_Filed
+    </select>
+</mapper>

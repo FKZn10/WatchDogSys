@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecAnswerQuestionMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecAnswerQuestionResponse" id="getSecAnswerQuestion">
+        <id column="Aq_Id" property="aqId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Aq_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Answer_Question aq on aq.Sec_Id=sec.Sec_Id
+        where aq.Aq_Id=#{aqId}
+    </select>
+
+
+    <select id="getSecAnswerQuestionByaqId" resultMap="getSecAnswerQuestion">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Type as secType,
+        sec.Sec_Organize_Form as secOrganizeForm,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Start_Time as secStartTime,
+        sec.Sec_Bidding_Cycle as secBiddingCycle,
+        sec.Sec_Place as secPlace,
+        sec.Sec_Contracting_department as secContractingDepartment,
+        dp.D_Name as secContractingDepartmentName,
+        c4.C_Name as tendereeName,
+        c6.C_Name as secAgencyName,
+        c4.C_Abbreviation as tendereeAbbName,
+        sd.D_Amount as dAmount,
+        pre.p_Name as pName,
+        <include refid="getProCompetentDepartment"/>
+        aq.*,
+        CASE
+        WHEN sec.Sec_Bidding_Type = '05' THEN
+        (SELECT sir.Sir_Plan_Open_Place
+        FROM Sec_Inquiry_Record sir
+        WHERE sir.Sec_Id = aq.Sec_Id
+        AND sir.P_Id = aq.P_Id
+        AND sir.State = 7
+        ORDER BY sir.Create_Time DESC
+        LIMIT 1)
+        WHEN sec.Sec_Bidding_Type = '07' THEN
+        (SELECT sbn.Bn_Plan_Open_Location
+        FROM Sec_Bidding_Negotiation sbn
+        WHERE sbn.Sec_Id = aq.Sec_Id
+        AND sbn.P_Id = aq.P_Id
+        AND sbn.State = 7
+        ORDER BY sbn.Create_Time DESC
+        LIMIT 1)
+        ELSE
+        (SELECT sd2.D_Location
+        FROM Sec_Document sd2
+        WHERE sd2.Sec_Id = aq.Sec_Id
+        AND sd2.P_Id = aq.P_Id
+        AND sd2.D_State = 7
+        ORDER BY sd2.D_Create_Time DESC
+        LIMIT 1)
+        END as aqPlanOpenLocation,
+        CASE
+        WHEN sec.Sec_Bidding_Type = '05' THEN
+        (SELECT sir.Sir_Plan_Open_Time
+        FROM Sec_Inquiry_Record sir
+        WHERE sir.Sec_Id = aq.Sec_Id
+        AND sir.P_Id = aq.P_Id
+        AND sir.State = 7
+        ORDER BY sir.Create_Time DESC
+        LIMIT 1)
+        WHEN sec.Sec_Bidding_Type = '07' THEN
+        (SELECT sbn.Bn_Plan_Open_Time
+        FROM Sec_Bidding_Negotiation sbn
+        WHERE sbn.Sec_Id = aq.Sec_Id
+        AND sbn.P_Id = aq.P_Id
+        AND sbn.State = 7
+        ORDER BY sbn.Create_Time DESC
+        LIMIT 1)
+        ELSE
+        (SELECT sd2.D_Bid_Time
+        FROM Sec_Document sd2
+        WHERE sd2.Sec_Id = aq.Sec_Id
+        AND sd2.P_Id = aq.P_Id
+        AND sd2.D_State = 7
+        ORDER BY sd2.D_Create_Time DESC
+        LIMIT 1)
+        END as aqPlanOpenTime,
+        sf.file_relation_id as fileRelationId
+        from Sec_Answer_Question aq
+        left join Sec_Info sec on sec.Sec_Id=aq.Sec_Id
+        left join SYS_Company c4 on c4.C_ID=sec.Sec_Tenderee
+        left join Sys_Company c6 on c6.C_Id=sec.Sec_Agency
+        left join Sys_Department dp on dp.D_Id=sec.Sec_Contracting_department
+        left join Sec_Document sd on aq.Sec_Id=sd.Sec_Id and sd.D_State=7
+        left join pre_project pre on pre.p_id=aq.p_id
+        left join Sys_file sf on sf.FileId=aq.aq_Id
+        where aq.Aq_Id=#{aqId}
+        order by sd.D_Create_Time desc limit 1
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and aq.Te_Id = #{params.teId}
+        </if>
+        <if test="params.aqItemType!=null">
+            and aq.Aq_Item_Type=#{params.aqItemType}
+        </if>
+        <if test="params.aqDocType!=null">
+            and aq.Aq_Doc_Type=#{params.aqDocType}
+        </if>
+        <if test="params.aqDelayStopBids!=null">
+            and aq.Aq_Delay_Stop_Bids=#{params.aqDelayStopBids}
+        </if>
+        <if test="params.aqIsThere!=null">
+            and aq.Aq_Is_There=#{params.aqIsThere}
+        </if>
+        <if test="params.secType!=null">
+            and sec.Sec_Type=#{params.secType}
+        </if>
+        <if test="params.secBiddingType!=null">
+            and sec.Sec_Bidding_Type=#{params.secBiddingType}
+        </if>
+        <if test="params.aqTitle!=null">
+            and aq.Aq_Title like concat('%',#{params.aqTitle},'%')
+        </if>
+        <if test="params.aqLocation!=null">
+            and aq.Aq_Location like concat('%',#{params.aqLocation},'%')
+        </if>
+        <if test="params.aqContent!=null">
+            and aq.Aq_Content like concat('%',#{params.aqContent},'%')
+        </if>
+        <if test="params.aqCreateUname!=null">
+            and aq.Aq_Create_Uname like concat('%',#{params.aqCreateUname},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.aqCreateTimeStart!=null">
+            and aq.Aq_Create_Time>#{params.aqCreateTimeStart}
+        </if>
+        <if test="params.aqCreateTimeEnd!=null">
+            and aq.Aq_Create_Time &lt; #{params.aqCreateTimeEnd}
+        </if>
+        <if test="params.aqBidTimeStart!=null">
+            and aq.Aq_Bid_Time>#{params.aqBidTimeStart}
+        </if>
+        <if test="params.aqBidTimeEnd!=null">
+            and aq.Aq_Bid_Time &lt; #{params.aqBidTimeEnd}
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and (case when aq.P_Id is null then sp.P_Id else aq.P_Id end) = #{params.pId}
+        </if>
+        <if test="params.secId != null and params.secId != ''">
+            and aq.Sec_Id = #{params.secId}
+        </if>
+    </sql>
+
+    <sql id="listFilterClass">
+        <if test="params.isNew != null and params.isNew != ''">
+            and sbp.is_new = 1
+        </if>
+        <if test="params.pNameList!=null and params.pNameList.size()>0 ">
+            <choose>
+                <when test="params.pNameList.contains('空白数据')">
+                    and (
+                    (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) is null
+                    or
+                    (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) = ''
+                    )
+                </when>
+                <otherwise>
+                    and (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) in
+                    <foreach collection="params.pNameList" open="(" close=")" separator="," item="pName">
+                        #{pName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.secNameList!=null and params.secNameList.size()>0 ">
+            <choose>
+                <when test="params.secNameList.contains('空白数据')">
+                    and (sec.sec_name is null or sec.sec_name = '')
+                </when>
+                <otherwise>
+                    and sec.sec_name in
+                    <foreach collection="params.secNameList" open="(" close=")" separator="," item="secName">
+                        #{secName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategoryList!=null and params.pCategoryList.size()>0 ">
+            <choose>
+                <when test="params.pCategoryList.contains('空白数据')">
+                    and (
+                    (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) is null
+                    or
+                    (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) = ''
+                    )
+                </when>
+                <otherwise>
+                    and (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) in
+                    <foreach collection="params.pCategoryList" open="(" close=")" separator="," item="pCategory">
+                        #{pCategory}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.aqCreateUnameList!=null and params.aqCreateUnameList.size()>0 ">
+            <choose>
+                <when test="params.aqCreateUnameList.contains('空白数据')">
+                    and (mn.aq_create_Uname is null or mn.aq_create_Uname = '')
+                </when>
+                <otherwise>
+                    and mn.aq_create_Uname in
+                    <foreach collection="params.aqCreateUnameList" open="(" close=")" separator="," item="createUname">
+                        #{createUname}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.aqStateList!=null and params.aqStateList.size()>0">
+            <choose>
+                <when test="params.aqStateList.contains('空白数据')">
+                    and (mn.Aq_State is null or mn.Aq_State = '')
+                </when>
+                <otherwise>
+                    and mn.Aq_State in
+                    <foreach collection="params.aqStateList" open="(" close=")" separator="," item="state">
+                        #{state}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pId !=null and params.pId!=''">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.aqCreateTimeStr!=null and params.aqCreateTimeStr!=''">
+            <include refid="getAllValuesDateFilter"/>
+        </if>
+    </sql>
+
+    <sql id="getAllValuesDateFilter" databaseId="dm">
+        and to_char(mn.aq_create_Time,'yyyy-MM-dd') = #{params.createTimeStr}
+    </sql>
+
+    <sql id="getAllValuesDateFilter" databaseId="mysql">
+        and date_format(mn.aq_create_Time,'%Y-%m-%d') = #{params.createTimeStr}
+    </sql>
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select ${selectClause}
+        from Sec_Answer_Question mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join SYS_Department dpre on dpre.D_Id = pre.p_Competent_Department
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+        ${authSql}
+        <include refid="listFilterClass"/>
+    </select>
+
+    <select id="getSecAnswerQuestionListClass" resultType="com.jpmsoft.common.model.response.SecInfo.SecAnswerQuestionResponse">
+        select
+        sec.Sec_Name as secName,
+        case when pre.P_Name is null then sp.P_Name else pre.P_Name end as pName,
+        case when pre.P_Category is null then sp.p_Category else pre.P_Category end as pCategory,
+        case when pre.P_Build_Model is null then sp.P_Build_Model else pre.P_Build_Model end as pBuildModel,
+        case when dpre.D_Name is null then sp.D_Name else dpre.D_Name end as pCompetentDepartmentName,
+        mn.*,
+        case when mn.P_Id is null then sp.P_Id else mn.P_Id end as pId
+        from Sec_Answer_Question mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join SYS_Department dpre on dpre.D_Id = pre.p_Competent_Department
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+        ${authSql}
+        <include refid="listFilterClass"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Aq_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecAnswerQuestionListClassCount" resultType="java.lang.Integer">
+        select count(1)
+        from Sec_Answer_Question mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join SYS_Department dpre on dpre.D_Id = pre.p_Competent_Department
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+        ${authSql}
+        <include refid="listFilterClass"/>
+    </select>
+
+
+    <select id="getSecAnswerQuestionList" resultMap="getSecAnswerQuestion">
+        select
+        sec.Sec_Name as secName,
+        aq.*,
+        case when aq.P_Id is null then sp.P_Id else aq.P_Id end as pId
+        from Sec_Answer_Question aq
+        left join Sec_Info sec on sec.Sec_Id=aq.Sec_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = aq.Sec_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by aq.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by aq.Aq_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecAnswerQuestionListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Answer_Question aq
+        left join Sec_Info sec on sec.Sec_Id=aq.Sec_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = aq.Sec_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+    <update id="approveSyncDocumentBidTimeAndLocation">
+        update
+        Sec_Document
+        set
+        <if test="dBidTime!=null and dLocation!=null">
+            D_New_Bid_Time=#{dBidTime},D_New_Location=#{dLocation}
+        </if>
+        <if test="dBidTime==null or dLocation==null">
+            <if test="dBidTime!=null">
+                D_New_Bid_Time=#{dBidTime}
+            </if>
+            <if test="dLocation!=null">
+                D_New_Location=#{dLocation}
+            </if>
+        </if>
+        where Sec_Id=#{secId}
+    </update>
+
+
+    <select id="getSecAnswerQuestionListOne2Many"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecAnswerQuestionResponse">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Bidding_Type as secBiddingType,
+        sec.Sec_Contracting_department as secContractingDepartment,
+        <include refid="projectInfo"/>
+        aq.*,
+        case when aq.P_Id is null then sp.P_Id else aq.P_Id end as pId
+        from Sec_Answer_Question aq
+        left join Sec_Info sec on sec.Sec_Id=aq.Sec_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = aq.Sec_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <include refid="pNameFilter"/>
+        order by (case when aq.P_Id is null then sp.P_Id else aq.P_Id end) asc
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecAnswerQuestionListOne2ManyCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Answer_Question aq
+        left join Sec_Info sec on sec.Sec_Id=aq.Sec_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = aq.Sec_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <include refid="pNameFilter"/>
+    </select>
+
+
+    <sql id="getProCompetentDepartment">
+         (
+	        select
+	        sd.D_Name
+	        from Pre_Project pro
+	        left join Sec_Project sp on pro.P_Id=sp.P_Id
+	        left join Sys_Department sd on sd.D_Id=pro.P_Competent_Department
+	        where sd.D_Name is not null and sp.Sec_Id=aq.Sec_Id limit 1
+        ) as pCompetentDepartmentName,
+    </sql>
+
+    <!--************************************* dm *************************************-->
+    <sql id="projectInfo" databaseId="dm">
+      (select wm_concat(P_Id) from Sec_Project where Sec_Id=aq.Sec_Id) as pId,
+      (select wm_concat(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=aq.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="dm">
+        <if test="params.pName!=null">
+            and (select wm_concat(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=aq.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+
+    <!--************************************* postgre *************************************-->
+    <sql id="projectInfo" databaseId="postgre">
+        (select string_agg(P_Id,',') from Sec_Project where Sec_Id = mn.Sec_Id)
+        as pId,
+      (select string_agg(pro.P_Name,',') from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=mn.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="postgre">
+        <if test="params.pName!=null">
+            and (select string_agg(pro.P_Name,',') from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=mn.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+    <!--************************************* mysql *************************************-->
+    <sql id="projectInfo" databaseId="mysql">
+      (select GROUP_CONCAT(P_Id) from Sec_Project where Sec_Id=aq.Sec_Id) as pId,
+      (select GROUP_CONCAT(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where sp.Sec_Id=aq.Sec_Id) as pName,
+    </sql>
+
+    <sql id="pNameFilter" databaseId="mysql">
+        <if test="params.pName!=null">
+            and (select GROUP_CONCAT(pro.P_Name) from Sec_Project sp left join Pre_Project pro on pro.P_Id=sp.P_Id where
+            sp.Sec_Id=aq.Sec_Id)
+            like concat('%',#{params.pName},'%')
+        </if>
+    </sql>
+</mapper>

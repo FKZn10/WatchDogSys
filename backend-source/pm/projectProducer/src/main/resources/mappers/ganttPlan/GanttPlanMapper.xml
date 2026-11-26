@@ -1,0 +1,1525 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.ganttPlan.GanttPlanMapper">
+    <!-- *********************************** 共用 *********************************** -->
+
+
+    <select id="getProjectCount" resultType="Integer">
+        select count(distinct P_Id) from Gantt_Plan where Plan_State=7
+        <if test="teId!=null">
+            and Te_Id = #{teId}
+        </if>
+    </select>
+
+    <select id="ganttPlanStatisticsProjectStage" resultType="com.jpmsoft.common.model.KeyValueDTO">
+        select
+            P_Project_Stage as theKey,
+            count(*) as theValue
+        from pre_project
+        where  P_Project_Stage is not null and deleted=false and P_Id in
+            <foreach collection="pIds" open="(" close=")" separator="," item="id">
+                #{id}
+            </foreach>
+        group by P_Project_Stage
+    </select>
+
+    <select id="getGanttPlanAndTaskBypId" resultType="com.jpmsoft.common.model.response.Plan.GanttPlanResponse">
+        select
+        con.Con_Name as conName,
+        pro.P_Name as pName,
+        prod.D_Name as pCompetentDepartmentName,
+        dep.D_Name as dName,
+        c1.C_Name as pConstructionUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        sec.Sec_Name as secName,
+        mn.*
+        from  Gantt_Plan mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Department dep on dep.D_ID=mn.Plan_D_Id
+        left join SYS_Company c1 on pro.P_Construction_Unit=c1.C_Id
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where  mn.Plan_State=7
+        and mn.P_Id=#{pId}
+        <if test="types!=null and types.size>0">
+            and mn.Plan_Type in
+            <foreach collection="types" open="(" close=")" separator="," item="type">
+                #{type}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="getGanttPlanByPlanId" resultType="com.jpmsoft.common.model.response.Plan.GanttPlanResponse">
+        select
+        con.Con_Name as conName,
+        pro.P_Name as pName,
+        prod.D_Name as pCompetentDepartmentName,
+        dep.D_Name as dName,
+        c1.C_Name as pConstructionUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        sec.Sec_Name as secName,
+        pro. p_Project_Manager as  pProjectManager,
+        pro.p_Category as pCategory,
+        pmu.u_name as pProjectManagerName,
+        gpt.Pt_Name as ptName,
+        mn.*
+        from  Gantt_Plan mn
+        left join Gantt_Plan_Template gpt on gpt.pt_id=mn.pt_id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join  sys_user pmu on pmu.u_id=pro. p_Project_Manager
+        left join  SYS_Department dep on dep.D_ID=mn.Plan_D_Id
+        left join  SYS_Company c1 on pro.P_Construction_Unit=c1.C_Id
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where mn.Plan_Id=#{planId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.planState!=null">
+            and mn.Plan_State=#{params.planState}
+        </if>
+        <if test="params.planDId!=null">
+            and mn.Plan_D_Id=#{params.planDId}
+        </if>
+        <if test="params.planType!=null">
+            and mn.Plan_Type=#{params.planType}
+        </if>
+        <if test="params.pId!=null">
+            and pro.P_Id =#{params.pId}
+        </if>
+        <if test="params.planName!=null">
+            and mn.Plan_Name like concat('%',#{params.planName},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.planTypes!=null and params.planTypes.size()>0">
+            and mn.Plan_Type in
+                <foreach collection="params.planTypes" item="type" separator="," open="(" close=")">
+                    #{type}
+                </foreach>
+        </if>
+        <if test="params.excludeTypes!=null and params.excludeTypes.size()>0">
+            and (mn.Plan_Type not in
+            <foreach collection="params.excludeTypes" item="exType" separator="," open="(" close=")">
+                #{exType}
+            </foreach>
+            or mn.Plan_Type is null)
+        </if>
+        <if test="params.pPlanStartYear!=null">
+            and  <include refid="pPlanStartYearFilter"/>
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.p_Competent_Department=#{params.pCompetentDepartment}
+        </if>
+        <if test="params.pDepartmentNameList!=null and params.pDepartmentNameList.size()>0 ">
+            <choose>
+                <when test="params.pDepartmentNameList.contains('空白数据')">
+                    and (d2.D_Name is null or d2.D_Name = '')
+                </when>
+                <otherwise>
+                    and d2.D_Name in
+                    <foreach collection="params.pDepartmentNameList" open="(" close=")" separator="," item="pDepartmentName">
+                        #{pDepartmentName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pBuildModelList!=null and params.pBuildModelList.size()>0 ">
+            <choose>
+                <when test="params.pBuildModelList.contains('空白数据')">
+                    and (pro.p_Build_Model is null or pro.p_Build_Model = '')
+                </when>
+                <otherwise>
+                    and pro.p_Build_Model in
+                    <foreach collection="params.pBuildModelList" open="(" close=")" separator="," item="pBuildModel">
+                        #{pBuildModel}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            <choose>
+                <when test="params.pCompetentDepartmentNameList.contains('空白数据')">
+                    and (prod.D_Name is null or prod.D_Name = '')
+                </when>
+                <otherwise>
+                    and prod.D_Name in
+                    <foreach collection="params.pCompetentDepartmentNameList" open="(" close=")" separator="," item="pCompetentDepartmentName">
+                        #{pCompetentDepartmentName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pNameList!=null and params.pNameList.size()>0 ">
+            <choose>
+                <when test="params.pNameList.contains('空白数据')">
+                    and (pro.p_name is null or pro.p_name = '')
+                </when>
+                <otherwise>
+                    and pro.p_name in
+                    <foreach collection="params.pNameList" open="(" close=")" separator="," item="pName">
+                        #{pName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createUnameList!=null and params.createUnameList.size()>0 ">
+            <choose>
+                <when test="params.createUnameList.contains('空白数据')">
+                    and (mn.plan_create_uname is null or mn.plan_create_uname = '')
+                </when>
+                <otherwise>
+                    and mn.plan_create_uname in
+                    <foreach collection="params.createUnameList" open="(" close=")" separator="," item="createUname">
+                        #{createUname}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.stateList!=null and params.stateList.size()>0 ">
+            <choose>
+                <when test="params.stateList.contains('空白数据')">
+                    and (mn.plan_state is null or mn.plan_state = '')
+                </when>
+                <otherwise>
+                    and mn.plan_state in
+                    <foreach collection="params.stateList" open="(" close=")" separator="," item="state">
+                        #{state}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createTime!=null">
+            <include refid="datetimeFilter" /> = #{params.createTime}
+        </if>
+        <if test="params.uId!=null">
+            <if test="params.uType!=null">
+                and ((mn.Plan_Id in
+                (
+                select Plan_Id from Gantt_Tasks where Task_Uid=#{params.uId} or
+                (
+                ( select C_Id from Sys_User where U_Id=#{params.uId}) = ( select C_Id from Sys_User where
+                U_Id=Gantt_Tasks.Task_Uid )
+                )
+                ) or mn.Plan_Create_Uid=#{params.uId} or ( select C_Id from Sys_User where U_Id=#{params.uId}) = (
+                select C_Id from Sys_User where U_Id=mn.Plan_Create_Uid ))
+                or (( select C_Id from Sys_User where U_Id=#{params.uId} and U_Type='2' ) in
+                (select C_Id from SYS_Participant_Unit  where P_Id=mn.P_Id and (C_Type='03' or C_Type='05'))
+                and (select U_Type from Sys_User where U_Id=mn.Plan_Create_Uid )='2'
+                ))
+            </if>
+        </if>
+        <if test="params.njcj != null and params.njcj != ''">
+            and ((mn.Plan_State = 7)
+            or (mn.Plan_Create_Uid=#{params.uId})
+            <if test="params.planIds != null and params.planIds.size() > 0">
+                or (mn.Plan_Id in
+                <foreach collection="params.planIds" item="planId" separator="," open="(" close=")">
+                    #{planId}
+                </foreach>)
+            </if>)
+        </if>
+        <if test="params.planCreateUname != null and params.planCreateUname != ''">
+            and mn.plan_create_uname like concat('%',#{params.planCreateUname},'%')
+        </if>
+        <if test="params.planStartDateStart != null">
+            and mn.plan_Start &gt;= #{params.planStartDateStart}
+        </if>
+        <if test="params.planStartDateEnd != null">
+            and mn.plan_Start &lt;= concat(#{params.planStartDateEnd}, ' 23:59:59')
+        </if>
+        <if test="params.planEndDateStart != null">
+            and mn.plan_End &gt;= #{params.planEndDateStart}
+        </if>
+        <if test="params.planEndDateEnd != null">
+            and mn.plan_End &lt;= concat(#{params.planEndDateEnd}, ' 23:59:59')
+        </if>
+    </sql>
+
+    <sql id="datetimeFilter" databaseId="dm">
+        and to_date(mn.plan_create_time,'yyyy-MM-dd')
+    </sql>
+
+    <sql id="datetimeFilter" databaseId="mysql">
+        and date_format(mn.plan_create_time,'%Y-%m-%d')
+    </sql>
+
+    <sql id="datetimeFilter" databaseId="postgre">
+        and to_char(mn.plan_create_time,'yyyy-MM-dd')
+    </sql>
+
+    <sql id="pPlanStartYearFilter" databaseId="dm">
+         to_char(pro.p_Plan_Start_Date,'yyyy') = #{params.pPlanStartYear}
+    </sql>
+    <sql id="pPlanStartYearFilter" databaseId="postgre">
+         to_char(pro.p_Plan_Start_Date,'yyyy') = #{params.pPlanStartYear}
+    </sql>
+    <sql id="pPlanStartYearFilter" databaseId="mysql">
+         date_format(pro.p_Plan_Start_Date,'%Y') = #{params.pPlanStartYear}
+    </sql>
+
+    <select id="getValueByCode" resultType="java.lang.Object">
+        select distinct ${value} as dbValue
+        from Gantt_Plan mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Department dep on dep.D_ID=mn.Plan_D_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department d2 on pro.P_Department = d2.D_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+
+    <select id="getGanttPlanList" resultType="com.jpmsoft.common.model.response.Plan.GanttPlanResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        dep.D_Name as dName,
+        sec.Sec_Name as secName,
+        gpt.Pt_Name as ptName,
+        mn.*,
+        pro.P_Department as pDepartment,
+        d2.D_Name as pDepartmentName,
+        (case when exists(select 1 from Gantt_Plan_Change gpc where gpc.Plan_Source = mn.Plan_Id and gpc.Plan_State != 3 and gpc.Plan_State != 7) then 1 else 0 end) as planChanging,
+        (select count(*) from Gantt_Tasks gt where gt.Plan_Id=mn.Plan_Id and task_importance = '99') as milestoneCount,
+        (select count(*) from Gantt_Tasks gt where gt.Plan_Id=mn.Plan_Id and task_importance = '01') as firstLevelCount,
+        (select count(*) from Gantt_Tasks gt where gt.Plan_Id=mn.Plan_Id and task_importance = '02') as secondLevelCount
+        from Gantt_Plan mn
+        left join Gantt_Plan_Template gpt on gpt.pt_id=mn.pt_id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Department dep on dep.D_ID=mn.Plan_D_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department d2 on pro.P_Department = d2.D_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                ORDER BY
+                CASE mn.plan_state
+                WHEN 3 THEN 99
+                ELSE mn.plan_state
+                END,
+                CASE
+                WHEN mn.plan_state = 0 THEN mn.plan_create_time
+                ELSE mn.plan_state_time
+                END DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="statisticsProJectPlanRankingCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  Gantt_Plan mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        ${params.authSql} and mn.Plan_State = 7
+        <include refid="statisticsProJectPlanRankingFilter"/>
+    </select>
+
+    <sql id="statisticsProJectPlanRankingFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.planType != null and params.planType != ''">
+            and mn.Plan_Type = #{params.planType}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.planName!=null">
+            and mn.Plan_Name like concat('%',#{params.planName},'%')
+        </if>
+        <if test="params.planTypes != null and params.planTypes.size() > 0">
+            and mn.Plan_Type in
+            <foreach collection="params.planTypes" item="planType" index="index" open="(" close=")" separator=",">
+                #{planType}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="ganttPlanStatisticsList" resultType="com.jpmsoft.common.model.response.Plan.GanttPlanResponse">
+        select
+        con.Con_Name as conName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        dep.D_Name as dName,
+        sec.Sec_Name as secName,
+        mn.*
+        from Gantt_Plan mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department dep on dep.D_ID=mn.Plan_D_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        ${params.authSql} and mn.Plan_State=7
+        <include refid="ganttPlanStatisticsListFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Plan_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="ganttPlanStatisticsListFilter">
+        <!--   正常未到期   -->
+        <if test="params.queryType == 1">
+            and mn.Plan_Enable_State=1
+            and mn.Plan_Finish_State=0
+            and TIMESTAMPDIFF(DAY,now(),mn.Plan_End)>=0
+        </if>
+        <!--   到期前30日历天内   -->
+        <if test="params.queryType == 2">
+            and mn.Plan_Enable_State=1
+            and mn.Plan_Finish_State=0
+            and TIMESTAMPDIFF(DAY,now(),mn.Plan_End) >= 0
+            and TIMESTAMPDIFF(DAY,now(),mn.Plan_End) &lt;=30
+        </if>
+        <!--   逾期任务   -->
+        <if test="params.queryType == 3">
+            and mn.Plan_Enable_State=1
+            and ((mn.Plan_Finish_State=1  and TIMESTAMPDIFF(DAY,mn.Plan_Actual_End,mn.Plan_End) &lt; 0) or
+                (mn.Plan_Finish_State=0 and TIMESTAMPDIFF(DAY,now(),mn.Plan_End) &lt; 0)
+            )
+        </if>
+        <!--   逾期完成   -->
+        <if test="params.queryType == 4">
+            and mn.Plan_Enable_State=1
+            and mn.Plan_Finish_State=1
+            and TIMESTAMPDIFF(DAY,mn.Plan_Actual_End,mn.Plan_End) &lt; 0
+        </if>
+        <!--  按期期完成   -->
+        <if test="params.queryType == 5">
+            and mn.Plan_Enable_State=1
+            and mn.Plan_Finish_State=1
+            and TIMESTAMPDIFF(DAY,mn.Plan_Actual_End,mn.Plan_End) >= 0
+        </if>
+        <!--  暂停   -->
+        <if test="params.queryType == 6">
+            and mn.Plan_Enable_State=0
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+    </sql>
+    <!-- *********************************** dm *********************************** -->
+
+    <select id="statisticsProJectPlanRanking" databaseId="dm"
+            resultType="com.jpmsoft.common.model.response.Plan.GanttPlanResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        dep.D_Name as dName,
+        sec.Sec_Name as secName,
+        mn.*,
+        (select count(1) from
+        (select gt.* from   Gantt_Tasks gt
+        where gt.Plan_Id=mn.Plan_Id
+        and  gt.Task_State=1
+        and gt.Task_End_Date is not null) gt1
+        where  TIMESTAMPDIFF(DAY,gt1.Task_End_Date+1,gt1.Task_Finish_Time)>0
+        or(
+        TIMESTAMPDIFF(DAY,gt1.Task_End_Date+1,now())>=0 and gt1.Task_Finish_time is null
+        ))
+        as overdueCount,
+        (select Count(1) from
+          (select gt.* from   Gantt_Tasks gt
+            where gt.Plan_Id=mn.Plan_Id
+            and  gt.Task_State=1
+            and gt.Task_Finish_Time is null
+            and gt.Task_End_Date is not null) gt1
+         where  TIMESTAMPDIFF(DAY,now(),gt1.Task_End_Date+1)>0 and TIMESTAMPDIFF(DAY,now(),gt1.Task_End_Date+1)&lt;30)
+        as temporaryCount
+        from  Gantt_Plan mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  SYS_Department dep on dep.D_ID=mn.Plan_D_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        ${params.authSql} and mn.Plan_State = 7
+        <include refid="statisticsProJectPlanRankingFilter"/>
+        order by  overdueCount desc
+        limit #{params.start},#{params.size}
+    </select>
+
+    <!-- *********************************** mysql *********************************** -->
+
+    <select id="statisticsProJectPlanRanking" databaseId="mysql"
+            resultType="com.jpmsoft.common.model.response.Plan.GanttPlanResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        dep.D_Name as dName,
+        sec.Sec_Name as secName,
+        mn.*,
+        (select count(1) from  Gantt_Tasks gt
+        where gt.Plan_Id=mn.Plan_Id
+        and  gt.Task_State=1
+        and (TIMESTAMPDIFF(DAY,gt.Task_End_Date+1,gt.Task_Finish_Time)>0
+        or(
+        TIMESTAMPDIFF(DAY,gt.Task_End_Date+1,now())>=0 and gt.Task_Finish_time is null
+        ))
+        and gt.Task_End_Date is not null)
+        as overdueCount,
+        (select count(1) from  Gantt_Tasks gt
+        where gt.Plan_Id=mn.Plan_Id
+        and  gt.Task_State=1
+        and gt.Task_Finish_Time is null
+        and gt.Task_End_Date is not null
+        and TIMESTAMPDIFF(DAY,now(),adddate(gt.Task_End_Date,1))>0
+        and TIMESTAMPDIFF(DAY,now(),adddate(gt.Task_End_Date,1))&lt;30)
+        as temporaryCount
+        from Gantt_Plan mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Department dep on dep.D_ID=mn.Plan_D_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        ${params.authSql} and mn.Plan_State = 7
+        <include refid="statisticsProJectPlanRankingFilter"/>
+        order by  overdueCount desc
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <!-- *********************************** postgre *********************************** -->
+
+    <select id="statisticsProJectPlanRanking" databaseId="postgre"
+            resultType="com.jpmsoft.common.model.response.Plan.GanttPlanResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        dep.D_Name as dName,
+        sec.Sec_Name as secName,
+        mn.*,
+        (select count(1) from
+        (select gt.* from   Gantt_Tasks gt
+        where gt.Plan_Id=mn.Plan_Id
+        and  gt.Task_State=1
+        and gt.Task_End_Date is not null) gt1
+        where  date_part('day',cast(gt1.Task_End_Date+1 as TIMESTAMP)-cast(gt1.Task_Finish_Time as TIMESTAMP))>0
+        or(
+        date_part('day',cast(gt1.Task_End_Date+1 as TIMESTAMP)-cast(now() as TIMESTAMP))>=0 and gt1.Task_Finish_time is null
+        ))
+        as overdueCount,
+        (select Count(1) from
+        (select gt.* from   Gantt_Tasks gt
+        where gt.Plan_Id=mn.Plan_Id
+        and  gt.Task_State=1
+        and gt.Task_Finish_Time is null
+        and gt.Task_End_Date is not null) gt1
+        where
+        date_part('day',cast(now() as TIMESTAMP)-cast(gt1.Task_End_Date+1 as TIMESTAMP))>0 and
+        date_part('day',cast(now() as TIMESTAMP)-cast(gt1.Task_End_Date+1 as TIMESTAMP))&lt;30)
+        as temporaryCount
+        from  Gantt_Plan mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  SYS_Department dep on dep.D_ID=mn.Plan_D_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        ${params.authSql} and mn.Plan_State = 7
+        <include refid="statisticsProJectPlanRankingFilter"/>
+        order by  overdueCount desc
+        limit #{params.start},#{params.size}
+    </select>
+
+    <sql id="getTaskPIdInfoQueryType1"  databaseId="mysql">
+        and (
+        (tk.Task_Begin_Time is null and tk.Task_Importance = '99' and DATEDIFF(CAST(tk.Task_Start_Date as DATE),CAST(now() as DATE)) between 0 and #{conf.milestone})
+        or
+        (tk.Task_Begin_Time is not null and tk.Task_Importance = '99' and DATEDIFF(CAST(tk.Task_End_Date as DATE),CAST(now() as DATE)) between 0 and #{conf.milestone})
+        or
+        (tk.Task_Begin_Time is null and tk.Task_Importance = '01' and DATEDIFF(CAST(tk.Task_Start_Date as DATE),CAST(now() as DATE)) between 0 and #{conf.firstLevel})
+        or
+        (tk.Task_Begin_Time is not null and tk.Task_Importance = '01' and DATEDIFF(CAST(tk.Task_End_Date as DATE),CAST(now() as DATE)) between 0 and #{conf.firstLevel})
+        or
+        (tk.Task_Begin_Time is null and tk.Task_Importance = '02' and DATEDIFF(CAST(tk.Task_Start_Date as DATE),CAST(now() as DATE)) between 0 and #{conf.secondLevel})
+        or
+        (tk.Task_Begin_Time is not null and tk.Task_Importance = '02' and DATEDIFF(CAST(tk.Task_End_Date as DATE),CAST(now() as DATE)) between 0 and #{conf.secondLevel})
+        )
+    </sql>
+
+    <sql id="getTaskPIdInfoQueryType1" >
+        and (
+        (tk.Task_Begin_Time is null and tk.Task_Importance = '99' and DATEDIFF(DAY,CAST(now() as DATE),CAST(tk.Task_Start_Date as DATE)) between 0 and #{conf.milestone})
+        or
+        (tk.Task_Begin_Time is not null and tk.Task_Importance = '99' and DATEDIFF(DAY,CAST(now() as DATE),CAST(tk.Task_End_Date as DATE)) between 0 and #{conf.milestone})
+        or
+        (tk.Task_Begin_Time is null and tk.Task_Importance = '01' and DATEDIFF(DAY,CAST(now() as DATE),CAST(tk.Task_Start_Date as DATE)) between 0 and #{conf.firstLevel})
+        or
+        (tk.Task_Begin_Time is not null and tk.Task_Importance = '01' and DATEDIFF(DAY,CAST(now() as DATE),CAST(tk.Task_End_Date as DATE)) between 0 and #{conf.firstLevel})
+        or
+        (tk.Task_Begin_Time is null and tk.Task_Importance = '02' and DATEDIFF(DAY,CAST(now() as DATE),CAST(tk.Task_Start_Date as DATE)) between 0 and #{conf.secondLevel})
+        or
+        (tk.Task_Begin_Time is not null and tk.Task_Importance = '02' and DATEDIFF(DAY,CAST(now() as DATE),CAST(tk.Task_End_Date as DATE)) between 0 and #{conf.secondLevel})
+        )
+    </sql>
+
+    <sql id="getTaskPIdInfoQueryType2"  databaseId="mysql">
+        and ((tk.Task_Begin_Time is null and DATEDIFF(CAST(tk.Task_Start_Date as DATE),CAST(now() as DATE))&lt;0)
+            or (tk.Task_Begin_Time is not null and DATEDIFF(CAST(tk.Task_End_Date as DATE),CAST(now() as DATE))&lt;0))
+    </sql>
+
+    <sql id="getTaskPIdInfoQueryType2" >
+        and ((tk.Task_Begin_Time is null and DATEDIFF(DAY,CAST(now() as DATE),CAST(tk.Task_Start_Date as DATE))&lt;0)
+            or (tk.Task_Begin_Time is not null and DATEDIFF(DAY,CAST(now() as DATE),CAST(tk.Task_End_Date as DATE))&lt;0))
+    </sql>
+
+    <select id="getTaskPIdInfo" resultType="com.jpmsoft.common.model.response.Plan.GanttTasksResponse">
+        select
+        gs.Gs_Section as gsSection,
+        mn.plan_name as planName,
+        prp.p_id as pId,
+        prp.p_name as pName,
+        prp.P_Competent_Department as pCompetentDepartment,
+        prod.D_Name as pCompetentDepartmentName,
+        prp.P_Category as pCategory,
+        prp.P_Project_Manager as pProjectManager,
+        su1.U_Name as pProjectManagerName,
+        prp.P_Engineer as pEngineer,
+        su2.U_Name as pEngineerName,
+        tk.*
+        from Gantt_Tasks tk
+        left join Gant_Section gs on gs.id=tk.gs_id
+        left join Gantt_Plan mn on mn.plan_id=tk.plan_id and mn.Plan_State=7
+        left join Pre_Project prp ON prp.P_ID = mn.P_ID
+        left join SYS_Department prod on prod.D_Id=prp.P_Competent_Department
+        left join SYS_User su1 on prp.P_Project_Manager = su1.U_ID
+        left join SYS_User su2 on prp.P_Engineer = su2.U_ID
+        <include refid="taskPIdInfolistQuery"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by tk.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                ORDER BY tk.Task_End_Date ASC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="taskPIdInfolistQuery">
+        ${params.authSql}
+        and prp.deleted = false
+        and prp.P_Status = '1'
+        and (prp.state = 7 or (prp.ppr_id is not null and prp.state != 3))
+        <if test="params.taskType != null and params.taskType.size() == 0">
+            AND 1 = 0
+        </if>
+        <if test="params.taskType!=null and params.taskType.size()>0">
+            and tk.Task_Type in
+            <foreach collection="params.taskType" open="(" close=")" separator="," item="type">
+                #{type}
+            </foreach>
+        </if>
+        <if test="params.exclusionFinish==true">
+            and tk.Task_Finish_Time is null
+        </if>
+        <if test="params.exclusionComCancel==true">
+            and tk.task_state!=0
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_ID=#{params.pId}
+        </if>
+        <if test="params.planId!=null">
+            and tk.plan_id=#{params.planId}
+        </if>
+        <if test="params.taskImportance!=null">
+            and tk.task_Importance=#{params.taskImportance}
+        </if>
+        <if test="params.taskText!=null">
+            and INSTR(tk.task_Text,#{params.taskText})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},prp.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(prp.p_name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.qType!=null and params.qType==true">
+            <include refid="getTaskPIdInfoQueryType1"/>
+            and (tk.Must_Handle = 0 or tk.Must_Handle is null)
+        </if>
+        <if test="params.qType!=null and params.qType==false">
+            <include refid="getTaskPIdInfoQueryType2"/>
+            and (tk.Must_Handle = 0 or tk.Must_Handle is null)
+        </if>
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            <choose>
+                <when test="params.pCompetentDepartmentNameList.contains('空白数据')">
+                    and (prod.D_Name is null or prod.D_Name = '')
+                </when>
+                <otherwise>
+                    and prod.D_Name in
+                    <foreach collection="params.pCompetentDepartmentNameList" open="(" close=")" separator="," item="pCompetentDepartmentName">
+                        #{pCompetentDepartmentName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategoryList !=null and params.pCategoryList.size()>0 ">
+            <choose>
+                <when test="params.pCategoryList.contains('空白数据')">
+                    and (prp.P_Category is null or prp.P_Category = '')
+                </when>
+                <otherwise>
+                    and prp.P_Category in
+                    <foreach collection="params.pCategoryList" open="(" close=")" separator="," item="pCategory">
+                        #{pCategory}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategory !=null and params.pCategory != ''">
+            and prp.P_Category = #{params.pCategory}
+        </if>
+        <if test="params.pProjectManagerNameList !=null and params.pProjectManagerNameList.size()>0 ">
+            <choose>
+                <when test="params.pProjectManagerNameList.contains('空白数据')">
+                    and (su1.U_Name is null or su1.U_Name = '')
+                </when>
+                <otherwise>
+                    and su1.U_Name in
+                    <foreach collection="params.pProjectManagerNameList" open="(" close=")" separator="," item="pProjectManagerName">
+                        #{pProjectManagerName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pEngineerNameList !=null and params.pEngineerNameList.size()>0 ">
+            <choose>
+                <when test="params.pEngineerNameList.contains('空白数据')">
+                    and (su2.U_Name is null or su2.U_Name = '')
+                </when>
+                <otherwise>
+                    and su2.U_Name in
+                    <foreach collection="params.pEngineerNameList" open="(" close=")" separator="," item="pEngineerName">
+                        #{pEngineerName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.codes!=null and params.codes.size()>0">
+            AND EXISTS (
+            SELECT 1
+            FROM SYS_POSITION_USER_P pup
+            LEFT JOIN SYS_POSITION_P pp ON pp.PP_ID = pup.PP_ID
+            LEFT JOIN SYS_DEPARTMENT_P dp ON dp.PD_ID = pp.PD_ID
+            WHERE pup.U_ID = #{params.uId}
+            AND pp.PP_CODE IN
+            <foreach item="code" collection="params.codes" open="(" separator="," close=")">
+                #{code}
+            </foreach>
+            AND dp.P_ID = mn.P_ID
+            )
+        </if>
+        <if test="params.taskImportances != null and params.taskImportances.size() == 0">
+            AND 1 = 0
+        </if>
+        <if test="params.taskImportances != null and params.taskImportances.size()>0">
+            <foreach item="taskImportance" collection="params.taskImportances" open="AND (" separator=" OR " close=")">
+                tk.Task_Importance = #{taskImportance}
+            </foreach>
+        </if>
+        <if test="params.gsIds != null and params.gsIds.size()>0">
+            <foreach item="gsId" collection="params.gsIds" open="AND (" separator=" OR " close=")">
+                <choose>
+                    <when test="gsId == 'qbd'">
+                        tk.GS_ID IS NULL
+                    </when>
+                    <otherwise>
+                        tk.GS_ID = #{gsId}
+                    </otherwise>
+                </choose>
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="getTasksClassInfoValues" resultType="java.util.Map">
+        select distinct ${selectClause}
+        from Gantt_Tasks tk
+        left join Gant_Section gs on gs.id=tk.gs_id
+        left join Gantt_Plan mn on mn.plan_id=tk.plan_id and mn.Plan_State=7
+        left join Pre_Project prp ON prp.P_ID = mn.P_ID
+        left join SYS_Department prod on prod.D_Id=prp.P_Competent_Department
+        left join SYS_User su1 on prp.P_Project_Manager = su1.U_ID
+        left join SYS_User su2 on prp.P_Engineer = su2.U_ID
+        <include refid="taskPIdInfolistQuery"/>
+    </select>
+
+    <select id="getPreprojectListInfo" databaseId="mysql"
+            resultType="com.jpmsoft.projectProducer.pojo.response.PreprojectInfoResponse">
+        SELECT
+        mn.Plan_Id,
+        mn.P_Id,
+        prp.P_Name,
+        prp.P_Competent_Department AS pCompetentDepartment,
+        prod.D_Name AS pCompetentDepartmentName,
+        prp.P_Category AS pCategory,
+        prp.P_Project_Manager AS pProjectManager
+        <if test="params.type != null and params.type == 'kb'">
+            ,su1.U_Name AS pProjectManagerName
+            ,su1.U_ID AS pProjectManager
+            ,su2.U_Name AS pEngineerName
+            ,su2.U_ID AS pEngineer
+        </if>
+        ,COALESCE(gt.lcbLq,0) AS lcbLq
+        ,COALESCE(gt.yjLq,0) AS yjLq
+        ,COALESCE(gt.ejLq,0) AS ejLq
+        ,COALESCE(gt.lcbLq,0) + COALESCE(gt.yjLq,0) + COALESCE(gt.ejLq,0) AS lqCount
+        ,COALESCE(gt.yqCount,0) AS yqCount
+        <if test="params.type != null and params.type == 'kb'">
+            ,COALESCE(gt.ywcCount,0)
+            ,COALESCE(gt.wwcCount,0)
+            ,CASE
+            WHEN gt.ywcCount = 0 THEN 0
+            ELSE ROUND(gt.wwcCount * 100.0 / gt.ywcCount, 2)
+            END AS wwcRate
+        </if>
+        FROM Gantt_Plan mn
+        LEFT JOIN Pre_Project prp ON prp.P_ID = mn.P_ID
+        LEFT JOIN SYS_Department prod ON prod.D_Id = prp.P_Competent_Department
+        <if test="params.type != null and params.type == 'kb'">
+            left join SYS_User su1 on prp.P_Project_Manager = su1.U_ID
+            left join SYS_User su2 on prp.P_Engineer = su2.U_ID
+        </if>
+        LEFT JOIN (
+        SELECT
+        tk.PLAN_ID,
+        SUM(
+        CASE
+        WHEN tk.Task_Finish_Time IS NULL
+        AND tk.task_state != 0
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND (
+        (tk.Task_Begin_Time IS NULL AND tk.Task_Importance = '99'
+        AND DATE(tk.Task_Start_Date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL #{conf.milestone} DAY))
+        OR (tk.Task_Begin_Time IS NOT NULL AND tk.Task_Importance = '99'
+        AND DATE(tk.Task_End_Date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL #{conf.milestone} DAY))
+        )
+        THEN 1 ELSE 0
+        END
+        ) AS lcbLq,
+        SUM(
+        CASE
+        WHEN tk.Task_Finish_Time IS NULL
+        AND tk.task_state != 0
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND (
+        (tk.Task_Begin_Time IS NULL AND tk.Task_Importance = '01'
+        AND DATE(tk.Task_Start_Date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL #{conf.firstLevel} DAY))
+        OR (tk.Task_Begin_Time IS NOT NULL AND tk.Task_Importance = '01'
+        AND DATE(tk.Task_End_Date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL #{conf.firstLevel} DAY))
+        )
+        THEN 1 ELSE 0
+        END
+        ) AS yjLq,
+        SUM(
+        CASE
+        WHEN tk.Task_Finish_Time IS NULL
+        AND tk.task_state != 0
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND (
+        (tk.Task_Begin_Time IS NULL AND tk.Task_Importance = '02'
+        AND DATE(tk.Task_Start_Date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL #{conf.secondLevel} DAY))
+        OR (tk.Task_Begin_Time IS NOT NULL AND tk.Task_Importance = '02'
+        AND DATE(tk.Task_End_Date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL #{conf.secondLevel} DAY))
+        )
+        THEN 1 ELSE 0
+        END
+        ) AS ejLq,
+        SUM(
+        CASE
+        WHEN tk.Task_Finish_Time IS NULL
+        AND tk.task_state != 0
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND (
+        (tk.Task_Begin_Time IS NULL AND DATE(tk.Task_Start_Date) &lt; CURDATE())
+        OR (tk.Task_Begin_Time IS NOT NULL AND DATE(tk.Task_End_Date) &lt; CURDATE())
+        )
+        THEN 1 ELSE 0
+        END
+        ) AS yqCount,
+        SUM(
+        CASE
+        WHEN tk.task_state != 0
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND (
+        (tk.Task_Start_Date IS NOT NULL AND DATE(tk.Task_Start_Date) &lt;= CURDATE())
+        OR (tk.Task_End_Date IS NOT NULL AND DATE(tk.Task_End_Date) &lt;= CURDATE())
+        )
+        THEN 1 ELSE 0
+        END
+        ) AS ywcCount,
+        SUM(
+        CASE
+        WHEN (tk.Task_Finish_Time IS NULL or tk.Task_Begin_Time IS NULL)
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND tk.task_state != 0
+        AND (
+        (tk.Task_Start_Date IS NOT NULL AND DATE(tk.Task_Start_Date) &lt;= CURDATE())
+        OR (tk.Task_End_Date IS NOT NULL AND DATE(tk.Task_End_Date) &lt;= CURDATE())
+        )
+        THEN 1 ELSE 0
+        END
+        ) AS wwcCount
+        FROM Gantt_Tasks tk
+        GROUP BY tk.PLAN_ID
+        ) gt ON gt.PLAN_ID = mn.PLAN_ID
+        <include refid="preprojectListInfolistQuery"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <when test="params.type != null and params.type == 'kb'">
+                order by wwcRate DESC, mn.Plan_Create_Time DESC
+            </when>
+            <otherwise>
+                ORDER BY mn.Plan_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getPreprojectListInfo"
+            resultType="com.jpmsoft.projectProducer.pojo.response.PreprojectInfoResponse">
+        SELECT
+        mn.Plan_Id,
+        mn.P_Id,
+        prp.P_Name,
+        prp.P_Competent_Department AS pCompetentDepartment,
+        prod.D_Name AS pCompetentDepartmentName,
+        prp.P_Category AS pCategory,
+        prp.P_Project_Manager AS pProjectManager
+        <if test="params.type != null and params.type == 'kb'">
+            ,su1.U_Name AS pProjectManagerName
+            ,su1.U_ID AS pProjectManager
+            ,su2.U_Name AS pEngineerName
+            ,su2.U_ID AS pEngineer
+        </if>
+        ,NVL(gt.lcbLq,0) AS lcbLq
+        ,NVL(gt.yjLq,0) AS yjLq
+        ,NVL(gt.ejLq,0) AS ejLq
+        ,NVL(gt.lcbLq,0) + NVL(gt.yjLq,0) + NVL(gt.ejLq,0) AS lqCount
+        ,NVL(gt.yqCount,0) AS yqCount
+        <if test="params.type != null and params.type == 'kb'">
+            ,NVL(gt.ywcCount,0) AS ywcCount
+            ,NVL(gt.wwcCount,0) AS wwcCount
+            ,CASE
+            WHEN gt.ywcCount = 0 THEN 0
+            ELSE ROUND(gt.wwcCount * 100.0 / gt.ywcCount, 2)
+            END AS wwcRate
+        </if>
+        FROM Gantt_Plan mn
+        LEFT JOIN Pre_Project prp ON prp.P_ID = mn.P_ID
+        LEFT JOIN SYS_Department prod ON prod.D_Id = prp.P_Competent_Department
+        <if test="params.type != null and params.type == 'kb'">
+            left join SYS_User su1 on prp.P_Project_Manager = su1.U_ID
+            left join SYS_User su2 on prp.P_Engineer = su2.U_ID
+        </if>
+        LEFT JOIN (
+        SELECT
+        tk.PLAN_ID,
+        SUM(CASE
+        WHEN tk.Task_Finish_Time IS NULL
+        AND tk.task_state != 0
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND (
+        (tk.Task_Begin_Time IS NULL AND tk.Task_Importance = '99'
+        AND TRUNC(tk.Task_Start_Date) BETWEEN TRUNC(SYSDATE) AND TRUNC(SYSDATE) + #{conf.milestone})
+        OR (tk.Task_Begin_Time IS NOT NULL AND tk.Task_Importance = '99'
+        AND TRUNC(tk.Task_End_Date) BETWEEN TRUNC(SYSDATE) AND TRUNC(SYSDATE) + #{conf.milestone})
+        )
+        THEN 1 ELSE 0 END) AS lcbLq,
+        SUM(CASE
+        WHEN tk.Task_Finish_Time IS NULL
+        AND tk.task_state != 0
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND (
+        (tk.Task_Begin_Time IS NULL AND tk.Task_Importance = '01'
+        AND TRUNC(tk.Task_Start_Date) BETWEEN TRUNC(SYSDATE) AND TRUNC(SYSDATE) + #{conf.firstLevel})
+        OR (tk.Task_Begin_Time IS NOT NULL AND tk.Task_Importance = '01'
+        AND TRUNC(tk.Task_End_Date) BETWEEN TRUNC(SYSDATE) AND TRUNC(SYSDATE) + #{conf.firstLevel})
+        )
+        THEN 1 ELSE 0 END) AS yjLq,
+        SUM(CASE
+        WHEN tk.Task_Finish_Time IS NULL
+        AND tk.task_state != 0
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND (
+        (tk.Task_Begin_Time IS NULL AND tk.Task_Importance = '02'
+        AND TRUNC(tk.Task_Start_Date) BETWEEN TRUNC(SYSDATE) AND TRUNC(SYSDATE) + #{conf.secondLevel})
+        OR (tk.Task_Begin_Time IS NOT NULL AND tk.Task_Importance = '02'
+        AND TRUNC(tk.Task_End_Date) BETWEEN TRUNC(SYSDATE) AND TRUNC(SYSDATE) + #{conf.secondLevel})
+        )
+        THEN 1 ELSE 0 END) AS ejLq,
+        SUM(CASE
+        WHEN tk.Task_Finish_Time IS NULL
+        AND tk.task_state != 0
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND (
+        (tk.Task_Begin_Time IS NULL AND TRUNC(tk.Task_Start_Date) &lt; TRUNC(SYSDATE))
+        OR (tk.Task_Begin_Time IS NOT NULL AND TRUNC(tk.Task_End_Date) &lt; TRUNC(SYSDATE))
+        )
+        THEN 1 ELSE 0 END) AS yqCount,
+        SUM(CASE
+        WHEN tk.task_state != 0
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND (
+        (tk.Task_Start_Date IS NOT NULL AND TRUNC(tk.Task_Start_Date) &lt;= TRUNC(SYSDATE))
+        OR (tk.Task_End_Date IS NOT NULL AND TRUNC(tk.Task_End_Date) &lt;= TRUNC(SYSDATE))
+        )
+        THEN 1 ELSE 0 END) AS ywcCount,
+        SUM(CASE
+        WHEN (tk.Task_Finish_Time IS NULL or tk.Task_Begin_Time IS NULL)
+        AND (tk.Must_Handle = 0 OR tk.Must_Handle IS NULL)
+        AND tk.task_state != 0
+        AND (
+        (tk.Task_Start_Date IS NOT NULL AND TRUNC(tk.Task_Start_Date) &lt;= TRUNC(SYSDATE))
+        OR (tk.Task_End_Date IS NOT NULL AND TRUNC(tk.Task_End_Date) &lt;= TRUNC(SYSDATE))
+        )
+        THEN 1 ELSE 0 END) AS wwcCount
+        FROM Gantt_Tasks tk
+        GROUP BY tk.PLAN_ID
+        ) gt ON gt.PLAN_ID = mn.PLAN_ID
+        <include refid="preprojectListInfolistQuery"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <when test="params.type != null and params.type == 'kb'">
+                order by wwcRate DESC, mn.Plan_Create_Time DESC
+            </when>
+            <otherwise>
+                ORDER BY mn.Plan_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="preprojectListInfolistQuery">
+        ${params.authSql}
+        and mn.Plan_State = 7
+        and prp.deleted = false
+        and prp.P_Status = '1'
+        and (prp.state = 7 or (prp.ppr_id is not null and prp.state != 3))
+        <if test="params.pName !=null and params.pName != ''">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and  likePname(#{params.pName},prp.P_Id)=true
+                </when>
+                <otherwise>
+                    and  prp.P_Name LIKE CONCAT('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            <choose>
+                <when test="params.pCompetentDepartmentNameList.contains('空白数据')">
+                    and (prod.D_Name is null or prod.D_Name = '')
+                </when>
+                <otherwise>
+                    and prod.D_Name in
+                    <foreach collection="params.pCompetentDepartmentNameList" open="(" close=")" separator="," item="pCompetentDepartmentName">
+                        #{pCompetentDepartmentName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategoryList !=null and params.pCategoryList.size()>0 ">
+            <choose>
+                <when test="params.pCategoryList.contains('空白数据')">
+                    and (prp.P_Category is null or prp.P_Category = '')
+                </when>
+                <otherwise>
+                    and prp.P_Category in
+                    <foreach collection="params.pCategoryList" open="(" close=")" separator="," item="pCategory">
+                        #{pCategory}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategory !=null and params.pCategory != ''">
+            and prp.P_Category = #{params.pCategory}
+        </if>
+        <if test="params.pProjectManagerNameList !=null and params.pProjectManagerNameList.size()>0 ">
+            <choose>
+                <when test="params.pProjectManagerNameList.contains('空白数据')">
+                    and (su1.U_Name is null or su1.U_Name = '')
+                </when>
+                <otherwise>
+                    and su1.U_Name in
+                    <foreach collection="params.pProjectManagerNameList" open="(" close=")" separator="," item="pProjectManagerName">
+                        #{pProjectManagerName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pEngineerNameList !=null and params.pEngineerNameList.size()>0 ">
+            <choose>
+                <when test="params.pEngineerNameList.contains('空白数据')">
+                    and (su2.U_Name is null or su2.U_Name = '')
+                </when>
+                <otherwise>
+                    and su2.U_Name in
+                    <foreach collection="params.pEngineerNameList" open="(" close=")" separator="," item="pEngineerName">
+                        #{pEngineerName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.codes != null and params.codes.size() != 0">
+            AND EXISTS (
+            SELECT 1
+            FROM SYS_POSITION_USER_P pup
+            LEFT JOIN SYS_POSITION_P pp ON pp.PP_ID = pup.PP_ID
+            LEFT JOIN SYS_DEPARTMENT_P dp ON dp.PD_ID = pp.PD_ID
+            WHERE pup.U_ID = #{params.uId}
+            AND pp.PP_CODE IN
+            <foreach item="code" collection="params.codes" open="(" separator="," close=")">
+                #{code}
+            </foreach>
+            AND dp.P_ID = mn.P_ID
+            )
+        </if>
+    </sql>
+
+    <select id="getPreprojectListInfoValues" resultType="java.util.Map">
+        select distinct ${selectClause}
+        from Gantt_Plan mn
+        left join Pre_Project prp on prp.P_ID = mn.P_ID
+        left join SYS_Department prod on prod.D_Id = prp.P_Competent_Department
+        left join SYS_User su1 on prp.P_Project_Manager = su1.U_ID
+        left join SYS_User su2 on prp.P_Engineer = su2.U_ID
+        <include refid="preprojectListInfolistQuery"/>
+    </select>
+
+    <select id="getTaskImportanceInfo" databaseId="mysql"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.ganttPlan.GanttTaskCjStatisticsDTO">
+        select
+        <!--SUM(CASE WHEN (Must_Handle = 0 or Must_Handle is null) and jsDay>=0 and jsDay&lt;=5 then 1 else 0 end) as lqCount,-->
+        SUM(CASE WHEN (Must_Handle = 0 or Must_Handle is null) and jsDay &lt; 0 then 1 else 0 end) as yqCount,
+        SUM(CASE WHEN Task_Importance='99' and (Must_Handle = 0 or Must_Handle is null) and jsDay>=0 and jsDay&lt;=#{conf.milestone} then 1 else 0 end) as lcbLq,
+        SUM(CASE WHEN Task_Importance='99' and (Must_Handle = 0 or Must_Handle is null) and jsDay &lt; 0 then 1 else 0 end) as lcbYq,
+        SUM(CASE WHEN Task_Importance='01' and (Must_Handle = 0 or Must_Handle is null) and jsDay>=0 and jsDay&lt;=#{conf.firstLevel} then 1 else 0 end) as yjLq,
+        SUM(CASE WHEN Task_Importance='01' and (Must_Handle = 0 or Must_Handle is null) and jsDay &lt; 0 then 1 else 0 end) as yjYq,
+        SUM(CASE WHEN Task_Importance='02' and (Must_Handle = 0 or Must_Handle is null) and jsDay>=0 and jsDay&lt;=#{conf.secondLevel} then 1 else 0 end) as ejLq,
+        SUM(CASE WHEN Task_Importance='02' and (Must_Handle = 0 or Must_Handle is null) and jsDay &lt; 0 then 1 else 0 end) as ejYq
+        from (
+        select
+        gst.Task_id,
+        gst.Task_Finish_Time,
+        gst.Task_Begin_Time,
+        gst.Task_Start_Date,
+        gst.Task_End_Date,
+        gst.Task_Importance,
+        gst.Task_Type,
+        gst.Must_Handle,
+        (CASE WHEN gst.Task_Begin_Time is null THEN DATEDIFF(CAST(gst.Task_Start_Date as DATE),CAST(now() as DATE))
+        ELSE DATEDIFF(CAST(gst.Task_End_Date as DATE),CAST(now() as DATE)) END) AS jsDay
+        from gantt_tasks gst
+        left join Gantt_Plan mn on mn.plan_id=gst.plan_id
+        left join Pre_Project prp ON prp.P_ID = mn.P_ID
+        left join SYS_Department prod on prod.D_Id = prp.P_Competent_Department
+        left join SYS_User su1 on prp.P_Project_Manager = su1.U_ID
+        left join SYS_User su2 on prp.P_Engineer = su2.U_ID
+        <include refid="taskImportanceInfolistQuery"/>
+        ) se
+    </select>
+
+    <select id="getTaskImportanceInfo"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.ganttPlan.GanttTaskCjStatisticsDTO">
+        select
+        <!--SUM(CASE WHEN (Must_Handle = 0 or Must_Handle is null) and jsDay>=0 and jsDay&lt;=5 then 1 else 0 end) as lqCount,-->
+        SUM(CASE WHEN (Must_Handle = 0 or Must_Handle is null) and jsDay &lt; 0 then 1 else 0 end) as yqCount,
+        SUM(CASE WHEN Task_Importance='99' and (Must_Handle = 0 or Must_Handle is null) and jsDay>=0 and jsDay&lt;=#{conf.milestone} then 1 else 0 end) as lcbLq,
+        SUM(CASE WHEN Task_Importance='99' and (Must_Handle = 0 or Must_Handle is null) and jsDay &lt; 0 then 1 else 0 end) as lcbYq,
+        SUM(CASE WHEN Task_Importance='01' and (Must_Handle = 0 or Must_Handle is null) and jsDay>=0 and jsDay&lt;=#{conf.firstLevel} then 1 else 0 end) as yjLq,
+        SUM(CASE WHEN Task_Importance='01' and (Must_Handle = 0 or Must_Handle is null) and jsDay &lt; 0 then 1 else 0 end) as yjYq,
+        SUM(CASE WHEN Task_Importance='02' and (Must_Handle = 0 or Must_Handle is null) and jsDay>=0 and jsDay&lt;=#{conf.secondLevel} then 1 else 0 end) as ejLq,
+        SUM(CASE WHEN Task_Importance='02' and (Must_Handle = 0 or Must_Handle is null) and jsDay &lt; 0 then 1 else 0 end) as ejYq
+        from (
+        select
+        gst.Task_id,
+        gst.Task_Finish_Time,
+        gst.Task_Begin_Time,
+        gst.Task_Start_Date,
+        gst.Task_End_Date,
+        gst.Task_Importance,
+        gst.Task_Type,
+        gst.Must_Handle,
+        (CASE WHEN gst.Task_Begin_Time is null THEN DATEDIFF(DAY,CAST(now() as DATE),CAST(gst.Task_Start_Date as DATE))
+        ELSE DATEDIFF(DAY,CAST(now() as DATE),CAST(gst.Task_End_Date as DATE)) END) AS jsDay
+        from gantt_tasks gst
+        left join Gantt_Plan mn on mn.plan_id=gst.plan_id
+        left join Pre_Project prp ON prp.P_ID = mn.P_ID
+        left join SYS_Department prod on prod.D_Id = prp.P_Competent_Department
+        left join SYS_User su1 on prp.P_Project_Manager = su1.U_ID
+        left join SYS_User su2 on prp.P_Engineer = su2.U_ID
+        <include refid="taskImportanceInfolistQuery"/>
+        ) se
+    </select>
+
+    <sql id="taskImportanceInfolistQuery">
+        ${authSql}
+        and gst.Task_Finish_Time IS NULL and gst.task_state!=0
+        and mn.Plan_State = 7
+        and prp.deleted = false
+        and prp.P_Status = '1'
+        and (prp.state = 7 or (prp.ppr_id is not null and prp.state != 3))
+        <if test="params.pName !=null and params.pName != ''">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and  likePname(#{params.pName},prp.P_Id)=true
+                </when>
+                <otherwise>
+                    and  prp.P_Name LIKE CONCAT('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            <choose>
+                <when test="params.pCompetentDepartmentNameList.contains('空白数据')">
+                    and (prod.D_Name is null or prod.D_Name = '')
+                </when>
+                <otherwise>
+                    and prod.D_Name in
+                    <foreach collection="params.pCompetentDepartmentNameList" open="(" close=")" separator="," item="pCompetentDepartmentName">
+                        #{pCompetentDepartmentName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategoryList !=null and params.pCategoryList.size()>0 ">
+            <choose>
+                <when test="params.pCategoryList.contains('空白数据')">
+                    and (prp.P_Category is null or prp.P_Category = '')
+                </when>
+                <otherwise>
+                    and prp.P_Category in
+                    <foreach collection="params.pCategoryList" open="(" close=")" separator="," item="pCategory">
+                        #{pCategory}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategory !=null and params.pCategory != ''">
+            and prp.P_Category = #{params.pCategory}
+        </if>
+        <if test="params.pProjectManagerNameList !=null and params.pProjectManagerNameList.size()>0 ">
+            <choose>
+                <when test="params.pProjectManagerNameList.contains('空白数据')">
+                    and (su1.U_Name is null or su1.U_Name = '')
+                </when>
+                <otherwise>
+                    and su1.U_Name in
+                    <foreach collection="params.pProjectManagerNameList" open="(" close=")" separator="," item="pProjectManagerName">
+                        #{pProjectManagerName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pEngineerNameList !=null and params.pEngineerNameList.size()>0 ">
+            <choose>
+                <when test="params.pEngineerNameList.contains('空白数据')">
+                    and (su2.U_Name is null or su2.U_Name = '')
+                </when>
+                <otherwise>
+                    and su2.U_Name in
+                    <foreach collection="params.pEngineerNameList" open="(" close=")" separator="," item="pEngineerName">
+                        #{pEngineerName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="codes != null and codes.size() != 0">
+            AND EXISTS(
+            SELECT 1
+            FROM SYS_POSITION_USER_P pup
+            LEFT JOIN SYS_POSITION_P pp ON pp.PP_ID = pup.PP_ID
+            LEFT JOIN SYS_DEPARTMENT_P dp ON dp.PD_ID = pp.PD_ID
+            WHERE pup.U_ID = #{uId}
+            AND pp.PP_CODE IN
+            <foreach item="code" collection="codes" open="(" separator="," close=")">
+                #{code}
+            </foreach>
+            AND dp.P_ID = mn.P_ID
+            )
+        </if>
+    </sql>
+
+    <select id="getPreprojectListInfoCount" resultType="java.lang.Integer">
+        SELECT count(1)
+        FROM
+        Gantt_Plan mn
+        LEFT JOIN
+        Pre_Project prp ON prp.P_ID = mn.P_ID
+        ${authSql}
+        <if test="pName !=null and pName != ''">
+            and  prp.P_Name LIKE CONCAT('%',#{pName},'%')
+        </if>
+        and mn.Plan_State = 7
+        and prp.deleted = false
+        and prp.P_Status = '1'
+        and (prp.state = 7 or (prp.ppr_id is not null and prp.state != 3))
+        <if test="codes != null and codes.size() != 0">
+            AND (
+            SELECT COUNT(*)
+            FROM SYS_POSITION_USER_P pup
+            LEFT JOIN SYS_POSITION_P pp ON pp.PP_ID = pup.PP_ID
+            LEFT JOIN SYS_DEPARTMENT_P dp ON dp.PD_ID = pp.PD_ID
+            WHERE pup.U_ID = #{uId}
+            AND pp.PP_CODE IN
+            <foreach item="code" collection="codes" open="(" separator="," close=")">
+                #{code}
+            </foreach>
+            AND dp.P_ID = mn.P_ID
+            ) &gt; 0
+        </if>
+    </select>
+
+    <select id="getPlanidsByUid" resultType="java.lang.String">
+        SELECT tp_entityid AS plan_id FROM Sys_Task_Processin WHERE tp_acttype = 'userTask' AND tp_user = #{uId}
+        UNION
+        SELECT cc_fileid AS plan_id FROM SYS_CarbonCopy WHERE cc_user = #{uId}
+        UNION
+        SELECT cp_fileid AS plan_id FROM SYS_CoordinationProcess WHERE cp_user = #{uId}
+    </select>
+
+    <select id="getGanttPlanLedgerNJCJ" resultType="com.jpmsoft.common.model.response.Plan.GanttPlanResponse">
+        SELECT
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name AS conName,
+        dep.D_Name AS dName,
+        sec.Sec_Name AS secName,
+        gpt.Pt_Name AS ptName,
+        mn.*,
+        pro.P_Department AS pDepartment,
+        d2.D_Name AS pDepartmentName,
+        COALESCE(gtc.milestoneCount, 0) AS milestoneCount,
+        COALESCE(gtc.firstLevelCount, 0) AS firstLevelCount,
+        COALESCE(gtc.secondLevelCount, 0) AS secondLevelCount,
+        CASE WHEN mn.Plan_State = 7 THEN 1 ELSE 0 END AS alreadyOverCount,
+        CASE WHEN mn.Plan_State = 0 THEN 1 ELSE 0 END AS notStartCount,
+        CASE WHEN mn.Plan_State IN (1,2,4,5,6,8,9) THEN 1 ELSE 0 END AS underApprovalCount
+        FROM Gantt_Plan mn
+        LEFT JOIN Gantt_Plan_Template gpt ON gpt.pt_id = mn.pt_id
+        LEFT JOIN Con_Contract con ON con.Con_Id = mn.Con_Id
+        LEFT JOIN SYS_Department dep ON dep.D_ID = mn.Plan_D_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        LEFT JOIN SYS_Department d2 ON pro.P_Department = d2.D_Id
+        LEFT JOIN Sec_Info sec ON sec.Sec_Id = mn.Sec_Id
+        LEFT JOIN (
+        SELECT
+        gt.Plan_Id,
+        SUM(CASE WHEN gt.task_importance = '99' THEN 1 ELSE 0 END) AS milestoneCount,
+        SUM(CASE WHEN gt.task_importance = '01' THEN 1 ELSE 0 END) AS firstLevelCount,
+        SUM(CASE WHEN gt.task_importance = '02' THEN 1 ELSE 0 END) AS secondLevelCount
+        FROM Gantt_Tasks gt
+        WHERE gt.task_importance IN ('99','01','02')
+        GROUP BY gt.Plan_Id
+        ) gtc ON gtc.Plan_Id = mn.Plan_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                ORDER BY mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                ORDER BY ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                ORDER BY
+                CASE mn.plan_state WHEN 3 THEN 99 ELSE mn.plan_state END,
+                CASE WHEN mn.plan_state = 0 THEN mn.plan_create_time ELSE mn.plan_state_time END DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getGanttPlanLedgerNJCJStats" resultType="java.util.Map">
+        SELECT
+        ps.alreadyOver,
+        ps.notStart,
+        ps.underApproval,
+        COALESCE(ts.milestoneCount, 0) AS milestoneCount,
+        COALESCE(ts.firstLevelCount, 0) AS firstLevelCount,
+        COALESCE(ts.secondLevelCount, 0) AS secondLevelCount
+        FROM
+        (
+        SELECT
+        SUM(CASE WHEN mn.plan_state = 7 THEN 1 ELSE 0 END) AS alreadyOver,
+        SUM(CASE WHEN mn.plan_state = 0 THEN 1 ELSE 0 END) AS notStart,
+        SUM(CASE WHEN mn.plan_state IN (1,2,4,5,6,8,9) THEN 1 ELSE 0 END) AS underApproval
+        FROM Gantt_Plan mn
+        LEFT JOIN Gantt_Plan_Template gpt ON gpt.pt_id = mn.pt_id
+        LEFT JOIN Con_Contract con ON con.Con_Id = mn.Con_Id
+        LEFT JOIN SYS_Department dep ON dep.D_ID = mn.Plan_D_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        LEFT JOIN SYS_Department d2 ON pro.P_Department = d2.D_Id
+        LEFT JOIN Sec_Info sec ON sec.Sec_Id = mn.Sec_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        ) ps
+        CROSS JOIN
+        (
+        SELECT
+        SUM(CASE WHEN gt.task_importance = '99' THEN 1 ELSE 0 END) AS milestoneCount,
+        SUM(CASE WHEN gt.task_importance = '01' THEN 1 ELSE 0 END) AS firstLevelCount,
+        SUM(CASE WHEN gt.task_importance = '02' THEN 1 ELSE 0 END) AS secondLevelCount
+        FROM Gantt_Tasks gt
+        WHERE gt.task_importance IN ('99','01','02')
+        AND EXISTS (
+        SELECT 1
+        FROM Gantt_Plan mn
+        LEFT JOIN Gantt_Plan_Template gpt ON gpt.pt_id = mn.pt_id
+        LEFT JOIN Con_Contract con ON con.Con_Id = mn.Con_Id
+        LEFT JOIN SYS_Department dep ON dep.D_ID = mn.Plan_D_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        LEFT JOIN SYS_Department d2 ON pro.P_Department = d2.D_Id
+        LEFT JOIN Sec_Info sec ON sec.Sec_Id = mn.Sec_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        and mn.Plan_Id = gt.Plan_Id
+        )) ts
+    </select>
+
+    <select id="getPreprojectInfoLedgerNJCJ"
+            resultType="com.jpmsoft.common.model.response.Plan.GanttPlanResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        dep.D_Name as dName,
+        sec.Sec_Name as secName,
+        gpt.Pt_Name as ptName,
+        mn.*,
+        pro.P_Department as pDepartment,
+        d2.D_Name as pDepartmentName,
+        (select count(*)
+        from Gantt_Tasks_Process gtp
+        join Gantt_Tasks gt on gtp.Task_Id = gt.Task_Id
+        where gt.Plan_Id = mn.Plan_Id
+        and gt.Task_Type != '01'
+        and gtp.Gtp_State = 7
+        and gtp.Gtp_Id = (
+        select gtp2.Gtp_Id
+        from Gantt_Tasks_Process gtp2
+        where gtp2.Task_Id = gtp.Task_Id
+        order by gtp2.Gtp_upload_times desc
+        limit 1)) as alreadyOverCount,
+        (select count(*)
+        from Gantt_Tasks_Process gtp
+        join Gantt_Tasks gt on gtp.Task_Id = gt.Task_Id
+        where gt.Plan_Id = mn.Plan_Id
+        and gt.Task_Type != '01'
+        and gtp.Gtp_State not in (0, 3, 7)
+        and gtp.Gtp_Id = (
+        select gtp2.Gtp_Id
+        from Gantt_Tasks_Process gtp2
+        where gtp2.Task_Id = gtp.Task_Id
+        order by gtp2.Gtp_upload_times desc
+        limit 1)) as underApprovalCount,
+        (select count(*)
+        from Gantt_Tasks gt
+        where gt.Plan_Id = mn.Plan_Id
+        and gt.Task_Type != '01'
+        and gt.Must_Handle = 1) as mustHandleCount,
+        (select count(*)
+        from Gantt_Tasks gt
+        where gt.Plan_Id = mn.Plan_Id
+        and gt.Task_Type != '01'
+        and gt.task_importance = '99') as milestoneCount,
+        (select count(*)
+        from Gantt_Tasks gt
+        where gt.Plan_Id = mn.Plan_Id
+        and gt.Task_Type != '01'
+        and gt.task_importance = '01') as firstLevelCount,
+        (select count(*)
+        from Gantt_Tasks gt
+        where gt.Plan_Id = mn.Plan_Id
+        and gt.Task_Type != '01'
+        and gt.task_importance = '02') as secondLevelCount
+        from Gantt_Plan mn
+        left join Gantt_Plan_Template gpt on gpt.pt_id=mn.pt_id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Department dep on dep.D_ID=mn.Plan_D_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department d2 on pro.P_Department = d2.D_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+    <select id="getPreprojectInfoLedgerNJCJStats" resultType="java.util.Map">
+        SELECT
+        COALESCE(SUM(CASE WHEN lgtp.Gtp_State = 7 THEN 1 ELSE 0 END), 0) AS alreadyOver,
+        COALESCE(SUM(CASE WHEN lgtp.Gtp_State NOT IN (0,3,7) THEN 1 ELSE 0 END), 0) AS underApproval,
+        COALESCE(SUM(CASE WHEN gt.Must_Handle = 1 THEN 1 ELSE 0 END), 0) AS mustHandle,
+        COALESCE(SUM(CASE WHEN gt.task_importance = '99' THEN 1 ELSE 0 END), 0) AS milestoneCount,
+        COALESCE(SUM(CASE WHEN gt.task_importance = '01' THEN 1 ELSE 0 END), 0) AS firstLevelCount,
+        COALESCE(SUM(CASE WHEN gt.task_importance = '02' THEN 1 ELSE 0 END), 0) AS secondLevelCount
+        FROM Gantt_Tasks gt
+        JOIN Gantt_Plan mn ON mn.Plan_Id = gt.Plan_Id
+        JOIN Pre_Project pro ON pro.P_Id = mn.P_Id
+        LEFT JOIN (
+        SELECT p1.Task_Id, p1.Gtp_State
+        FROM Gantt_Tasks_Process p1
+        LEFT JOIN Gantt_Tasks_Process p2
+        ON p2.Task_Id = p1.Task_Id
+        AND (
+        p2.Gtp_upload_times > p1.Gtp_upload_times
+        OR (p2.Gtp_upload_times = p1.Gtp_upload_times AND p2.Gtp_Id > p1.Gtp_Id)
+        )
+        WHERE p2.Task_Id IS NULL
+        ) lgtp ON lgtp.Task_Id = gt.Task_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        AND gt.Task_Type != '01'
+    </select>
+</mapper>

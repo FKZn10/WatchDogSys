@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConEcFeeRecordMapper">
+
+    <select id="getConMearUpperAmt" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ConMearUpperAmtDto">
+        select mn.Mear_Upper_Amount,
+        mn.Mear_Upper_Total,
+        mn.Mear_Cumulative_Amount,
+        mn.Mear_Cumulative_Total
+        from Con_Measure_Record mn
+        left join Con_Measure cm on cm.Id = mn.Mea_Id
+        where cm.Con_Id = #{conId}
+        and mn.Mear_Boqd_Code = #{boqdCode}
+        and cm.State = 7
+        order by cm.State_Time desc limit 1
+    </select>
+
+    <select id="getConMearDeclareByConId" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ConMearDeclareDto">
+        select mn.Mear_Boqd_Code,
+        mn.Mear_Cumulative_Amount,
+        mn.Mear_Cumulative_Total
+        from Con_Measure_Record mn
+        left join Con_Measure cm on cm.Id = mn.Mea_Id
+        where cm.Con_Id = #{conId}
+        and cm.State = 7
+        order by cm.State_Time desc
+    </select>
+
+    <select id="getAllConMearByConIdAndCode"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConMeasureRecordVo">
+        select mn.*
+        from Con_Measure_Record mn
+        left join Con_Measure cm on cm.id = mn.Mea_Id
+        where cm.Con_Id = #{conId}
+        and mn.Mear_Boqd_Code = #{boqdCode}
+        and cm.State = 7
+        order by cm.State_Time desc
+    </select>
+
+    <select id="getApprovedData"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConMeasureRecordVo">
+        select mn.*
+        from Con_Measure_Record mn
+        left join Con_Measure cm on cm.id = mn.Mea_Id
+        where cm.State = 7 and mn.state=7
+        and mn.Boqd_Id in
+        <foreach collection="boqdIds" open="(" close=")" item="id" separator=",">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

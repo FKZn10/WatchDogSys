@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaProblemDtlMapper">
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+        <if test="params.pmState!=null">
+            and mn.Pm_State = #{params.pmState}
+        </if>
+        <if test="params.pmdType!=null">
+            and opd.Pmd_Type = #{params.pmdType}
+        </if>
+        <if test="params.pmdStatus!=null">
+            and opd.Pmd_Status = #{params.pmdStatus}
+        </if>
+        <if test="params.pmdTitle!=null">
+            and opd.Pmd_Title like concat('%',#{params.pmdTitle},'%')
+        </if>
+        <if test="params.pmdCode!=null">
+            and opd.Pmd_Code like concat('%',#{params.pmdCode},'%')
+        </if>
+        <if test="params.pmdDutyUname!=null">
+            and opd.Pmd_Duty_Uname like concat('%',#{params.pmdDutyUname},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pmTitle!=null">
+            and mn.Pm_Title like concat('%',#{params.pmTitle},'%')
+        </if>
+        <if test="params.pmCode!=null">
+            and mn.Pm_Code like concat('%',#{params.pmCode},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+    </sql>
+
+    <select id="getOaProblemDtlList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProblemDtlModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        mn.Pm_Title as pmTitle,
+        mn.Pm_Code as pmCode,
+        mn.P_Id as pId,
+        opd.*
+        from  OA_Problem_Dtl opd
+        left join  OA_Problem mn on opd.Pm_Id=mn.Pm_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by opd.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by opd.Pmd_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

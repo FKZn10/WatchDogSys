@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConEstimateMaintenanceDtlMapper">
+
+    <select id="getConEstimateMaintenanceDtlByCemId" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConEstimateMaintenanceDtlModel">
+        select mn.*
+        from Con_Estimate_Maintenance_Dtl mn
+        where mn.Cem_Id = #{cemid}
+    </select>
+
+
+</mapper>

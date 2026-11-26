@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecWorkSchemaMapper">
+
+    <resultMap type="com.jpmsoft.common.model.request.SecInfo.SecWorkSchemaDTO" id="getSecWorkSchema">
+        <id column="id" property="id"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Work_Schema ws on ws.Sec_Id=sec.Sec_Id
+        where ws.id=#{id}
+    </select>
+
+    <select id="getSecWorkSchemaBySecId" resultMap="getSecWorkSchema">
+        <include refid="selectMainTable" />
+        where ws.Sec_Id=#{secId}
+    </select>
+
+    <select id="getSecWorkSchemaByWsId" resultMap="getSecWorkSchema">
+        <include refid="selectMainTable" />
+        where ws.id=#{wsId}
+    </select>
+
+    <select id="getSecWorkSchemaList" resultMap="getSecWorkSchema">
+        <include refid="selectMainTable" />
+        <where>
+            <if test="params.secName!=null">
+                and INSTR(sec.Sec_Name,#{params.secName})
+            </if>
+        </where>
+    </select>
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select ${selectClause}
+        from Sec_Work_Schema mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        left join SYS_Company c4 on c4.C_ID=sec.Sec_Tenderee
+        left join Sys_Company c6 on c6.C_Id=sec.Sec_Agency
+        left join SYS_Department dpre on dpre.D_Id = pre.p_Competent_Department
+        left join Sys_File sf on sf.FileId=mn.id
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+        ${authSql}
+        <include refid="listFilterClass"/>
+    </select>
+
+    <select id="getSecWorkSchemaListClass" resultMap="getSecWorkSchema">
+        select
+            sec.Sec_Name as secName,
+            sec.Sec_Type as secType,
+            sec.Sec_Organize_Form as secOrganizeForm,
+            sec.Sec_Bidding_Type as secBiddingType,
+            sec.Sec_Start_Time as secStartTime,
+            sec.Sec_Bidding_Cycle as secBiddingCycle,
+            sec.Sec_Place as secPlace,
+            sec.Sec_Other_Valuation as secOtherValuation,
+            sec.Sec_Pricing_Method as secPricingMethod,
+            sec.Sec_Trading_Place as secTradingPlace,
+            sec.Sec_Money as secMoney,
+            sec.Sec_Contracting_department as secContractingDepartment,
+            sec.Sec_Section_Classify as secSectionClassify,
+            c4.C_Name as tendereeName,
+            c6.C_Name as secAgencyName,
+        case when pre.P_Name is null then sp.P_Name else pre.P_Name end as pName,
+        case when pre.P_Category is null then sp.p_Category else pre.P_Category end as pCategory,
+        case when pre.P_Build_Model is null then sp.P_Build_Model else pre.P_Build_Model end as pBuildModel,
+        case when dpre.D_Name is null then sp.D_Name else dpre.D_Name end as pCompetentDepartmentName,
+            mn.*,
+        case when mn.P_Id is null then sp.P_ID else mn.P_Id end as projectId,
+        case when mn.P_Id is null then sp.P_Id else mn.P_Id end as pId
+        from Sec_Work_Schema mn
+                 left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+                 left join pre_project pre on pre.P_Id=mn.P_Id
+                 left join SYS_Company c4 on c4.C_ID=sec.Sec_Tenderee
+                 left join Sys_Company c6 on c6.C_Id=sec.Sec_Agency
+                 left join SYS_Department dpre on dpre.D_Id = pre.p_Competent_Department
+                 left join Sys_File sf on sf.FileId=mn.id
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+       ${authSql}
+        <include refid="listFilterClass"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilterClass">
+        <if test="params.pId != null and params.pId != ''">
+            and (mn.P_Id = #{params.pId} or (mn.P_Id is null and sp.P_Id = #{params.pId}))
+        </if>
+        <if test="params.isNew != null and params.isNew != ''">
+            and sbp.is_new = 1
+        </if>
+        <if test="params.pNameList!=null and params.pNameList.size()>0 ">
+            <choose>
+                <when test="params.pNameList.contains('空白数据')">
+                    and (
+                    (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) is null
+                    or
+                    (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) = ''
+                    )
+                </when>
+                <otherwise>
+                    and (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) in
+                    <foreach collection="params.pNameList" open="(" close=")" separator="," item="pName">
+                        #{pName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.secNameList!=null and params.secNameList.size()>0 ">
+            <choose>
+                <when test="params.secNameList.contains('空白数据')">
+                    and (sec.sec_name is null or sec.sec_name = '')
+                </when>
+                <otherwise>
+                    and sec.sec_name in
+                    <foreach collection="params.secNameList" open="(" close=")" separator="," item="secName">
+                        #{secName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategoryList!=null and params.pCategoryList.size()>0 ">
+            <choose>
+                <when test="params.pCategoryList.contains('空白数据')">
+                    and (
+                    (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) is null
+                    or
+                    (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) = ''
+                    )
+                </when>
+                <otherwise>
+                    and (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) in
+                    <foreach collection="params.pCategoryList" open="(" close=")" separator="," item="pCategory">
+                        #{pCategory}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createUnameList!=null and params.createUnameList.size()>0 ">
+            <choose>
+                <when test="params.createUnameList.contains('空白数据')">
+                    and (mn.create_Uname is null or mn.create_Uname = '')
+                </when>
+                <otherwise>
+                    and mn.create_Uname in
+                    <foreach collection="params.createUnameList" open="(" close=")" separator="," item="createUname">
+                        #{createUname}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.stateList!=null and params.stateList.size()>0">
+            <choose>
+                <when test="params.stateList.contains('空白数据')">
+                    and (mn.state is null or mn.state = '')
+                </when>
+                <otherwise>
+                    and mn.state in
+                    <foreach collection="params.stateList" open="(" close=")" separator="," item="state">
+                        #{state}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createTimeStr!=null and params.createTimeStr!=''">
+            <include refid="getAllValuesDateFilter"/>
+        </if>
+    </sql>
+
+    <sql id="getAllValuesDateFilter" databaseId="dm">
+        and to_char(mn.Create_Time,'yyyy-MM-dd') = #{params.createTimeStr}
+    </sql>
+
+    <sql id="getAllValuesDateFilter" databaseId="mysql">
+        and date_format(mn.Create_Time,'%Y-%m-%d') = #{params.createTimeStr}
+    </sql>
+
+    <sql id="selectMainTable">
+        select
+            sec.Sec_Name as secName,
+            sec.Sec_Type as secType,
+            sec.Sec_Organize_Form as secOrganizeForm,
+            sec.Sec_Bidding_Type as secBiddingType,
+            sec.Sec_Start_Time as secStartTime,
+            sec.Sec_Bidding_Cycle as secBiddingCycle,
+            sec.Sec_Place as secPlace,
+            sec.Sec_Other_Valuation as secOtherValuation,
+            sec.Sec_Pricing_Method as secPricingMethod,
+            sec.Sec_Trading_Place as secTradingPlace,
+            sec.Sec_Money as secMoney,
+            sec.Sec_Contracting_department as secContractingDepartment,
+            sec.Sec_Section_Classify as secSectionClassify,
+            c4.C_Name as tendereeName,
+            c6.C_Name as secAgencyName,
+            pre.P_Name as pName,
+            pre.p_Category as pCategory,
+            pre.P_Build_Model as pBuildModel,
+            sf.file_relation_id as fileRelationId,
+            ws.*,
+            ws.P_Id as projectId
+        from Sec_Work_Schema ws
+                 left join Sec_Info sec on sec.Sec_Id=ws.Sec_Id
+                 left join SYS_Company c4 on c4.C_ID=sec.Sec_Tenderee
+                 left join Sys_Company c6 on c6.C_Id=sec.Sec_Agency
+                 left join pre_project pre on pre.P_Id=ws.P_Id
+                 left join Sys_File sf on sf.FileId=ws.id
+    </sql>
+</mapper>

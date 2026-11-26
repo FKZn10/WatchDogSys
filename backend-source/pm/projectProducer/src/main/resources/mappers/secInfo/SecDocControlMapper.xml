@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecDocControlMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecDocControlVo" id="getSecDocControl">
+        <id column="id" property="id"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join Sec_Doc_Control sd on sd.Sec_Id = sec.Sec_Id
+        where sd.id = #{id}
+    </select>
+
+    <select id="getSecDocControlById" resultMap="getSecDocControl">
+        select sec.Sec_Name       as secName,
+               c1.C_Name          as dcPreparedByName,
+               c1.C_Abbreviation  as dcPreparedByAbbName,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Sec_Doc_Control mn
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join SYS_Company c1 on mn.Dc_Prepared_By = c1.C_Id
+                 left join SYS_File f on f.fileId = mn.id
+        where mn.id = #{id}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.dcDeterminType!=null">
+            and mn.Dc_Determin_Type=#{params.dcDeterminType}
+        </if>
+        <if test="params.dcPriceMode!=null">
+            and mn.Dc_Price_Mode=#{params.dcPriceMode}
+        </if>
+        <if test="params.dcPerformanceGuaranteeType!=null">
+            and mn.Dc_Performance_Guarantee_Type=#{params.dcPerformanceGuaranteeType}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.secName!=null">
+            and INSTR(sec.Sec_Name,#{params.secName})
+        </if>
+    </sql>
+
+    <select id="getSecDocControlList" resultMap="getSecDocControl">
+        select sec.Sec_Name as secName,
+        c1.C_Name as dcPreparedByName,
+        c1.C_Abbreviation as dcPreparedByAbbName,
+        mn.*
+        from Sec_Doc_Control mn
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join SYS_Company c1 on mn.Dc_Prepared_By = c1.C_Id
+        where 1=1
+        <include refid="listFilter"></include>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by scp.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecDocControlListCount" resultType="Integer">
+        select count(*)
+        from Sec_Doc_Control mn
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join SYS_Company c1 on mn.Dc_Prepared_By = c1.C_Id
+        where 1=1
+        <include refid="listFilter"></include>
+    </select>
+</mapper>

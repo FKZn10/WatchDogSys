@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.SysUserMapper">
+<!--   根据用户id获取组织机构信息-->
+    <select id="getDInfo" resultType="java.util.Map">
+        select sd.D_ID,
+        sd.D_Name,
+        sd.D_Code,
+        sd.D_ParentID,
+        sd.D_Type,
+        sd.D_MDM_NO,
+        sd.D_Company_Id,
+        sd.D_Solution,
+        sp.P_Name,
+        sp.P_Code,
+        sp.P_MDM_NO,
+        sr.Role_Name,
+        sr.Role_Code,
+        sr.Role_Type,
+        spu.U_ID
+        from SYS_Department sd
+        left join SYS_Position sp on sd.D_ID = sp.D_ID
+        left join SYS_Position_User spu on spu.P_ID = sp.P_ID
+        left join SYS_Position_Role spr on spr.P_ID = sp.P_ID
+        left join SYS_Role sr on sr.Role_ID = spr.Role_ID
+
+        <if test="uIds!=null">
+            where spu.U_ID in
+            <foreach collection="uIds" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+    </select>
+<!--    根据用户的获取项目组织机构信息-->
+
+
+    <select id="getPdInfo" resultType="java.util.Map">
+        select sr.Role_Name,
+        sr.Role_Code,
+        sr.Role_Type,
+        spp.PP_Name,
+        spp.PP_Code,
+        spp.PP_MDM_NO,
+        sdp.PD_Name,
+        sdp.PD_Code,
+        sdp.PD_ParentID,
+        sdp.PD_Type,
+        sdp.PD_ID,
+        sdp.P_ID,
+        sdp.PD_MDM_NO,
+        spup.U_ID
+        from SYS_Position_User_P spup
+        left join SYS_Position_P spp on spup.PP_ID = spp.PP_ID
+        left join SYS_Department_P sdp on sdp.PD_ID = spp.PD_ID
+        left join SYS_PositionP_Role sppr on sppr.PP_ID = spp.PP_ID
+        left join SYS_Role sr on sr.Role_ID = sppr.Role_ID
+
+        <if test="uIds!=null">
+            where spup.U_ID in
+            <foreach collection="uIds" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="getUidByUidInfo" resultType="java.util.Map">
+
+        select spup1.U_ID,sdp1.P_ID,su.C_ID,spp1.PP_Name from SYS_Position_P spp1
+            left join SYS_Position_User_P spup1 on spp1.PP_ID=spup1.PP_ID
+        left join SYS_Department_P sdp1 on sdp1.PD_ID=spp1.PD_ID
+        left join Sys_User su on su.U_ID=spup1.U_ID
+        where sdp1.P_ID in(
+        SELECT sdp.P_ID FROM SYS_Position_P spp
+        left join SYS_Position_User_P spup on spp.PP_ID=spup.PP_ID
+        left join SYS_Department_P sdp on sdp.PD_ID=spp.PD_ID
+        where su.U_State='1'  and su.U_Type!='2'
+        <if test="params.userIds!=null">
+            and spup.U_ID in
+            <foreach collection="params.userIds" open="(" close=")" separator="," item="userId">
+                #{userId}
+            </foreach>
+        </if>
+
+        <if test="params.pIds!=null">
+            and sdp.P_ID in
+            <foreach collection="params.pIds" open="(" close=")" separator="," item="pId">
+                #{pId}
+            </foreach>
+        </if>
+
+        )
+        <if test="params.pNames!=null">
+            and spp1.PP_Name in
+            <foreach collection="params.pNames" open="(" close=")" separator="," item="pName">
+                #{pName}
+            </foreach>
+        </if>
+
+
+    </select>
+
+    <select id="getUserRoleNames" resultType="java.lang.String">
+        select mn.Role_Name
+        from SYS_Role mn
+        left join SYS_PositionP_Role ppr on ppr.Role_ID=mn.Role_ID
+        left join SYS_Position_Role pr on pr.Role_ID=mn.Role_ID
+        left join SYS_Position_User_P pup on pup.PP_ID=ppr.PP_ID
+        left join SYS_Position_User pu on pu.P_ID=pr.P_ID
+        where pup.U_ID=#{uId} or pu.U_ID=#{uId}
+    </select>
+</mapper>

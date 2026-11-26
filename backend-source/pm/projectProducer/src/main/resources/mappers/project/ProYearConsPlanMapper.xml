@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProYearConsPlanMapper">
+
+    <select id="getProYearConsPlanList" resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProYearConsPlanVo">
+        select
+        mn.*
+        from Pro_Year_Cons_Plan mn
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.state!=null">
+                and mn.State=#{params.state}
+            </if>
+            <if test="params.createUname!=null">
+                and INSTR(mn.Create_Uname,#{params.createUname})
+            </if>
+            <if test="params.ycpStartTimeStart!=null">
+                and mn.Ycp_Start_Time>=#{params.ycpStartTimeStart}
+            </if>
+            <if test="params.ycpStartTimeEnd!=null">
+                and mn.Ycp_Start_Time&lt;=#{params.ycpStartTimeEnd}
+            </if>
+            <if test="params.ycpEndTimeStart!=null">
+                and mn.Ycp_End_Time>=#{params.ycpEndTimeStart}
+            </if>
+            <if test="params.ycpEndTimeEnd!=null">
+                and mn.Ycp_End_Time&lt;=#{params.ycpEndTimeEnd}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.project.ProYearConsPlanVo"
+               id="selectProYearConsPlan">
+        <id column="id" property="id"/>
+        <collection property="proYearPlanSelects"
+                    ofType="com.jpmsoft.projectProducer.pojo.vo.project.ProYearPlanSelectVo"
+                    column="id" select="selectProYearPlanSelect">
+        </collection>
+    </resultMap>
+    <select id="selectProYearPlanSelect" resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProYearPlanSelectVo">
+        select
+            c1.C_Name as cplAgencyName,
+            c2.C_Name as cplLiableCompanyName,
+            dp1.D_Name as cplDeclareDepName,
+            dp2.D_Name as cplUseDepName,
+            pcp.Pcp_File_Name as pcpFileName,
+            pcp.Pcp_Year as pcpYear,
+            pcp.Pcp_Create_Uname as pcpCreateUname,
+            pcp.Pcp_State as pcpState,
+            cpl.*,
+            mn.*
+        from Pro_Year_Plan_Select mn
+        left join Pro_Construction_Plan_List cpl on cpl.Cpl_Id=mn.Cpl_Id
+        left join  Pro_Construction_Plan pcp on pcp.Pcp_Id=cpl.Pcp_Id
+        left join  SYS_Company c1 on c1.C_Id=cpl.Cpl_Agency
+        left join  SYS_Company c2 on c2.C_Id=cpl.Cpl_Liable_Company
+        left join  SYS_Department dp1 on dp1.D_Id=cpl.Cpl_Declare_Dep
+        left join  SYS_Department dp2 on dp2.D_Id=cpl.Cpl_Use_Dep
+        where mn.Ycp_Id=#{id}
+        order by cpl.Cpl_Create_Time Desc
+    </select>
+    <select id="getProYearConsPlanById" resultMap="selectProYearConsPlan">
+        select f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Pro_Year_Cons_Plan mn
+                 left join SYS_File f on f.fileid = mn.Id
+        where mn.id = #{id}
+    </select>
+</mapper>

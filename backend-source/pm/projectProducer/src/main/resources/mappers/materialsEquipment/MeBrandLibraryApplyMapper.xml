@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MeBrandLibraryApplyMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeBrandLibraryApplyVo"
+               id="getMeBrandLibraryApply">
+        <id column="Bla_Id" property="blaId"/>
+        <collection property="meBrandLibrarys"
+                    ofType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeBrandLibraryVo"
+                    column="Bla_Id" select="getMeBrandLibrary">
+        </collection>
+    </resultMap>
+
+    <select id="getMeBrandLibrary" resultType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeBrandLibraryVo">
+        select mtl.Met_Name       as metName,
+               c1.C_Name          as brandSupplierName,
+               c2.C_Name          as brandProducerName,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Me_BrandLibrary mn
+                 left join Me_Type_Library mtl on mtl.Met_Id = mn.Met_Id
+                 left join Sys_Company c1 on c1.C_Id = mn.Brand_Supplier
+                 left join Sys_Company c2 on c2.C_Id = mn.Brand_Producer
+                 left join Sys_File f on f.FileId = mn.id
+        where mn.Bla_Id = #{blaId}
+    </select>
+
+
+    <select id="getMeBrandLibraryApplyById"
+            resultMap="getMeBrandLibraryApply">
+        select f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Me_BrandLibrary_Apply mn
+                 left join Sys_File f on f.FileId = mn.Bla_Id
+        where mn.Bla_Id = #{id}
+    </select>
+
+    <select id="getMeBrandLibraryApplyList"
+            resultMap="getMeBrandLibraryApply">
+        select
+        mn.*
+        from Me_BrandLibrary_Apply mn
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.state=#{params.state}
+        </if>
+        <if test="params.blaCode!=null">
+            and INSTR(mn.Bla_Code,#{params.blaCode})
+        </if>
+        <if test="params.blaTitle!=null">
+            and INSTR(mn.Bla_Title,#{params.blaTitle})
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

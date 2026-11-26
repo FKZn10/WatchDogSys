@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.bankAccount.BankAccountMapper">
+
+    <select id="getBankAccountById" resultType="com.jpmsoft.common.model.response.Account.BankAccountResponse">
+        select c1.C_Name         as baCName,
+               c1.C_Abbreviation as baCAbbName,
+               pro.P_Name        as pName,
+               mn.*
+        from Bank_Account mn
+                 left join SYS_Company c1 on mn.Ba_C_Id = c1.C_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+        where mn.Ba_Id = #{baId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.baState!=null">
+            and mn.Ba_State=#{params.baState}
+        </if>
+        <if test="params.baCId!=null">
+            and mn.Ba_C_Id=#{params.baCId}
+        </if>
+        <if test="params.baType!=null">
+            and mn.Ba_Type=#{params.baType}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.baNu!=null">
+            and mn.Ba_Nu like concat('%',#{params.baNu},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.baCName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.baCName},mn.Ba_C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.baCName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.baName!=null">
+            and mn.Ba_Name like concat('%',#{params.baName},'%')
+        </if>
+        <if test="params.baBank!=null">
+            and mn.Ba_Bank like concat('%',#{params.baBank},'%')
+        </if>
+        <if test="params.baBankName!=null">
+            and mn.Ba_Bank_Name like concat('%',#{params.baBankName},'%')
+        </if>
+        <if test="params.payNames!=null">
+            and c1.c_name in
+            <foreach collection="params.payNames" item="names" separator="," open="(" close=")">
+                #{names}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="getBankAccountList" resultType="com.jpmsoft.common.model.response.Account.BankAccountResponse">
+        select
+        c1.C_Name_History as baCNameHistory,
+        c1.C_Name as baCName,
+        c1.C_Abbreviation as baCAbbName,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Bank_Account mn
+        left join SYS_Company c1 on mn.Ba_C_Id=c1.C_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"></include>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ba_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

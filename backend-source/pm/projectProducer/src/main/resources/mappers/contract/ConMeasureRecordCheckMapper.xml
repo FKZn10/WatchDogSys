@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConMeasureRecordCheckMapper">
+
+    <select id="getConMeasureRecordCheckById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConMeasureRecordCheckVo">
+        select c1.C_Name         as mearcCName,
+               c1.C_Abbreviation as mearcCAbbName,
+               mn.*
+        from Con_Measure_Record_Check mn
+                 left join SYS_Company c1 on c1.C_Id = mn.Mearc_Cid
+        where mn.Mearc_Id = #{id}
+    </select>
+
+    <sql id="listFilter">
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.mearId!=null">
+            and mn.Mear_Id = #{params.mearId}
+        </if>
+        <if test="params.mearcUname!=null">
+            and INSTR(mn.Mearc_Uname,#{params.mearcUname})
+        </if>
+        <if test="params.mearcNodeName!=null">
+            and INSTR(mn.Mearc_Node_Name,#{params.mearcNodeName})
+        </if>
+    </sql>
+
+    <select id="getConMeasureRecordCheckList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConMeasureRecordCheckVo">
+        select c1.C_Name as mearcCName,
+        c1.C_Abbreviation as mearcCAbbName,
+        (select count(*) from SYS_FileAnnex where File_Relation_Id=mn.Mearc_File and upload_status=1
+         and ARCHIVE=0 and File_Replace=0) as mearcFileCount,
+        mn.*
+        from Con_Measure_Record_Check mn
+        left join SYS_Company c1 on c1.C_Id = mn.Mearc_Cid
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Mearc_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+</mapper>

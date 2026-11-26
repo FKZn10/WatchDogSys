@@ -1,0 +1,2147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConPayMapper">
+    <!--************************************* 公用 *************************************-->
+
+
+    <select id="getConPayFundAllocation" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.PayFundAllocationDTO">
+        select
+            c1.c_name as conPartyBName,
+            pro.p_name as pName,
+            con.con_name as conName,
+            con.con_type as conType,
+            con.con_Money_Total as conMoneyTotal,
+            con.con_Money_Tentative as conMoneyTentative,
+            con.con_Party_A_Agent as conPartyAAgent,
+            (select fa.fa_Approved_Amt from Inv_Final_Accounts_Apply fa where  fa.con_id=mn.con_id and fa.fa_state=7 limit 1) as faApprovedAmt,
+            (select sa.as_Audited_Amount from Audit_Settlement sa  where  sa.con_id=mn.con_id and sa.as_state=7 limit 1) as asAuditedAmount,
+            (select sum(Fad_Actual_Payment) from Fund_Allocation_Dtl fad left join Fund_Allocation fua on fua.id=fad.fa_id where fad.con_id=mn.con_id and fua.State=7) as fadActualPaymentSum,
+            sd.d_name as conDepartment
+         from  Con_Contract  con
+         left join Pre_Project pro on pro.P_Id = mn.P_Id
+         left join sys_company c1 on c1.c_name=con.Con_Party_B_Id
+         left join sys_department sd on sd.d_id=con.con_department
+         where con.Con_Payment_State=2 and con.Con_Approval_State=7 and
+         (select count(*) from con_pay cp where cp.con_id=con.con_id and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State=7) > 0
+         <if test="params.conPartyAId!=null">
+             and con.con_Party_A_Id=#{params.conPartyAId}
+         </if>
+    </select>
+
+
+    <select id="getConPayFundStatistics" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConPayFundStatisticsVO">
+        select
+        mn.Pay_Id,
+        mn.Pay_Type,
+        mn.Pay_Type_Detailed,
+        mn.Pay_Apply,
+        mn.Pay_Approval,
+        mn.Pay_Apply_Owner,
+        mn.Pay_Application_Date
+        from Con_Pay mn
+        where mn.Con_Id=#{params.conId}
+        and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        and mn.Pay_State=7 and mn.Pay_Category='01'
+    </select>
+
+
+    <select id="getConPayFundStatisticsSum" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConPayFundStatisticsSumVO">
+        select
+        coalesce(sum(mn.Pay_Apply), 0) as payApplySum,
+        coalesce(sum(mn.Pay_Approval), 0) as payApprovalSum,
+        coalesce(sum(mn.Pay_Apply_Owner), 0) as payApplyOwnerSum
+        from Con_Pay mn
+        where mn.Con_Id=#{params.conId}
+        and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        and mn.Pay_State=7 and mn.Pay_Category='01'
+    </select>
+
+    <resultMap type="com.jpmsoft.common.model.response.pay.ConPayResponse"
+               id="getConPay">
+        <id column="Pay_Id" property="payId"/>
+        <collection property="conFundNos" ofType="com.jpmsoft.common.model.response.pay.ConFundNoVo"
+                    column="Pay_Id" select="getConFundNo">
+        </collection>
+    </resultMap>
+
+    <select id="getConFundNo" resultType="com.jpmsoft.common.model.response.pay.ConFundNoVo">
+        select mn.*
+        from Con_Fund_No mn
+        where mn.Pay_Id = #{payId}
+    </select>
+    <select id="getPayCumulativeStatistics" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.PayCumulativeStatisticsVO">
+        select sum(payApplyCount)     as "payApplyCount",
+               sum(payDoneTotalCount) as "payDoneTotalCount",
+               sum(payChangeCount) as "payChangeCount",
+               sum(payThisChangeAmountCount) as "payThisChangeAmountCount",
+               sum(payFarmersPeriod) as "payFarmersPeriod",
+        coalesce(sum(payFarmersPeriod), 0) as "payFarmersExpenditureTotal",
+               sum(payApprovalCount)  as "payApprovalCount",
+               <if test="payType!=null">
+                (select count(*) from Con_Pay cp where cp.Con_Id = #{conId} and cp.Pay_Type=#{payType} and cp.Pay_State = 7)+1 as "batchNo",
+               </if>
+               (select sum(cp.Pay_Bonus) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payBonusLast",
+               (select sum(cp.Pay_Deduct_ZBJ) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payDeductZbjLast",
+               (select sum(cp.Pay_Deduct_Fine) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payDeductFineLast",
+               (select sum(cp.Pay_Deduct_YFK) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payDeductYfkLast",
+               (select sum(cp.Pay_Deduct_Sc) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payDeductScLast",
+               (select sum(cp.pay_apply_sup) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payApplySupLast",
+               (select sum(cp.Pay_Deduct_QT) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payDeductQtLast",
+               (select sum(cp.Pay_Payable) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payPayableLast",
+               (select sum(cp.Pay_Liquidated_Damages) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payLiquidatedDamagesCount",
+               (select max(cp.Pay_Security_Costs) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "paySecurityCosts",
+               (select sum(case when sam.Ecf_Apply_Money_Type=1 then sam.Ecf_Apply_Money else -1*sam.Ecf_Apply_Money end) from Con_EC_Fee sam where sam.Con_Id=#{conId} and sam.Ecf_State=7) as "payThisChangeAmount",
+               (select sum(pat.At_Money) from Pc_Award_Ticket pat where pat.Con_Id=#{conId} and pat.At_State=7 and pat.At_Type='0') as "payBonus",
+               (select sum(pat.At_Money) from Pc_Award_Ticket pat where pat.Con_Id=#{conId} and pat.At_State=7 and pat.At_Type='1') as "payDeductFine"
+        from (select
+                     sum(Pay_Change) as payChangeCount,
+                     sum(Pay_Approval)  as payApprovalCount,
+                     sum(Pay_This_Change_Amount) as payThisChangeAmountCount,
+                     sum(Pay_Apply)      as payApplyCount,
+                     sum(Pay_Farmers_Expenditure)      as payFarmersPeriod,
+                     sum(Pay_Done) as payDoneTotalCount
+              from Con_Pay
+              where Con_Id = #{conId} and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null and teId != ''"> and Te_Id = #{teId} </if> and Pay_State = 7
+                <if test="withoutDetailType == null or !withoutDetailType">and Pay_Type_Detailed!='0201'</if>
+                <if test="payType != null and payType != '' and withoutDetailType">and pay_type = #{payType}</if>
+              union
+              select
+                      sum(Pay_Change) as payChangeCount,
+                      sum(Pay_Approval)  as payApprovalCount,
+                      sum(Pay_This_Change_Amount) as payThisChangeAmountCount,
+                      sum(Pay_Apply_Owner) as payApplyCount,
+                      sum(Pay_Farmers_Expenditure)      as payFarmersPeriod,
+                      sum(case when Pay_Done_Owner is  null then Pay_Done_Total else Pay_Done_Owner end ) as payDoneTotalCount
+              from Con_Pay
+              where Con_Id=#{conId} and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null and teId != ''"> and Te_Id = #{teId} </if> and Pay_State=7
+                  <if test="withoutDetailType == null or !withoutDetailType">and Pay_Type_Detailed='0201'</if>
+                  <if test="payType != null and payType != '' and withoutDetailType">and pay_type = #{payType}</if>
+              ) a
+    </select>
+
+
+    <select id="getPayCumulativeStatisticsCH" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.PayCumulativeStatisticsVO">
+        select sum(payApplyCount)     as "payApplyCount",
+        sum(payDoneTotalCount) as "payDoneTotalCount",
+        sum(payChangeCount) as "payChangeCount",
+        sum(payThisChangeAmountCount) as "payThisChangeAmountCount",
+        sum(payFarmersPeriod) as "payFarmersPeriod",
+        sum(payApprovalCount)  as "payApprovalCount",
+        <if test="payType!=null">
+            (select count(*) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_Type=#{payType} and cp.Pay_State = 7
+             <if test="payTypeDetailed!=null and payTypeDetailed != ''">and cp.Pay_Type_Detailed=#{payTypeDetailed}</if>cp.
+            )+1 as "batchNo",
+        </if>
+        (select sum(cp.Pay_Bonus) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payBonusLast",
+        (select sum(cp.Pay_Deduct_ZBJ) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payDeductZbjLast",
+        (select sum(cp.Pay_Deduct_Fine) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payDeductFineLast",
+        (select sum(cp.Pay_Deduct_YFK) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payDeductYfkLast",
+        (select sum(cp.Pay_Deduct_Sc) from Con_Pay cp where cp.Con_Id = #{conId} and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payDeductScLast",
+        (select sum(
+        case
+        when cp.Pay_Apply_Owner is not null then cp.Pay_Apply_Owner
+        else cp.Pay_Apply
+        end
+        )
+        from Con_Pay cp
+        where cp.Con_Id = #{conId} and cp.Pay_State = 7 and (cp.Contract_Pay_Type = '1' or cp.Contract_Pay_Type is null)
+        <if test="payType != null and payType != ''">and cp.pay_type = #{payType}</if>
+        <if test="payTypeDetailed != null and payTypeDetailed != ''">and cp.Pay_Type_Detailed=#{payTypeDetailed}</if>
+        ) as "payApplySupLast",
+        (select sum(cp.Pay_Deduct_QT) from Con_Pay cp where cp.Con_Id = #{conId} and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payDeductQtLast",
+        (select sum(cp.Pay_Payable) from Con_Pay cp where cp.Con_Id = #{conId} and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "payPayableLast",
+        (select sum(cp.Pay_Liquidated_Damages) from Con_Pay cp where cp.Con_Id = #{conId} and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) and cp.Pay_State = 7
+        <if test="payPayee!=null and payPayee != ''">and cp.pay_Payee=#{payPayee}</if>
+        <if test="payType != null and payType != ''">and cp.pay_type = #{payType}</if>
+        <if test="payTypeDetailed!=null and payTypeDetailed != ''">and cp.Pay_Type_Detailed=#{payTypeDetailed}</if>
+        ) as "payLiquidatedDamagesCount",
+        (select max(cp.Pay_Security_Costs) from Con_Pay cp where cp.Con_Id = #{conId} and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) and cp.Pay_State = 7 ) as "paySecurityCosts",
+        (select sum(case when sam.Ecf_Apply_Money_Type=1 then sam.Ecf_Apply_Money else -1*sam.Ecf_Apply_Money end) from Con_EC_Fee sam where sam.Con_Id=#{conId} and sam.Ecf_State=7) as "payThisChangeAmount",
+        (select sum(pat.At_Money) from Pc_Award_Ticket pat where pat.Con_Id=#{conId} and pat.At_State=7 and pat.At_Type='0'
+        <if test="payPayee!=null and payPayee != ''">and pat.at_C_Id=#{payPayee}</if>
+        ) as "payBonus",
+        (select sum(pat.At_Money) from Pc_Award_Ticket pat where pat.Con_Id=#{conId} and pat.At_State=7 and pat.At_Type='1'
+        <if test="payPayee!=null and payPayee != ''">and pat.at_C_Id=#{payPayee}</if>
+        ) as "payDeductFine"
+        from (select
+        sum(Pay_Change) as payChangeCount,
+        sum(Pay_Approval)  as payApprovalCount,
+        sum(Pay_This_Change_Amount) as payThisChangeAmountCount,
+        sum(Pay_Apply)      as payApplyCount,
+        sum(Pay_Farmers_Expenditure)      as payFarmersPeriod,
+        sum(Pay_Done) as payDoneTotalCount
+        from Con_Pay
+        where Con_Id = #{conId} and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) and Pay_Apply_Owner is null <if test="teId!=null and teId != ''"> and Te_Id = #{teId} </if> and Pay_State = 7
+        <if test="payTypeDetailed!=null and payTypeDetailed != ''">and Pay_Type_Detailed=#{payTypeDetailed}</if>
+        <if test="payType != null and payType != ''">and pay_type = #{payType}</if>
+        union
+        select
+        sum(Pay_Change) as payChangeCount,
+        sum(Pay_Approval)  as payApprovalCount,
+        sum(Pay_This_Change_Amount) as payThisChangeAmountCount,
+        sum(Pay_Apply_Owner) as payApplyCount,
+        sum(Pay_Farmers_Expenditure)      as payFarmersPeriod,
+        sum(case when Pay_Done_Owner is  null then Pay_Done_Total else Pay_Done_Owner end ) as payDoneTotalCount
+        from Con_Pay
+        where Con_Id=#{conId} and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) and Pay_Apply_Owner is not null <if test="teId!=null and teId != ''"> and Te_Id = #{teId} </if> and Pay_State=7
+        <if test="payTypeDetailed!=null and payTypeDetailed != ''">and Pay_Type_Detailed=#{payTypeDetailed}</if>
+        <if test="payType != null and payType != ''">and pay_type = #{payType}</if>
+        ) a
+    </select>
+
+    <select id="getLastApprovedConPay" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select
+        mn.*
+        from Con_Pay mn
+        where mn.Pay_State=7
+        and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.payTypeDetailed!=null">
+            and mn.Pay_Type_Detailed = #{params.payTypeDetailed}
+        </if>
+        <if test="params.payType!=null">
+            and mn.Pay_Type = #{params.payType}
+        </if>
+        order by mn.Pay_State_Time desc
+        limit 1
+    </select>
+
+    <select id="getAccumulatedFeesByCId" resultType="Map">
+        select SUM(mn.Pay_Approval) as accumulatedFees from Con_Pay mn where
+                mn.Pay_Category = #{payCategory} and
+                mn.Pay_State = 7 and
+                mn.Con_Id is null and
+                mn.Pay_Payee = #{cId} and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+    </select>
+
+
+    <select id="getConPayBypayId" resultMap="getConPay">
+        select con.Con_Name                       as conName,
+               con.Con_Code                       as conCode,
+               con.Con_Money_Total                as conMoneyTotal,
+               con.Con_Money_Tentative            as conMoneyTentative,
+               con.Con_Section_Id                 as secId,
+               con.Con_Ac_Pay_Rate                as conAcPayRate,
+               con.Con_Ac_Money                   as conAcMoney,
+               con.Con_Progress_Ratio             as conProgressRatio,
+               con.Con_Type                       as conType,
+               con.Con_Category                   as conCategory,
+               con.Con_Pricing_Method             as conPricingMethod,
+               con.Con_Other_Valuation            as conOtherValuation,
+               con1.Con_Name                      as payRepairOneName,
+               con2.Con_Name                      as payRepairTwoName,
+               con3.Con_Name                      as payRepairThreeName,
+               pro.P_Name                         as pName,
+               pro.P_Code                         as pCode,
+               pro.P_Name_History                 as pNameHistory,
+               pro.P_Build_Model                  as pBuildModel,
+               proc.C_Name                        as pConstructionUnitName,
+               proc.C_Abbreviation                as pConsAbbName,
+               prod.D_Name                        as pCompetentDepartmentName,
+               c1.C_Name_History                  as payPayeeNameHistory,
+               c2.C_Name_History                  as payDraweeNameHistory,
+               c3.C_Name_History                  as payApplicantNameHistory,
+               c4.C_Name_History                  as conPartyBNameHistory,
+               c1.C_Name                          as payPayeeName,
+               c2.C_Name                          as payDraweeName,
+               c3.C_Name                          as payApplicantName,
+               c4.C_Name                          as conPartyBName,
+               c5.C_Name                          as payPayeeName1,
+               c1.C_Abbreviation                  as payPayeeAbbName,
+               c2.C_Abbreviation                  as payDraweeAbbName,
+               c3.C_Abbreviation                  as payApplicantAbbName,
+               c4.C_Abbreviation                  as conPartyBAbbName,
+               c4.c_Contactperson                 as cContactperson,
+               c4.c_Contactpersontel              as cContactpersontel,
+               dep.D_Name                         as dName,
+               dep1.D_Name                        as payApplicationDepartmentName,
+               con.Con_Money_Total - mn.Pay_Total as conBalance,
+               mea.Mea_Code                       as meaCode,
+               f.file_relation_id                 as fileRelationId,
+               ccp.Cpp_Clause                     as cppClause,
+               mn.*
+        from Con_Pay mn
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Company c1 on c1.C_Id = mn.Pay_Payee
+                 left join SYS_Company c2 on c2.C_Id = mn.Pay_Drawee
+                 left join SYS_Department dep on dep.D_Id = mn.D_Id
+                 left join SYS_Company c3 on c3.C_Id = mn.Pay_Applicant_Id
+                 left join SYS_Company c4 on c4.C_Id = con.Con_Party_B_Id
+                 left join SYS_Company c5 on c5.C_Id = mn.Pay_Payee1
+                 left join SYS_Department dep1 on dep1.D_Id = mn.Pay_Application_Department_Id
+                 left join Sys_File f on f.FileID = mn.Pay_Id
+                 left join Con_Contract con1 on con1.Con_Id = mn.Pay_Repair_One
+                 left join Con_Contract con2 on con2.Con_Id = mn.Pay_Repair_Two
+                 left join Con_Contract con3 on con3.Con_Id = mn.Pay_Repair_Three
+                 left join Con_Measure mea on mea.id = mn.Mea_Id
+                 left join Con_Contract_Pay_Plan ccp on  ccp.Cpp_Id = mn.Cpp_Id
+        where mn.Pay_Id = #{payId} and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+    </select>
+
+    <select id="getConPayBypayNotConPayApply" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select *
+        from Con_Pay
+        where Pay_State = 7
+        and (Contract_Pay_Type = '1' or Contract_Pay_Type is null)
+        <if test="teId!=null">
+            and Te_Id = #{teId}
+        </if>
+        and Pay_Id not in (select Cpa_Foreign from Con_Pay_Apply where Cpa_Foreign is not null and Cpa_Sources = '01')
+    </select>
+
+
+    <sql id="listFilter">
+        and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.dId!=null">
+            and mn.D_Id = #{params.dId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.payType!=null">
+            and mn.Pay_Type = #{params.payType}
+        </if>
+        <if test="params.payCategory!=null">
+            and mn.Pay_Category = #{params.payCategory}
+        </if>
+        <if test="params.payTypeDetailed!=null">
+            and mn.Pay_Type_Detailed = #{params.payTypeDetailed}
+        </if>
+        <if test="params.payExpenseType!=null">
+            and mn.Pay_Expense_Type = #{params.payExpenseType}
+        </if>
+        <if test="params.payNumber!=null">
+            and mn.Pay_Number = #{params.payNumber}
+        </if>
+        <if test="params.payState!=null">
+            and mn.Pay_State = #{params.payState}
+        </if>
+        <if test="params.payApplicationDepartmentId!=null">
+            and mn.Pay_Application_Department_Id= #{params.payApplicationDepartmentId}
+        </if>
+        <if test="params.conType!=null">
+            and con.Con_Type = #{params.conType}
+        </if>
+        <if test="params.conPartyAId!=null">
+            and con.Con_Party_A_Id = #{params.conPartyAId}
+        </if>
+        <if test="params.conDepartment!=null">
+            and con.con_Department = #{params.conDepartment}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.payIsWages!=null">
+            and mn.Pay_Is_Wages = #{params.payIsWages}
+        </if>
+        <if test="params.ctdId!=null">
+            and mn.Ctd_Id = #{params.ctdId}
+        </if>
+        <if test="params.thisProject!=null">
+            <if test="params.thisProject==true">
+                and mn.Con_Id is null
+            </if>
+            <if test="params.thisProject==false">
+                and mn.Con_Id is not null
+            </if>
+        </if>
+        <if test="params.payNumberStart!=null">
+            and mn.Pay_Number>#{params.payNumberStart}
+        </if>
+        <if test="params.payNumberEnd!=null">
+            and mn.Pay_Number &lt; #{params.payNumberEnd}
+        </if>
+        <if test="params.conMoneyTotalStart!=null">
+            and con.Con_Money_Total>#{params.conMoneyTotalStart}
+        </if>
+        <if test="params.conMoneyTotalEnd!=null">
+            and con.Con_Money_Total &lt; #{params.conMoneyTotalEnd}
+        </if>
+        <if test="params.payApplyStart!=null">
+            and mn.Pay_Apply>#{params.payApplyStart}
+        </if>
+        <if test="params.payApplyEnd!=null">
+            and mn.Pay_Apply &lt; #{params.payApplyEnd}
+        </if>
+        <if test="params.conCreateTimeStart!=null">
+            and mn.Pay_Create_Time>#{params.conCreateTimeStart}
+        </if>
+        <if test="params.conCreateTimeEnd!=null">
+            and mn.Pay_Create_Time &lt; #{params.conCreateTimeEnd}
+        </if>
+        <if test="params.ctdCode!=null">
+            and mn.Ctd_Code like concat('%',#{params.ctdCode},'%')
+        </if>
+        <if test="params.payFaCode!=null">
+            and mn.Pay_Fa_Code like concat('%',#{params.payFaCode},'%')
+        </if>
+        <if test="params.payPayeeCa!=null">
+            and mn.Pay_Payee_CA like concat('%',#{params.payPayeeCa},'%')
+        </if>
+        <if test="params.payPayeeCaName!=null">
+            and mn.Pay_Payee_CA_Name like concat('%',#{params.payPayeeCaName},'%')
+        </if>
+        <if test="params.payPayeeBank!=null">
+            and mn.Pay_Payee_Bank like concat('%',#{params.payPayeeBank},'%')
+        </if>
+        <if test="params.payRemark!=null">
+            and mn.Pay_Remark like concat('%',#{params.payRemark},'%')
+        </if>
+        <if test="params.payCreateUname!=null">
+            and mn.Pay_Create_Uname like concat('%',#{params.payCreateUname},'%')
+        </if>
+        <if test="params.payCode!=null">
+            and mn.Pay_Code like concat('%',#{params.payCode},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.conCode!=null">
+            and con.Con_Code like concat('%',#{params.conCode},'%')
+        </if>
+        <if test="params.conDepName!=null">
+            and cdep.d_name like concat('%',#{params.conDepName},'%')
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.payPayeeName!=null">
+                    and likeCname(#{params.payPayeeName},c1.C_Id)=true
+                </if>
+                <if test="params.payDraweeName!=null">
+                    and likeCname(#{params.payDraweeName},c2.C_Id)=true
+                </if>
+                <if test="params.conPartyBName!=null">
+                    and likeCname(#{params.conPartyBName},c4.C_Id)=true
+                </if>
+                <if test="params.conPartyAName!=null">
+                    and likeCname(#{params.conPartyAName},c5.C_Id)=true
+                </if>
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.payPayeeName!=null">
+                    and c1.C_Name like concat('%',#{params.payPayeeName},'%')
+                </if>
+                <if test="params.payDraweeName!=null">
+                    and c2.C_Name like concat('%',#{params.payDraweeName},'%')
+                </if>
+                <if test="params.conPartyBName!=null">
+                    and c4.C_Name like concat('%',#{params.conPartyBName},'%')
+                </if>
+                <if test="params.conPartyAName!=null">
+                    and c5.C_Name like concat('%',#{params.conPartyAName},'%')
+                </if>
+                <if test="params.pName!=null">
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </if>
+            </otherwise>
+        </choose>
+        <if test="params.bddIds!=null">
+            and con.Con_Budget_Id in
+            <foreach collection="params.bddIds" open="(" close=")" item="bddId" separator=",">
+                #{bddId}
+            </foreach>
+        </if>
+        <if test="params.payCategoryPayment != null and params.payCategoryPayment != ''">
+            and mn.Pay_Category_Payment = #{params.payCategoryPayment}
+        </if>
+        <if test="params.payApplicationDateStart != null and params.payApplicationDateStart != ''">
+            and mn.Pay_Application_Date &gt;= #{params.payApplicationDateStart}
+        </if>
+        <if test="params.payApplicationDateEnd != null and params.payApplicationDateEnd != ''">
+            and mn.Pay_Application_Date &lt;= #{params.payApplicationDateEnd}
+        </if>
+        <if test="params.fnCode != null and params.fnCode != ''">
+            and exists (select 1 from Con_Fund_No cfn where cfn.Pay_Id = mn.Pay_Id and cfn.Fn_Code like concat('%',#{params.fnCode},'%'))
+        </if>
+<!--        <if test="params.paymentPath != null and params.paymentPath != ''">-->
+<!--            and mn.Payment_Path = #{params.paymentPath}-->
+<!--        </if>-->
+        <if test="params.paymentPaths != null and params.paymentPaths.size() > 0">
+            and
+            <foreach collection="params.paymentPaths" item="paymentPath" open="(" close=")" separator=" or ">
+                mn.Payment_Path like concat('%', #{paymentPath}, '%')
+            </foreach>
+        </if>
+        <if test="params.payApplicationType != null and params.payApplicationType != ''">
+            and mn.pay_Application_Type = #{params.payApplicationType}
+        </if>
+        <if test="params.secId != null and params.secId != ''">
+            and EXISTS (
+            SELECT 1
+            FROM sec_project sp
+            WHERE sp.p_Id = mn.p_Id
+            AND sp.sec_Id = #{params.secId}
+            )
+        </if>
+    </sql>
+
+    <select id="getConPayStandingBook" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConPayStandingBookVo">
+        select
+            sum(mn.Pay_Work_Amount_Total) as payWorkAmountTotalSum,
+            sum(mn.Pay_Apply) as payApplySum,
+            sum(mn.Pay_Unfinished_Work) as payUnfinishedWorkSum,
+            sum(mn.Pay_Liquidated_Damages) as payLiquidatedDamagesSum,
+            sum(mn.Pay_Deduct_Qt) as payDeductQtSum
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Company c3 on c3.C_Id=mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        left join SYS_Department dep1 on dep1.D_Id=mn.Pay_Application_Department_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+    <select id="getConPayList" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Type as conType,
+        con.con_Term as conTerm,
+        c1.C_Name as payPayeeName,
+        c2.C_Name as payDraweeName,
+        c3.C_Name as payApplicantName,
+        c4.C_Name as conPartyBName,
+        c1.C_Abbreviation as payPayeeAbbName,
+        c2.C_Abbreviation as payDraweeAbbName,
+        c3.C_Abbreviation as payApplicantAbbName,
+        c4.C_Abbreviation as conPartyBAbbName,
+        dep.D_Name as dName,
+        dep1.D_Name as payApplicationDepartmentName,
+        f.file_relation_id as fileRelationId,
+        <if test="params.queryCpafApplicationSum!=null and params.queryCpafApplicationSum==true">
+        (select SUM(cpfa.cpaf_Application) from Con_Pay_Apply_Flow cpfa where cpfa.pay_id=mn.pay_id and cpfa.state=7)
+            as cpafApplicationSum,
+        </if>
+        mn.*,CASE WHEN mn.Pay_Application_Date IS NOT NULL THEN YEAR(mn.Pay_Application_Date)
+        WHEN mn.Pay_Create_Time IS NOT NULL THEN YEAR(mn.Pay_Create_Time)
+        END as payYear,
+        CASE WHEN mn.Pay_Application_Date IS NOT NULL THEN MONTH(mn.Pay_Application_Date)
+        WHEN mn.Pay_Create_Time IS NOT NULL THEN MONTH(mn.Pay_Create_Time)
+        END as payMonth
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Company c3 on c3.C_Id=mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        left join SYS_Department dep1 on dep1.D_Id=mn.Pay_Application_Department_Id
+        left join Sys_File f on f.FileID=mn.Pay_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <if test="params.isType">
+            and mn.Pay_Create_Uid = #{params.uId}
+        </if>
+        <if test=' projectIds != null and projectIds.size() != 0 and params.payIsFilter == "1" and  params.payIsContain == "1" '>
+            AND mn.P_ID IN
+            <foreach collection="projectIds" index="" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test=' projectIds != null and projectIds.size() != 0 and params.payIsFilter == "1" and  params.payIsContain == "0" '>
+            AND mn.P_ID NOT IN
+            <foreach collection="projectIds" index="" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.payYear != null ">
+            and (CASE WHEN mn.Pay_Application_Date IS NOT NULL THEN YEAR(mn.Pay_Application_Date)
+            WHEN mn.Pay_Create_Time IS NOT NULL THEN YEAR(mn.Pay_Create_Time)
+            END) = #{params.payYear}
+        </if>
+        <if test="params.payMonth != null ">
+            and (CASE WHEN mn.Pay_Application_Date IS NOT NULL THEN MONTH(mn.Pay_Application_Date)
+            WHEN mn.Pay_Create_Time IS NOT NULL THEN MONTH(mn.Pay_Create_Time)
+            END) = #{params.payMonth}
+        </if>
+        <if test="params.projectName!=null">
+            and pro.P_Name like concat('%',#{params.projectName},'%')
+        </if>
+        <if test="params.contractName!=null">
+            and con.con_name like concat('%',#{params.contractName},'%')
+        </if>
+        <if test="params.isLeaderBoard==1">
+            and mn.Pay_State!=3 and mn.Pay_State!=0
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>order by mn.Pay_Create_Time desc</otherwise>
+        </choose>
+    </select>
+
+    <sql id="listByConIdFilter">
+        and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.dId!=null">
+            and mn.D_Id = #{params.dId}
+        </if>
+        <if test="params.payType!=null">
+            and mn.Pay_Type = #{params.payType}
+        </if>
+        <if test="params.payNumber!=null">
+            and mn.Pay_Number = #{params.payNumber}
+        </if>
+        <if test="params.payState!=null">
+            and mn.Pay_State = #{params.payState}
+        </if>
+        <if test="params.payCategory!=null">
+            and mn.Pay_Category = #{params.payCategory}
+        </if>
+        <if test="params.payExpenseType!=null">
+            and mn.Pay_Expense_Type = #{params.payExpenseType}
+        </if>
+        <if test="params.payIsWages!=null">
+            and mn.Pay_Is_Wages = #{params.payIsWages}
+        </if>
+        <if test="params.conType!=null">
+            and con.Con_Type = #{params.conType}
+        </if>
+        <if test="params.payPayeeCa!=null">
+            and mn.Pay_Payee_CA like concat('%',#{params.payPayeeCa},'%')
+        </if>
+        <if test="params.payPayeeCaName!=null">
+            and mn.Pay_Payee_CA_Name like concat('%',#{params.payPayeeCaName},'%')
+        </if>
+        <if test="params.payPayeeBank!=null">
+            and mn.Pay_Payee_Bank like concat('%',#{params.payPayeeBank},'%')
+        </if>
+        <if test="params.payRemark!=null">
+            and mn.Pay_Remark like concat('%',#{params.payRemark},'%')
+        </if>
+        <if test="params.payCreateUname!=null">
+            and mn.Pay_Create_Uname like concat('%',#{params.payCreateUname},'%')
+        </if>
+        <if test="params.payCode!=null">
+            and mn.Pay_Code like concat('%',#{params.payCode},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.payPayeeName!=null">
+            and c1.C_Name like concat('%',#{params.payPayeeName},'%')
+        </if>
+        <if test="params.payDraweeName!=null">
+            and c2.C_Name like concat('%',#{params.payDraweeName},'%')
+        </if>
+        <if test="params.conPartyBName!=null">
+            and c4.C_Name like concat('%',#{params.conPartyBName},'%')
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.payPayeeName!=null">
+                    and likeCname(#{params.payPayeeName},c1.C_Id)=true
+                </if>
+                <if test="params.payDraweeName!=null">
+                    and likeCname(#{params.payDraweeName},c2.C_Id)=true
+                </if>
+                <if test="params.conPartyBName!=null">
+                    and likeCname(#{params.conPartyBName},c4.C_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.payPayeeName!=null">
+                    and c1.C_Name like concat('%',#{params.payPayeeName},'%')
+                </if>
+                <if test="params.payDraweeName!=null">
+                    and c2.C_Name like concat('%',#{params.payDraweeName},'%')
+                </if>
+                <if test="params.conPartyBName!=null">
+                    and c4.C_Name like concat('%',#{params.conPartyBName},'%')
+                </if>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="getConPayListByConId" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Type as conType,
+        c1.C_Name as payPayeeName,
+        c2.C_Name as payDraweeName,
+        c3.C_Name as payApplicantName,
+        c4.C_Name as conPartyBName,
+        c1.C_Abbreviation as payPayeeAbbName,
+        c2.C_Abbreviation as payDraweeAbbName,
+        c3.C_Abbreviation as payApplicantAbbName,
+        c4.C_Abbreviation as conPartyBAbbName,
+        dep.D_Name as dName,
+        dep1.D_Name as payApplicationDepartmentName,
+        mn.*
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        left join SYS_Company c3 on c3.C_Id=mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Department dep1 on dep1.D_Id=mn.Pay_Application_Department_Id
+        where mn.Con_Id=#{params.conId}
+        <include refid="listByConIdFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>order by mn.Pay_Create_Time desc</otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getConPayListByConIdCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        where mn.Con_Id=#{params.conId}
+        <include refid="listByConIdFilter"/>
+    </select>
+
+    <!--************************************* DM *************************************-->
+
+    <select id="getPayCountByProAndYear" resultType="java.math.BigDecimal" databaseId="dm">
+        select sum(case when Pay_Type_Detailed!='0201' then Pay_Apply else Pay_Apply_Owner end) as a
+        from Con_Pay
+        where P_Id = #{pId}
+        and (Contract_Pay_Type = '1' or Contract_Pay_Type is null)
+        and Pay_State = 7
+        and to_char(Pay_Application_Date, 'yyyy') = #{year}
+    </select>
+
+    <select id="getConPayStatisticsRanking" resultType="Map" databaseId="dm">
+        select pro.P_Name as pName,
+        to_char((con.payCount / (select sum(Ipv_Planned_Investment) from Inv_Plan_Year
+        where Ipv_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Ipv_Declare_Year = to_char(now(), 'yyyy')))) as payRate
+        from Pre_Project pro
+        right join
+        (select P_Id,
+        sum(Pay_Apply) as payCount
+        from Con_Pay
+        where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if>
+        and DateDiff(year,Pay_State_Time, getdate()) = 0
+        group by P_Id limit #{size}) con on con.P_Id = pro.P_Id
+        where 1=1 <if test="teId!=null"> and pro.Te_Id = #{teId} </if>
+        order by con.payCount desc
+    </select>
+
+    <select id="getConPayStatisticsByMonth" resultType="Map" databaseId="dm">
+        select to_char(Pay_State_Time, 'mm') as payMonth,
+               sum(Pay_Apply)                as payCount
+        from Con_Pay
+        where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if>
+        and DateDiff(year,Pay_State_Time, getdate()) = 0
+        group by to_char(Pay_State_Time, 'mm')
+        order by to_char(Pay_State_Time, 'mm') asc
+    </select>
+
+    <select id="getConPayStatisticsGroupByDep" resultType="Map" databaseId="dm">
+        select dep.D_Name as dName,
+               res.payCount
+        from SYS_Department dep
+        right join
+        (select con.Pay_Application_Department_Id as dId,
+        sum(Pay_Apply)                    as payCount
+        from Con_Pay con
+        where con.Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and con.Te_Id = #{teId} </if>
+        and DateDiff(year,con.Pay_State_Time, getdate()) = 0
+        group by con.Pay_Application_Department_Id) res on res.dId = dep.D_Id
+    </select>
+
+    <select id="getConPayStatisticsOverview" resultType="Map" databaseId="dm">
+        select (select count(1) from Con_Pay where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null)  <if test="teId!=null"> and Te_Id = #{teId} </if>and DateDiff(day,Pay_Create_Time, getdate()) = 0) as payToday,
+               (COALESCE((select sum(Pay_Apply) from Con_Pay where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and Pay_Type!='02' and Pay_Type!='0201' and DateDiff(year, Pay_State_Time, getdate())=0), 0)
+               +COALESCE((select sum(Pay_Apply_Owner) from Con_Pay where Pay_State=7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and (Pay_Type='02' or Pay_Type='0201' and DateDiff(year, Pay_State_Time, getdate())=0)), 0)) as payAmt,
+               (COALESCE((select sum(Pay_Apply) from Con_Pay where Pay_State=7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and Pay_Type!='02' and Pay_Type!='0201' and DateDiff(month, Pay_State_Time, getdate())=0), 0)
+                +COALESCE((select sum(Pay_Apply_Owner) from Con_Pay where Pay_State=7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and (Pay_Type='02' or Pay_Type='0201' and DateDiff(month, Pay_State_Time, getdate())=0)), 0)) as payMonthAmt,
+               (select sum(Ipv_Planned_Investment) from Inv_Plan_Year where Ipv_State=7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Ipv_Declare_Year=to_char(now(), 'yyyy')) as planAmt
+    </select>
+
+    <select id="getConPayGroupByContract" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse" databaseId="dm">
+        select * from
+        (
+        select
+        ROW_NUMBER() over(partition by mn.Con_Id order by mn.Pay_Create_Time desc) as  rn,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Type as conType,
+        con.Con_Party_A_Id as conPartyAId,
+        con.con_department as conDepartment,
+        cdep.D_Name as conDepName,
+        c1.C_Name as payPayeeName,
+        c2.C_Name as payDraweeName,
+        c3.C_Name as payApplicantName,
+        c4.C_Name as conPartyBName,
+        c5.C_Name as conPartyAName,
+        c1.C_Abbreviation as payPayeeAbbName,
+        c2.C_Abbreviation as payDraweeAbbName,
+        c3.C_Abbreviation as payApplicantAbbName,
+        c4.C_Abbreviation as conPartyBAbbName,
+        dep.D_Name as dName,
+        dep1.D_Name as payApplicationDepartmentName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Company c3 on c3.C_Id=mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Company c5 on c5.C_Id=con.Con_Party_A_Id
+        left join SYS_Department cdep on cdep.D_Id=con.con_department
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        left join SYS_Department dep1 on dep1.D_Id=mn.Pay_Application_Department_Id
+        left join Sys_File f on f.FileID=mn.Pay_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>order by mn.Pay_Create_Time desc</otherwise>
+        </choose>
+        )  t1  where t1.rn = 1
+    </select>
+
+    <select id="getConPayGroupByContractSum" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConPayGroupByContractVo" databaseId="dm">
+        select
+        sum(t1.Pay_Work_Amount_Total) as payWorkAmountTotalSum,
+        sum(t1.Pay_Apply) as payApplySum,
+        sum(t1.Pay_Unfinished_Work) as payUnfinishedWorkSum,
+        sum(t1.Pay_Liquidated_Damages) as payLiquidatedDamagesSum,
+        sum(t1.Pay_Deduct_Qt) as payDeductQtSum,
+        sum(t1.Pay_Approva_Change_Total) as payApprovaChangeTotalSum,
+        sum(t1.Pay_Total_Last) as payTotalLastSum,
+        sum(t1.Pay_Total) as payTotalSum,
+        sum(t1.Pay_Done) as payDoneSum
+        from
+        (
+        select
+        ROW_NUMBER() over(partition by mn.Con_Id order by mn.Pay_Create_Time desc) as  rn,
+        mn.*
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Company c3 on c3.C_Id=mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Company c5 on c5.C_Id=con.Con_Party_A_Id
+        left join SYS_Department cdep on cdep.D_Id=con.con_department
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        left join SYS_Department dep1 on dep1.D_Id=mn.Pay_Application_Department_Id
+        left join Sys_File f on f.FileID=mn.Pay_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        )  t1  where t1.rn = 1
+    </select>
+    <!--************************************* mysql *************************************-->
+
+    <select id="getConPayGroupByContractSum" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConPayGroupByContractVo" databaseId="mysql">
+        select
+        sum(t1.Pay_Work_Amount_Total) as payWorkAmountTotalSum,
+        sum(t1.Pay_Apply) as payApplySum,
+        sum(t1.Pay_Unfinished_Work) as payUnfinishedWorkSum,
+        sum(t1.Pay_Liquidated_Damages) as payLiquidatedDamagesSum,
+        sum(t1.Pay_Deduct_Qt) as payDeductQtSum,
+        sum(t1.Pay_Approva_Change_Total) as payApprovaChangeTotalSum,
+        sum(t1.Pay_Total_Last) as payTotalLastSum,
+        sum(t1.Pay_Total) as payTotalSum,
+        sum(t1.Pay_Done) as payDoneSum
+        from (
+        select
+        IF(@yy = mn.Con_Id, @xx := @xx + 1, @xx := 1) xx,
+        IF(@yy = mn.Con_Id, @yy, @yy := mn.Con_Id) yy,
+        mn.*
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Company c3 on c3.C_Id=mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Company c5 on c5.C_Id=con.Con_Party_A_Id
+        left join SYS_Department cdep on cdep.D_Id=con.con_department
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        left join SYS_Department dep1 on dep1.D_Id=mn.Pay_Application_Department_Id
+        left join Sys_File f on f.FileID=mn.Pay_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        ORDER BY mn.Con_Id, mn.Pay_Create_Time DESC
+        ) t1 where t1.xx=1
+    </select>
+
+    <select id="getConPayGroupByContract" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse" databaseId="mysql">
+        select  * from (
+        select
+        IF(@yy = mn.Con_Id, @xx := @xx + 1, @xx := 1) xx,
+        IF(@yy = mn.Con_Id, @yy, @yy := mn.Con_Id) yy,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Type as conType,
+        con.Con_Party_A_Id as conPartyAId,
+        con.con_department as conDepartment,
+        cdep.D_Name as conDepName,
+        c1.C_Name as payPayeeName,
+        c2.C_Name as payDraweeName,
+        c3.C_Name as payApplicantName,
+        c4.C_Name as conPartyBName,
+        c5.C_Name as conPartyAName,
+        c1.C_Abbreviation as payPayeeAbbName,
+        c2.C_Abbreviation as payDraweeAbbName,
+        c3.C_Abbreviation as payApplicantAbbName,
+        c4.C_Abbreviation as conPartyBAbbName,
+        dep.D_Name as dName,
+        dep1.D_Name as payApplicationDepartmentName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Company c3 on c3.C_Id=mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Company c5 on c5.C_Id=con.Con_Party_A_Id
+        left join SYS_Department cdep on cdep.D_Id=con.con_department
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        left join SYS_Department dep1 on dep1.D_Id=mn.Pay_Application_Department_Id
+        left join Sys_File f on f.FileID=mn.Pay_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        ORDER BY mn.Con_Id, mn.Pay_Create_Time DESC
+        ) t1 where t1.xx=1
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by t1.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+        </choose>
+    </select>
+
+    <select id="getPayCountByProAndYear" resultType="java.math.BigDecimal" databaseId="mysql">
+        select sum(case when Pay_Type_Detailed!='0201' then Pay_Apply else Pay_Apply_Owner end) as a
+        from Con_Pay
+        where P_Id = #{pId}
+        and Pay_State = 7
+        and (Contract_Pay_Type = '1' or Contract_Pay_Type is null)
+        and date_format(Pay_Application_Date, '%Y') = #{year}
+    </select>
+
+    <select id="getConPayStatisticsRanking" resultType="Map" databaseId="mysql">
+        select pro.P_Name as "pName",
+              cast((con.payCount / (select sum(Ipv_Planned_Investment) from Inv_Plan_Year where Ipv_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and Ipv_Declare_Year = date_format(now(), '%Y'))) as DECIMAL) as "payRate"
+        from Pre_Project pro right join
+            (select P_Id,
+                sum(Pay_Apply) as "payCount"
+            from Con_Pay
+            where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if>
+            and date_format(Pay_State_Time, '%Y') - date_format(now(), '%Y') = 0
+            group by P_Id limit #{size}) con on con.P_Id = pro.P_Id
+            where 1=1 <if test="teId!=null"> and pro.Te_Id = #{teId} </if>
+            order by con.payCount desc
+    </select>
+
+    <select id="getConPayStatisticsByMonth" resultType="Map" databaseId="mysql">
+        select date_format(Pay_State_Time, '%m') as "payMonth",
+               sum(Pay_Apply)                    as "payCount"
+        from Con_Pay
+        where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if>
+          and date_format(Pay_State_Time, '%Y') - date_format(now(), '%Y') = 0
+        group by date_format(Pay_State_Time, '%m')
+        order by date_format(Pay_State_Time, '%m') asc
+    </select>
+
+    <select id="getConPayStatisticsGroupByDep" resultType="Map" databaseId="mysql">
+        select dep.D_Name as dName,
+        res.payCount
+        from SYS_Department dep
+        right join
+        (select con.Pay_Application_Department_Id as dId,
+        sum(Pay_Apply)                    as payCount
+        from Con_Pay con
+        where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and con.Te_Id = #{teId} </if>
+        and date_format(Pay_State_Time, '%Y') - date_format(now(), '%Y') = 0
+        group by con.Pay_Application_Department_Id) res on res.dId = dep.D_Id
+    </select>
+
+    <select id="getConPayStatisticsOverview" resultType="Map" databaseId="mysql">
+        select
+        (select count(1) from Con_Pay where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and DateDiff(Pay_Create_Time, now()) = 0) as payToday,
+        (IFNULL((select sum(Pay_Apply) from Con_Pay where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if>  and Pay_Type!='02' and Pay_Type!='0201' and date_format(Pay_State_Time, '%Y')-date_format(now(), '%Y')=0), 0)
+        +IFNULL((select sum(Pay_Apply_Owner) from Con_Pay where Pay_State=7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and (Pay_Type='02' or Pay_Type='0201' and date_format(Pay_State_Time, '%Y')-date_format(now(), '%Y')=0)), 0)) as payAmt,
+        (IFNULL((select sum(Pay_Apply) from Con_Pay where Pay_State=7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and Pay_Type!='02' and Pay_Type!='0201' and PERIOD_DIFF(DATE_FORMAT(Pay_State_Time, '%Y%m'), DATE_FORMAT(now(), '%Y%m')) =0), 0)
+        +IFNULL((select sum(Pay_Apply_Owner) from Con_Pay where Pay_State=7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and (Pay_Type='02' or Pay_Type='0201' and PERIOD_DIFF(DATE_FORMAT(Pay_State_Time, '%Y%m'), DATE_FORMAT(now(), '%Y%m'))=0)), 0)) as payMonthAmt,
+        (select sum(Ipv_Planned_Investment) from Inv_Plan_Year where Ipv_State=7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Ipv_Declare_Year=date_format(now(), '%Y')) as planAmt
+    </select>
+
+
+
+    <!--************************************* postgre *************************************-->
+
+    <select id="getPayCountByProAndYear" resultType="java.math.BigDecimal" databaseId="postgre">
+        select sum(case when Pay_Type_Detailed!='0201' then Pay_Apply else Pay_Apply_Owner end) as a
+        from Con_Pay
+        where P_Id = #{pId}
+          and Pay_State = 7
+        and (Contract_Pay_Type = '1' or Contract_Pay_Type is null)
+          and to_char(Pay_Application_Date, 'yyyy') = #{year}
+    </select>
+
+    <select id="getConPayStatisticsRanking" resultType="Map" databaseId="postgre">
+        select pro.P_Name as "pName",
+        cast((con.payCount / (select sum(Ipv_Planned_Investment) from Inv_Plan_Year
+                                where Ipv_State = 7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Ipv_Declare_Year = to_char(now(), 'yyyy'))) as DECIMAL) as "payRate"
+        from Pre_Project pro
+                 right join
+             (select P_Id,
+                     sum(Pay_Apply) as payCount
+              from Con_Pay
+              where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if>
+                and date_part('year',cast(Pay_State_Time as TIMESTAMP)-cast(now() as TIMESTAMP))= 0
+              group by P_Id limit #{size}) con on con.P_Id = pro.P_Id
+            where 1=1 <if test="teId!=null"> and pro.Te_Id = #{teId} </if>
+        order by con.payCount desc
+    </select>
+
+    <select id="getConPayStatisticsByMonth" resultType="Map" databaseId="postgre">
+        select to_char(Pay_State_Time, 'mm') as "payMonth",
+               sum(Pay_Apply)                as "payCount"
+        from Con_Pay
+        where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if>
+          and date_part('year',cast(Pay_State_Time as TIMESTAMP)-cast(now() as TIMESTAMP)) = 0
+        group by to_char(Pay_State_Time, 'mm')
+        order by to_char(Pay_State_Time, 'mm') asc
+    </select>
+
+    <select id="getConPayStatisticsGroupByDep" resultType="Map" databaseId="postgre">
+        select dep.D_Name as "dName",
+               res."payCount"
+        from SYS_Department dep
+                 right join
+             (select con.Pay_Application_Department_Id as "dId",
+                     sum(Pay_Apply)                    as "payCount"
+              from Con_Pay con
+              where con.Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and con.Te_Id = #{teId} </if>
+                and date_part('year',cast(con.Pay_State_Time as TIMESTAMP)-cast(now() as TIMESTAMP)) = 0
+              group by con.Pay_Application_Department_Id) res on res."dId" = dep.D_Id
+    </select>
+
+    <select id="getConPayStatisticsOverview" resultType="Map" databaseId="postgre">
+        select (select count(1) from Con_Pay where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and date_part('day',cast(Pay_Create_Time as TIMESTAMP)-cast(now() as TIMESTAMP)) = 0) as "payToday",
+        (COALESCE((select sum(Pay_Apply) from Con_Pay where Pay_State = 7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and Pay_Type!='02' and Pay_Type!='0201' and date_part('year',cast(Pay_State_Time as TIMESTAMP)-cast(now() as TIMESTAMP))=0), 0)
+        +COALESCE((select sum(Pay_Apply_Owner) from Con_Pay where Pay_State=7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and (Pay_Type='02' or Pay_Type='0201' and date_part('year',cast(Pay_State_Time as TIMESTAMP)-cast(now() as TIMESTAMP))=0)), 0)) as "payAmt",
+        (COALESCE((select sum(Pay_Apply) from Con_Pay where Pay_State=7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and Pay_Type!='02' and Pay_Type!='0201' and date_part('month',cast(Pay_State_Time as TIMESTAMP)-cast(now() as TIMESTAMP))=0), 0)
+        +COALESCE((select sum(Pay_Apply_Owner) from Con_Pay where Pay_State=7 and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) <if test="teId!=null"> and Te_Id = #{teId} </if> and (Pay_Type='02' or Pay_Type='0201' and date_part('month',cast(Pay_State_Time as TIMESTAMP)-cast(now() as TIMESTAMP))=0)), 0)) as "payMonthAmt",
+        (select sum(Ipv_Planned_Investment) from Inv_Plan_Year where Ipv_State=7 <if test="teId!=null"> and Te_Id = #{teId} </if> and Ipv_Declare_Year=to_char(now(), 'yyyy')) as "planAmt"
+    </select>
+
+    <select id="getConPayGroupByContract" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse" databaseId="postgre">
+        select * from
+        (
+        select
+        ROW_NUMBER() over(partition by mn.Con_Id order by mn.Pay_Create_Time desc) as  rn,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Type as conType,
+        con.Con_Party_A_Id as conPartyAId,
+        con.con_department as conDepartment,
+        cdep.D_Name as conDepName,
+        c1.C_Name as payPayeeName,
+        c2.C_Name as payDraweeName,
+        c3.C_Name as payApplicantName,
+        c4.C_Name as conPartyBName,
+        c5.C_Name as conPartyAName,
+        c1.C_Abbreviation as payPayeeAbbName,
+        c2.C_Abbreviation as payDraweeAbbName,
+        c3.C_Abbreviation as payApplicantAbbName,
+        c4.C_Abbreviation as conPartyBAbbName,
+        dep.D_Name as dName,
+        dep1.D_Name as payApplicationDepartmentName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Company c3 on c3.C_Id=mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Company c5 on c5.C_Id=con.Con_Party_A_Id
+        left join SYS_Department cdep on cdep.D_Id=con.con_department
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        left join SYS_Department dep1 on dep1.D_Id=mn.Pay_Application_Department_Id
+        left join Sys_File f on f.FileID=mn.Pay_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>order by mn.Pay_Create_Time desc</otherwise>
+        </choose>
+        )  t1  where t1.rn = 1
+    </select>
+
+    <select id="getConPayGroupByContractSum" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConPayGroupByContractVo" databaseId="postgre">
+        select
+        sum(t1.Pay_Work_Amount_Total) as payWorkAmountTotalSum,
+        sum(t1.Pay_Apply) as payApplySum,
+        sum(t1.Pay_Unfinished_Work) as payUnfinishedWorkSum,
+        sum(t1.Pay_Liquidated_Damages) as payLiquidatedDamagesSum,
+        sum(t1.Pay_Deduct_Qt) as payDeductQtSum,
+        sum(t1.Pay_Approva_Change_Total) as payApprovaChangeTotalSum,
+        sum(t1.Pay_Total_Last) as payTotalLastSum,
+        sum(t1.Pay_Total) as payTotalSum,
+        sum(t1.Pay_Done) as payDoneSum
+        from
+        (
+        select
+        ROW_NUMBER() over(partition by mn.Con_Id order by mn.Pay_Create_Time desc) as  rn,
+        mn.*
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Company c3 on c3.C_Id=mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Company c5 on c5.C_Id=con.Con_Party_A_Id
+        left join SYS_Department cdep on cdep.D_Id=con.con_department
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        left join SYS_Department dep1 on dep1.D_Id=mn.Pay_Application_Department_Id
+        left join Sys_File f on f.FileID=mn.Pay_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        )  t1  where t1.rn = 1
+    </select>
+
+    <select id="getPayDoneTotalByConId" resultType="java.math.BigDecimal">
+        select sum(Pay_Done) as payDoneSum
+        from Con_Pay
+        where Con_Id = #{conId}
+        and (Contract_Pay_Type = '1' or Contract_Pay_Type is null)
+          and Pay_State = 7
+          and Pay_Type = #{payType}
+    </select>
+    <select id="getConPayWHByConId" resultType="java.math.BigDecimal">
+        select top 1 Pay_Total
+        from Con_Pay
+        where Con_Id = #{conId}
+        and (Contract_Pay_Type = '1' or Contract_Pay_Type is null)
+          and Pay_State = 7
+          and (Pay_Type is null or Pay_Type == '')
+        order by pay_create_time desc
+    </select>
+    <select id="getConPayByPId" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select top 1
+        mn.*
+        from Con_Pay mn
+        where mn.P_Id=#{projectId} and mn.Pay_Category=#{payCategory} and mn.Pay_State = 7
+        and (Contract_Pay_Type = '1' or Contract_Pay_Type is null)
+        <if test="contractId!=null">
+            and mn.Con_Id = #{contractId}
+        </if>
+        order by Pay_Create_Time desc
+    </select>
+    <select id="getConPayWithoutPayTypeByPId" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse"
+            parameterType="java.lang.String">
+        select
+        mn.*
+        from Con_Pay mn
+        where mn.P_Id=#{projectId} and (mn.Pay_Type is null or mn.Pay_Type == '') and mn.Pay_State = 7
+        and (Contract_Pay_Type = '1' or Contract_Pay_Type is null)
+        <if test="contractId!=null">
+            and mn.Con_Id = #{contractId}
+        </if>
+        order by Pay_Create_Time desc
+    </select>
+
+    <select id="getPayDefaultTotalByPIdAndConId" resultType="java.math.BigDecimal">
+        select sum(payDefaultTotal) from
+            (select
+        sum(Pay_Liquidated_Damages_Owner) as payDefaultTotal
+        from Con_Pay
+        where P_Id = #{pId} and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) and Con_Id= #{conId} and Pay_State=7 and Pay_Type_Detailed='0201'
+         union
+        select
+        sum(Pay_Liquidated_Damages) as payDefaultTotal
+        from Con_Pay
+        where P_Id = #{pId} and (Contract_Pay_Type = '1' or Contract_Pay_Type is null) and Con_Id= #{conId} and Pay_State=7 and Pay_Type_Detailed='0202'
+        )
+    </select>
+
+
+    <select id="getcontractPayListForCj" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ContractPayListForCjModel">
+        select mn.P_Id as  projectId,
+               mn.P_Name as pName,
+               mn.P_Competent_Department as pCompetentDepartment,
+               con.Con_Id as conId,
+               con.Con_Name as conName,
+               con.Con_Money_Total as conMoneyTotal,
+               pay.Pay_Id as payId,
+               pay.Pay_Approval as payApproval,
+               pay.Pay_Payable as payPayable
+        from Pre_Project mn
+        left join Con_Contract con on mn.P_ID = con.Con_Project_Id and con.Con_Approval_State=7
+        left join Con_Pay pay on con.Con_Id = pay.Con_Id and pay.Pay_State=7 and pay.Pay_Category='01' and (pay.Contract_Pay_Type = '1' or pay.Contract_Pay_Type is null)
+        ${authSql}
+        and mn.state=7
+        <if test="pName!=null">
+            and mn.P_Name like concat('%',#{pName},'%')
+        </if>
+    </select>
+    <resultMap type="com.jpmsoft.common.model.response.pay.ConPayPrintResponse"
+               id="getConPayPrint">
+        <id column="Pay_Id" property="payId"/>
+        <collection property="conFundNos" ofType="com.jpmsoft.common.model.response.pay.ConFundNoVo"
+                    column="Pay_Id" select="getConFundNo">
+        </collection>
+        <collection property="conPayFundsDetails" ofType="com.jpmsoft.common.model.requestAndResponse.Contract.ConPayFundsDetailsModel"
+                    column="Pay_Id" select="getConPayFundsDetailsModel">
+        </collection>
+    </resultMap>
+    <select id="getConPayFundsDetailsModel"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConPayFundsDetailsModel">
+        select mn.*
+        from Con_Payfunds_Details mn
+        where mn.Pay_Id = #{payId}
+    </select>
+    <select id="getConPayPrintByPayId"  resultMap="getConPayPrint">
+        select
+            con.Con_Name                       as conName,
+            con.Con_Code                       as conCode,
+            con.Con_Money_Total                as conMoneyTotal,
+            con.Con_Money_Tentative            as conMoneyTentative,
+            con.Con_Section_Id                 as secId,
+            con.Con_Ac_Pay_Rate                as conAcPayRate,
+            con.Con_Ac_Money                   as conAcMoney,
+            con.Con_Progress_Ratio             as conProgressRatio,
+            con.Con_Type                       as conType,
+            con.Con_Pricing_Method             as conPricingMethod,
+            con.Con_Other_Valuation            as conOtherValuation,
+            con1.Con_Name                      as payRepairOneName,
+            con2.Con_Name                      as payRepairTwoName,
+            con3.Con_Name                      as payRepairThreeName,
+            pro.P_Name                         as projectName,
+            pro.P_Name                         as pName,
+            pro.P_Code                         as pCode,
+            pro.P_Name_History                 as pNameHistory,
+            pro.P_Build_Model                  as pBuildModel,
+            proc.C_Name                        as pConstructionUnitName,
+            proc.C_Abbreviation                as pConsAbbName,
+            prod.D_Name                        as pCompetentDepartmentName,
+            c1.C_Name_History                  as payPayeeNameHistory,
+            c2.C_Name_History                  as payDraweeNameHistory,
+            c3.C_Name_History                  as payApplicantNameHistory,
+            c4.C_Name_History                  as conPartyBNameHistory,
+            c1.C_Name                          as payPayeeName,
+            c2.C_Name                          as payDraweeName,
+            c3.C_Name                          as payApplicantName,
+            c4.C_Name                          as conPartyBName,
+            c5.C_Name                          as payPayeeName1,
+            c1.C_Abbreviation                  as payPayeeAbbName,
+            c2.C_Abbreviation                  as payDraweeAbbName,
+            c3.C_Abbreviation                  as payApplicantAbbName,
+            c4.C_Abbreviation                  as conPartyBAbbName,
+            c4.c_Contactperson                 as cContactperson,
+            c4.c_Contactpersontel              as cContactpersontel,
+            dep.D_Name                         as dName,
+            dep1.D_Name                        as payApplicationDepartmentName,
+            con.Con_Money_Total - mn.Pay_Total as conBalance,
+            mea.Mea_Code                       as meaCode,
+            f.file_relation_id                 as fileRelationId,
+            ccp.Cpp_Clause                     as cppClause,
+            mn.*
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        left join SYS_Company c1 on c1.C_Id = mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id = mn.Pay_Drawee
+        left join SYS_Department dep on dep.D_Id = mn.D_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id = con.Con_Party_B_Id
+        left join SYS_Company c5 on c5.C_Id = mn.Pay_Payee1
+        left join SYS_Department dep1 on dep1.D_Id = mn.Pay_Application_Department_Id
+        left join Sys_File f on f.FileID = mn.Pay_Id
+        left join Con_Contract con1 on con1.Con_Id = mn.Pay_Repair_One
+        left join Con_Contract con2 on con2.Con_Id = mn.Pay_Repair_Two
+        left join Con_Contract con3 on con3.Con_Id = mn.Pay_Repair_Three
+        left join Con_Measure mea on mea.id = mn.Mea_Id
+        left join Con_Contract_Pay_Plan ccp on  ccp.Cpp_Id = mn.Cpp_Id
+        where mn.Pay_Id = #{payId} and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+    </select>
+    <select id="getTaskProcessList" resultType="com.jpmsoft.common.model.TaskProcessPrintResponse">
+        select tp.tp_dotime as tpDoTime,tp.ActName as actName,tp.tp_explain as tpExplain,
+               concat((select Con_Value from SYS_Config where  Con_Code='downloadUrl') , '/jpm/downloadOpenFile/',us.U_Signature) as imgUrl,
+               us.U_Name as uName,us.U_Signature as uSignature
+        from  Sys_Task_Processin tp
+                  left  join  SYS_User us on tp.tp_user=us.U_ID
+                  left  join  SYS_FlowActivity act on  act.ActID=tp.tp_actid
+        where  tp_entityid = #{params.fileId}  and  ActType not like '%Gateway'  order by tp_dotime asc
+    </select>
+
+    <select id="getEngineeringSpecialAccount" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.EngineeringSpecialAccount">
+        select mn.P_Id as  projectId,
+        mn.P_Name as pName,
+        mn.P_Competent_Department as pCompetentDepartment,
+        dep.D_Name as pCompetentDepartmentName,
+        mn.P_Build_Model as pBuildModel,
+        case when mn.P_Project_Form_Type = '01' then mn.P_Approve_Budget
+        when mn.P_Project_Form_Type = '02' then mn.P_Record_Amount
+        when mn.P_Project_Form_Type = '03' then mn.P_Approval_Amount
+        else mn.P_Calculate_Roughly_Amount end as pCalculateRoughlyAmount,
+        pay.Pay_Id as payId,
+        pay.Pay_Category as payCategory,
+        pay.Pay_Approval as payApproval,
+        pay.Pay_Payable as payPayable,
+        mn.P_Project_Form_Type as pProjectFormType
+        from Pre_Project mn
+        left join sys_department dep on mn.P_Competent_Department=dep.D_ID
+        left join Con_Pay pay on mn.P_Id = pay.P_Id and pay.Pay_State=7 and (pay.Contract_Pay_Type = '1' or pay.Contract_Pay_Type is null)
+        ${params.authSql}
+        and  mn.state=7
+        <if test="params.projectId != null and params.projectId != ''">
+            and mn.P_Id = #{params.projectId}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and mn.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and mn.P_Competent_Department like concat('%',#{params.pCompetentDepartment},'%')
+        </if>
+        <if test="params.pBuildModel!=null">
+            and mn.P_Build_Model like concat('%',#{params.pBuildModel},'%')
+        </if>
+    </select>
+
+    <select id="getConPayListByPId" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse"
+            parameterType="java.lang.String">
+        select
+        mn.*,
+        c1.C_Name as payPayeeName
+        from Con_Pay mn
+        left join SYS_Company c1 on c1.C_Id = mn.Pay_Payee
+        where mn.P_Id=#{projectId} and  mn.Pay_State = 7
+        and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+        order by Pay_Create_Time desc
+    </select>
+
+
+    <select id="getPayList" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select
+            mn.Con_Id,mn.Pay_Apply,mn.Pay_State,mn.P_Id
+        from Con_Pay mn
+        where  mn.Pay_State = 7
+        and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+        <if test="conIds!=null and conIds.size()>0">
+            and mn.con_Id in
+            <foreach collection="conIds" open="(" close=")" item="ids" separator=",">
+                #{ids}
+            </foreach>
+        </if>
+
+    </select>
+
+
+    <select id="getConPayDataListTc" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        SELECT pre.p_id AS pId,
+        SUM(pay.pay_apply) AS payapply,
+        mn.con_id AS conId,
+        pre.p_name AS pName,
+        mn.con_name AS conName,
+        mn.con_type AS conType,
+        mn.Con_Party_B_Id AS conPartyBId,
+        sys.c_name AS cName,
+        mn.Con_Money_Total AS conMoneyTotal,
+        ( mn.Con_Money_Total + COALESCE((SELECT SUM(CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN cc.Con_Sup_Change_Mon_Type = 0 THEN -cc.Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc
+        WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0)) AS contractAmount,
+        app.as_Audited_Amount AS settlementamount,
+        mn.con_Party_A_Agent as conPartyAAgent,
+        mn.con_Party_A_Agent_Id as conPartyAAgentId
+        FROM con_contract mn
+        LEFT JOIN con_Pay pay
+        ON pay.con_id = mn.con_id and (pay.Contract_Pay_Type = '1' or pay.Contract_Pay_Type is null)
+        LEFT JOIN pre_project pre
+        ON pre.p_id = mn.Con_Project_Id
+        LEFT JOIN SYS_Company sys
+        ON sys.c_id = mn.Con_Party_B_Id
+        LEFT JOIN Audit_Settlement app
+        ON mn.con_id = app.con_id
+        ${authSql}
+            <if test="request.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{request.pName},pre.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pre.P_Name like concat('%',#{request.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="request.conName!=null">
+                and mn.conName like concat('%',#{request.conName},'%')
+            </if>
+            <if test="request.conCode!=null">
+                and mn.conCode  =  #{request.conCode}
+            </if>
+            <if test="request.cName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and  likeCname(#{request.cName},sys.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and  sys.c_name like concat('%',#{request.cName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+        GROUP BY pre.p_id,
+        pre.p_name,
+        mn.con_id,
+        mn.con_name,
+        mn.con_type,
+        mn.Con_Party_B_Id,
+        sys.c_name,
+        mn.Con_Money_Total,
+        app.as_Audited_Amount,
+        mn.con_Party_A_Agent,
+        mn.con_Party_A_Agent_Id
+    </select>
+
+
+    <select id="getConPayDataListSumMoneyTc" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        SELECT pre.p_id AS pId,
+        SUM(pay.pay_apply) AS payapply,
+        mn.con_id AS conId,
+        pre.p_name AS pName,
+        mn.con_name AS conName,
+        mn.Con_Money_Total AS conMoneyTotal
+        FROM con_contract mn
+        LEFT JOIN con_Pay pay
+        ON pay.con_id = mn.con_id and (pay.Contract_Pay_Type = '1' or pay.Contract_Pay_Type is null)
+        LEFT JOIN pre_project pre
+        ON pre.p_id = mn.Con_Project_Id
+        LEFT JOIN SYS_Company sys
+        ON sys.c_id = mn.Con_Party_B_Id
+        LEFT JOIN Audit_Settlement app
+        ON mn.con_id = app.con_id
+        ${authSql}
+        <if test="request.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{request.pName},pre.P_Id)=true
+                </when>
+                <otherwise>
+                    and pre.P_Name like concat('%',#{request.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="request.conName!=null">
+            and mn.conName like concat('%',#{request.conName},'%')
+        </if>
+        <if test="request.conCode!=null">
+            and mn.conCode  =  #{request.conCode}
+        </if>
+        <if test="request.cName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and  likeCname(#{request.cName},sys.C_Id)=true
+                </when>
+                <otherwise>
+                    and  sys.c_name like concat('%',#{request.cName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        GROUP BY pre.p_id,
+        pre.p_name,
+        mn.con_id,
+        mn.con_name,
+        mn.Con_Money_Total
+    </select>
+
+    <select id="getConPayDatadetailsTc" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        SELECT
+        pay.pay_Application_Type as payApplicationType,
+        pay.pay_id as payId,
+        plan.cpp_sort as cppSort,
+        pay.cpp_id as cppId,
+        pay.con_id as conId,
+        plan.cpp_name as cppName,
+        pay.pay_apply as payApply,
+        (select   sum(dtl.Fad_Actual_Payment) from  Fund_Allocation_Dtl dtl  where dtl.pay_id = pay.pay_id) as appropriateAmt ,
+        plan.Cpp_Condition_Type as cppConditiontype,
+        plan.Cpp_Condition_Value as cppConditionValue,
+        plan.Cpp_Mode as cppMode,
+        plan.Cpp_Basics as cppBasics,
+        pay.Pay_Application_Date as payApplicationDate,
+        pay.Pay_Create_Time as payCreateTime,
+        pay.Pay_Create_Uid as payCreateUid,
+        pay.Pay_Create_Uname as payCreateUname,
+        pay.Pay_State as payState,
+        plan.cpp_Con_Jdlx as cppConJdlx,
+        plan.cpp_Ratio_Pay_To as cppRatioPayTo,
+        con.con_Party_A_Agent_Id as conPartyAAgentId,
+        plan.cpp_Money as cppMoney,
+        con.con_Party_A_Agent as conPartyAAgent
+        FROM
+        con_pay pay
+        LEFT JOIN Con_Contract_Pay_Plan plan ON plan.cpp_id = pay.cpp_id
+        left join con_contract con  on con.con_id = pay.con_id
+        <where>
+            1=1
+            and (pay.Contract_Pay_Type = '1' or pay.Contract_Pay_Type is null)
+            <if test="request.conId!=null">
+                and pay.con_Id  =  #{request.conId}
+            </if>
+            <if test="request.cppSort!=null">
+                and plan.cpp_sort  =  #{request.cppSort}
+            </if>
+            <if test="request.payApplicationType!=null">
+                and  pay.pay_Application_Type like concat('%',#{request.payApplicationType},'%')
+            </if>
+            <if test="request.cppName!=null">
+                and  plan.cpp_name like concat('%',#{request.cppName},'%')
+            </if>
+        </where>
+    </select>
+
+    <select id="getConPayListByPidHB" resultType="com.jpmsoft.projectProducer.pojo.entity.contract.ConPay">
+        select
+        mn.Con_Id,
+        ifnull(sum(mn.Pay_Apply), 0) as payApply
+        from Con_Pay mn
+        where mn.Pay_State = 7
+        and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+        <if test="conIds != null and conIds.size() != 0">
+            and mn.Con_Id in
+            <foreach collection="conIds" item="conId" open="(" separator="," close=")">
+                #{conId}
+            </foreach>
+        </if>
+        group by mn.Con_Id
+    </select>
+
+    <select id="getConPayListNJCJ2" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select
+        mn.*,
+        pro.P_Name as pName,
+        con.Con_Name as conName,
+        con.Con_Money_Total as conMoneyTotal,
+        cmp.Cmp_Actual_Payment as cmpActualPayment,
+        cmp.Cmp_Period as cmpPeriod,
+        gfpd.gfpd_Balance_Pay_Amount as gfpdBalancePayAmount,
+        gfpd.gfpd_Expected_Pay_Amount as gfpdExpectedPayAmount,
+        gfpd.Gfpd_Total_Pay_Amount as gfpdTotalPayAmount,
+        c1.C_Name as payPayeeName
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Con_Measure_Price cmp on cmp.id=mn.cpm_Id
+        left join Group_Fund_Plan_Detail gfpd on gfpd.id=mn.gfpd_Id
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        and mn.Contract_Pay_Type = #{params.contractPayType}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.dId!=null">
+            and mn.D_Id = #{params.dId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.payType!=null">
+            and mn.Pay_Type = #{params.payType}
+        </if>
+        <if test="params.payCategory!=null">
+            and mn.Pay_Category = #{params.payCategory}
+        </if>
+        <if test="params.payTypeDetailed!=null">
+            and mn.Pay_Type_Detailed = #{params.payTypeDetailed}
+        </if>
+        <if test="params.payExpenseType!=null">
+            and mn.Pay_Expense_Type = #{params.payExpenseType}
+        </if>
+        <if test="params.payNumber!=null">
+            and mn.Pay_Number = #{params.payNumber}
+        </if>
+        <if test="params.payState!=null">
+            and mn.Pay_State = #{params.payState}
+        </if>
+        <if test="params.payApplicationDepartmentId!=null">
+            and mn.Pay_Application_Department_Id= #{params.payApplicationDepartmentId}
+        </if>
+        <if test="params.conType!=null">
+            and con.Con_Type = #{params.conType}
+        </if>
+        <if test="params.conPartyAId!=null">
+            and con.Con_Party_A_Id = #{params.conPartyAId}
+        </if>
+        <if test="params.conDepartment!=null">
+            and con.con_Department = #{params.conDepartment}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.payIsWages!=null">
+            and mn.Pay_Is_Wages = #{params.payIsWages}
+        </if>
+        <if test="params.ctdId!=null">
+            and mn.Ctd_Id = #{params.ctdId}
+        </if>
+        <if test="params.thisProject!=null">
+            <if test="params.thisProject==true">
+                and mn.Con_Id is null
+            </if>
+            <if test="params.thisProject==false">
+                and mn.Con_Id is not null
+            </if>
+        </if>
+        <if test="params.payNumberStart!=null">
+            and mn.Pay_Number>#{params.payNumberStart}
+        </if>
+        <if test="params.payNumberEnd!=null">
+            and mn.Pay_Number &lt; #{params.payNumberEnd}
+        </if>
+        <if test="params.conMoneyTotalStart!=null">
+            and con.Con_Money_Total>#{params.conMoneyTotalStart}
+        </if>
+        <if test="params.conMoneyTotalEnd!=null">
+            and con.Con_Money_Total &lt; #{params.conMoneyTotalEnd}
+        </if>
+        <if test="params.payApplyStart!=null">
+            and mn.Pay_Apply>#{params.payApplyStart}
+        </if>
+        <if test="params.payApplyEnd!=null">
+            and mn.Pay_Apply &lt; #{params.payApplyEnd}
+        </if>
+        <if test="params.conCreateTimeStart!=null">
+            and mn.Pay_Create_Time>#{params.conCreateTimeStart}
+        </if>
+        <if test="params.conCreateTimeEnd!=null">
+            and mn.Pay_Create_Time &lt; #{params.conCreateTimeEnd}
+        </if>
+        <if test="params.ctdCode!=null">
+            and mn.Ctd_Code like concat('%',#{params.ctdCode},'%')
+        </if>
+        <if test="params.payFaCode!=null">
+            and mn.Pay_Fa_Code like concat('%',#{params.payFaCode},'%')
+        </if>
+        <if test="params.payPayeeCa!=null">
+            and mn.Pay_Payee_CA like concat('%',#{params.payPayeeCa},'%')
+        </if>
+        <if test="params.payPayeeCaName!=null">
+            and mn.Pay_Payee_CA_Name like concat('%',#{params.payPayeeCaName},'%')
+        </if>
+        <if test="params.payPayeeBank!=null">
+            and mn.Pay_Payee_Bank like concat('%',#{params.payPayeeBank},'%')
+        </if>
+        <if test="params.payRemark!=null">
+            and mn.Pay_Remark like concat('%',#{params.payRemark},'%')
+        </if>
+        <if test="params.payCreateUname!=null">
+            and mn.Pay_Create_Uname like concat('%',#{params.payCreateUname},'%')
+        </if>
+        <if test="params.payCode!=null">
+            and mn.Pay_Code like concat('%',#{params.payCode},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.conCode!=null">
+            and con.Con_Code like concat('%',#{params.conCode},'%')
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.payPayeeName!=null">
+                    and likeCname(#{params.payPayeeName},c1.C_Id)=true
+                </if>
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.payPayeeName!=null">
+                    and c1.C_Name like concat('%',#{params.payPayeeName},'%')
+                </if>
+                <if test="params.pName!=null">
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </if>
+            </otherwise>
+        </choose>
+        <if test="params.bddIds!=null">
+            and con.Con_Budget_Id in
+            <foreach collection="params.bddIds" open="(" close=")" item="bddId" separator=",">
+                #{bddId}
+            </foreach>
+        </if>
+        <if test="params.payCategoryPayment != null and params.payCategoryPayment != ''">
+            and mn.Pay_Category_Payment = #{params.payCategoryPayment}
+        </if>
+        <if test="params.payApplicationDateStart != null and params.payApplicationDateStart != ''">
+            and mn.Pay_Application_Date &gt;= #{params.payApplicationDateStart}
+        </if>
+        <if test="params.payApplicationDateEnd != null and params.payApplicationDateEnd != ''">
+            and mn.Pay_Application_Date &lt;= #{params.payApplicationDateEnd}
+        </if>
+        <if test="params.fnCode != null and params.fnCode != ''">
+            and exists (select 1 from Con_Fund_No cfn where cfn.Pay_Id = mn.Pay_Id and cfn.Fn_Code like concat('%',#{params.fnCode},'%'))
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Pay_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getLastPayBalanceByPId" resultType="java.math.BigDecimal">
+        select mn.Pay_Apply + mn.Pay_Balance as lastPayBalance
+        from Con_Pay mn
+        where mn.Contract_Pay_Type = #{contractPayType}
+        and mn.P_Id = #{pId}
+        <if test="id != null and id != ''">
+            and mn.Pay_Id != #{id}
+        </if>
+        order by mn.Pay_Create_Time desc
+        limit 1
+    </select>
+
+    <select id="getConPayReceiptListByPIdJT" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConPayReceiptDTO">
+        select mn.*,
+        cp.Pay_Create_Time as payCreateTime
+        from Con_Pay_Receipt mn
+        left join Con_Pay cp on cp.Pay_Id = mn.Pay_Id
+        where cp.P_Id = #{pId}
+        and cp.Contract_Pay_Type = '4'
+        and cp.Pay_State = 7
+    </select>
+
+    <select id="getConPayStatisticsOverviewList" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select
+        mn.*,
+        pro.P_Name as pName,
+        con.Con_Name as conName,
+        con.Con_Money_Total as conMoneyTotal,
+        cmp.Cmp_Actual_Payment as cmpActualPayment,
+        cmp.Cmp_Period as cmpPeriod,
+        gfpd.gfpd_Balance_Pay_Amount as gfpdBalancePayAmount,
+        gfpd.gfpd_Expected_Pay_Amount as gfpdExpectedPayAmount,
+        gfpd.Gfpd_Total_Pay_Amount as gfpdTotalPayAmount,
+        c1.C_Name as payPayeeName
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Con_Measure_Price cmp on cmp.id=mn.cpm_Id
+        left join Group_Fund_Plan_Detail gfpd on gfpd.id=mn.gfpd_Id
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        <where>
+            <if test="params.type != null and params.type != ''">
+                <include refid="conPayStatisticsOverviewListFilter"/>
+            </if>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.dId!=null">
+                and mn.D_Id = #{params.dId}
+            </if>
+            <if test="params.pId!=null">
+                and mn.P_Id = #{params.pId}
+            </if>
+            <if test="params.payType!=null">
+                and mn.Pay_Type = #{params.payType}
+            </if>
+            <if test="params.payCategory!=null">
+                and mn.Pay_Category = #{params.payCategory}
+            </if>
+            <if test="params.payTypeDetailed!=null">
+                and mn.Pay_Type_Detailed = #{params.payTypeDetailed}
+            </if>
+            <if test="params.payExpenseType!=null">
+                and mn.Pay_Expense_Type = #{params.payExpenseType}
+            </if>
+            <if test="params.payNumber!=null">
+                and mn.Pay_Number = #{params.payNumber}
+            </if>
+            <if test="params.payState!=null">
+                and mn.Pay_State = #{params.payState}
+            </if>
+            <if test="params.payApplicationDepartmentId!=null">
+                and mn.Pay_Application_Department_Id= #{params.payApplicationDepartmentId}
+            </if>
+            <if test="params.conType!=null">
+                and con.Con_Type = #{params.conType}
+            </if>
+            <if test="params.conPartyAId!=null">
+                and con.Con_Party_A_Id = #{params.conPartyAId}
+            </if>
+            <if test="params.conDepartment!=null">
+                and con.con_Department = #{params.conDepartment}
+            </if>
+            <if test="params.conId!=null">
+                and mn.Con_Id = #{params.conId}
+            </if>
+            <if test="params.payIsWages!=null">
+                and mn.Pay_Is_Wages = #{params.payIsWages}
+            </if>
+            <if test="params.ctdId!=null">
+                and mn.Ctd_Id = #{params.ctdId}
+            </if>
+            <if test="params.thisProject!=null">
+                <if test="params.thisProject==true">
+                    and mn.Con_Id is null
+                </if>
+                <if test="params.thisProject==false">
+                    and mn.Con_Id is not null
+                </if>
+            </if>
+            <if test="params.ctdCode!=null">
+                and mn.Ctd_Code like concat('%',#{params.ctdCode},'%')
+            </if>
+            <if test="params.payFaCode!=null">
+                and mn.Pay_Fa_Code like concat('%',#{params.payFaCode},'%')
+            </if>
+            <if test="params.payPayeeCa!=null">
+                and mn.Pay_Payee_CA like concat('%',#{params.payPayeeCa},'%')
+            </if>
+            <if test="params.payPayeeCaName!=null">
+                and mn.Pay_Payee_CA_Name like concat('%',#{params.payPayeeCaName},'%')
+            </if>
+            <if test="params.payPayeeBank!=null">
+                and mn.Pay_Payee_Bank like concat('%',#{params.payPayeeBank},'%')
+            </if>
+            <if test="params.payRemark!=null">
+                and mn.Pay_Remark like concat('%',#{params.payRemark},'%')
+            </if>
+            <if test="params.payCreateUname!=null">
+                and mn.Pay_Create_Uname like concat('%',#{params.payCreateUname},'%')
+            </if>
+            <if test="params.payCode!=null">
+                and mn.Pay_Code like concat('%',#{params.payCode},'%')
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.conCode!=null">
+                and con.Con_Code like concat('%',#{params.conCode},'%')
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    <if test="params.payPayeeName!=null">
+                        and likeCname(#{params.payPayeeName},c1.C_Id)=true
+                    </if>
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.payPayeeName!=null">
+                        and c1.C_Name like concat('%',#{params.payPayeeName},'%')
+                    </if>
+                    <if test="params.pName!=null">
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.payCategoryPayment != null and params.payCategoryPayment != ''">
+                and mn.Pay_Category_Payment = #{params.payCategoryPayment}
+            </if>
+            <if test="params.fnCode != null and params.fnCode != ''">
+                and exists (select 1 from Con_Fund_No cfn where cfn.Pay_Id = mn.Pay_Id and cfn.Fn_Code like concat('%',#{params.fnCode},'%'))
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Pay_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="conPayStatisticsOverviewListFilter" databaseId="dm">
+        <choose>
+            <when test="params.type == 'payToday'">
+                and mn.Pay_State = 7
+                and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+                and DateDiff(day, mn.Pay_Create_Time, getdate()) = 0
+            </when>
+            <when test="params.type == 'payAmt'">
+                and mn.Pay_State = 7
+                and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+                and DateDiff(year, mn.Pay_State_Time, getdate()) = 0
+                and (
+                (mn.Pay_Type != '02' and mn.Pay_Type != '0201')
+                or
+                (mn.Pay_Type = '02' or mn.Pay_Type = '0201')
+                )
+            </when>
+            <when test="params.type == 'payMonthAmt'">
+                and mn.Pay_State = 7
+                and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+                and DateDiff(month, mn.Pay_State_Time, getdate()) = 0
+                and (
+                (mn.Pay_Type != '02' and mn.Pay_Type != '0201')
+                or
+                (mn.Pay_Type = '02' or mn.Pay_Type = '0201')
+                )
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="conPayStatisticsOverviewListFilter" databaseId="mysql">
+        <choose>
+            <when test="params.type == 'payToday'">
+                and mn.Pay_State = 7
+                and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+                and DateDiff(mn.Pay_Create_Time, now()) = 0)
+            </when>
+            <when test="params.type == 'payAmt'">
+                and mn.Pay_State = 7
+                and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+                and date_format(mn.Pay_State_Time, '%Y') - date_format(now(), '%Y') = 0
+                and (
+                (mn.Pay_Type != '02' and mn.Pay_Type != '0201')
+                or
+                (mn.Pay_Type = '02' or mn.Pay_Type = '0201')
+                )
+            </when>
+            <when test="params.type == 'payMonthAmt'">
+                and mn.Pay_State = 7
+                and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+                and PERIOD_DIFF(DATE_FORMAT(mn.Pay_State_Time, '%Y%m'), DATE_FORMAT(now(), '%Y%m')) = 0
+                and (
+                (mn.Pay_Type != '02' and mn.Pay_Type != '0201')
+                or
+                (mn.Pay_Type = '02' or mn.Pay_Type = '0201')
+                )
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="getConPaySyncMarketInvestmentPayment" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select
+        pre.p_Name as pName,
+        c.c_Name as pConstructionUnitName,
+        con.Con_Code as conCode,
+        con.Con_Name as conName,
+        con.Con_Money_Total as conMoneyTotal,
+        c2.C_Name as payPayeeName,
+        mn.*
+        from con_pay mn
+        left join pre_project pre on pre.P_Id = mn.P_Id
+        left join con_contract con on con.Con_Id = mn.Con_Id
+        left join sys_company c on c.c_Id = pre.p_Construction_Unit
+        left join sys_company c2 on c2.c_Id = mn.pay_Payee
+        where
+        mn.pay_Application_Type = '01'
+        and mn.Pay_State = 7
+        and not exists (
+        select 1
+        from Market_Investment_Payment mip
+        where mip.pay_Id = mn.Pay_Id
+        )
+    </select>
+
+    <select id="getLastPayActualPayTotal" resultType="java.math.BigDecimal">
+        select ifnull(mn.Pay_Actual_Pay_Total, 0) + ifnull(mn.Pay_Apply, 0) as lastPayActualPayTotal
+        from Con_Pay mn
+        where mn.Pay_State = 7
+          and mn.P_Id = #{pId}
+          and mn.Pay_Category = #{payCategory}
+          and mn.Pay_Payee_Name_Pro = #{payPayeeNamePro}
+        order by mn.Pay_Create_Time desc
+        limit 1
+    </select>
+
+    <!-- ==================== 导出专用：精简查询，手动分页 ==================== -->
+    <sql id="exportListFilter">
+        and (mn.Contract_Pay_Type = '1' or mn.Contract_Pay_Type is null)
+        <if test="params.teId!=null">and mn.Te_Id = #{params.teId}</if>
+        <if test="params.dId!=null">and mn.D_Id = #{params.dId}</if>
+        <if test="params.pId!=null">and mn.P_Id = #{params.pId}</if>
+        <if test="params.payType!=null">and mn.Pay_Type = #{params.payType}</if>
+        <if test="params.payCategory!=null">and mn.Pay_Category = #{params.payCategory}</if>
+        <if test="params.payTypeDetailed!=null">and mn.Pay_Type_Detailed = #{params.payTypeDetailed}</if>
+        <if test="params.payExpenseType!=null">and mn.Pay_Expense_Type = #{params.payExpenseType}</if>
+        <if test="params.payNumber!=null">and mn.Pay_Number = #{params.payNumber}</if>
+        <if test="params.payState!=null">and mn.Pay_State = #{params.payState}</if>
+        <if test="params.payApplicationDepartmentId!=null">and mn.Pay_Application_Department_Id = #{params.payApplicationDepartmentId}</if>
+        <if test="params.conType!=null">and con.Con_Type = #{params.conType}</if>
+        <if test="params.conPartyAId!=null">and con.Con_Party_A_Id = #{params.conPartyAId}</if>
+        <if test="params.conDepartment!=null">and con.con_Department = #{params.conDepartment}</if>
+        <if test="params.conId!=null">and mn.Con_Id = #{params.conId}</if>
+        <if test="params.payIsWages!=null">and mn.Pay_Is_Wages = #{params.payIsWages}</if>
+        <if test="params.ctdId!=null">and mn.Ctd_Id = #{params.ctdId}</if>
+        <if test="params.thisProject!=null">
+            <if test="params.thisProject==true">and mn.Con_Id is null</if>
+            <if test="params.thisProject==false">and mn.Con_Id is not null</if>
+        </if>
+        <if test="params.payNumberStart!=null">and mn.Pay_Number &gt; #{params.payNumberStart}</if>
+        <if test="params.payNumberEnd!=null">and mn.Pay_Number &lt; #{params.payNumberEnd}</if>
+        <if test="params.conMoneyTotalStart!=null">and con.Con_Money_Total &gt; #{params.conMoneyTotalStart}</if>
+        <if test="params.conMoneyTotalEnd!=null">and con.Con_Money_Total &lt; #{params.conMoneyTotalEnd}</if>
+        <if test="params.payApplyStart!=null">and mn.Pay_Apply &gt; #{params.payApplyStart}</if>
+        <if test="params.payApplyEnd!=null">and mn.Pay_Apply &lt; #{params.payApplyEnd}</if>
+        <if test="params.conCreateTimeStart!=null">and mn.Pay_Create_Time &gt; #{params.conCreateTimeStart}</if>
+        <if test="params.conCreateTimeEnd!=null">and mn.Pay_Create_Time &lt; #{params.conCreateTimeEnd}</if>
+        <if test="params.ctdCode!=null">and mn.Ctd_Code like concat('%',#{params.ctdCode},'%')</if>
+        <if test="params.payFaCode!=null">and mn.Pay_Fa_Code like concat('%',#{params.payFaCode},'%')</if>
+        <if test="params.payPayeeCa!=null">and mn.Pay_Payee_CA like concat('%',#{params.payPayeeCa},'%')</if>
+        <if test="params.payPayeeCaName!=null">and mn.Pay_Payee_CA_Name like concat('%',#{params.payPayeeCaName},'%')</if>
+        <if test="params.payPayeeBank!=null">and mn.Pay_Payee_Bank like concat('%',#{params.payPayeeBank},'%')</if>
+        <if test="params.payRemark!=null">and mn.Pay_Remark like concat('%',#{params.payRemark},'%')</if>
+        <if test="params.payCreateUname!=null">and mn.Pay_Create_Uname like concat('%',#{params.payCreateUname},'%')</if>
+        <if test="params.payCode!=null">and mn.Pay_Code like concat('%',#{params.payCode},'%')</if>
+        <if test="params.conName!=null">and con.Con_Name like concat('%',#{params.conName},'%')</if>
+        <if test="params.conCode!=null">and con.Con_Code like concat('%',#{params.conCode},'%')</if>
+        <if test="params.pName!=null">and pro.P_Name like concat('%',#{params.pName},'%')</if>
+        <if test="params.conPartyBName!=null">and c4.C_Name like concat('%',#{params.conPartyBName},'%')</if>
+        <if test="params.bddIds!=null">
+            and con.Con_Budget_Id in
+            <foreach collection="params.bddIds" open="(" close=")" item="bddId" separator=",">#{bddId}</foreach>
+        </if>
+        <if test="params.payCategoryPayment != null and params.payCategoryPayment != ''">
+            and mn.Pay_Category_Payment = #{params.payCategoryPayment}
+        </if>
+        <if test="params.payApplicationDateStart != null and params.payApplicationDateStart != ''">
+            and mn.Pay_Application_Date &gt;= #{params.payApplicationDateStart}
+        </if>
+        <if test="params.payApplicationDateEnd != null and params.payApplicationDateEnd != ''">
+            and mn.Pay_Application_Date &lt;= #{params.payApplicationDateEnd}
+        </if>
+        <if test="params.fnCode != null and params.fnCode != ''">
+            and exists (select 1 from Con_Fund_No cfn where cfn.Pay_Id = mn.Pay_Id and cfn.Fn_Code like concat('%',#{params.fnCode},'%'))
+        </if>
+        <if test="params.paymentPaths != null and params.paymentPaths.size() > 0">
+            and
+            <foreach collection="params.paymentPaths" item="paymentPath" open="(" close=")" separator=" or ">
+                mn.Payment_Path like concat('%', #{paymentPath}, '%')
+            </foreach>
+        </if>
+        <if test="params.payApplicationType != null and params.payApplicationType != ''">
+            and mn.pay_Application_Type = #{params.payApplicationType}
+        </if>
+        <if test="params.secId != null and params.secId != ''">
+            and EXISTS (SELECT 1 FROM sec_project sp WHERE sp.p_Id = mn.p_Id AND sp.sec_Id = #{params.secId})
+        </if>
+        <if test='projectIds != null and projectIds.size() != 0 and params.payIsFilter == "1" and params.payIsContain == "1"'>
+            AND mn.P_ID IN
+            <foreach collection="projectIds" index="" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
+        <if test='projectIds != null and projectIds.size() != 0 and params.payIsFilter == "1" and params.payIsContain == "0"'>
+            AND mn.P_ID NOT IN
+            <foreach collection="projectIds" index="" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
+        <if test="params.payYear != null">
+            and (CASE WHEN mn.Pay_Application_Date IS NOT NULL THEN YEAR(mn.Pay_Application_Date)
+            WHEN mn.Pay_Create_Time IS NOT NULL THEN YEAR(mn.Pay_Create_Time) END) = #{params.payYear}
+        </if>
+        <if test="params.payMonth != null">
+            and (CASE WHEN mn.Pay_Application_Date IS NOT NULL THEN MONTH(mn.Pay_Application_Date)
+            WHEN mn.Pay_Create_Time IS NOT NULL THEN MONTH(mn.Pay_Create_Time) END) = #{params.payMonth}
+        </if>
+        <if test="params.projectName!=null">and pro.P_Name like concat('%',#{params.projectName},'%')</if>
+        <if test="params.contractName!=null">and con.con_name like concat('%',#{params.contractName},'%')</if>
+        <if test="params.isLeaderBoard==1">and mn.Pay_State!=3 and mn.Pay_State!=0</if>
+        <if test="params.isType">and mn.Pay_Create_Uid = #{params.uId}</if>
+    </sql>
+
+    <select id="getConPayListForExport" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select
+            pro.P_Name as pName,
+            con.Con_Name as conName,
+            con.Con_Code as conCode,
+            con.Con_Money_Total as conMoneyTotal,
+            con.Con_Type as conType,
+            c4.C_Name as conPartyBName,
+            c4.C_Abbreviation as conPartyBAbbName,
+            mn.*,
+            mn.Pay_Approval as payApproval
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join SYS_Company c4 on c4.C_Id = con.Con_Party_B_Id
+        ${params.authSql}
+        <include refid="exportListFilter"/>
+        order by mn.Pay_Create_Time desc
+    </select>
+</mapper>

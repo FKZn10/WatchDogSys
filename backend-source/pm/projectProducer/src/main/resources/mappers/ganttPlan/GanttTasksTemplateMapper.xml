@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.ganttPlan.GanttTasksTemplateMapper">
+
+    <select id="getProjectStage" resultType="com.jpmsoft.common.model.request.Plan.GanttTasksTemplateDTO">
+        select
+            mn.*
+        from Gantt_Tasks_Template mn
+        left join Gantt_Plan_Template pt on mn.Pt_Id=pt.Pt_Id
+        where pt.Pt_Plan_Type='ProjectStage'
+        order by mn.Task_Sort desc
+    </select>
+</mapper>

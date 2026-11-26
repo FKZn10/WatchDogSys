@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectDeviceCoordinateMapper">
+
+
+    <select id="getList"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.project.PreProjectDeviceCoordinate">
+        select ppdc.*,pp.p_code projectCode
+        from pre_project_device_coordinate  ppdc
+        inner join Pre_Project pp  on ppdc.project_id=pp.P_ID
+        <where>
+            pp.deleted=false
+            <if test="params.projectStatus!=null and params.projectStatus!='' ">
+                <if test="params.projectStatus==1 ">
+                    and pp.P_Parent_ID is not null and pp.P_Parent_ID ='0'
+                </if>
+                <if test="params.projectStatus==2 ">
+                    and pp.P_Parent_ID is not null and pp.P_Parent_ID !='0'
+                </if>
+            </if>
+            <if test="params.eachDistrictList!=null and params.eachDistrictList.size()>0">
+                and pp.p_Each_District in
+                <foreach collection="params.eachDistrictList" item="item" index="index" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+       </where>
+    </select>
+    <select id="getPageDistinctProject"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.project.PreProjectDeviceCoordinate">
+        select distinct project_id,project_name,create_time,create_username
+        from pre_project_device_coordinate
+        order by create_time desc
+    </select>
+</mapper>

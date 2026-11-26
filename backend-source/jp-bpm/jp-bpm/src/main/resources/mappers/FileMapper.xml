@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.FileMapper">
+
+    <select id="getFileList" resultType="com.jpmsoft.common.model.response.SysFileResponse">
+        select
+        t.T_Name as tName,
+        pro.P_Name as pName,
+        pro.P_Build_Model as pBuildModel,
+        pro.P_Major_Type as pMajorType,
+        pro.P_Type as pType,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        c.C_Name as cName,
+        <include refid="SysFileEntity"/>
+        from SYS_File f
+        left join SYS_FileTemplate t on t.T_ID=f.T_ID
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        left join Sys_Company c on c.C_ID=f.FileCreateCompanyID
+        left join SYS_User u on u.U_ID=f.FileCreateUser
+        <where>
+            1=1
+            <if test="params.started==true">
+                and f.FileFlowStatus != 0 and f.FileFlowStatus != 7 and  f.FileFlowStatus != 3
+            </if>
+            <if test="params.filetitle!=null">
+                and f.FileTitle like concat('%',#{params.filetitle},'%')
+            </if>
+            <if test="params.filetitles!=null">
+                and f.FileTitle in
+                <foreach collection="params.filetitles" open="(" close=")" separator="," item="filetitle">
+                    #{filetitle}
+                </foreach>
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                    <if test="params.cName!=null">
+                        and likeCname(#{params.cName},c.C_Id)=true
+                    </if>
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.cName!=null">
+                        and c.C_Name like concat('%',#{params.cName},'%')
+                    </if>
+                    <if test="params.pName!=null">
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.tName!=null">
+                and t.T_Name like concat('%',#{params.tName},'%')
+            </if>
+            <if test="params.tCode != null and params.tCode != ''">
+                and f.T_Code like concat('%',#{params.tCode},'%')
+            </if>
+            <if test="params.secName!=null">
+                and sec.Sec_Name like concat('%',#{params.secName},'%')
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.pBuildModel!=null">
+                and pro.P_Build_Model = #{params.pBuildModel}
+            </if>
+            <if test="params.pMajorType!=null">
+                and pro.P_Major_Type = #{params.pMajorType}
+            </if>
+            <if test="params.pType!=null">
+                and pro.P_Type = #{params.pType}
+            </if>
+            <if test="params.startTime!=null">
+                and f.FileCreateDate >= #{params.startTime}
+            </if>
+            <if test="params.endTime!=null">
+                and  #{params.endTime}>= f.FileCreateDate
+            </if>
+
+            <if test="params.uId!=null">
+                and f.FileCreateUser = #{params.uId}
+            </if>
+            <if test="params.filecode!=null">
+                and f.FileCode = #{params.filecode}
+            </if>
+            <if test="params.uName!=null">
+                and u.U_Name = #{params.uName}
+            </if>
+            <if test="params.fileflowstatus!=null">
+                and f.FileFlowStatus = #{params.fileflowstatus}
+            </if>
+            <if test="params.fileCreateDate!=null">
+                and f.FileCreateDate>=
+                <include refid="dateFormatFilterStartTime"/>
+                and<include refid="dateFormatFilterEndTime"/>>= f.FileCreateDate
+            </if>
+            <if test="params.pNames!=null">
+                and pro.P_Name in
+                <foreach collection="params.pNames" open="(" close=")" separator="," item="pName">
+                    #{pName}
+                </foreach>
+            </if>
+            <if test="params.fileflowstatuses!=null">
+                and f.FileFlowStatus in
+                <foreach collection="params.fileflowstatuses" open="(" close=")" separator="," item="fileflowstatus">
+                    #{fileflowstatus}
+                </foreach>
+            </if>
+            <if test="params.taskName!=null and params.taskName != ''">
+                and ( f.FileID in (select tp_entityid from Sys_Task_Processin where tp_name like
+                concat('%',#{params.taskName},'%')) or f.FileID in ( select TaskEntityID from SYS_Task where TaskName
+                like concat('%',#{params.taskName},'%') ) )
+            </if>
+            and (f.T_Code not like '%_Flow' or f.T_Code not like '%_flow' )
+            <if test="params.teId!=null">
+                and f.Te_Id = #{params.teId}
+            </if>
+            <if test="params.fileid != null and params.fileid != ''">
+                and f.FileID = #{params.fileid}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by f.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by case when f.FileCreateDate is null then 1 else 0 end, f.FileCreateDate DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getFileListCount" resultType="java.lang.Integer">
+        select
+        COUNT(1)
+        from SYS_File f
+        left join SYS_FileTemplate t on t.T_ID=f.T_ID
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        left join Sys_Company c on c.C_ID=f.FileCreateCompanyID
+        left join SYS_User u on u.U_ID=f.FileCreateUser
+        <where>
+            1=1
+            <if test="params.started==true">
+                and f.FileFlowStatus != 0 and f.FileFlowStatus != 7 and  f.FileFlowStatus != 3
+            </if>
+            <if test="params.filetitle!=null">
+                and f.FileTitle like concat('%',#{params.filetitle},'%')
+            </if>
+            <if test="params.filetitles!=null">
+                and f.FileTitle in
+                <foreach collection="params.filetitles" open="(" close=")" separator="," item="filetitle">
+                    #{filetitle}
+                </foreach>
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                    <if test="params.cName!=null">
+                        and likeCname(#{params.cName},c.C_Id)=true
+                    </if>
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.cName!=null">
+                        and c.C_Name like concat('%',#{params.cName},'%')
+                    </if>
+                    <if test="params.pName!=null">
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.tName!=null">
+                and t.T_Name like concat('%',#{params.tName},'%')
+            </if>
+            <if test="params.tCode != null and params.tCode != ''">
+                and f.T_Code like concat('%',#{params.tCode},'%')
+            </if>
+            <if test="params.secName!=null">
+                and sec.Sec_Name like concat('%',#{params.secName},'%')
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.uId!=null">
+                and f.FileCreateUser = #{params.uId}
+            </if>
+            <if test="params.filecode!=null">
+                and f.FileCode = #{params.filecode}
+            </if>
+            <if test="params.uName!=null">
+                and u.U_Name = #{params.uName}
+            </if>
+            <if test="params.pBuildModel!=null">
+                and pro.P_Build_Model = #{params.pBuildModel}
+            </if>
+            <if test="params.conName!=null">
+                and pro.P_Major_Type = #{params.pMajorType}
+            </if>
+            <if test="params.pType!=null">
+                and pro.P_Type = #{params.pType}
+            </if>
+            <if test="params.fileflowstatus!=null">
+                and f.FileFlowStatus = #{params.fileflowstatus}
+            </if>
+            <if test="params.startTime!=null">
+                and f.FileCreateDate >= #{params.startTime}
+            </if>
+            <if test="params.endTime!=null">
+                and  #{params.endTime}>= f.FileCreateDate
+            </if>
+            <if test="params.fileCreateDate!=null">
+                and f.FileCreateDate>=
+                <include refid="dateFormatFilterStartTime"/>
+                and<include refid="dateFormatFilterEndTime"/>>= f.FileCreateDate
+            </if>
+            <if test="params.pNames!=null">
+                and pro.P_Name in
+                <foreach collection="params.pNames" open="(" close=")" separator="," item="pName">
+                    #{pName}
+                </foreach>
+            </if>
+            <if test="params.fileflowstatuses!=null">
+                and f.FileFlowStatus in
+                <foreach collection="params.fileflowstatuses" open="(" close=")" separator="," item="fileflowstatus">
+                    #{fileflowstatus}
+                </foreach>
+            </if>
+            <if test="params.taskName!=null and params.taskName != ''">
+                and ( f.FileID in (select tp_entityid from Sys_Task_Processin where tp_name like
+                concat('%',#{params.taskName},'%')) or f.FileID in ( select TaskEntityID from SYS_Task where TaskName
+                like concat('%',#{params.taskName},'%') ) )
+            </if>
+            and (f.T_Code not like '%_Flow' or f.T_Code not like '%_flow' )
+            <if test="params.teId!=null and params.teId!='All'">
+                and f.Te_Id = #{params.teId}
+            </if>
+            <if test="params.fileid != null and params.fileid != ''">
+                and f.FileID = #{params.fileid}
+            </if>
+        </where>
+    </select>
+    <select id="getFileTitles" resultType="java.lang.String">
+        select
+        DISTINCT  ${key}
+        from SYS_File f
+        left join SYS_FileTemplate t on t.T_ID=f.T_ID
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        left join Sys_Company c on c.C_ID=f.FileCreateCompanyID
+        left join SYS_User u on u.U_ID=f.FileCreateUser
+        <where>
+            1=1
+            <if test="params.started==true">
+                and f.FileFlowStatus != 0 and f.FileFlowStatus != 7 and  f.FileFlowStatus != 3
+            </if>
+            <if test="params.filetitle!=null">
+                and f.FileTitle like concat('%',#{params.filetitle},'%')
+            </if>
+            <if test="params.filetitles!=null">
+                and f.FileTitle in
+                <foreach collection="params.filetitles" open="(" close=")" separator="," item="filetitle">
+                    #{filetitle}
+                </foreach>
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                    <if test="params.cName!=null">
+                        and likeCname(#{params.cName},c.C_Id)=true
+                    </if>
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.cName!=null">
+                        and c.C_Name like concat('%',#{params.cName},'%')
+                    </if>
+                    <if test="params.pName!=null">
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.tName!=null">
+                and t.T_Name like concat('%',#{params.tName},'%')
+            </if>
+            <if test="params.secName!=null">
+                and sec.Sec_Name like concat('%',#{params.secName},'%')
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.pBuildModel!=null">
+                and pro.P_Build_Model = #{params.pBuildModel}
+            </if>
+            <if test="params.conName!=null">
+                and pro.P_Major_Type = #{params.pMajorType}
+            </if>
+            <if test="params.pType!=null">
+                and pro.P_Type = #{params.pType}
+            </if>
+            <if test="params.startTime!=null">
+                and f.FileCreateDate >= #{params.startTime}
+            </if>
+            <if test="params.endTime!=null">
+                and  #{params.endTime}>= f.FileCreateDate
+            </if>
+
+            <if test="params.uId!=null">
+                and f.FileCreateUser = #{params.uId}
+            </if>
+            <if test="params.filecode!=null">
+                and f.FileCode = #{params.filecode}
+            </if>
+            <if test="params.uName!=null">
+                and u.U_Name = #{params.uName}
+            </if>
+            <if test="params.fileflowstatus!=null">
+                and f.FileFlowStatus = #{params.fileflowstatus}
+            </if>
+            <if test="params.fileCreateDate!=null">
+                and f.FileCreateDate>=
+                <include refid="dateFormatFilterStartTime"/>
+                and<include refid="dateFormatFilterEndTime"/>>= f.FileCreateDate
+            </if>
+            <if test="params.pNames!=null">
+                and pro.P_Name in
+                <foreach collection="params.pNames" open="(" close=")" separator="," item="pName">
+                    #{pName}
+                </foreach>
+            </if>
+            <if test="params.fileflowstatuses!=null">
+                and f.FileFlowStatus in
+                <foreach collection="params.fileflowstatuses" open="(" close=")" separator="," item="fileflowstatus">
+                    #{fileflowstatus}
+                </foreach>
+            </if>
+            <if test="params.taskName!=null and params.taskName != ''">
+                and ( f.FileID in (select tp_entityid from Sys_Task_Processin where tp_name like
+                concat('%',#{params.taskName},'%')) or f.FileID in ( select TaskEntityID from SYS_Task where TaskName
+                like concat('%',#{params.taskName},'%') ) )
+            </if>
+            and (f.T_Code not like '%_Flow' or f.T_Code not like '%_flow' )
+            <if test="params.teId!=null">
+                and f.Te_Id = #{params.teId}
+            </if>
+        </where>
+
+    </select>
+
+
+    <select id="getFileByCode" databaseId="dm" resultType="java.util.Map">
+        select FileProject,
+        wm_concat((select top 1 T_Code from ${tableCode} where FileProject=t1.FileProject and
+        FileFlowStatus=7 order by FileCreateDate desc )) as tcode
+        from (select * from SYS_File where FileCreateUser=#{uId}
+        <if test="tCodes!=null">
+            and T_Code in
+            <foreach collection="tCodes" open="(" close=")" item="tCode" separator=",">
+                #{tCode}
+            </foreach>
+        </if>
+        <if test="teId!=null">
+            and Te_Id = #{teId}
+        </if>
+        and FileProject is not null)t1
+        group by t1.FileProject
+    </select>
+
+    <select id="getFileByCode" databaseId="postgre" resultType="java.util.Map">
+        select FileProject,
+        string_agg((select top 1 T_Code from ${tableCode} where FileProject=t1.FileProject and
+        FileFlowStatus=7 order by FileCreateDate desc ),',') as tcode
+        from (select * from SYS_File where FileCreateUser=#{uId}
+        <if test="tCodes!=null">
+            and T_Code in
+            <foreach collection="tCodes" open="(" close=")" item="tCode" separator=",">
+                #{tCode}
+            </foreach>
+        </if>
+        <if test="teId!=null">
+            and Te_Id = #{teId}
+        </if>
+        and FileProject is not null)t1
+        group by t1.FileProject
+    </select>
+
+    <select id="getFileByCode" databaseId="mysql" resultType="java.util.Map">
+        select FileProject,
+        GROUP_CONCAT((select T_Code from ${tableCode} where FileProject=t1.FileProject and
+        FileFlowStatus=7 order by FileCreateDate desc  limit 1)) as tcode
+        from (select * from SYS_File where FileCreateUser=#{uId}
+        <if test="tCodes!=null">
+            and T_Code in
+            <foreach collection="tCodes" open="(" close=")" item="tCode" separator=",">
+                #{tCode}
+            </foreach>
+        </if>
+        <if test="teId!=null and teId!='All'">
+            and Te_Id = #{teId}
+        </if>
+        and FileProject is not null)t1
+        group by t1.FileProject
+    </select>
+
+
+    <select id="getFileByFileId" resultType="com.jpmsoft.common.model.response.SysFileResponse">
+        select
+        t.T_Name as tName,
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        c.C_Name as cName,
+        <include refid="SysFileEntity"/>
+        from ${tableCode} f
+        left join SYS_FileTemplate t on t.T_ID=f.T_ID
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        left join Sys_Company c on c.C_ID=f.FileCreateCompanyID
+        left join SYS_User u on u.U_ID=f.FileCreateUser  where  FileID=#{fileId}
+    </select>
+
+
+
+
+    <sql id="SysFileEntity">
+        f.FileID as fileid,
+        f.T_ID as tId,
+        f.FileTitle as filetitle,
+        f.FileCode as filecode,
+        f.FileKeyWord as filekeyword,
+        f.FileEmergencyLevel as fileemergencylevel,
+        f.FileDescription as filedescription,
+        f.FileFlowStatus as fileflowstatus,
+        f.FileCreateDate as filecreatedate,
+        f.FileCreateUser as filecreateUser,
+        f.FileCreateUserName as filecreateusername,
+        f.FileCreateCompanyID as filecreatecompanyid,
+        f.FileProject as fileproject,
+        f.FileSectionID as filesectionid,
+        f.FileContract as filecontract,
+        f.T_Code as tCode,
+        f.Flow_Id as flowId
+    </sql>
+
+    <select id="getMinTimeAndMaxTime" resultType="java.util.Map">
+        select max(FileCreateDate) as  maxDoTime,min(FileCreateDate) as minDoTime from ${tableCode}  where  T_Code  not like '%_Flow' and T_Code not like '%_flow'    <if test="teId!=null and teId!='All'">
+        and Te_Id = #{teId}
+    </if>
+    </select>
+    <select id="queryDangerousProjectId" resultType="java.lang.String">
+        SELECT dangerous_project_id FROM dangerous_project_detail WHERE id =#{detailId}
+    </select>
+
+    <sql id="dateFormatFilterStartTime" databaseId="dm">
+          cast(#{params.fileCreateDate}||' 0:00:00' as datetime)
+    </sql>
+
+    <sql id="dateFormatFilterEndTime" databaseId="dm">
+        cast(#{params.fileCreateDate}||' 23:59:59' as datetime)
+    </sql>
+
+    <sql id="dateFormatFilterStartTime" databaseId="postgre">
+        cast(#{params.fileCreateDate}||' 0:00:00' as date)
+    </sql>
+
+    <sql id="dateFormatFilterEndTime" databaseId="postgre">
+        cast(#{params.fileCreateDate}||' 23:59:59' as date)
+    </sql>
+
+
+    <sql id="dateFormatFilterStartTime" databaseId="mysql">
+        cast(CONCAT(#{params.fileCreateDate},' ','0:00:00') as datetime)
+    </sql>
+
+    <sql id="dateFormatFilterEndTime" databaseId="mysql">
+        cast(CONCAT(#{params.fileCreateDate},' ','23:59:59') as datetime)
+    </sql>
+
+
+    <update id="updateFileFlowStatusByFileIdList">
+        update ${table} set FileFlowStatus = #{FileFlowStatus}
+        where FileID in
+        <foreach item="id" collection="FileIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="queryDangerousProjectIds" resultType="java.lang.String">
+        SELECT dangerous_project_id
+        FROM dangerous_project_detail
+        WHERE id in
+        <foreach item="id" collection="detailIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

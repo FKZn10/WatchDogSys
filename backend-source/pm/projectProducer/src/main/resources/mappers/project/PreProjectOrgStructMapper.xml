@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectOrgStructMapper">
+
+
+    <select id="getPreProjectOrgStructList"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectOrgStructResponse">
+        select ppos.*,pp.P_Name as pName,pp.P_Project_Form_Type pProjectFormType,
+        pp.P_Competent_Department as pCompetentDepartment,sd.D_Name as pCompetentDepartmentName
+        from pre_project_org_struct ppos left join Pre_Project pp on ppos.p_id=pp.P_ID
+        left join SYS_Department sd on pp.P_Competent_Department = sd.D_ID
+        <where>
+            <if test="params.pId != null and params.pId != ''">
+                and ppos.p_id = #{pId}
+            </if>
+            <if test="params.pName != null and params.pName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{pName},pp.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pp.p_name like concat('%',#{pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.pCompetentDepartment != null and params.pCompetentDepartment != ''">
+                and pp.p_Competent_Department = #{pCompetentDepartment}
+            </if>
+            <if test="params.pCompetentDepartmentName != null and params.pCompetentDepartmentName != ''">
+                and sd.D_Name like concat('%',#{pCompetentDepartmentName},'%')
+            </if>
+        </where>
+    </select>
+
+    <select id="getPreProjectOrgStructById"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectOrgStructResponse">
+         select * from pre_project_org_struct ppos left join Pre_Project pp on ppos.p_id=pp.P_ID where ppos.id=#{id}
+    </select>
+
+
+</mapper>
+

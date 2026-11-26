@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectOrgStructUnitMapper">
+
+
+    <select id="getByOrgStructId"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectOrgStructUnitResponse">
+        select pposunit.*,sc.C_Name unitName from pre_project_org_struct_unit pposunit left join  SYS_Company sc on pposunit.unit_id=sc.C_ID
+        where pposunit.org_struct_id=#{orgStructId}
+    </select>
+
+</mapper>
+

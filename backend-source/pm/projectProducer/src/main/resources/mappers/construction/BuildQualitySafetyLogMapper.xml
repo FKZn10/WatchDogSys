@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.construction.BuildQualitySafetyLogMapper">
+
+    <select id="getBuildQualitySafetyLogById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.construction.BuildQualitySafetyLogVo">
+        select pro.P_Name         as pName,
+               pro.P_Code         as pCode,
+               sec.Sec_Name       as secName,
+               sec.Sec_Code       as secCode,
+               f.file_relation_id as fileRelationId,
+               mn.*
+        from Build_Quality_Safety_Log mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join SYS_File f on f.fileId = mn.id
+        where mn.id = #{id}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.pName!=null">
+            and INSTR(pro.P_Name,#{params.pName})
+        </if>
+        <if test="params.secName!=null">
+            and INSTR(sec.Sec_Name,#{params.secName})
+        </if>
+    </sql>
+
+    <select id="getBuildQualitySafetyLogList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.construction.BuildQualitySafetyLogVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        mn.*
+        from Build_Quality_Safety_Log mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

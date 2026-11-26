@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.BankAccountInfoMapper">
+    <select id="getBankAccountInfoList" resultType="com.jpmsoft.projectProducer.pojo.vo.fund.BankAccountInfoVo">
+        select
+            bai.id,
+            bai.account_type as accountType,
+            bai.ba_digital_rmb_company_id as companyID,
+            case bai.account_type
+                when '01' then bai.Ba_Company_Name
+                when '02' then sc2.C_Name
+            end as companyName,
+            case bai.account_type
+                when '01' then bai.ba_bank_name
+                when '02' then bai.ba_digital_rmb_bank_name
+            end as bankName,
+            case bai.account_type
+                when '01' then bai.ba_bank_account
+                when '02' then bai.ba_digital_rmb_account
+            end as bankAccount,
+            bai.p_id as pId,
+            pp.P_Name as pName,
+            pp.P_Name as projectName,
+            bai.state,
+            bai.create_time as createTime,
+            bai.create_uid as createUid,
+            bai.create_uname as createUname,
+            bai.state_time as stateTime
+        from Bank_Account_Info bai
+        left join Pre_Project pp on bai.p_id = pp.P_ID
+        left join SYS_company sc on bai.ba_company_id = sc.c_ID
+        left join SYS_Company sc2 on bai.ba_digital_rmb_company_id = sc2.C_ID
+        <where>
+            bai.state !=3
+            <if test="params.pID != null and params.pID != ''">
+                and bai.p_id = #{params.pID}
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pp.P_Id)=true
+                    </if>
+                    <if test="params.companyName != null and params.companyName != '' and params.accountType == '02'">
+                        and likeCname(#{params.companyName},sc2.C_Id)=true
+                    </if>
+                    <if test="params.companyName != null and params.companyName != '' and params.accountType == '01'">
+                        and likeCname(#{params.companyName},sc.C_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.pName!=null">
+                        and pp.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                    <if test="params.companyName != null and params.companyName != '' and params.accountType == '02'">
+                        and sc2.C_Name like concat('%',#{params.companyName},'%')
+                    </if>
+                    <if test="params.companyName != null and params.companyName != '' and params.accountType == '01'">
+                        and sc.C_Name like concat('%',#{params.companyName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.accountType != null and params.accountType != ''">
+                and bai.account_type = #{params.accountType}
+            </if>
+            <if test="params.companyID != null and params.companyID != '' and params.accountType == '01'">
+                and bai.ba_company_id = #{params.companyID}
+            </if>
+            <if test="params.companyID != null and params.companyID != '' and params.accountType == '02'">
+                and bai.ba_digital_rmb_company_id = #{params.companyID}
+            </if>
+        </where>
+    </select>
+    <select id="selectByPId" resultType="com.jpmsoft.projectProducer.pojo.vo.fund.BankAccountInfoVo">
+        select
+            bai.id,
+            bai.account_type as accountType,
+            bai.ba_digital_rmb_company_id as companyID,
+            case bai.account_type
+                when '01' then bai.Ba_Company_Name
+                when '02' then sc2.C_Name
+            end as companyName,
+            case bai.account_type
+                when '01' then bai.ba_bank_name
+                when '02' then bai.ba_digital_rmb_bank_name
+            end as bankName,
+            case bai.account_type
+                when '01' then bai.ba_bank_account
+                when '02' then bai.ba_digital_rmb_account
+            end as bankAccount,
+            bai.p_id as pId,
+            pp.P_Name as pName,
+            pp.P_Name as projectName,
+            bai.state,
+            bai.create_time as createTime,
+            bai.create_uid as createUid,
+            bai.create_uname as createUname,
+            bai.state_time as stateTime
+        from Bank_Account_Info bai
+        left join Pre_Project pp on bai.P_Id = pp.P_ID
+        left join SYS_Department sc on bai.ba_company_id = sc.D_ID
+        left join SYS_Company sc2 on bai.ba_digital_rmb_company_id = sc2.C_ID
+        where bai.state !=3
+        and bai.P_ID = #{pId}
+    </select>
+    <select id="selectByCompetentDepartment"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fund.BankAccountInfoVo">
+         select
+            bai.id,
+            bai.account_type as accountType,
+            bai.ba_digital_rmb_company_id as companyID,
+            sc2.C_Name as companyName,
+            case bai.account_type
+                when '01' then bai.ba_bank_name
+                when '02' then bai.ba_digital_rmb_bank_name
+            end as bankName,
+            case bai.account_type
+                when '01' then bai.ba_bank_account
+                when '02' then bai.ba_digital_rmb_account
+            end as bankAccount,
+            bai.p_id as pId,
+            pp.P_Name as pName,
+            pp.P_Name as projectName,
+            bai.state,
+            bai.create_time as createTime,
+            bai.create_uid as createUid,
+            bai.create_uname as createUname,
+            bai.state_time as stateTime
+        from Bank_Account_Info bai
+        left join Pre_Project pp on bai.P_Id = pp.P_ID
+        left join SYS_Company sc2 on bai.ba_digital_rmb_company_id = sc2.C_ID
+        <where>
+            bai.state !=3 and bai.account_type = 2
+            <if test="pCompetentDepartment != null and pCompetentDepartment != '' ">
+                and bai.ba_digital_rmb_company_id = #{pCompetentDepartment}
+            </if>
+            <if test="pCompetentDepartmentName != null and pCompetentDepartmentName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{pCompetentDepartmentName},sc2.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and sc2.C_Name like concat('%',#{pCompetentDepartmentName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+    <select id="getBankAccountInfo" resultType="com.jpmsoft.projectProducer.pojo.vo.fund.BankAccountInfoVo">
+         select
+            bai.id,
+            bai.account_type as accountType,
+            bai.ba_digital_rmb_company_id as companyID,
+            case bai.account_type
+                when '01' then bai.Ba_Company_Name
+                when '02' then sc2.C_Name
+            end as companyName,
+            case bai.account_type
+                when '01' then bai.ba_bank_name
+                when '02' then bai.ba_digital_rmb_bank_name
+            end as bankName,
+            case bai.account_type
+                when '01' then bai.ba_bank_account
+                when '02' then bai.ba_digital_rmb_account
+            end as bankAccount,
+            bai.p_id as pId,
+            pp.P_Name as pName,
+            pp.P_Name as projectName,
+            bai.state,
+            bai.create_time as createTime,
+            bai.create_uid as createUid,
+            bai.create_uname as createUname,
+            bai.state_time as stateTime
+        from Bank_Account_Info bai
+        left join Pre_Project pp on bai.p_id = pp.P_ID
+        left join SYS_Department sc on bai.ba_company_id = sc.D_ID
+        left join SYS_Company sc2 on bai.ba_digital_rmb_company_id = sc2.C_ID
+        <where>
+            bai.state !=3
+            <if test="params.id != null and params.id != ''">
+                and bai.id = #{params.id}
+            </if>
+        </where>
+    </select>
+</mapper>

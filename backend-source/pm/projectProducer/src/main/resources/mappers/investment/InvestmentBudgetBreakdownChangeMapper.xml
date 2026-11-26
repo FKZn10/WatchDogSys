@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvestmentBudgetBreakdownChangeMapper">
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.investment.InvestmentBudgetBreakdownChangeVo"
+               id="selectInvestmentBudgetBreakdownChange">
+        <id column="id" property="id"/>
+        <collection property="details" ofType="com.jpmsoft.projectProducer.pojo.vo.investment.InvestmentBudgetBreakdownChangeDetailsVo"
+                    column="id" select="getInvestmentBudgetBreakdownChangeDetailsVoList">
+        </collection>
+    </resultMap>
+    <select id="selectByProjectId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvestmentBudgetBreakdownChange">
+        select * from Investment_Budget_Breakdown_change
+        where Project_ID = #{projectId} and state!=3
+    </select>
+    <select id="getInvestmentBudgetBreakdownChangeList"
+            resultMap="selectInvestmentBudgetBreakdownChange">
+        select ibb.*,pro.P_Name as projectName,
+        pro.P_Competent_Department as pCompetentDepartment,sd.D_Name as pCompetentDepartmentName,
+        pro.P_Apply_File as projectApplyFile,
+        pro.P_Approve_budget as pApproveBudget,
+        pro.p_record_amount as pRecordAmount,
+        pro.p_approval_amount as pApprovalAmount,
+        pro.p_project_form_type as pProjectFormType,
+        pro.p_inv_total as pInvTotal
+        from Investment_Budget_Breakdown_change ibb
+        left join Pre_Project pro on ibb.Project_ID = pro.P_ID
+        left join SYS_Department sd on pro.P_Competent_Department = sd.D_ID
+        <where>
+            <if test="params.projectName!= null and params.projectName!= ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.projectName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.projectId!= null and params.projectId!= ''">
+                and ibb.Project_ID = #{params.projectId}
+            </if>
+            <if test="true">
+                and ibb.origin_apply_id = #{params.originApplyId}
+            </if>
+        </where>
+        order by ibb.Create_Time desc
+    </select>
+    <select id="getInvestmentBudgetBreakdownChangeById"
+            resultMap="selectInvestmentBudgetBreakdownChange">
+        select ibb.*,pro.P_Name as projectName,
+               pro.P_Construction_Unit as projectConstructionUnit,sd.D_Name as projectConstructionUnitName,
+               pro.P_Apply_File as projectApplyFile,
+               pro.P_Approve_budget as pApproveBudget,
+               pro.p_record_amount as pRecordAmount,
+               pro.p_approval_amount as pApprovalAmount,
+               pro.p_project_form_type as pProjectFormType,
+               pro.p_inv_total as pInvTotal
+        from Investment_Budget_Breakdown_change ibb
+        left join Pre_Project pro on ibb.Project_ID = pro.P_ID
+        left join SYS_Department sd on pro.P_Construction_Unit = sd.D_ID
+        where ibb.id = #{id}
+    </select>
+    <select id="getInvestmentBudgetBreakdownChangeDetailsVoList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.investment.InvestmentBudgetBreakdownChangeDetailsVo">
+        select details.*
+        from Investment_Budget_Breakdown_change_Details details
+        where details.isb_change_id = #{id}
+    </select>
+
+
+</mapper>

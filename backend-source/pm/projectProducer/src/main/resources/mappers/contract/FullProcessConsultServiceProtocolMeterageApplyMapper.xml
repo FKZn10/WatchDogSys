@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.FullProcessConsultServiceProtocolMeterageApplyMapper">
+    <select id="pageFullProcessConsultServiceProtocolMeterageApply"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.FullProcessConsultServiceProtocolMeterageApplyVO">
+        select mn.*,
+               pp.p_name projectName,
+               cc.con_name contractName,
+               pp.p_code projectCode,
+                pp.p_region projectRegion,
+                pp.p_longitude projectLongitude,
+                pp.p_latitude projectLatitude,
+                pp.p_overview projectOverview,
+                pp.p_construction_unit projectConstructionUnit,
+                pp.p_approve_budget projectApproveBudget,
+                pp.p_approve_budget_code projectApproveBudgetCode ,
+                pp.p_approve_budget_date projectApproveBudgetDate ,
+                pp.p_build_model projectBuildModel,
+                pp.P_Project_Form_Type projectFormType ,
+                pp.P_Project_Number projectNumber ,
+                pp.p_approval_investment_amount approvalInvestmentAmount ,
+                pp.p_can_yan_apply_unit canYanApplyUnit ,
+                pp.p_can_yan_approval_unit canYanApprovalUnit ,
+                pp.p_record_num recordNum ,
+                pp.p_record_date recordDate ,
+                pp.p_record_amount recordAmount ,
+                pp.p_legal_unit projectLegalUnit ,
+                pp.p_record_issue_unit recordIssueUnit ,
+                pp.p_apply_date projectApplyDate ,
+                pp.p_build_year projectBuildYear ,
+                pp.p_approval_amount projectApprovalAmount,
+                pp.p_build_type projectBuildType,
+                pp.p_professional_type projectProfessionalType,
+                pp.p_transfer_unit projectProfessionalType,
+                pp.p_project_manager projectProjectManager,
+                pp.p_project_leader projectProjectLeader,
+                pp.p_department projectDepartment,
+                pp.p_engineer projectEngineer,
+                pp.p_engineer_leader projectEngineerLeader
+        from full_process_consult_service_protocol_meterage_apply mn
+        left join pre_project pp on pp.p_id = mn.project_id
+        left join con_contract cc on cc.con_id = mn.contract_id
+        where 1 = 1
+        <if test="request.projectName != null and request.projectName != ''">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{request.projectName},pp.P_Id)=true
+                </when>
+                <otherwise>
+                    and pp.p_name like concat('%',#{request.projectName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="request.contractName != null and request.contractName != ''">
+            and cc.con_name like concat('%',#{request.contractName},'%')
+        </if>
+        <if test="request.projectNameList != null and request.projectNameList.size() > 0">
+            and pp.p_name in
+            <foreach collection="request.projectNameList" open="(" close=")" separator="," item="item">#{item}</foreach>
+        </if>
+        <if test="request.contractNameList != null and request.contractNameList.size() > 0">
+            and cc.con_name in
+            <foreach collection="request.contractNameList" open="(" close=")" separator="," item="item">#{item}</foreach>
+        </if>
+        <if test="request.projectIds != null and request.projectIds.size() > 0">
+            and pp.p_id in
+            <foreach collection="request.projectIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+        </if>
+        <if test="request.projectCodeList != null and request.projectCodeList.size()>0 ">
+            and pp.P_Code  in
+            <foreach collection="request.projectCodeList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectRegion!=null">
+            and pp.P_Region like concat('%',#{request.projectRegion},'%')
+        </if>
+        <if test="request.projectLongitude!=null ">
+            and pp.P_Longitude =#{request.pLongitude}
+        </if>
+        <if test="request.projectLatitude!=null ">
+            and pp.P_Latitude =#{request.pLatitude}
+        </if>
+        <if test="request.projectOverviewList!=null and request.projectOverviewList.size()>0">
+            and pp.P_Overview in
+            <foreach collection="request.projectOverviewList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectConstructionUnit!=null">
+            and pp.P_Construction_Unit = #{request.projectConstructionUnit}
+        </if>
+        <if test="request.projectApproveBudgetList != null and request.projectApproveBudgetList.size() > 0">
+            and pp.P_Approve_Budget in
+            <foreach collection="request.projectApproveBudgetList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectApproveBudgetCodeList != null and request.projectApproveBudgetCodeList.size() > 0">
+            and pp.P_Approve_Budget_Code in
+            <foreach collection="request.projectApproveBudgetCodeList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectApproveBudgetDate!=null">
+            and pp.P_Approve_Budget_Date = #{request.projectApproveBudgetDate}
+        </if>
+        <if test="request.createUnameList != null and request.createUnameList.size() > 0">
+            and mn.create_uname in
+            <foreach collection="request.createUnameList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.createTime!=null">
+            and mn.create_time = #{request.createTime}
+        </if>
+        <if test="request.stateList != null and request.stateList.size() > 0">
+            and mn.state in
+            <foreach collection="request.stateList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectBuildModelList!=null and request.projectBuildModelList.size() > 0">
+            and pp.P_Build_Model in
+            <foreach collection="request.projectBuildModelList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectFormTypeList!=null and request.projectFormTypeList.size() > 0">
+            and pp.P_Project_Form_Type in
+            <foreach collection="request.projectFormTypeList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectNumberList!=null and request.projectNumberList.size() > 0">
+            and pp.P_Project_Number in
+            <foreach collection="request.projectNumberList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.approvalInvestmentAmountList!=null and request.approvalInvestmentAmountList.size() > 0">
+            and pp.P_Approval_Investment_Amount in
+            <foreach collection="request.approvalInvestmentAmountList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.canYanApplyUnitList!=null and request.canYanApplyUnitList.size() > 0">
+            and pp.P_Can_Yan_Apply_Unit in
+            <foreach collection="request.canYanApplyUnitList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.canYanApprovalUnitList!=null and request.canYanApprovalUnitList.size() > 0">
+            and pp.P_Can_Yan_Approval_Unit in
+            <foreach collection="request.canYanApprovalUnitList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.recordNumList!=null and request.recordNumList.size() > 0">
+            and pp.P_Record_Num in
+            <foreach collection="request.recordNumList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.recordDate!=null">
+            and pp.P_Record_Date = #{request.recordDate}
+        </if>
+        <if test="request.recordAmountList!=null and request.recordAmountList.size() > 0">
+            and pp.P_Record_Amount in
+            <foreach collection="request.recordAmountList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectLegalUnitList!=null and  request.projectLegalUnitList.size() > 0">
+            and pp.P_Legal_Unit in
+            <foreach collection="request.projectLegalUnitList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.recordIssueUnitList!=null and request.recordIssueUnitList.size() > 0">
+            and pp.P_Record_Issue_Unit in
+            <foreach collection="request.recordIssueUnitList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectApplyDate!=null">
+            and pp.P_Apply_Date= #{request.projectApplyDate}
+        </if>
+        <if test="request.projectBuildYearList!=null and request.projectBuildYearList.size() > 0">
+            and pp.P_Build_Year in
+            <foreach collection="request.projectBuildYearList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectApprovalAmountList!=null and request.projectApprovalAmountList.size() > 0">
+            and pp.P_Approval_Amount in
+            <foreach collection="request.projectApprovalAmountList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectBuildTypeList!=null and request.projectBuildTypeList.size() > 0">
+            and pp.P_Build_Type in
+            <foreach collection="request.projectBuildTypeList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectProfessionalTypeList!=null and request.projectProfessionalTypeList.size() > 0">
+            and pp.P_Professional_Type in
+            <foreach collection="request.projectProfessionalTypeList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectTransferUnitList!=null and request.projectTransferUnitList.size() > 0">
+            and pp.P_Transfer_Unit in
+            <foreach collection="request.projectTransferUnitList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectProjectManagerList!=null and request.projectProjectManagerList.size() > 0">
+            and pp.P_Project_Manager in
+            <foreach collection="request.projectProjectManagerList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectProjectLeaderList!=null and request.projectProjectLeaderList.size() > 0">
+            and pp.P_Project_Leader in
+            <foreach collection="request.projectProjectLeaderList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectEngineerList!=null and request.projectEngineerList.size() > 0">
+            and pp.P_Engineer in
+            <foreach collection="request.projectEngineerList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectEngineerLeaderList!=null and request.projectEngineerLeaderList.size() > 0">
+            and pp.P_Engineer_Leader in
+            <foreach collection="request.projectEngineerLeaderList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectDepartment!=null">
+            and pp.P_Department= #{request.projectDepartment}
+        </if>
+        <if test="request.contractAmountList!=null and request.contractAmountList.size() > 0">
+            and mn.contract_amount in
+            <foreach collection="request.contractAmountList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.thisStagePlanPayAmountList!=null and request.thisStagePlanPayAmountList.size() > 0">
+            and mn.this_stage_plan_pay_amount in
+            <foreach collection="request.thisStagePlanPayAmountList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.shouldPayAmountTotalList!=null and request.shouldPayAmountTotalList.size() > 0">
+            and mn.should_pay_amount_total in
+            <foreach collection="request.shouldPayAmountTotalList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.totalPayRate!=null">
+            and mn.total_pay_rate = #{request.totalPayRate}
+        </if>
+        <if test="uId != null">
+            and (mn.create_uid = #{uId}
+                or exists (select 1 from SYS_Task st where st.TaskEntityID = mn.id and (st.TaskUser = #{uId} or st.TaskSendUser = #{uId}))
+                or exists (select 1 from Sys_Task_Processin sp where sp.tp_entityid = mn.id and (sp.tp_from = #{uId} or FIND_IN_SET(#{uId}, sp.tp_send)))
+            )
+        </if>
+        order by mn.create_time desc
+    </select>
+
+    <select id="listFullProcessConsultServiceProtocolMeterageApply"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.FullProcessConsultServiceProtocolMeterageApplyVO">
+        select mn.*,
+        pp.p_name projectName,
+        cc.con_name contractName,
+        pp.p_code projectCode,
+        pp.p_region projectRegion,
+        pp.p_longitude projectLongitude,
+        pp.p_latitude projectLatitude,
+        pp.p_overview projectOverview,
+        pp.p_construction_unit projectConstructionUnit,
+        pp.p_approve_budget projectApproveBudget,
+        pp.p_approve_budget_code projectApproveBudgetCode ,
+        pp.p_approve_budget_date projectApproveBudgetDate ,
+        pp.p_build_model projectBuildModel,
+        pp.P_Project_Form_Type projectFormType ,
+        pp.P_Project_Number projectNumber ,
+        pp.p_approval_investment_amount approvalInvestmentAmount ,
+        pp.p_can_yan_apply_unit canYanApplyUnit ,
+        pp.p_can_yan_approval_unit canYanApprovalUnit ,
+        pp.p_record_num recordNum ,
+        pp.p_record_date recordDate ,
+        pp.p_record_amount recordAmount ,
+        pp.p_legal_unit projectLegalUnit ,
+        pp.p_record_issue_unit recordIssueUnit ,
+        pp.p_apply_date projectApplyDate ,
+        pp.p_build_year projectBuildYear ,
+        pp.p_approval_amount projectApprovalAmount,
+        pp.p_build_type projectBuildType,
+        pp.p_professional_type projectProfessionalType,
+        pp.p_transfer_unit projectProfessionalType,
+        pp.p_project_manager projectProjectManager,
+        pp.p_project_leader projectProjectLeader,
+        pp.p_department projectDepartment,
+        pp.p_engineer projectEngineer,
+        pp.p_engineer_leader projectEngineerLeader
+        from full_process_consult_service_protocol_meterage_apply mn
+        left join pre_project pp on pp.p_id = mn.project_id
+        left join con_contract cc on cc.con_id = mn.contract_id
+        where 1 = 1
+        <if test="request.projectName != null and request.projectName != ''">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{request.projectName},pp.P_Id)=true
+                </when>
+                <otherwise>
+                    and pp.p_name like concat('%',#{request.projectName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="request.contractName != null and request.contractName != ''">
+            and cc.con_name like concat('%',#{request.contractName},'%')
+        </if>
+        <if test="request.projectNameList != null and request.projectNameList.size() > 0">
+            and pp.p_name in
+            <foreach collection="request.projectNameList" open="(" close=")" separator="," item="item">#{item}</foreach>
+        </if>
+        <if test="request.contractNameList != null and request.contractNameList.size() > 0">
+            and cc.con_name in
+            <foreach collection="request.contractNameList" open="(" close=")" separator="," item="item">#{item}</foreach>
+        </if>
+        <if test="request.projectIds != null and request.projectIds.size() > 0">
+            and pp.p_id in
+            <foreach collection="request.projectIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+        </if>
+        <if test="request.projectCodeList != null and request.projectCodeList.size()>0 ">
+            and pp.P_Code  in
+            <foreach collection="request.projectCodeList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectRegion!=null">
+            and pp.P_Region like concat('%',#{request.projectRegion},'%')
+        </if>
+        <if test="request.projectLongitude!=null ">
+            and pp.P_Longitude =#{request.pLongitude}
+        </if>
+        <if test="request.projectLatitude!=null ">
+            and pp.P_Latitude =#{request.pLatitude}
+        </if>
+        <if test="request.projectOverviewList!=null and request.projectOverviewList.size()>0">
+            and pp.P_Overview in
+            <foreach collection="request.projectOverviewList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectConstructionUnit!=null">
+            and pp.P_Construction_Unit = #{request.projectConstructionUnit}
+        </if>
+        <if test="request.projectApproveBudgetList != null and request.projectApproveBudgetList.size() > 0">
+            and pp.P_Approve_Budget in
+            <foreach collection="request.projectApproveBudgetList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectApproveBudgetCodeList != null and request.projectApproveBudgetCodeList.size() > 0">
+            and pp.P_Approve_Budget_Code in
+            <foreach collection="request.projectApproveBudgetCodeList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectApproveBudgetDate!=null">
+            and pp.P_Approve_Budget_Date = #{request.projectApproveBudgetDate}
+        </if>
+        <if test="request.createUnameList != null and request.createUnameList.size() > 0">
+            and mn.create_uname in
+            <foreach collection="request.createUnameList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.createTime!=null">
+            and mn.create_time = #{request.createTime}
+        </if>
+        <if test="request.stateList != null and request.stateList.size() > 0">
+            and mn.state in
+            <foreach collection="request.stateList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectBuildModelList!=null and request.projectBuildModelList.size() > 0">
+            and pp.P_Build_Model in
+            <foreach collection="request.projectBuildModelList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectFormTypeList!=null and request.projectFormTypeList.size() > 0">
+            and pp.P_Project_Form_Type in
+            <foreach collection="request.projectFormTypeList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectNumberList!=null and request.projectNumberList.size() > 0">
+            and pp.P_Project_Number in
+            <foreach collection="request.projectNumberList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.approvalInvestmentAmountList!=null and request.approvalInvestmentAmountList.size() > 0">
+            and pp.P_Approval_Investment_Amount in
+            <foreach collection="request.approvalInvestmentAmountList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.canYanApplyUnitList!=null and request.canYanApplyUnitList.size() > 0">
+            and pp.P_Can_Yan_Apply_Unit in
+            <foreach collection="request.canYanApplyUnitList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.canYanApprovalUnitList!=null and request.canYanApprovalUnitList.size() > 0">
+            and pp.P_Can_Yan_Approval_Unit in
+            <foreach collection="request.canYanApprovalUnitList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.recordNumList!=null and request.recordNumList.size() > 0">
+            and pp.P_Record_Num in
+            <foreach collection="request.recordNumList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.recordDate!=null">
+            and pp.P_Record_Date = #{request.recordDate}
+        </if>
+        <if test="request.recordAmountList!=null and request.recordAmountList.size() > 0">
+            and pp.P_Record_Amount in
+            <foreach collection="request.recordAmountList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectLegalUnitList!=null and  request.projectLegalUnitList.size() > 0">
+            and pp.P_Legal_Unit in
+            <foreach collection="request.projectLegalUnitList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.recordIssueUnitList!=null and request.recordIssueUnitList.size() > 0">
+            and pp.P_Record_Issue_Unit in
+            <foreach collection="request.recordIssueUnitList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectApplyDate!=null">
+            and pp.P_Apply_Date= #{request.projectApplyDate}
+        </if>
+        <if test="request.projectBuildYearList!=null and request.projectBuildYearList.size() > 0">
+            and pp.P_Build_Year in
+            <foreach collection="request.projectBuildYearList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectApprovalAmountList!=null and request.projectApprovalAmountList.size() > 0">
+            and pp.P_Approval_Amount in
+            <foreach collection="request.projectApprovalAmountList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectBuildTypeList!=null and request.projectBuildTypeList.size() > 0">
+            and pp.P_Build_Type in
+            <foreach collection="request.projectBuildTypeList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectProfessionalTypeList!=null and request.projectProfessionalTypeList.size() > 0">
+            and pp.P_Professional_Type in
+            <foreach collection="request.projectProfessionalTypeList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectTransferUnitList!=null and request.projectTransferUnitList.size() > 0">
+            and pp.P_Transfer_Unit in
+            <foreach collection="request.projectTransferUnitList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectProjectManagerList!=null and request.projectProjectManagerList.size() > 0">
+            and pp.P_Project_Manager in
+            <foreach collection="request.projectProjectManagerList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectProjectLeaderList!=null and request.projectProjectLeaderList.size() > 0">
+            and pp.P_Project_Leader in
+            <foreach collection="request.projectProjectLeaderList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectEngineerList!=null and request.projectEngineerList.size() > 0">
+            and pp.P_Engineer in
+            <foreach collection="request.projectEngineerList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectEngineerLeaderList!=null and request.projectEngineerLeaderList.size() > 0">
+            and pp.P_Engineer_Leader in
+            <foreach collection="request.projectEngineerLeaderList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.projectDepartment!=null">
+            and pp.P_Department= #{request.projectDepartment}
+        </if>
+        <if test="request.contractAmountList!=null and request.contractAmountList.size() > 0">
+            and mn.contract_amount in
+            <foreach collection="request.contractAmountList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.thisStagePlanPayAmountList!=null and request.thisStagePlanPayAmountList.size() > 0">
+            and mn.this_stage_plan_pay_amount in
+            <foreach collection="request.thisStagePlanPayAmountList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.shouldPayAmountTotalList!=null and request.shouldPayAmountTotalList.size() > 0">
+            and mn.should_pay_amount_total in
+            <foreach collection="request.shouldPayAmountTotalList" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="request.totalPayRate!=null">
+            and mn.total_pay_rate = #{request.totalPayRate}
+        </if>
+        <if test="uId != null">
+            and (mn.create_uid = #{uId}
+            or exists (select 1 from SYS_Task st where st.TaskEntityID = mn.id and (st.TaskUser = #{uId} or st.TaskSendUser = #{uId}))
+            or exists (select 1 from Sys_Task_Processin sp where sp.tp_entityid = mn.id and (sp.tp_from = #{uId} or FIND_IN_SET(#{uId}, sp.tp_send)))
+            )
+        </if>
+        order by mn.create_time desc
+    </select>
+</mapper>

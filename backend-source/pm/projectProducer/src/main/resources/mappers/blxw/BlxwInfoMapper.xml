@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.blxw.BlxwInfoMapper">
+    <select id="getBlxwInfoList" resultType="com.jpmsoft.projectProducer.pojo.vo.blxw.BlxwInfoVo">
+        select mn.*, pp.P_Name as blxwProjectName, si.Sec_Name as blxwSectionName,
+        con.Con_Name as blxwContractName,
+        su.U_Name as blxwResponsibleUnitLeaderName, sc.C_Name as blxwResponsibleUnitName,
+        sd.D_Name as blxwLevelName
+        from Blxw_Info mn
+        left join Pre_Project pp on mn.Blxw_Project_Id = pp.P_Id
+        left join Sec_Info si on mn.Blxw_Section_Id = si.Sec_Id
+        left join Con_Contract con on mn.Blxw_Contract_Id = con.Con_Id
+        left join SYS_User su on mn.Blxw_Responsible_Unit_Leader_Id = su.U_Id
+        left join SYS_Company sc on mn.Blxw_Responsible_Unit_Id = sc.C_Id
+        left join sys_dictionary sd on mn.Blxw_Level = sd.D_Code and sd.D_ParentID='0a42a0d7-7a5f-4159-a8a5-ce1edef76584'
+        <where>
+            <if test="params.blxwNumber != null and params.blxwNumber != ''">
+                and mn.Blxw_Number like concat('%'#{params.blxwNumber} ,'%')
+            </if>
+            <if test="params.blxwProjectId != null and params.blxwProjectId != ''">
+                and mn.Blxw_Project_Id = #{params.blxwProjectId}
+            </if>
+            <if test="params.blxwProjectName != null and params.blxwProjectName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.blxwProjectName},mn.Blxw_Project_Id)=true
+                    </when>
+                    <otherwise>
+                        and pp.P_Name like concat('%',#{params.blxwProjectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.blxwSectionId != null and params.blxwSectionId != ''">
+                and mn.Blxw_Section_Id = #{params.blxwSectionId}
+            </if>
+            <if test="params.blxwSectionName != null and params.blxwSectionName != ''">
+                and si.Sec_Name like concat('%',#{params.blxwSectionName},'%')
+            </if>
+            <if test="params.blxwContractId != null and params.blxwContractId != ''">
+                and mn.Blxw_Contract_Id = #{params.blxwContractId}
+            </if>
+            <if test="params.blxwContractName != null and params.blxwContractName != ''">
+                and con.Con_Name like concat('%',#{params.blxwContractName},'%')
+            </if>
+            <if test="params.blxwResponsibleUnitId != null and params.blxwResponsibleUnitId != ''">
+                and mn.Blxw_Responsible_Unit_Id = #{params.blxwResponsibleUnitId}
+            </if>
+            <if test="params.blxwResponsibleUnitLeaderId != null and params.blxwResponsibleUnitLeaderId != ''">
+                and mn.Blxw_Responsible_Unit_Leader_Id = #{params.blxwResponsibleUnitLeaderId}
+            </if>
+            <if test="params.blxwResponsibleUnitLeaderName != null and params.blxwResponsibleUnitLeaderName != ''">
+                and su.U_Name like concat('%',#{params.blxwResponsibleUnitLeaderName},'%')
+            </if>
+            <if test="params.blxwResponsibleUnitName != null and params.blxwResponsibleUnitName != ''">
+                and sc.C_Name like concat('%',#{params.blxwResponsibleUnitName},'%')
+            </if>
+            <if test="params.blxwResponsibleUnitName != null and params.blxwResponsibleUnitName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.blxwResponsibleUnitName},mn.Blxw_Responsible_Unit_Id)=true
+                    </when>
+                    <otherwise>
+                        and sc.C_Name like concat('%',#{params.blxwResponsibleUnitName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.blxwState != null ">
+                and mn.Blxw_State =#{params.blxwState}
+            </if>
+            <if test="params.state != null ">
+                and mn.Blxw_State =#{params.state}
+            </if>
+            <if test="params.blxwHandleType != null ">
+                and mn.Blxw_Handle_Type =#{params.blxwHandleType}
+            </if>
+            <if test="params.closeStatus != null ">
+                and mn.close_status =#{params.closeStatus}
+            </if>
+            <if test="params.isRectifyTime != null and params.isRectifyTime == '01' and params.nowDate !=null">
+                and mn.Blxw_Rectify_Time >= #{params.nowDate}
+            </if>
+            <if test="params.blxwLevels!= null and params.blxwLevels.size()>0 ">
+                and mn.Blxw_Level in
+                <foreach item="item" collection="params.blxwLevels" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        order by mn.Create_Time desc
+    </select>
+    <select id="getBlxwInfoById" resultType="com.jpmsoft.projectProducer.pojo.vo.blxw.BlxwInfoVo">
+        select mn.*, pp.P_Name as blxwProjectName, si.Sec_Name as blxwSectionName,
+               con.Con_Name as blxwContractName,
+               su.U_Name as blxwResponsibleUnitLeaderName, sc.C_Name as blxwResponsibleUnitName,
+               sd.D_Name as blxwLevelName
+        from Blxw_Info mn
+        left join Pre_Project pp on mn.Blxw_Project_Id = pp.P_Id
+        left join Sec_Info si on mn.Blxw_Section_Id = si.Sec_Id
+        left join Con_Contract con on mn.Blxw_Contract_Id = con.Con_Id
+        left join SYS_User su on mn.Blxw_Responsible_Unit_Leader_Id = su.U_Id
+        left join SYS_Company sc on mn.Blxw_Responsible_Unit_Id = sc.C_Id
+        left join sys_dictionary sd on mn.Blxw_Level = sd.D_Code and sd.D_ParentID='0a42a0d7-7a5f-4159-a8a5-ce1edef76584'
+        where mn.id = #{id}
+    </select>
+    <select id="selectListByTypeId" resultType="com.jpmsoft.projectProducer.pojo.entity.blxw.BlxwInfo">
+        select * from Blxw_Info where Blxw_Type_Ids like concat('%',#{id} ,'%')
+    </select>
+    <select id="getBlxwTypeNameByTypeId" resultType="java.lang.String" >
+        select Blxw_Name from Blxw_Type where id = #{type}
+    </select>
+    <select id="getBlxwInfoNoticeById" resultType="com.jpmsoft.projectProducer.pojo.vo.blxw.BlxwInfoNoticeVo">
+        select ni.*, mn.Blxw_Number as blxwNumber, mn.Blxw_Project_Id as blxwProjectId,mn.Blxw_Section_Id as blxwSectionId,
+           mn.Blxw_Contract_Id as blxwContractId, mn.Blxw_Start_Time as blxwStartTime,mn.Blxw_End_Time as blxwEndTime,
+           mn.Blxw_Responsible_Unit_Id as blxwResponsibleUnitId,
+           mn.Blxw_Responsible_Unit_Leader_Id as blxwResponsibleUnitLeaderId,mn.Blxw_Talk_Time as blxwTalkTime,
+           mn.Blxw_Talk_Place as blxwTalkPlace, mn.Blxw_Type_Ids as blxwTypeIds, mn.Blxw_Type_Names as blxwTypeNames,
+           mn.Blxw_Level,mn.Blxw_Deduct_Score as blxwDeductScore, mn.Blxw_Measures as blxwMeasures,
+           mn.Blxw_Handle_Type as blxwHandleType, mn.Blxw_Rectify_Time as blxwRectifyTime,mn.supporting_annex as supportingAnnex,
+           mn.supporting_document as blxwSupportingDocument,mn.is_history as blxwIsHistory,
+           mn.Blxw_Rectify_Require as blxwRectifyRequire, mn.Blxw_State as blxwState, pp.P_Name as blxwProjectName,
+           si.Sec_Name as blxwSectionName, con.Con_Name as blxwContractName,
+           su.U_Name as blxwResponsibleUnitLeaderName, sc.C_Name as blxwResponsibleUnitName
+        from Notice_Info ni
+        left join Blxw_Info mn on mn.id = ni.Source_Id
+        left join Pre_Project pp on mn.Blxw_Project_Id = pp.P_Id
+        left join Sec_Info si on mn.Blxw_Section_Id = si.Sec_Id
+        left join Con_Contract con on mn.Blxw_Contract_Id = con.Con_Id
+        left join SYS_User su on mn.Blxw_Responsible_Unit_Leader_Id = su.U_Id
+        left join SYS_Company sc on mn.Blxw_Responsible_Unit_Id = sc.C_Id
+        where ni.id = #{id} and ni.Source_Code = 'blxwInfo'
+    </select>
+    <select id="getBlxwInfoNoticeList" resultType="com.jpmsoft.projectProducer.pojo.vo.blxw.BlxwInfoNoticeVo">
+        select ni.*,mn.Blxw_Number as blxwNumber, mn.Blxw_Project_Id as blxwProjectId,mn.Blxw_Section_Id as blxwSectionId,
+           mn.Blxw_Contract_Id as blxwContractId, mn.Blxw_Start_Time as blxwStartTime,mn.Blxw_End_Time as blxwEndTime,
+           mn.Blxw_Responsible_Unit_Id as blxwResponsibleUnitId,
+           mn.Blxw_Responsible_Unit_Leader_Id as blxwResponsibleUnitLeaderId,mn.Blxw_Talk_Time as blxwTalkTime,
+           mn.Blxw_Talk_Place as blxwTalkPlace, mn.Blxw_Type_Ids as blxwTypeIds, mn.Blxw_Type_Names as blxwTypeNames,
+           mn.Blxw_Level,mn.Blxw_Deduct_Score as blxwDeductScore, mn.Blxw_Measures as blxwMeasures,
+           mn.Blxw_Handle_Type as blxwHandleType, mn.Blxw_Rectify_Time as blxwRectifyTime,
+           mn.supporting_annex as supportingAnnex,
+           mn.supporting_document as blxwSupportingDocument,mn.is_history as blxwIsHistory,
+           mn.Blxw_Rectify_Require as blxwRectifyRequire, mn.Blxw_State as blxwState, pp.P_Name as blxwProjectName,
+           si.Sec_Name as blxwSectionName, con.Con_Name as blxwContractName,
+           su.U_Name as blxwResponsibleUnitLeaderName, sc.C_Name as blxwResponsibleUnitName
+        from Notice_Info ni
+        left join Blxw_Info mn on mn.id = ni.Source_Id
+        left join Pre_Project pp on mn.Blxw_Project_Id = pp.P_Id
+        left join Sec_Info si on mn.Blxw_Section_Id = si.Sec_Id
+        left join Con_Contract con on mn.Blxw_Contract_Id = con.Con_Id
+        left join SYS_User su on mn.Blxw_Responsible_Unit_Leader_Id = su.U_Id
+        left join SYS_Company sc on mn.Blxw_Responsible_Unit_Id = sc.C_Id
+         <where>
+            ni.Source_Code = 'blxwInfo'
+            <if test="params.blxwNumber != null and params.blxwNumber != ''">
+                and mn.Blxw_Number like concat('%',#{params.blxwNumber},'%')
+            </if>
+            <if test="params.blxwProjectId != null and params.blxwProjectId != ''">
+                and mn.Blxw_Project_Id = #{params.blxwProjectId}
+            </if>
+            <if test="params.blxwProjectName != null and params.blxwProjectName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.blxwProjectName},mn.Blxw_Project_Id)=true
+                    </when>
+                    <otherwise>
+                        and pp.P_Name like concat('%',#{params.blxwProjectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.blxwSectionId != null and params.blxwSectionId != ''">
+                and mn.Blxw_Section_Id = #{params.blxwSectionId}
+            </if>
+            <if test="params.blxwSectionName != null and params.blxwSectionName != ''">
+                and si.Sec_Name like concat('%',#{params.blxwSectionName},'%')
+            </if>
+            <if test="params.blxwContractId != null and params.blxwContractId != ''">
+                and mn.Blxw_Contract_Id = #{params.blxwContractId}
+            </if>
+            <if test="params.blxwContractName != null and params.blxwContractName != ''">
+                and con.Con_Name like concat('%',#{params.blxwContractName},'%')
+            </if>
+            <if test="params.blxwResponsibleUnitId != null and params.blxwResponsibleUnitId != ''">
+                and mn.Blxw_Responsible_Unit_Id = #{params.blxwResponsibleUnitId}
+            </if>
+            <if test="params.blxwResponsibleUnitLeaderId != null and params.blxwResponsibleUnitLeaderId != ''">
+                and mn.Blxw_Responsible_Unit_Leader_Id = #{params.blxwResponsibleUnitLeaderId}
+            </if>
+            <if test="params.blxwResponsibleUnitLeaderName != null and params.blxwResponsibleUnitLeaderName != ''">
+                and su.U_Name like concat('%',#{params.blxwResponsibleUnitLeaderName},'%')
+            </if>
+            <if test="params.blxwResponsibleUnitName != null and params.blxwResponsibleUnitName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.blxwResponsibleUnitName},mn.Blxw_Responsible_Unit_Id)=true
+                    </when>
+                    <otherwise>
+                        and sc.C_Name like concat('%',#{params.blxwResponsibleUnitName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.blxwState != null ">
+                and mn.Blxw_State =#{params.blxwState}
+            </if>
+             <if test="params.noticeInfoCode != null and params.noticeInfoCode != ''">
+                and ni.Notice_Info_Code like concat('%',#{params.noticeInfoCode},'%')
+            </if>
+        </where>
+        order by ni.Create_Time desc
+    </select>
+    <select id="getBlxwInfoNoticePrintById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.blxw.BlxwInfoPrintVo">
+        select mn.*, pp.P_Name as blxwProjectName, si.Sec_Name as blxwSectionName,
+               con.Con_Name as blxwContractName,
+               su.U_Name as blxwResponsibleUnitLeaderName, sc.C_Name as blxwResponsibleUnitName
+               ,sd1.D_Name as blxwLevelName, sd2.D_Name as blxwHandleTypeName
+        from Blxw_Info mn
+                 left join Pre_Project pp on mn.Blxw_Project_Id = pp.P_Id
+                 left join Sec_Info si on mn.Blxw_Section_Id = si.Sec_Id
+                 left join Con_Contract con on mn.Blxw_Contract_Id = con.Con_Id
+                 left join SYS_User su on mn.Blxw_Responsible_Unit_Leader_Id = su.U_Id
+                 left join SYS_Company sc on mn.Blxw_Responsible_Unit_Id = sc.C_Id
+                 left join Sys_Dictionary sd1 on mn.Blxw_Level = sd1.D_Code
+                 left join Sys_Dictionary sd2 on mn.Blxw_Handle_Type = sd2.D_Code
+        where mn.id = #{id} and sd1.D_ParentID = (SELECT D_Id FROM Sys_Dictionary WHERE D_Code = 'JPMsoft_BLXWDJ')
+          and sd2.D_ParentID = (SELECT D_Id FROM Sys_Dictionary WHERE D_Code = 'JPMsoft_CLFS')
+    </select>
+    <select id="getBlxwInfoNoticeCloseList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.blxw.BlxwInfoNoticeCloseVo">
+        select infoclose.*,mn.Blxw_Number as blxwNumber, mn.Blxw_Project_Id as blxwProjectId,mn.Blxw_Section_Id as blxwSectionId,
+        mn.Blxw_Contract_Id as blxwContractId, mn.Blxw_Start_Time as blxwStartTime,mn.Blxw_End_Time as blxwEndTime,
+        mn.Blxw_Responsible_Unit_Id as blxwResponsibleUnitId,
+        mn.Blxw_Responsible_Unit_Leader_Id as blxwResponsibleUnitLeaderId,mn.Blxw_Talk_Time as blxwTalkTime,
+        mn.Blxw_Talk_Place as blxwTalkPlace, mn.Blxw_Type_Ids as blxwTypeIds, mn.Blxw_Type_Names as blxwTypeNames,
+        mn.Blxw_Level,mn.Blxw_Deduct_Score as blxwDeductScore, mn.Blxw_Measures as blxwMeasures,
+        mn.Blxw_Handle_Type as blxwHandleType, mn.Blxw_Rectify_Time as blxwRectifyTime,mn.close_status as closeStatus,
+        mn.supporting_annex as supportingAnnex,
+        mn.supporting_document as blxwSupportingDocument,mn.is_history as blxwIsHistory,
+        mn.Blxw_Rectify_Require as blxwRectifyRequire, mn.Blxw_State as blxwState, pp.P_Name as blxwProjectName,
+        si.Sec_Name as blxwSectionName, con.Con_Name as blxwContractName,
+        su.U_Name as blxwResponsibleUnitLeaderName, sc.C_Name as blxwResponsibleUnitName
+        from Notice_Info_Close infoclose
+            left join Blxw_Info mn on mn.id = infoclose.Source_Id
+            left join Pre_Project pp on mn.Blxw_Project_Id = pp.P_Id
+            left join Sec_Info si on mn.Blxw_Section_Id = si.Sec_Id
+            left join Con_Contract con on mn.Blxw_Contract_Id = con.Con_Id
+            left join SYS_User su on mn.Blxw_Responsible_Unit_Leader_Id = su.U_Id
+            left join SYS_Company sc on mn.Blxw_Responsible_Unit_Id = sc.C_Id
+        <where>
+            <if test="params.blxwNumber != null and params.blxwNumber != ''">
+                and mn.Blxw_Number like concat('%',#{params.blxwNumber},'%')
+            </if>
+            <if test="params.blxwProjectId != null and params.blxwProjectId != ''">
+                and mn.Blxw_Project_Id = #{params.blxwProjectId}
+            </if>
+            <if test="params.blxwProjectName != null and params.blxwProjectName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.blxwProjectName},mn.Blxw_Project_Id)=true
+                    </when>
+                    <otherwise>
+                        and pp.P_Name like concat('%',#{params.blxwProjectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.blxwSectionId != null and params.blxwSectionId != ''">
+                and mn.Blxw_Section_Id = #{params.blxwSectionId}
+            </if>
+            <if test="params.blxwSectionName != null and params.blxwSectionName != ''">
+                and si.Sec_Name like concat('%',#{params.blxwSectionName},'%')
+            </if>
+            <if test="params.blxwContractId != null and params.blxwContractId != ''">
+                and mn.Blxw_Contract_Id = #{params.blxwContractId}
+            </if>
+            <if test="params.blxwContractName != null and params.blxwContractName != ''">
+                and con.Con_Name like concat('%',#{params.blxwContractName},'%')
+            </if>
+            <if test="params.blxwResponsibleUnitId != null and params.blxwResponsibleUnitId != ''">
+                and mn.Blxw_Responsible_Unit_Id = #{params.blxwResponsibleUnitId}
+            </if>
+            <if test="params.blxwResponsibleUnitLeaderId != null and params.blxwResponsibleUnitLeaderId != ''">
+                and mn.Blxw_Responsible_Unit_Leader_Id = #{params.blxwResponsibleUnitLeaderId}
+            </if>
+            <if test="params.blxwResponsibleUnitLeaderName != null and params.blxwResponsibleUnitLeaderName != ''">
+                and su.U_Name like concat('%',#{params.blxwResponsibleUnitLeaderName},'%')
+            </if>
+            <if test="params.blxwResponsibleUnitName != null and params.blxwResponsibleUnitName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.blxwResponsibleUnitName},mn.Blxw_Responsible_Unit_Id)=true
+                    </when>
+                    <otherwise>
+                        and sc.C_Name like concat('%',#{params.blxwResponsibleUnitName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.blxwState != null ">
+                and mn.Blxw_State =#{params.blxwState}
+            </if>
+            <if test="params.noticeInfoCode != null and params.noticeInfoCode != ''">
+                and ni.Notice_Info_Code like concat('%',#{params.noticeInfoCode},'%')
+            </if>
+        </where>
+        order by infoclose.Create_Time desc
+    </select>
+    <select id="getBlxwInfoNoticeCloseDetail"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.blxw.BlxwInfoNoticeCloseVo">
+        select infoclose.*,mn.Blxw_Number as blxwNumber, mn.Blxw_Project_Id as blxwProjectId,mn.Blxw_Section_Id as blxwSectionId,
+               mn.Blxw_Contract_Id as blxwContractId, mn.Blxw_Start_Time as blxwStartTime,mn.Blxw_End_Time as blxwEndTime,
+               mn.Blxw_Responsible_Unit_Id as blxwResponsibleUnitId,
+               mn.Blxw_Responsible_Unit_Leader_Id as blxwResponsibleUnitLeaderId,mn.Blxw_Talk_Time as blxwTalkTime,
+               mn.Blxw_Talk_Place as blxwTalkPlace, mn.Blxw_Type_Ids as blxwTypeIds, mn.Blxw_Type_Names as blxwTypeNames,
+               mn.Blxw_Level,mn.Blxw_Deduct_Score as blxwDeductScore, mn.Blxw_Measures as blxwMeasures,
+               mn.Blxw_Handle_Type as blxwHandleType, mn.Blxw_Rectify_Time as blxwRectifyTime,
+               mn.supporting_annex as supportingAnnex,
+               mn.supporting_document as blxwSupportingDocument,mn.is_history as blxwIsHistory,
+               mn.Blxw_Rectify_Require as blxwRectifyRequire, mn.Blxw_State as blxwState, pp.P_Name as blxwProjectName,
+               si.Sec_Name as blxwSectionName, con.Con_Name as blxwContractName,
+               su.U_Name as blxwResponsibleUnitLeaderName, sc.C_Name as blxwResponsibleUnitName
+        from Notice_Info_Close infoclose
+                 left join Blxw_Info mn on mn.id = infoclose.Source_Id
+                 left join Pre_Project pp on mn.Blxw_Project_Id = pp.P_Id
+                 left join Sec_Info si on mn.Blxw_Section_Id = si.Sec_Id
+                 left join Con_Contract con on mn.Blxw_Contract_Id = con.Con_Id
+                 left join SYS_User su on mn.Blxw_Responsible_Unit_Leader_Id = su.U_Id
+                 left join SYS_Company sc on mn.Blxw_Responsible_Unit_Id = sc.C_Id
+        where infoclose.Id = #{id}
+    </select>
+    <select id="getBlxwInfoListQX" resultType="com.jpmsoft.projectProducer.pojo.vo.blxw.BlxwInfoVo">
+        select mn.*, pp.P_Name as blxwProjectName, si.Sec_Name as blxwSectionName,
+               con.Con_Name as blxwContractName,
+               su.U_Name as blxwResponsibleUnitLeaderName, sc.C_Name as blxwResponsibleUnitName,
+               sd.D_Name as blxwLevelName
+        from Blxw_Info mn
+                 left join Pre_Project pp on mn.Blxw_Project_Id = pp.P_Id
+                 left join Sec_Info si on mn.Blxw_Section_Id = si.Sec_Id
+                 left join Con_Contract con on mn.Blxw_Contract_Id = con.Con_Id
+                 left join SYS_User su on mn.Blxw_Responsible_Unit_Leader_Id = su.U_Id
+                 left join SYS_Company sc on mn.Blxw_Responsible_Unit_Id = sc.C_Id
+                 left join sys_dictionary sd on mn.Blxw_Level = sd.D_Code and sd.D_ParentID='0a42a0d7-7a5f-4159-a8a5-ce1edef76584'
+        <where>
+            mn.Blxw_Handle_Type = '02' and mn.Blxw_State = 7 and mn.close_status = 'unclosed'
+            and mn.id not in (select infoclose.Source_Id from Notice_Info_Close infoclose where infoclose.state !=3)
+        </where>
+    </select>
+    <select id="getBlxwInfoListWithoutNotice" resultType="com.jpmsoft.projectProducer.pojo.vo.blxw.BlxwInfoVo">
+        select mn.*, pp.P_Name as blxwProjectName, si.Sec_Name as blxwSectionName,
+               con.Con_Name as blxwContractName,
+               su.U_Name as blxwResponsibleUnitLeaderName, sc.C_Name as blxwResponsibleUnitName,
+               sd.D_Name as blxwLevelName
+        from Blxw_Info mn
+                 left join Pre_Project pp on mn.Blxw_Project_Id = pp.P_Id
+                 left join Sec_Info si on mn.Blxw_Section_Id = si.Sec_Id
+                 left join Con_Contract con on mn.Blxw_Contract_Id = con.Con_Id
+                 left join SYS_User su on mn.Blxw_Responsible_Unit_Leader_Id = su.U_Id
+                 left join SYS_Company sc on mn.Blxw_Responsible_Unit_Id = sc.C_Id
+                 left join sys_dictionary sd on mn.Blxw_Level = sd.D_Code and sd.D_ParentID='0a42a0d7-7a5f-4159-a8a5-ce1edef76584'
+        <where>
+            mn.Blxw_Handle_Type = '01' and mn.Blxw_State = 7
+        </where>
+    </select>
+
+    <select id="getBlxwInfoBySourceIds" resultType="com.jpmsoft.projectProducer.pojo.entity.blxw.BlxwInfo">
+        select * from Blxw_Info where id in
+        <foreach item="item" collection="list" separator="," close=")" open="(" index="index">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.PaymentReviewMapper">
+
+
+    <select id="getPaymentReviewList"
+            resultType="com.jpmsoft.common.model.response.Contract.PaymentReviewResponse">
+        select
+            mn.*,
+            pre.P_Name as pName,
+            con.Con_Name as conName
+        from Payment_Review mn
+        left join Pre_Project pre on mn.P_Id= pre.P_Id
+        left join Con_Contract con on mn.Con_Id=con.Con_Id
+        <where>
+            <if test="params.prCode != null and params.prCode != ''">
+                and mn.PR_Code like concat('%',#{params.prCode},'%')
+            </if>
+            <if test="params.applyUnit != null and params.applyUnit != ''">
+                and mn.Apply_Unit like concat('%',#{params.applyUnit},'%')
+            </if>
+            <if test="params.applyContent != null and params.applyContent != ''">
+                and mn.Apply_Content like concat('%',#{params.applyContent},'%')
+            </if>
+            <if test="params.pName != null and params.pName != ''">
+                and pre.P_Name like concat('%',#{params.pName},'%')
+            </if>
+            <if test="params.conName != null and params.conName != ''">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.state != null">
+                and state = #{params.state}
+            </if>
+            <if test="params.createUname != null and params.createUname != ''">
+                and create_uname like concat('%',#{params.createUname},'%')
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getPaymentReviewById"
+            resultType="com.jpmsoft.common.model.response.Contract.PaymentReviewResponse">
+        select
+            mn.*,
+            pre.P_Name as pName,
+            con.Con_Name as conName,
+             con.Con_Money_Total as conMoneyTotal,
+             sys.c_name as cName
+        from Payment_Review mn
+                 left join Pre_Project pre on mn.P_Id= pre.P_Id
+                 left join Con_Contract con on mn.Con_Id=con.Con_Id
+                 left join sys_company sys  on sys.c_id = mn.c_id
+        where mn.id=#{id}
+    </select>
+
+</mapper>

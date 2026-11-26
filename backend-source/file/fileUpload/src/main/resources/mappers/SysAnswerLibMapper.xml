@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.SysAnswerLibMapper">
+    <select id="searchProblem" resultType="com.jpmsoft.fileUpload.pojo.dto.SysAnswerLibDTO" databaseId="dm">
+        select
+        id,
+        Al_Title,
+        Al_Type,
+        Al_Web_Url,
+        Al_App_Url,
+        Al_Asked,
+        Al_Count,
+        Al_Code,
+        Al_Kyes,
+        Create_Uname,
+        Create_Uid,
+        Create_Time
+        from Sys_Answer_Lib
+        where Al_Type=#{alType}
+        <if test="params.alKeys!=null">
+            and INSTR(Al_Keys,#{params.alKeys})
+        </if>
+        <if test="words!=null and words.size()>0">
+            and CONTAINS(Al_Title,
+            <foreach collection="words" item="word" open="" close="" separator="or">
+                #{word}
+            </foreach>
+            ) or
+            CONTAINS(Al_Content,
+            <foreach collection="words" item="word" open="" close="" separator="or">
+                #{word}
+            </foreach>
+            )
+        </if>
+        order by Al_Count desc
+    </select>
+
+    <select id="searchProblem" resultType="com.jpmsoft.fileUpload.pojo.dto.SysAnswerLibDTO" databaseId="mysql">
+        select id,
+        Al_Title,
+        Al_Type,
+        Al_Web_Url,
+        Al_App_Url,
+        Al_Asked,
+        Al_Count,
+        Al_Code,
+        Al_Kyes,
+        Create_Uname,
+        Create_Uid,
+        Create_Time
+        from Sys_Answer_Lib
+        where Al_Type = #{alType}
+        <if test="problem!=null">
+            and MATCH(Al_Title, Al_Content) AGAINST(#{problem})
+        </if>
+        <if test="params.alKeys!=null">
+            and INSTR(Al_Keys,#{params.alKeys})
+        </if>
+        order by Al_Count desc
+    </select>
+
+
+    <select id="getSysAnswerLibList" resultType="com.jpmsoft.fileUpload.pojo.dto.SysAnswerLibDTO" databaseId="dm">
+        select
+        *
+        from Sys_Answer_Lib
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.words!=null and params.words.size()>0">
+            and ( CONTAINS(Al_Title,
+            <foreach collection="words" item="word" open="" close="" separator="or">
+                #{word}
+            </foreach>
+            ) or
+            CONTAINS(Al_Content,
+            <foreach collection="words" item="word" open="" close="" separator="or">
+                #{word}
+            </foreach>
+            )
+            )
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by Al_Count desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getSysAnswerLibList" resultType="com.jpmsoft.fileUpload.pojo.dto.SysAnswerLibDTO" databaseId="mysql">
+        select *
+        from Sys_Answer_Lib
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.problem!=null">
+            and MATCH(Al_Title, Al_Content) AGAINST(#{problem})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by Al_Count desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.alAsked!=null">
+            and Al_Asked=#{params.alAsked}
+        </if>
+        <if test="params.alType!=null">
+            and Al_Type=#{params.alType}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.alKeys!=null">
+            and INSTR(Al_Keys,#{params.alKeys})
+        </if>
+        <if test="params.alCode!=null">
+            and INSTR(Al_Code,#{params.alCode})
+        </if>
+        <if test="params.alTitle!=null">
+            and INSTR(Al_Title,#{params.alTitle})
+        </if>
+    </sql>
+
+</mapper>

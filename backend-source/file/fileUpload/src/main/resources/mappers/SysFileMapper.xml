@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.SysFileMapper">
+
+    <select id="getUnJmArchive" resultType="com.jpmsoft.fileUpload.pojo.entity.SysFile">
+        select
+            mn.*
+        from Sys_File mn
+        where mn.T_Code is not null and mn.FileCreateUser is not null and mn.T_Id is not null
+        and mn.FileFlowStatus=7 and (mn.file_Jm_Archive=false or mn.file_Jm_Archive is null)
+        and (mn.FileProject  is not null or mn.FileSectionID is not null or mn.FileContract is not null)
+        and (select count(*) from SYS_FileTemplate_Print tp where tp.T_Id=mn.T_Id and tp.Tp_State=1 and tp.Tp_Type='jimuReport'
+        and tp.Tp_Api_Url is not null and (tp.Te_Id=mn.Te_Id or mn.Te_Id is null))>0
+        and mn.T_Code not like '%_Flow'
+        limit #{size}
+    </select>
+
+
+    <insert id="insertFormData">
+        <foreach collection="sql" open="" close="" separator="" item="s">
+            ${s}
+        </foreach>
+    </insert>
+
+    <insert id="insertFormDataOne">
+            ${sql}
+    </insert>
+
+    <select id="selectByImportSQL" resultType="Map">
+        ${sql}
+        <foreach collection="codes" open="(" close=")" separator="," item="code">
+            #{code}
+        </foreach>
+    </select>
+
+
+    <select id="selectBySql" resultType="Map">
+        ${sql}
+    </select>
+
+</mapper>

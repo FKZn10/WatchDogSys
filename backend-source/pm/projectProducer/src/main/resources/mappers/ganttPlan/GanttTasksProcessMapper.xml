@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.ganttPlan.GanttTasksProcessMapper">
+
+    <select id="getTasksProcessByTaskId" resultType="com.jpmsoft.common.model.response.Plan.GanttTasksProcessResponse">
+        select
+            mn.*
+        from  Gantt_Tasks_Process mn
+        where mn.task_id=#{taskId}
+    </select>
+
+    <select id="getGanttTasksProcessByPlanId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.GanttTasksProcess">
+        select
+        mn.*
+        from  Gantt_Tasks_Process mn
+        left join  Gantt_Tasks gt on mn.Task_Id=gt.Task_Id
+        left join  Gantt_Plan gp on gt.Plan_Id=gp.Plan_Id
+        where gp.Plan_Id=#{planId}
+        order by mn.Gtp_Date asc
+    </select>
+
+    <select id="getGanttTasksProcessById" resultType="com.jpmsoft.common.model.response.Plan.GanttTasksProcessResponse">
+        select
+        dep.D_Name as dName,
+        pro.P_Name as pName,
+        pro.P_Id as pId,
+        pro.P_Name_History as pNameHistory,
+        pro.p_Category as pCategory,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        con.Con_Name as conName,
+        f.file_relation_id as fileRelationId,
+        gp.Plan_Name as planName,
+        mn.*
+        from  Gantt_Tasks_Process mn
+        left join  Gantt_Tasks gt on mn.Task_Id=gt.Task_Id
+        left join  Gantt_Plan gp on gt.Plan_Id=gp.Plan_Id
+        left join  Pre_Project pro on pro.P_Id=gp.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Con_Contract con on con.Con_Id=gp.Con_Id
+        left join  SYS_Department dep on dep.D_Id=gp.Plan_D_Id
+        left join  Sys_File f on f.FileID=mn.Gtp_Id
+        where mn.Gtp_Id=#{gtpId}
+    </select>
+
+
+    <select id="getGanttTasksProcessList" resultType="com.jpmsoft.common.model.response.Plan.GanttTasksProcessResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        gp.P_Id as pId,
+        dep.D_Name as dName,
+        con.Con_Name as conName,
+        gt.Task_End_T_Code as taskEndTCode,
+        mn.*
+        from Gantt_Tasks_Process mn
+        left join Gantt_Tasks gt on mn.Task_Id=gt.Task_Id
+        left join Gantt_Plan gp on gt.Plan_Id=gp.Plan_Id
+        left join Pre_Project pro on pro.P_Id=gp.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id=gp.Con_Id
+        left join SYS_Department dep on dep.D_Id=gp.Plan_D_Id
+        <where>
+            1=1
+            <if test="params.taskId!=null">
+                and mn.Task_Id=#{params.taskId}
+            </if>
+            <if test="params.conId!=null">
+                and gp.Con_Id=#{params.conId}
+            </if>
+            <if test="params.pId!=null">
+                and gp.P_Id=#{params.pId}
+            </if>
+            <if test="params.planDId!=null">
+                and gp.Plan_D_Id=#{params.planDId}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Gtp_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <sql id="getGanttTasksProcessExportFilter">
+        <if test="params.planType!=null">
+            and gp.Plan_Type = #{params.planType}
+        </if>
+        <if test="params.planName!=null">
+            and gp.Plan_Name like concat('%',#{params.planName},'%')
+        </if>
+        <if test="params.gtpDateStart!=null">
+            and mn.Gtp_Date > #{params.gtpDateStart}
+        </if>
+        <if test="params.gtpDateEnd!=null">
+            and mn.Gtp_Date &lt; #{params.gtpDateEnd}
+        </if>
+        <if test="params.planIds!=null">
+            and gp.Plan_Id in
+            <foreach collection="params.planIds" open="(" close=")" separator="," item="planId">
+                #{planId}
+            </foreach>
+        </if>
+        and gp.P_Id in
+        <foreach collection="pIds" open="(" close=")" separator="," item="pId">
+            #{pId}
+        </foreach>
+    </sql>
+
+    <select id="getGanttTasksProcessExport"
+            resultType="com.jpmsoft.common.model.export.response.GanttTasksProcessModel">
+        select
+        gp.Plan_Name as planName,
+        gt.Task_Doc as taskDoc,
+        gt.Task_Text as taskText,
+        gt.Task_Uname as taskUname,
+        gt.Task_State as taskState,
+        gt.Task_Progress as taskProgress,
+        pro.P_Name as pName,
+        pro.P_Each_District as pEachDistrict,
+        proc.C_Name as pConsName,
+        proc.C_Abbreviation as pConsAbbName,
+        sd.D_Name as dName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from Gantt_Tasks_Process mn
+        left join Gantt_Tasks gt on mn.Task_Id=gt.Task_Id
+        left join Gantt_Plan gp on gt.Plan_Id=gp.Plan_Id
+        left join Pre_Project pro on pro.P_Id=gp.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join Sys_Department sd on sd.D_Id=pro.P_Competent_Department
+        left join Sys_File f on f.FileID=mn.Gtp_Id
+        where 1=1
+        <include refid="getGanttTasksProcessExportFilter"/>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by gp.P_Id,mn.${params.sortFiled} ${params.sortType}
+        </if>
+    </select>
+
+
+    <select id="getGanttTasksProcessExportCount"
+            resultType="java.lang.Integer">
+        select
+        count(1)
+        from Gantt_Tasks_Process mn
+        left join Gantt_Tasks gt on mn.Task_Id=gt.Task_Id
+        left join Gantt_Plan gp on gt.Plan_Id=gp.Plan_Id
+        where 1=1
+        <include refid="getGanttTasksProcessExportFilter"/>
+    </select>
+    <select id="getGanttTasksProcessByIdCj" resultType="com.jpmsoft.common.model.response.Plan.GanttTasksProcessResponseCJ">
+        SELECT
+            pp.P_Name,
+            gt.Task_Text,
+            gs.Gs_Section,
+            gt.Task_Type,
+            gt.Task_Start_Date,
+            gt.Task_End_Date,
+            gp.Plan_Start,
+            gp.Plan_End,
+            gto.create_uname,
+            gto.Create_Time
+        FROM
+            Gantt_Tasks_Process gto
+                LEFT JOIN gantt_tasks gt ON gto.Task_ID = gt.Task_Id
+                LEFT JOIN gant_section gs ON gt.gs_id = gs.id
+                LEFT JOIN gantt_plan gp ON gt.Plan_Id = gp.Plan_Id
+                LEFT JOIN pre_project pp ON gp.P_Id = pp.P_ID
+        WHERE
+            gto.Gtp_Id = #{gtpId}
+
+    </select>
+
+</mapper>

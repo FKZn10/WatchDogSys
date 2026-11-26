@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvFundReleaseMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.InvestmentControl.InvFundReleaseResponse" id="oneInvFundRelease">
+        <id column="Ifr_Id" property="ifrId"/>
+        <collection property="invProjectPlans"
+                    ofType="com.jpmsoft.common.model.response.InvestmentControl.InvProjectPlanResponse"
+                    column="Ifr_Id" select="getInvProjectPlanByIfrId">
+        </collection>
+    </resultMap>
+
+    <select id="getInvFundReleaseByIfrId" resultMap="oneInvFundRelease">
+        select f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Inv_Fund_Release mn
+                 left join SYS_File f on f.FileId = mn.Ifr_Id
+        where mn.Ifr_Id = #{ifrId}
+    </select>
+
+    <select id="getInvProjectPlanByIfrId"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvProjectPlanResponse">
+        select pro.P_Name          as pName,
+               pro.P_Name_History  as pNameHistory,
+               proc.C_Name         as pConsName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompDepName,
+               ipp.*
+        from Inv_Project_Plan ipp
+                 left join Pre_Project pro on pro.P_Id = ipp.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        where ipp.Ifr_Id = #{ifrId}
+    </select>
+
+    <sql id="listFilter">
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.ifrFileName!=null">
+            and INSTR(mn.Ifr_File_Name,#{params.ifrFileName})
+        </if>
+        <if test="params.ifrReplyCode!=null">
+            and INSTR(mn.Ifr_Reply_Code,#{params.ifrReplyCode})
+        </if>
+        <if test="params.ifrCreateUname!=null">
+            and INSTR(mn.Ifr_Create_Uname,#{params.ifrCreateUname})
+        </if>
+    </sql>
+
+    <select id="getInvFundReleaseList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvFundReleaseResponse">
+        select
+        (select count(1) from Inv_Project_Plan ipp where ipp.Ifr_Id = mn.Ifr_Id) as ippCount,
+        mn.*
+        from Inv_Fund_Release mn
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ifr_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getInvFundReleaseListCount"
+            resultType="Integer">
+        select
+        count(1)
+        from Inv_Fund_Release mn
+        <include refid="listFilter"/>
+    </select>
+</mapper>

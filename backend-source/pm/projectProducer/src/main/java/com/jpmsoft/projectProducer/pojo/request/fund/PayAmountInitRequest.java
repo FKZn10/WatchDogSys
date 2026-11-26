@@ -1,0 +1,19 @@
+package com.jpmsoft.projectProducer.pojo.request.fund;
+
+import com.jpmsoft.common.model.BasePageEntity;
+import lombok.Data;
+
+import java.math.BigDecimal;
+
+@Data
+public class PayAmountInitRequest extends BasePageEntity {
+    private String id;
+    private String projectId;
+    private String projectName;
+   //PI_Fund_Project_Amount 项目已到位资金
+    private BigDecimal piFundProjectAmount;
+    //PI_Group_Book_Balances_Amount 集团账面余额
+    private BigDecimal piGroupBookBalancesAmount;
+    //PI_Member_Firms_Book_BalancesAmount 成员企业账面余额
+    private BigDecimal piMemberFirmsBookBalancesAmount;
+}

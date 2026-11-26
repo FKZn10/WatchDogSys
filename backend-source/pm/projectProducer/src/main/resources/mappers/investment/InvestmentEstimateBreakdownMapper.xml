@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvestmentEstimateBreakdownMapper">
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.investment.InvestmentEstimateBreakdownVo"
+               id="selectInvestmentEstimateBreakdown">
+        <id column="id" property="id"/>
+        <collection property="details" ofType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.InvestmentEstimateBreakdownDetailsModel"
+                    column="id" select="getInvestmentEstimateBreakdownDetailsVoList">
+        </collection>
+    </resultMap>
+    <select id="selectByProjectId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvestmentEstimateBreakdown">
+        select * from Investment_Estimate_Breakdown
+        where Project_ID = #{projectId} and state!=3
+    </select>
+    <select id="getInvestmentEstimateBreakdownList"
+            resultMap="selectInvestmentEstimateBreakdown">
+        select isb.*,pro.P_Name as projectName,
+                pro.P_Competent_Department as pCompetentDepartment,sd.D_Name as pCompetentDepartmentName,
+                pro.P_Apply_File as projectApplyFile,
+                pro.P_Approve_budget as pApproveBudget,
+                pro.p_record_amount as pRecordAmount,
+                pro.p_approval_amount as pApprovalAmount,
+                pro.p_project_form_type as pProjectFormType,
+                pro.p_inv_total as pInvTotal
+        from Investment_Estimate_Breakdown isb
+        left join Pre_Project pro on isb.Project_ID = pro.P_ID
+        left join SYS_Department sd on pro.P_Competent_Department = sd.D_ID
+        <if test="authSql != null and authSql != ''">
+            ${authSql}
+        </if>
+        <if test="authSql == null">
+            where 1=1
+        </if>
+            <if test="params.projectName!= null and params.projectName!= ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.projectName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.state != null">
+                and isb.State = #{params.state}
+            </if>
+            <if test="params.projectId!= null and params.projectId!= ''">
+                and isb.Project_ID = #{params.projectId}
+            </if>
+        order by isb.Create_Time desc
+    </select>
+    <select id="getInvestmentEstimateBreakdownById"
+            resultMap="selectInvestmentEstimateBreakdown">
+        select isb.*,pro.P_Name as projectName,
+               sf.file_relation_id as fileRelationId,
+                pro.P_Construction_Unit as projectConstructionUnit,sd.D_Name as projectConstructionUnitName,
+               case
+                   when pro.p_project_form_type = '01' then pro.P_Committee_Approva_Document
+                   when pro.p_project_form_type = '02' then pro.p_Record_File
+                   when pro.p_project_form_type = '03' then pro.p_Apply_File end as projectApplyFile,
+               pro.P_Approve_budget as pApproveBudget,
+               pro.p_record_amount as pRecordAmount,
+               pro.p_approval_amount as pApprovalAmount,
+               pro.p_project_form_type as pProjectFormType,
+               pro.p_inv_total as pInvTotal
+        from Investment_Estimate_Breakdown isb
+        left join Pre_Project pro on isb.Project_ID = pro.P_ID
+        left join SYS_Department sd on pro.P_Construction_Unit = sd.D_ID
+        left join sys_file sf on isb.id=sf.FileId
+        where isb.id = #{id}
+    </select>
+    <select id="getInvestmentEstimateBreakdownDetailsVoList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.InvestmentEstimateBreakdownDetailsModel">
+        select details.*
+        from Investment_Estimate_Breakdown_Details details
+        where details.Isb_ID = #{id}
+    </select>
+    <select id="getProjectIdList"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvestmentEstimateBreakdown">
+        select isb.*
+        from Investment_Estimate_Breakdown isb
+        where state=7
+        and project_id not in (select project_id from Investment_Budget_Breakdown where state = 7)
+    </select>
+    <select id="getInvestmentEstimateBreakdownByProjectId"
+            resultMap="selectInvestmentEstimateBreakdown">
+        select isb.*,pro.P_Name as projectName,
+               pro.P_Construction_Unit as projectConstructionUnit,sd.D_Name as projectConstructionUnitName,
+               pro.P_Apply_File as projectApplyFile,
+               pro.P_Approve_budget as pApproveBudget,
+               pro.p_record_amount as pRecordAmount,
+               pro.p_approval_amount as pApprovalAmount,
+               pro.p_project_form_type as pProjectFormType,
+               pro.p_inv_total as pInvTotal
+        from Investment_Estimate_Breakdown isb
+        left join Pre_Project pro on isb.Project_ID = pro.P_ID
+        left join SYS_Department sd on pro.P_Construction_Unit = sd.D_ID
+        where isb.Project_ID = #{projectId} and isb.state!=3
+    </select>
+    <select id="getInvestmentEstimateBreakdownByPId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvestmentEstimateBreakdown">
+        select * from Investment_Estimate_Breakdown
+        where Project_ID = #{projectId} and state=7 order by Create_Time desc
+    </select>
+    <select id="getUnusedProjectIdList" resultType="java.lang.String">
+        select p_id
+        from pre_project
+        where state = 7
+        and p_id not in (select project_id from Investment_Estimate_Breakdown where state = 7)
+    </select>
+
+</mapper>

@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.FlowMapper">
+    <insert id="insertFlow" parameterType="List">
+        <foreach collection="sqlList" item="item" index="index">
+            ${item}
+        </foreach>
+    </insert>
+    <insert id="insertFlowActivitys">
+       ${sqlstr}
+    </insert>
+    <insert id="insertFlowActivity">
+        insert into SYS_FlowActivity(ActID,ActName,ActCode,ActType,ActOrder,
+        ActBackType,ActFlowID,ActUserType,ActCountersignTitle,ActRemark,
+        ActHour,ActCodeRole,ActAllowConcurrency,ActConcurrentMerger,ActUserShowType,
+        ActCanCarbonCopy,ActCanFinish,ActCanCoordination,ActTemplateCode,ActUserFilter,
+        ActNotice_S, ActNotice_ST, ActNotice_N, ActNotice_NT, ActNotice_H,
+        ActNotice_HT, ActNotice_W,ActLabSend, ActLabSave, ActLabBack,
+        ActLabFinish, ActLabCo, ActLabCc, ActCarbonCopy_WR, ActCarbonCopy_T,
+        ActCarbonCopy_CT, ActCarbonCopy_Role,ActCarbonCopy_Post, ActCarbonCopy_Department, ActCarbonCopy_User,
+        ActCarbonCopy_Sql,Act_Sys_Url,Act_Sys_Iden,Act_Request_Type,ActCarbonCopy_Front_Node,
+        Act_Allow_Multiple,Act_Opinion_Required,Act_View_Pre_Condition,Act_Business_Start_Node,Act_Business_End_Node,
+        Act_Business_Handle_Tips,Act_Business_Menu_Code,Act_Concurrency_Type,Act_Concurrency_End,Act_Auto_Completion,
+        Act_Triggert_Time,Act_Auto_Multiple,Act_Auto_Completion_K,Act_Auto_Completion_T,Act_Auto_Default_Opinion,
+        Act_Form_Item_Set,Te_Id,Act_Allow_Withdrawal,Act_Allow_Void,Act_Replace_Operator,
+        Act_Default_Opinion,Act_Skip_Status,Act_Business_Description,Act_Approval_Hidden_Type,Act_Approval_Hidden_Condition,
+        Act_User_Post,Act_Select_All,Act_approval_node_number,Act_request_method,Act_interface_url,
+        Act_request_parameter,Act_User_Appoint,Act_Filter_Fields,Act_Form_Field,Act_Apply_Pre_State,
+        Act_Sms_Post,Act_Sms_Department,Act_Sms_Role,Act_Sms_User,Act_Sms_Sql,
+        Act_Sms_Request_Method,Act_Sms_Interface_Url,Act_Sms_Request_Parameter,Act_Sms_Tem,Act_Massage_Type,
+        Act_Massage_S,Act_Massage_ST,Act_Massage_N,Act_Massage_NT,Act_Massage_H,
+        Act_Massage_Sql,Act_Massage_Request_Method,Act_Massage_Interface_Url,Act_Massage_Request_Parameter,Act_Massage_Tem,
+        Act_Massage_Post,Act_Massage_User,Act_Massage_Role,Act_Massage_Department,Act_Gateway_Access,
+        Act_Approval_Drop,Act_Not_Skip_Prompt,Act_Customize_Skip_Prompt,Act_Return_Current,Act_Return_Current_Ok,
+        Act_Node_Status_Power,Act_Record_Power,Act_Record_Power_Scope,Act_Record_Power_Node
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.actid},
+            #{item.actname},
+            #{item.actcode},
+            #{item.acttype},
+            #{item.actorder},
+
+            #{item.actbacktype},
+            #{item.actflowid},
+            #{item.actusertype},
+            #{item.actcountersigntitle},
+            #{item.actremark},
+
+            #{item.acthour},
+            #{item.actcoderole},
+            #{item.actallowconcurrency},
+            #{item.actconcurrentmerger},
+            #{item.actusershowtype},
+
+            #{item.actcancarboncopy},
+            #{item.actcanfinish},
+            #{item.actcancoordination},
+            #{item.acttemplatecode},
+            #{item.actuserfilter},
+
+            #{item.actnoticeS},
+            #{item.actnoticeSt},
+            #{item.actnoticeN},
+            #{item.actnoticeNt},
+            #{item.actnoticeH},
+
+            #{item.actnoticeHt},
+            #{item.actnoticeW},
+            #{item.actlabsend},
+            #{item.actlabsave},
+            #{item.actlabback},
+
+            #{item.actlabfinish},
+            #{item.actlabco},
+            #{item.actlabcc},
+            #{item.actcarboncopyWr},
+            #{item.actcarboncopyT},
+
+            #{item.actcarboncopyCt},
+            #{item.actcarboncopyRole},
+            #{item.actcarboncopyPost},
+            #{item.actcarboncopyDepartment},
+            #{item.actcarboncopyUser},
+
+            #{item.actcarboncopySql},
+            #{item.actSysUrl},
+            #{item.actSysIden},
+            #{item.actRequestType},
+            #{item.actcarboncopyFrontNode},
+
+            #{item.actAllowMultiple},
+            #{item.actOpinionRequired},
+            #{item.actViewPreCondition},
+            #{item.actBusinessStartNode},
+            #{item.actBusinessEndNode},
+
+            #{item.actBusinessHandleTips},
+            #{item.actBusinessMenuCode},
+            #{item.actConcurrencyType},
+            #{item.actConcurrencyEnd},
+            #{item.actAutoCompletion},
+
+            #{item.actTriggertTime},
+            #{item.actAutoMultiple},
+            #{item.actAutoCompletionK},
+            #{item.actAutoCompletionT},
+            #{item.actAutoDefaultOpinion},
+
+            #{item.actFormItemSet},
+            #{teId},
+            #{item.actAllowWithdrawal},
+            #{item.actAllowVoid},
+            #{item.actReplaceOperator},
+
+            #{item.actDefaultOpinion},
+            #{item.actSkipStatus},
+            #{item.actBusinessDescription},
+            #{item.actApprovalHiddenType},
+            #{item.actApprovalHiddenCondition},
+
+            #{item.actUserPost},
+            #{item.actSelectAll},
+            #{item.actApprovalNodeNumber},
+            #{item.actRequestMethod},
+            #{item.actInterfaceUrl},
+
+
+            #{item.actRequestParameter},
+            #{item.actUserAppoint},
+            #{item.actFilterFields},
+            #{item.actFormField},
+            #{item.actApplyPreState},
+
+            #{item.actSmsPost},
+            #{item.actSmsDepartment},
+            #{item.actSmsRole},
+            #{item.actSmsUser},
+            #{item.actSmsSql},
+
+            #{item.actSmsRequestMethod},
+            #{item.actSmsInterfaceUrl},
+            #{item.actSmsRequestParameter},
+            #{item.actSmsTem},
+            #{item.actMassageType},
+
+            #{item.actMassageS},
+            #{item.actMassageSt},
+            #{item.actMassageN},
+            #{item.actMassageNt},
+            #{item.actMassageH},
+
+            #{item.actMassageSql},
+            #{item.actMassageRequestMethod},
+            #{item.actMassageInterfaceUrl},
+            #{item.actMassageRequestParameter},
+            #{item.actMassageTem},
+
+            #{item.actMassagePost},
+            #{item.actMassageUser},
+            #{item.actMassageRole},
+            #{item.actMassageDepartment},
+            #{item.actGatewayAccess},
+
+            #{item.actApprovalDrop},
+            #{item.actNotSkipPrompt},
+            #{item.actCustomizeSkipPrompt},
+            #{item.actReturnCurrent},
+            #{item.actReturnCurrentOk},
+
+            #{item.actNodeStatusPower},
+            #{item.actRecordPower},
+            #{item.actRecordPowerScope},
+            #{item.actRecordPowerNode}
+            )
+        </foreach>
+    </insert>
+
+    <insert id="insertFlowUser">
+        insert into SYS_FlowUser(FlowUserID,FlowUserFlow,FlowUserAct,FlowUserRole,Te_Id)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            ( #{item.flowuserid},
+            #{item.flowuserflow},
+            #{item.flowuseract},
+            #{item.flowuserrole},
+            #{teId})
+        </foreach>
+    </insert>
+
+
+    <insert id="insertFlowRule">
+        insert into
+        SYS_FlowRule(RuleID,RuleName,RuleType,RuleCondition,RuleSysType,RuleFlowID,RuleBeginActID,RuleEndActID,Te_Id)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            ( #{item.ruleid},
+            #{item.rulename},
+            #{item.ruletype},
+            #{item.rulecondition},
+            #{item.rulesystype},
+            #{item.ruleflowid},
+            #{item.rulebeginactid},
+            #{item.ruleendactid},
+            #{teId})
+        </foreach>
+    </insert>
+</mapper>

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.design.DesignGeologyMapper">
+
+    <select id="getDesignGeologyById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignGeologyModel">
+        select pro.P_Name            as pName,
+               pro.P_Name_History    as pNameHistory,
+               proc.C_Name           as pConstructionUnitName,
+               proc.C_Abbreviation   as pConsAbbName,
+               prod.D_Name           as pCompetentDepartmentName,
+               f.file_relation_id    as fileRelationId,
+               con.Con_Name          as conName,
+               con.Con_Code          as conCode,
+               con.Con_Party_B_Agent as conPartyBAgent,
+               con.Con_Party_B_Id    as conPartyBId,
+               con.Con_Party_B_Pm    as conPartyBPm,
+               c1.C_Name             as conPartyBName,
+               c1.C_Abbreviation     as conPartyBAbbName,
+               c2.C_Name             as dgExplName,
+               c2.C_Abbreviation     as dgExplAbbName,
+               sec.Sec_Name          as secName,
+               mn.*
+        from Design_Geology mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join Sys_File f on f.FileID = mn.Dg_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Sec_Info sec on sec.Sec_Id = con.Con_Section_Id
+                 left join SYS_Company c1 on con.Con_Party_B_Id = c1.C_Id
+                 left join SYS_Company c2 on mn.Dg_Exploration_Unit = c2.C_Id
+        where mn.Dg_Id = #{dgId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.dgDesignOrder!=null">
+            and mn.Dg_Design_Order = #{params.dgDesignOrder}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.conCode!=null">
+            and con.Con_Code like concat('%',#{params.conCode},'%')
+        </if>
+        <if test="params.dgExplorationUnitTel!=null">
+            and mn.Dg_Exploration_Unit_Tel like concat('%',#{params.dgExplorationUnitTel},'%')
+        </if>
+        <if test="params.dgCreateUname!=null">
+            and mn.Dg_Create_Uname like concat('%',#{params.dgCreateUname},'%')
+        </if>
+        <if test="params.dgName!=null">
+            and mn.Dg_Name like concat('%',#{params.dgName},'%')
+        </if>
+        <if test="params.dgCode!=null">
+            and mn.Dg_Code like concat('%',#{params.dgCode},'%')
+        </if>
+    </sql>
+
+    <select id="getDesignGeologyList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignGeologyModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Party_B_Agent as conPartyBAgent,
+        con.Con_Party_B_Id as conPartyBId,
+        con.Con_Party_B_Pm as conPartyBPm,
+        c1.C_Name as conPartyBName,
+        c1.C_Abbreviation as conPartyBAbbName,
+        c2.C_Name as dgExplName,
+        c2.C_Abbreviation as dgExplAbbName,
+        sec.Sec_Name as secName,
+        mn.*
+        from Design_Geology mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Sec_Info sec on sec.Sec_Id=con.Con_Section_Id
+        left join SYS_Company c1 on con.Con_Party_B_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Dg_Exploration_Unit = c2.C_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Dg_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

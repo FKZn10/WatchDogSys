@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecBiddingPlanChangeMapper">
+
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecBiddingPlanChangeRes"
+               id="getSecBiddingPlanChange">
+        <id column="Bpc_Id" property="bpcId"/>
+        <result column="Bp_Id" property="bpId" javaType="java.lang.String"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Bp_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        <include refid="com.jpmsoft.projectProducer.mapper.secInfo.SecProcurementPlanMapper.SecBiddingPlanFields"/>,
+        pro.State as state,
+        mn.*
+        from Sec_Bidding_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id = mn.Bp_Id
+        left join  Sec_Procurement_Plan spp on spp.pp_id= mn.pp_id
+        where mn.Bp_Id = #{bpId}
+    </select>
+
+    <select id="getSecBiddingPlanChangeById"
+            resultMap="getSecBiddingPlanChange">
+        select sb.Bp_Name         as oldBpName,
+               c1.C_Name          as bpTendereeName,
+               f.file_relation_id as fileRelationId,
+               mn.*,
+                u2.U_Name          as responsibleLeaderName
+        from Sec_Bidding_Plan_Change mn
+                 left join SYS_Company c1 on c1.C_Id = mn.Bp_Tenderee
+                 left join Sys_File f on f.FileID = mn.Bpc_Id
+                 left join Sec_Bidding_Plan sb on sb.Bp_Id = mn.Bp_Id
+                 left join SYS_User u2 on u2.U_Id=mn.Responsible_Leader
+        where mn.Bpc_Id = #{bpcId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and bp.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and bp.State=#{params.state}
+        </if>
+        <if test="params.bpId!=null">
+            and bp.Bp_Id=#{params.bpId}
+        </if>
+        <if test="params.bpName!=null">
+            and bp.Bp_Name like concat('%',#{params.bpName},'%')
+        </if>
+        <if test="params.bpCreateUname!=null">
+            and bp.Bp_Create_Uname like concat('%',#{params.bpCreateUname},'%')
+        </if>
+        and bp.Bp_Id in
+        (select mn.Bp_Id
+        from Sec_Bidding_Project mn
+        left join Pre_Project pro on mn.P_Id=pro.P_Id
+        ${params.authSql}
+        <if test="params.pName!=null">
+            and pro.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        )
+    </sql>
+
+
+    <select id="getSecBiddingPlanChangeList" resultMap="getSecBiddingPlanChange">
+        select
+        (select sum(Sec_Money) from Sec_Info_Change where Bpc_Id=bp.Bpc_Id) as secMoneys,
+        (select count(1) from Sec_Info_Change where Bpc_Id=bp.Bpc_Id) as secInfoTotal,
+        c1.C_Name as bpTendereeName,
+        bp.*,
+        u2.U_Name          as responsibleLeaderName
+        from Sec_Bidding_Plan_Change bp
+        left join SYS_Company c1 on c1.C_Id=bp.Bp_Tenderee
+        left join SYS_User u2 on u2.U_Id=bp.Responsible_Leader
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by bp.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by bp.Bp_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecBiddingPlanChangeCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Bidding_Plan_Change bp
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+
+    <select id="getSecInfoChangeListByBpId" resultType="com.jpmsoft.common.model.response.SecInfo.SecInfoChangeRes">
+        select
+        mn.*,
+        bpc.Bp_Id as bpId,
+        bpc.Bp_Create_Uid as bpCreateUid,
+        bpc.Bp_Create_Uname as bpCreateUname,
+        bpc.Bp_Create_Time as bpCreateTime,
+        bpc.State_Time as bpcStateTime,
+        bpc.State as bpcState
+        from Sec_Info_Change mn
+        left join Sec_Bidding_Plan_Change bpc on bpc.Bpc_Id = mn.Bpc_Id
+        where bpc.Bp_Id = #{bpId}
+    </select>
+
+
+</mapper>

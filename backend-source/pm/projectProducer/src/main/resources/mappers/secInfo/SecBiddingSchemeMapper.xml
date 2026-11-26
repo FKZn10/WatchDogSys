@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecBiddingSchemeMapper">
+
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecBiddingSchemeModel"
+               id="SecBiddingSchemeModel">
+        <id column="Bs_Id" property="bsId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Bs_Id" select="getSecInfoProject">
+        </collection>
+        <collection property="secBiddingSchemeUnits"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecBiddingSchemeUnitDto"
+                    column="Bs_Id" select="getSecBiddingSchemeUnit">
+        </collection>
+    </resultMap>
+
+    <select id="getSecBiddingSchemeUnit"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecBiddingSchemeUnitDto">
+        select mn.*
+        from Sec_Bidding_Scheme_Unit mn
+        where mn.Bs_Id = #{bsId}
+    </select>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join Sec_Bidding_Scheme sd on sd.Sec_Id = sec.Sec_Id
+        where sd.Bs_Id = #{bsId}
+    </select>
+
+
+    <select id="getSecBiddingSchemeById" resultMap="SecBiddingSchemeModel">
+        select sec.Sec_Name             as secName,
+               sec.Sec_Code             as secCode,
+               sec.Sec_Type             as secType,
+               sec.Sec_Con_Type         as secConType,
+               sec.Sec_Money            as secMoney,
+               sec.Sec_Contracting_Type as secContractingType,
+               dp.D_Name                as secContractingDepartmentName,
+               c1.C_Name                as bsAgencyName,
+               f.file_relation_id       as fileRelationId,
+               mn.*
+        from Sec_Bidding_Scheme mn
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join SYS_Department dp on dp.D_ID = sec.Sec_Contracting_Department
+                 left join Sys_Company c1 on c1.C_Id=mn.Bs_Agency_Id
+                 left join Sys_File f on f.FileID = mn.Bs_Id
+        where mn.Bs_Id = #{bsId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.bsApprovalType!=null">
+            and mn.Bs_Approval_Type = #{params.bsApprovalType}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+        <if test="params.bsState!=null">
+            and mn.Bs_State = #{params.bsState}
+        </if>
+        <if test="params.bsWhetherStandard!=null">
+            and mn.Bs_Whether_Standard = #{params.bsWhetherStandard}
+        </if>
+        <if test="params.bsCalculationMethod!=null">
+            and mn.Bs_Calculation_Method = #{params.bsCalculationMethod}
+        </if>
+        <if test="params.bsApprovalFlow!=null">
+            and mn.Bs_Approval_Flow = #{params.bsApprovalFlow}
+        </if>
+        <if test="params.bsContractingType!=null">
+            and mn.Bs_Contracting_Type = #{params.bsContractingType}
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.bsCreateUname!=null">
+            and mn.Bs_Create_Uname like concat('%',#{params.bsCreateUname},'%')
+        </if>
+        <if test="params.bsProjectInvestmentStart!=null">
+            and mn.Bs_Project_Investment>#{params.bsProjectInvestmentStart}
+        </if>
+        <if test="params.bsProjectInvestmentEnd!=null">
+            and mn.Bs_Project_Investment &lt; #{params.bsProjectInvestmentEnd}
+        </if>
+        <if test="params.bsAnnualInvestmentStart!=null">
+            and mn.Bs_Annual_Investment>#{params.bsAnnualInvestmentStart}
+        </if>
+        <if test="params.bsAnnualInvestmentEnd!=null">
+            and mn.Bs_Annual_Investment &lt; #{params.bsAnnualInvestmentEnd}
+        </if>
+        <if test="params.bsApprovedAmountStart!=null">
+            and mn.Bs_Approved_Amount>#{params.bsApprovedAmountStart}
+        </if>
+        <if test="params.bsApprovedAmountEnd!=null">
+            and mn.Bs_Approved_Amount &lt; #{params.bsApprovedAmountEnd}
+        </if>
+        <if test="params.bsCreateTimeStart!=null">
+            and mn.Bs_Create_Time>#{params.bsCreateTimeStart}
+        </if>
+        <if test="params.bsCreateTimeEnd!=null">
+            and mn.Bs_Create_Time &lt; #{params.bsCreateTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getSecBiddingSchemeList" resultMap="SecBiddingSchemeModel">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Contracting_Type as secContractingType,
+        c1.C_Name                as bsAgencyName,
+        mn.*
+        from Sec_Bidding_Scheme mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join Sys_Company c1 on c1.C_Id=mn.Bs_Agency_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Bs_Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getSecBiddingSchemeListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Sec_Bidding_Scheme mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join Sys_Company c1 on c1.C_Id=mn.Bs_Agency_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+</mapper>

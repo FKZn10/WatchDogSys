@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fundPlan.FundAllocationMapper">
+
+    <select id="getFundAllocationByDtlCon" resultType="com.jpmsoft.projectProducer.pojo.dto.fundPlan.FundAllocationDTO">
+        select
+            c1.C_Name as faAffiliatedUnitName,
+            mn.*
+        from Fund_Allocation mn
+        left join Sys_Company c1 on c1.C_Id=mn.Fa_Affiliated_Unit
+        where mn.state!=3 and mn.id in
+        <foreach collection="faIds" separator="," item="id" close=")" open="(">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

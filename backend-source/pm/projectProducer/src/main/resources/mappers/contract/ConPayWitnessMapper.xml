@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConPayWitnessMapper">
+
+    <select id="getConPayWitnessByConId" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConPayWitnessDTO">
+        select c1.C_Name                 as wiUnitName,
+               wi.Wi_Unit_Id             as wiUnitId,
+               wi.Wi_Unit_Contacts       as wiUnitContacts,
+               wi.Wi_Unit_Contacts_Tel   as wiUnitContactsTel,
+               wi.Wi_Order_No            as wiOrderNo,
+               wi.Wi_Sampling_Start_Date as wiSamplingStartDate,
+               wi.Wi_Sampling_End_Date   as wiSamplingEndDate,
+               wi.Wi_Start_Date          as wiStartDate,
+               wi.Wi_End_Date            as wiEndDate,
+               pay.Con_Id                as conId,
+               mn.*
+        from Con_Pay_Witness mn
+                 left join Con_Pay pay on pay.Pay_Id = mn.Pay_Id
+                 left join Me_Witness_Inspection wi on wi.Wi_Id = mn.Wi_Id
+                 left join SYS_Company c1 on wi.Wi_Unit_Id = c1.C_Id
+        where pay.Con_Id = #{conId} and wi.Wi_State=7
+        order by mn.Pw_Sort ASC
+    </select>
+
+    <select id="getConPayWitnessByPayId" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConPayWitnessDTO">
+        select c1.C_Name                 as wiUnitName,
+               wi.Wi_Unit_Id             as wiUnitId,
+               wi.Wi_Unit_Contacts       as wiUnitContacts,
+               wi.Wi_Unit_Contacts_Tel   as wiUnitContactsTel,
+               wi.Wi_Order_No            as wiOrderNo,
+               wi.Wi_Sampling_Start_Date as wiSamplingStartDate,
+               wi.Wi_Sampling_End_Date   as wiSamplingEndDate,
+               wi.Wi_Start_Date          as wiStartDate,
+               wi.Wi_End_Date            as wiEndDate,
+               pay.Con_Id                as conId,
+               mn.*
+        from Con_Pay_Witness mn
+                 left join Con_Pay pay on pay.Pay_Id = mn.Pay_Id
+                 left join Me_Witness_Inspection wi on wi.Wi_Id = mn.Wi_Id
+                 left join SYS_Company c1 on wi.Wi_Unit_Id = c1.C_Id
+        where mn.Pay_Id = #{payId} and wi.Wi_State=7
+        order by mn.Pw_Sort ASC
+    </select>
+
+    <select id="getConPayWitnessByOrderNo" resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ConPayWitnessDTO">
+        select c1.C_Name                 as wiUnitName,
+               wi.Wi_Unit_Id             as wiUnitId,
+               wi.Wi_Unit_Contacts       as wiUnitContacts,
+               wi.Wi_Unit_Contacts_Tel   as wiUnitContactsTel,
+               wi.Wi_Order_No            as wiOrderNo,
+               wi.Wi_Sampling_Start_Date as wiSamplingStartDate,
+               wi.Wi_Sampling_End_Date   as wiSamplingEndDate,
+               wi.Wi_Start_Date          as wiStartDate,
+               wi.Wi_End_Date            as wiEndDate,
+               pay.Con_Id                as conId,
+               mn.*
+        from Con_Pay_Witness mn
+                 left join Con_Pay pay on pay.Pay_Id = mn.Pay_Id
+                 left join Me_Witness_Inspection wi on wi.Wi_Id = mn.Wi_Id
+                 left join SYS_Company c1 on wi.Wi_Unit_Id = c1.C_Id
+        where wi.Wi_Order_No = #{orderNo} and wi.Wi_State=7
+        order by mn.Pw_Sort ASC
+    </select>
+
+</mapper>

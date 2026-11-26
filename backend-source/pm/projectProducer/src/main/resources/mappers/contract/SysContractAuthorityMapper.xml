@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.SysContractAuthorityMapper">
+
+    <select id="getContractAuthorityList" resultType="com.jpmsoft.common.model.response.SysContractAuthorityResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        cm1.C_Name as caCName,
+        u1.U_Name as caUserName,
+        mn.*
+        from  SYS_Contract_Authority mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        left join Sys_Company cm1 on cm1.C_id=mn.Ca_C_Id
+        left join Sys_User u1 on u1.U_id=mn.Ca_User_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.caUserId!=null">
+            and mn.Ca_User_Id=#{params.caUserId}
+        </if>
+        <if test="params.caCId!=null">
+            and mn.Ca_C_Id=#{params.caCId}
+        </if>
+        <if test="params.pId!=null">
+            and con.Con_Project_Id=#{params.pId}
+        </if>
+        <if test="params.caCreateUname!=null">
+            and INSTR(mn.Ca_Create_Uname,#{params.caCreateUname})
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.caUserName!=null">
+            and INSTR(u1.U_Name,#{params.caUserName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.caCName!=null">
+            and INSTR(cm1.C_Name,#{params.caCName})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ca_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

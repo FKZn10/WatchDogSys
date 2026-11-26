@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysRegionMapper">
+
+    <insert id="bathInsert">
+        insert into  Sys_Region(Id,Sr_Code,Sr_Parent_Code,Sr_Level,Sr_Name,Sr_Province,Sr_City,Sr_District,Sr_Town,Sr_Qp
+        ,Sr_Jp,Sr_First_Char,Sr_Lat,Sr_Lng,Sr_Tel,Sr_Zip,Sr_Status)
+        values
+        <foreach collection="data" item="d" separator=",">
+            (#{d.id},#{d.srCode},#{d.srParentCode},#{d.srLevel},#{d.srName}
+            ,#{d.srProvince},#{d.srCity},#{d.srDistrict},#{d.srTown},#{d.srQp}
+            ,#{d.srJp},#{d.srFirstChar},#{d.srLat},#{d.srLng},#{d.srTel},#{d.srZip},#{d.srStatus})
+        </foreach>
+    </insert>
+</mapper>

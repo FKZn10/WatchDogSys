@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.PushRecordMapper">
+
+    <sql id="listFilter">
+        <if test="params.prState!=null">
+            and mn.Pr_State =#{params.prState}
+        </if>
+        <if test="params.prType!=null">
+            and mn.Pr_Type =#{params.prType}
+        </if>
+        <if test="params.prDataId!=null">
+            and mn.Pr_Data_Id=#{params.prDataId}
+        </if>
+        <if test="params.prMsgId!=null">
+            and mn.Pr_Msg_Id like concat('%',#{params.prMsgId},'%')
+        </if>
+        <if test="params.prRequest!=null">
+            and mn.Pr_Request like concat('%',#{params.prRequest},'%')
+        </if>
+        <if test="params.prTimeStart!=null">
+            and mn.Pr_Time >= #{params.prTimeStart}
+        </if>
+        <if test="params.prTimeEnd!=null">
+            and mn.Pr_Time &lt;= #{params.prTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getPushRecordList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.PushData.PushRecordModel" >
+        select
+        mn.*
+        <if test="params.fenTable==false">
+            from  Push_Record mn
+        </if>
+        <if test="params.fenTable==true">
+            from  Push_Record_${params.prType} mn
+        </if>
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Pr_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getPushRecordListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        <if test="params.fenTable==false">
+            from  Push_Record mn
+        </if>
+        <if test="params.fenTable==true">
+            from  Push_Record_${params.prType} mn
+        </if>
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+</mapper>

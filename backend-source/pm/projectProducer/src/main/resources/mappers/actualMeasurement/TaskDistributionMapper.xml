@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.actualMeasurement.TaskDistributionMapper">
+
+    <select id="getTaskDistributionByTdId"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.TaskDistributionResponse">
+        select
+        mn.*,
+        mn.task_user_ids as taskUserIds,
+        mn.task_user_names as taskUserNames,
+        mi.Dm_Region_Name as diRegionName,
+        mi.Dm_Code as diRegionCode,
+        sf.file_relation_id as fileRelationId,
+        mi.dm_Drawing as diDrawing,
+        mi.dm_Drawing as dmDrawing,
+        pro.p_Name as pName
+        from task_distribution mn
+        left join sys_file sf on sf.FileId = mn.td_id
+        left join Drawing_Management_Catalogue mi on mi.dm_Id = mn.dm_Id
+        left join pre_project pro on pro.p_Id = mn.p_Id
+        where
+        mn.td_Id = #{tdId}
+    </select>
+
+    <select id="getTaskDistributionList"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.TaskDistributionResponse">
+        select
+            mn.*,
+            mn.task_user_ids as taskUserIds,
+            mn.task_user_names as taskUserNames,
+            mi.Dm_Region_Name as diRegionName,
+            mi.Dm_Code as diRegionCode,
+            mi.dm_Drawing as diDrawing,
+            sf.file_relation_id as fileRelationId,
+            pro.p_Name as pName
+        from task_distribution mn
+        left join Drawing_Management_Catalogue mi on mi.dm_Id = mn.dm_Id
+        left join sys_file sf on sf.FileId = mn.td_id
+        left join pre_project pro on pro.p_Id = mn.p_Id
+        where 1=1
+        <if test="params.teId != null">
+            and mn.te_Id = #{params.teId}
+        </if>
+        <if test="params.pId != null">
+            and mn.p_Id = #{params.pId}
+        </if>
+        <if test="params.taskName != null">
+            and mn.task_Name like concat('%',#{params.taskName},'%')
+        </if>
+        <if test="params.taskCode != null">
+            and mn.task_Code like concat('%',#{params.taskCode},'%')
+        </if>
+        <if test="params.pName != null">
+            and pro.p_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.state != null">
+            and mn.state = #{params.state}
+        </if>
+        order by mn.create_Time desc
+    </select>
+
+    <select id="getTaskDistributionCheckByDiId"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.TaskDistributionCheckModel">
+        select
+            mn.*,
+            td.task_user_ids as taskUserIds,
+            td.task_user_names as taskUserNames,
+            mi.Dm_Region_Name as diRegionName,
+            mi.Dm_Code as diRegionCode,
+            mi.dm_Drawing as diDrawing,
+            su.u_Name as checkPersonUname,
+            ci.Ci_Name as ciName,
+            ci.Ci_Code as ciCode,
+            ci.Ci_Type as ciType,
+            ci.Ci_Expection as ciExpection,
+            ci.Ci_Compute_Expection as ciComputeExpection,
+            pro.p_Name as pName
+        from task_distribution_check mn
+        left join task_distribution td on td.td_Id = mn.td_Id
+        left join Drawing_Management_Catalogue mi on mi.dm_Id = td.dm_Id
+        left join Check_Item ci on ci.Ci_id  = mn.ci_Id
+        left join pre_project pro on pro.p_Id = td.p_Id
+        left join sys_user su on su.U_Id = mn.check_Person_Uid
+        where
+            td.Di_Id = #{diId} and td.state = 7
+    </select>
+
+    <select id="getTaskDistributionByDiId"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.TaskDistributionResponse">
+        select
+            mn.*,
+            mn.task_user_ids as taskUserIds,
+            mn.task_user_names as taskUserNames,
+            mi.Dm_Region_Name as diRegionName,
+            mi.Dm_Code as diRegionCode,
+            mi.dm_Drawing as diDrawing,
+            sf.file_relation_id as fileRelationId,
+            pro.p_Name as pName
+        from task_distribution mn
+        left join Drawing_Management_Catalogue mi on mi.dm_Id = mn.dm_Id
+        left join sys_file sf on sf.FileId = mn.td_id
+        left join pre_project pro on pro.p_Id = mn.p_Id
+        where mn.di_Id = #{diId} and mn.state = 7
+        limit 1
+    </select>
+
+    <select id="getTaskDistributionByDmId"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.TaskDistributionResponse">
+        select
+        mn.*,
+        mn.task_user_ids as taskUserIds,
+        mn.task_user_names as taskUserNames,
+        mi.Dm_Region_Name as diRegionName,
+        mi.Dm_Code as diRegionCode,
+        mi.dm_Drawing as diDrawing,
+        sf.file_relation_id as fileRelationId,
+        pro.p_Name as pName
+        from task_distribution mn
+        left join Drawing_Management_Catalogue mi on mi.dm_Id = mn.dm_Id
+        left join sys_file sf on sf.FileId = mn.td_id
+        left join pre_project pro on pro.p_Id = mn.p_Id
+        where mn.dm_Id = #{dmId} and mn.state = 7
+        limit 1
+    </select>
+
+    <select id="getTaskDistributionCheckByDmId"
+            resultType="com.jpmsoft.common.model.response.ActualMeasurement.TaskDistributionCheckModel">
+        select
+            mn.*,
+            mi.Dm_Region_Name as diRegionName,
+            mi.Dm_Code as diRegionCode,
+            mi.dm_Drawing as diDrawing,
+            ci.ci_Id as ciId,
+            ci.Ci_Name as ciName,
+            ci.Ci_Code as ciCode,
+            ci.Ci_Type as ciType,
+            ci.Ci_Describe as ciDescribe,
+            ci.Ci_Expection as ciExpection,
+            ci.Ci_Compute_Expection as ciComputeExpection,
+            pro.p_Name as pName
+        from task_distribution_check mn
+        left join task_distribution td on td.td_Id = mn.td_Id
+        left join Drawing_Management_Catalogue mi on mi.dm_Id = td.dm_Id
+        left join Check_Item ci on ci.Ci_id  = mn.ci_Id
+        left join pre_project pro on pro.p_Id = td.p_Id
+        where
+            td.Dm_Id = #{dmId} and td.state = 7
+    </select>
+</mapper>

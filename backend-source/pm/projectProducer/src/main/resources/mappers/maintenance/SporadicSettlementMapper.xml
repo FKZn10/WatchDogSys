@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.sporadicSettlement.SporadicSettlementMapper">
+    <select id="getSporadicSettlementeList"
+            resultType="com.jpmsoft.common.model.response.Maintenance.SporadicSettlementResponse">
+        select
+        mn.*,
+        c1.C_Name as se_unit_name
+        from sporadic_settlement mn
+        left join SYS_Company c1 on c1.C_Id=mn.se_unit_id
+        <where>
+            <if test="params.sePName != null">
+                and mn.se_p_name like concat('%',#{params.sePName},'%')
+            </if>
+            <if test="params.seUnitId != null">
+                and mn.se_unit_id = #{params.seUnitId}
+            </if>
+            <if test="params.seUnitName != null and params.seUnitName != ''">
+                and c1.C_Name like concat('%',#{params.seUnitName},'%')
+            </if>
+            <if test="params.sePrice != null">
+                and mn.se_price = #{params.sePrice}
+            </if>
+            <if test="params.sePriceStart != null and params.sePriceStart != ''">
+                and mn.se_price &gt;= #{params.sePriceStart}
+            </if>
+            <if test="params.sePriceEnd != null and params.sePriceEnd != ''">
+                and mn.se_price &lt;= #{params.sePriceEnd}
+            </if>
+            <if test="params.seAuditTime != null and params.seAuditTime != ''">
+                and mn.se_audit_time = #{params.seAuditTime}
+            </if>
+            <if test="params.seAuditTimeStart != null and params.seAuditTimeStart != ''">
+                and mn.se_audit_time &gt;= #{params.seAuditTimeStart}
+            </if>
+            <if test="params.seAuditTimeEnd != null and params.seAuditTimeEnd != ''">
+                and mn.se_audit_time &lt;= #{params.seAuditTimeEnd}
+            </if>
+            <if test="params.sePNumber != null">
+                and mn.se_p_number like concat('%',#{params.sePNumber},'%')
+            </if>
+            <if test="params.state != null">
+                and mn.state = #{params.state}
+            </if>
+            <if test="params.excludePiecemealPayFlow != null and params.excludePiecemealPayFlow == true ">
+                and not exists(select 1 from sporadic_payments_dtl spd join sporadic_payments sp on sp.id = spd.sp_p_did where spd.sp_d_id = mn.id and sp.state != 3)
+            </if>
+            <if test="params.mrCategory != null and params.mrCategory != ''">
+                AND NOT EXISTS (
+                SELECT 1
+                FROM sporadic_settlement_dtl ssd
+                JOIN Maintenance_Record mr ON mr.mr_Id = ssd.mr_id
+                WHERE ssd.se_id = mn.id
+                AND mr.mr_category != #{params.mrCategory}
+                )
+                AND EXISTS (SELECT 1 FROM sporadic_settlement_dtl WHERE se_id = mn.id)
+            </if>
+        </where>
+        order by mn.create_time desc
+    </select>
+
+    <select id="checkSporadicSettlement" resultType="int" databaseId="mysql">
+        SELECT
+        IF(EXISTS(
+        SELECT 1
+        FROM sporadic_settlement_dtl mn
+        JOIN sporadic_settlement sse
+        ON mn.se_id = sse.id
+        WHERE mn.mr_id IN
+        <foreach collection="mrIds" item="mrId" open="(" separator="," close=")">
+            #{mrId}
+        </foreach>
+        <if test="seId != null and seId != ''">
+            AND mn.se_id != #{seId}
+        </if>
+        AND sse.state != 3
+        ), 1, 0) as conflict;
+    </select>
+
+    <select id="checkSporadicSettlement" resultType="int" databaseId="dm">
+        SELECT CASE WHEN EXISTS (
+        SELECT 1
+        FROM sporadic_settlement_dtl mn
+        JOIN sporadic_settlement sse
+        ON mn.se_id = sse.id
+        WHERE mn.mr_id IN
+        <foreach collection="mrIds" item="mrId" open="(" separator="," close=")">
+            #{mrId}
+        </foreach>
+        <if test="seId != null and seId != ''">
+            AND mn.se_id != #{seId}
+        </if>
+        AND sse.state != 3
+        ) THEN 1 ELSE 0 END AS conflict
+        FROM dual
+    </select>
+
+    <select id="getMaintenanceFinanceByMrIds"
+            resultType="com.jpmsoft.common.model.response.Maintenance.MaintenanceFinanceResponse">
+        select
+        mn.*
+        from maintenance_finance mn
+        WHERE 1=1
+        <if test="mrIds != null and mrIds.size() > 0">
+            AND mn.mr_id IN
+            <foreach collection="mrIds" item="mrId" open="(" separator="," close=")">
+                #{mrId}
+            </foreach>
+        </if>
+    </select>
+
+</mapper>

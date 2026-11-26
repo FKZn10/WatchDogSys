@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.leaderBoard.GroupProjectIssueMapper">
+
+    <select id="getGroupProjectIssueList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.yw.GroupProjectIssueModel">
+        SELECT mn.*,proj.P_Name AS projectName, user.U_Name AS projectLeaderName,
+        user1.U_Name AS responsiblePersonName, user2.U_Name AS specificContactName
+        FROM group_project_issue mn
+        LEFT JOIN pre_project proj ON proj.P_ID = mn.project_id
+        LEFT JOIN sys_user user ON user.U_ID = mn.project_leader
+        LEFT JOIN sys_user user1 ON user1.U_ID = mn.responsible_person
+        LEFT JOIN sys_user user2 ON user2.U_ID = mn.specific_contact
+        <where>
+            <if test="params.projectId != null and params.projectId!=''">
+                AND mn.project_id = #{params.projectId}
+            </if>
+            <if test="params.projectName != null and params.projectName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        AND likePname(#{params.projectName},proj.P_Id)=true
+                    </when>
+                    <otherwise>
+                        AND proj.P_Name LIKE CONCAT('%',#{params.projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.projectCode != null and params.projectCode!=''">
+                AND proj.P_Code LIKE CONCAT('%',#{params.projectCode},'%')
+            </if>
+            <if test="params.projectLeaderName != null and params.projectLeaderName!=''">
+                AND user.U_Name LIKE CONCAT('%',#{params.projectLeaderName},'%')
+            </if>
+            <if test="params.projectLeader != null and params.projectLeader!=''">
+                AND mn.project_leader = #{params.projectLeader}
+            </if>
+            <if test="params.responsiblePerson != null and params.responsiblePerson!=''">
+                AND mn.responsible_person = #{params.responsiblePerson}
+            </if>
+            <if test="params.responsiblePersonName != null and params.responsiblePersonName!=''">
+                AND user1.U_Name LIKE CONCAT('%',#{params.responsiblePersonName},'%')
+            </if>
+            <if test="params.specificContact != null and params.specificContact!=''">
+                AND mn.specific_contact = #{params.specificContact}
+            </if>
+            <if test="params.specificContactName != null and params.specificContactName!=''">
+                AND user2.U_Name LIKE CONCAT('%',#{params.specificContactName},'%')
+            </if>
+            <if test="params.responsibleUnit != null and params.responsibleUnit!=''">
+                AND mn.responsible_unit LIKE CONCAT('%',#{params.responsibleUnit},'%')
+            </if>
+            <if test="params.issueCategory != null and params.issueCategory!=''">
+                AND mn.issue_category = #{params.issueCategory}
+            </if>
+        </where>
+    </select>
+
+    <select id="getGroupProjectIssueById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.yw.GroupProjectIssueModel">
+        SELECT mn.*,proj.P_Name AS projectName, user.U_Name AS projectLeaderName,
+               user1.U_Name AS responsiblePersonName, user2.U_Name AS specificContactName
+        FROM group_project_issue mn
+        LEFT JOIN pre_project proj ON proj.P_ID = mn.project_id
+        LEFT JOIN sys_user user ON user.U_ID = mn.project_leader
+        LEFT JOIN sys_user user1 ON user1.U_ID = mn.responsible_person
+        LEFT JOIN sys_user user2 ON user2.U_ID = mn.specific_contact
+        WHERE mn.id = #{id}
+    </select>
+</mapper>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaAttendanceGroupMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceGroupModel"
+               id="selectAttendanceGroupById">
+        <id column="Ag_Id" property="agId"/>
+        <collection property="attendanceMembers"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceMemberModel"
+                    column="Ag_Id" select="getOaAttendanceMembers">
+        </collection>
+        <collection property="attendanceWeekdays"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceWeekdayModel"
+                    column="Ag_Id" select="getOaAttendanceWeekdays">
+        </collection>
+    </resultMap>
+
+    <select id="getOaAttendanceWeekdays"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceWeekdayModel">
+        select
+        ag.Ag_Name as agName,
+        mn.*
+        from  OA_Attendance_Weekday mn
+        left join  OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        where mn.Ag_Id=#{agId}
+        order by mn.Aw_Order asc
+    </select>
+
+    <select id="getOaAttendanceMembers"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceMemberModel">
+        select
+        ag.Ag_Name as agName,
+        pp.PP_Name as ppName,
+        dp.PD_Name as pdName,
+        u.U_MTel as uMtel,
+        u.U_Tel as uTel,
+        c1.C_Name as Cname,
+        c1.C_Name as cAbbName,
+        mn.*
+        from  OA_Attendance_Member mn
+        left join  OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        left join  SYS_Position_P pp on pp.Pp_Id=mn.Pp_Id
+        left join  SYS_Department_P dp on pp.Pd_Id=dp.Pd_Id
+        left join  SYS_User u on u.U_ID=mn.Am_Uid
+        left join  SYS_Company c1 on u.C_ID=c1.C_ID
+        where mn.Ag_Id=#{agId}
+    </select>
+
+    <select id="getAttendanceGroupById" resultMap="selectAttendanceGroupById">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        proc.C_Name as pConsName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompDepName,
+        mn.*
+        from  OA_Attendance_Group mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        where mn.Ag_Id=#{agId}
+    </select>
+
+
+    <select id="getAttendanceGroupList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceGroupModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        proc.C_Name as pConsName,
+        prod.D_Name as pCompDepName,
+        (select count(1) from OA_Attendance_Member oam where oam.Ag_Id=mn.Ag_Id) as memberCount,
+        mn.*
+        from OA_Attendance_Group mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.agState!=null">
+            and mn.Ag_State = #{params.agState}
+        </if>
+        <if test="params.agScope!=null">
+            and mn.Ag_Scope = #{params.agScope}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.agName!=null">
+            and mn.Ag_Name like concat('%',#{params.agName},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ag_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

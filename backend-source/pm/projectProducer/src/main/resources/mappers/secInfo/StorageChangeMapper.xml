@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.StorageChangeMapper">
+
+    <select id="getStorageChangeList" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.StorageChangeXctVO">
+        select
+        (select count(*) from STORAGE_CHANGE_DETAIL scd where scd.sc_id=mn.id) as expertCount,
+        mn.*
+        from STORAGE_CHANGE mn
+        <where>
+            <if test="params.scCategory!=null">
+                and mn.sc_Category=#{params.scCategory}
+            </if>
+            <if test="params.state!=null">
+                and mn.state=#{params.state}
+            </if>
+            <if test="params.scCode!=null">
+                and INSTR(mn.sc_code,#{params.scCode})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

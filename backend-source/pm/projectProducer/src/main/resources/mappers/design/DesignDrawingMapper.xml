@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.design.DesignDrawingMapper">
+
+    <select id="getDesignDrawingById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignDrawingModel">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Design_Drawing mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_File f on f.FileID=mn.Dd_Id
+        where mn.Dd_Id=#{ddId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.ddType!=null">
+            and mn.Dd_Type = #{params.ddType}
+        </if>
+        <if test="params.ddState!=null">
+            and mn.Dd_State = #{params.ddState}
+        </if>
+        <if test="params.ddVersionNumber!=null">
+            and mn.Dd_Version_Number like concat('%',#{params.ddVersionNumber},'%')
+        </if>
+        <if test="params.ddMonomer!=null">
+            and mn.dd_monomer = #{params.ddMonomer}
+        </if>
+        <if test="params.ddFileFormat!=null">
+            and mn.dd_file_format = #{params.ddFileFormat}
+        </if>
+        <if test="params.ddProfessional!=null">
+            and mn.dd_professional like concat('%',#{params.ddProfessional},'%')
+        </if>
+        <if test="params.ddRemark!=null">
+            and mn.Dd_Remark like concat('%',#{params.ddRemark},'%')
+        </if>
+        <if test="params.ddCreateUname!=null">
+            and mn.Dd_Create_Uname like concat('%',#{params.ddCreateUname},'%')
+        </if>
+        <if test="params.ddName!=null">
+            and mn.Dd_Name like concat('%',#{params.ddName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pNameHistory!=null">
+            and pro.P_Name_History like concat('%',#{params.pNameHistory},'%')
+        </if>
+        <!--区间筛选-->
+        <if test="params.ddCreateTimeStart!=null">
+            and mn.Dd_Create_Time > #{params.ddCreateTimeStart}
+        </if>
+        <if test="params.ddCreateTimeEnd!=null">
+            and mn.Dd_Create_Time &lt; #{params.ddCreateTimeEnd}
+        </if>
+        <if test="params.ddCategory != null and params.ddCategory != ''">
+            and mn.dd_category = #{params.ddCategory}
+        </if>
+    </sql>
+
+    <select id="getDesignDrawingList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignDrawingModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Design_Drawing mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sys_File f on f.FileID=mn.Dd_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Dd_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

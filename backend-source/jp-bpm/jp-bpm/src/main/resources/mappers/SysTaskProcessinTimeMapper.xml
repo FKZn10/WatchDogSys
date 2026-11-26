@@ -1,0 +1,1288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.SysTaskProcessinTimeMapper">
+
+    <insert id="batchAddition">
+        insert into Sys_Task_Processin_Time(
+        Tpt_Id,
+        tp_id,
+        Tpt_Begin_Time,
+        Tpt_Do_Time,
+        Tpt_Act_Id,
+        Tpt_Duration,
+        Tpt_Act_Name,
+        Tpt_Act_Type,
+        Tpt_Approval_Type,
+        Tpt_User_Name,
+        Tpt_User,
+        Tpt_User_Type,
+        Tpt_C_Id,
+        Tpt_C_Name,
+        Tpt_D_Id,
+        Tpt_D_Name,
+        Tpt_D_Code,
+        Tpt_Name,
+        Tpt_P_Did,
+        Tpt_P_Dname,
+        Tpt_P_Dcode,
+        Tpt_Timeout_Time,
+        Tpt_File_Id,
+        Tpt_Approval_Time,
+        Tpt_Approval_State,
+        Tpt_User_Account,
+        Tpt_File_Code,
+        Tpt_Explain,
+        Tptr_User_Id,
+        Tptr_User_Name,
+        Tptr_User_Type,
+        Tptr_D_Id,
+        Tptr_D_Name,
+        Tptr_D_Code,
+        Tptr_Act_Id,
+        Tptr_Act_Name,
+        Tptr_User_Account,
+        Tpt_P_Id
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.tptId},
+            #{item.tpId},
+            #{item.tptBeginTime},
+            #{item.tptDoTime},
+            #{item.tptActId},
+
+            approvalTimes(#{item.tptBeginTime},#{item.tptDoTime},#{festivalHoliday},#{workTimeType},#{workShift},#{closingTime}),
+            #{item.tptActName},
+            #{item.tptActType},
+            #{item.tptApprovalType},
+            #{item.tptUserName},
+
+            #{item.tptUser},
+            #{item.tptUserType},
+            #{item.tptCId},
+            #{item.tptCName},
+            #{item.tptDId},
+
+            #{item.tptDName},
+            #{item.tptDCode},
+            #{item.tptName},
+            #{item.tptPDid},
+            #{item.tptPDname},
+
+            #{item.tptPDcode},
+            #{item.tptTimeoutTime},
+            #{item.tptFileId},
+            #{item.tptApprovalTime},
+            #{item.tptApprovalState},
+
+            #{item.tptUserAccount},
+            #{item.tptFileCode},
+            #{item.tptExplain},
+            #{item.tptrUserId},
+            #{item.tptrUserName},
+
+            #{item.tptrUserType},
+            #{item.tptrDId},
+            #{item.tptrDName},
+            #{item.tptrDCode},
+            #{item.tptrActId},
+
+            #{item.tptrActName},
+            #{item.tptrUserAccount},
+            #{item.tptPId}
+            )
+        </foreach>
+        ;
+    </insert>
+
+
+    <select id="getDNameByUid" resultType="com.jpmsoft.jpbpm.pojo.vo.SysDepartmentVo">
+        select sd.D_Name as dName,sd.D_Code as dCode,sd.D_ID as dId,sp.P_Name as pName,sp.P_Id as pId,spu.U_Id as
+        uId,spu.Pu_Main_Dep as puMainDep from SYS_Department sd
+        left join SYS_Position sp on sd.D_ID=sp.D_ID
+        left join SYS_Position_User spu on spu.P_ID=sp.P_ID where 1=1
+
+        <if test="uIds!=null">
+            and spu.U_ID in
+            <foreach collection="uIds" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="teId!=null and teId!='All'">
+            and sd.Te_Id = #{teId}
+        </if>
+    </select>
+
+    <select id="getDNameByPid" resultType="com.jpmsoft.jpbpm.pojo.vo.SysDepartmentVo">
+        select pp.P_Id as pId,sd.D_Name as dName,sd.D_Code as dCode,sd.D_ID as dId from SYS_Department sd left join
+        Pre_Project pp on sd.D_ID=pp.P_Competent_Department
+        where 1=1
+
+        <if test="pIds!=null">
+            and pp.P_Id in
+            <foreach collection="pIds" open="(" close=")" item="pId" separator=",">
+                #{pId}
+            </foreach>
+        </if>
+        <if test="teId!=null and teId!='All'">
+            and sd.Te_Id = #{params.teId}
+        </if>
+    </select>
+
+
+    <select id="getPrescription" resultType="com.jpmsoft.jpbpm.pojo.vo.ApprovalTimelimitVo">
+        select t1.dName,t1.Tpt_D_Id as dId,t1.Tpt_User as userId,t1.Tpt_User_Name as
+        uName,t1.Tpt_User_Account as userAccount,count(tp_id) as
+        tpCount,sum(rejectCount)as
+        rejectCount,sum(overtime) as overtimeCount,sum(Tpt_Duration) as handlingTime from (
+        select *,case when Tpt_Approval_Type='退回' then 1 else 0 end as rejectCount,case when (Tpt_Timeout_Time is null
+        or Tpt_Timeout_Time=0) then 0 else (case when Tpt_Duration>Tpt_Timeout_Time then 1 else 0 end) end as overtime,
+        case when Tpt_D_Name is null or Tpt_D_Name='' then Tpt_P_Dname else Tpt_D_Name end as dName
+        from Sys_Task_Processin_Time
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%' and
+
+        Tpt_Begin_Time is not null
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+        </if>
+        )t1 group by t1.dName,t1.Tpt_User_Account,t1.Tpt_D_Id,t1.Tpt_User,t1.Tpt_User_Name
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by dName DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getPrescriptionCount" resultType="java.lang.Integer">
+        select count(1) from ( select t1.dName as dName from (
+        select *,case when Tpt_Approval_Type='退回' then 1 else 0 end as rejectCount,case when (Tpt_Timeout_Time is null
+        or Tpt_Timeout_Time=0) then 0 else (case when Tpt_Duration>Tpt_Timeout_Time then 1 else 0 end) end as overtime,
+        case when Tpt_D_Name is null or Tpt_D_Name='' then Tpt_P_Dname else Tpt_D_Name end as dName
+        from Sys_Task_Processin_Time
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%' and
+        Tpt_Begin_Time is not null
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+        </if>
+        )t1 group by t1.dName,t1.Tpt_User_Account,t1.Tpt_D_Id,t1.Tpt_User,t1.Tpt_User_Name)a1
+    </select>
+
+
+    <select id="getPrescriptionDetails" resultType="com.jpmsoft.jpbpm.pojo.entity.SysTaskProcessinTime">
+        select * from Sys_Task_Processin_Time
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%' and
+        Tpt_Begin_Time is not null
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+        </if>
+
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by Tpt_D_Name DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getPrescriptionDetailsCount" resultType="java.lang.Integer">
+        select count(1) from Sys_Task_Processin_Time
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%' and
+        Tpt_Begin_Time is not null
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+        </if>
+
+    </select>
+    <select id="getPrescriptionD" resultType="com.jpmsoft.jpbpm.pojo.vo.ApprovalTimelimitVo">
+        select t1.dName as dName,t1.dId as dId,count(tp_id) as tpCount,sum(rejectCount)as
+        rejectCount,sum(overtime) as overtimeCount,sum(Tpt_Duration) as handlingTime from (
+        select *,case when Tpt_Approval_Type='退回' then 1 else 0 end as rejectCount,case when (Tpt_Timeout_Time is null
+        or Tpt_Timeout_Time=0) then 0 else (case when Tpt_Duration>Tpt_Timeout_Time then 1 else 0 end) end as overtime,
+        case when Tpt_D_Name is null or Tpt_D_Name='' then Tpt_P_Dname else Tpt_D_Name end as dName,
+        case when Tpt_D_Id is null or Tpt_D_Id='' then Tpt_P_Did else Tpt_D_Id end as dId
+        from Sys_Task_Processin_Time
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%' and
+        Tpt_Begin_Time is not null
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+        </if>
+        )t1 group by t1.dName,dId
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by dName DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getPrescriptionDCount" resultType="java.lang.Integer">
+        select count(1) from ( select t1.dName as dName,t1.dId as dId from (
+        select *,case when Tpt_Approval_Type='退回' then 1 else 0 end as rejectCount,case when (Tpt_Timeout_Time is null
+        or Tpt_Timeout_Time=0) then 0 else (case when Tpt_Duration>Tpt_Timeout_Time then 1 else 0 end) end as overtime,
+        case when Tpt_D_Name is null or Tpt_D_Name='' then Tpt_P_Dname else Tpt_D_Name end as dName,
+        case when Tpt_D_Id is null or Tpt_D_Id='' then Tpt_P_Did else Tpt_D_Id end as dId
+        from Sys_Task_Processin_Time
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%' and
+        Tpt_Begin_Time is not null
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+
+        </if>
+        )t1 group by t1.dName,t1.dId
+        )a1
+    </select>
+
+    <select id="getRejectStatisticsD" resultType="com.jpmsoft.jpbpm.pojo.vo.RejectStatisticsVo">
+        select Tpt_D_Id,Tpt_D_Name as dName,
+        count(tp_id) as completionNode,
+        sum( case when Tpt_Approval_Type='退回' then 1 else 0 end) as rejectNode,
+        count(DISTINCT case when Tpt_Approval_State='7' then Tpt_File_Id else null end) as completionFile ,
+        count(DISTINCT case when Tpt_Approval_State='7' and Tpt_Approval_Type='退回' then Tpt_File_Id else null end) as
+        rejectFile from (select * from sys_task_processin_time
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%'
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+
+        </if>
+
+        ) t1 group by Tpt_D_Id,Tpt_D_Name
+
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by Tpt_D_Name DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getRejectStatisticsDCount" resultType="java.lang.Integer">
+        select count(1) from ( select Tpt_D_Id,Tpt_D_Name as dName,
+        count(tp_id) as completionNode,
+        sum( case when Tpt_Approval_Type='退回' then 1 else 0 end) as rejectNode,
+        count(DISTINCT case when Tpt_Approval_State='7' then Tpt_File_Id else null end) as completionFile ,
+        count(DISTINCT case when Tpt_Approval_State='7' and Tpt_Approval_Type='退回' then Tpt_File_Id else null end) as
+        rejectFile from (select * from sys_task_processin_time
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%'
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+
+        </if>
+
+        ) t1 group by Tpt_D_Id,Tpt_D_Name)a1
+    </select>
+
+    <select id="getRejectStatisticsPD" resultType="com.jpmsoft.jpbpm.pojo.vo.RejectStatisticsVo">
+        select Tpt_P_Did,Tpt_P_Dname as dName,
+        count(tp_id) as completionNode,
+        sum( case when Tpt_Approval_Type='退回' then 1 else 0 end) as rejectNode,
+        count(DISTINCT case when Tpt_Approval_State=7 then Tpt_File_Id else null end) as completionFile ,
+        count(DISTINCT case when Tpt_Approval_State=7 and Tpt_Approval_Type='退回' then Tpt_File_Id else null end) as
+        rejectFile from (select * from sys_task_processin_time where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%'
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_P_Did in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+
+        </if>
+        )t1 group by Tpt_P_Did,Tpt_P_Dname
+
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by Tpt_P_Name DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getRejectStatisticsPDCount" resultType="java.lang.Integer">
+        select count(1) from ( select Tpt_P_Did,Tpt_P_Dname as dName,
+        count(tp_id) as completionNode,
+        sum( case when Tpt_Approval_Type='退回' then 1 else 0 end) as rejectNode,
+        count(DISTINCT case when Tpt_Approval_State=7 then Tpt_File_Id else null end) as completionFile ,
+        count(DISTINCT case when Tpt_Approval_State=7 and Tpt_Approval_Type='退回' then Tpt_File_Id else null end) as
+        rejectFile from (select * from sys_task_processin_time where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%'
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_P_Did in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+
+        </if>
+        )t1 group by Tpt_P_Did,Tpt_P_Dname)a1;
+    </select>
+
+    <select id="getRejectStatisticsUD" resultType="com.jpmsoft.jpbpm.pojo.vo.RejectStatisticsVo">
+        select D_Id as did,D_Name as dname,Tpt_User_Name as uname,Tpt_User_Account as uaccount,P_Name as pname,Tpt_Name
+        as filetitle,Tpt_File_Code as filecode,Tpt_File_Id as tptFileId,Tpt_Act_Name as actname,count(tp_id) as rejectionsnumber,
+        <include refid="explainStr"/>
+        from (
+        select
+        case when Tpt_D_Id is null or Tpt_D_Id='' then Tpt_P_Did else Tpt_D_Id end as D_Id,
+        case when Tpt_D_Name is null or Tpt_D_Name='' then Tpt_P_Dname else Tpt_D_Name end as D_Name,
+        Tpt_User_Name,Tpt_User_Account,P_Name,Tpt_File_Code,Tpt_File_Id,Tpt_Name,Tpt_Act_Name,tp_id,Tpt_Explain
+        from Sys_Task_Processin_Time tpt
+        left join Pre_Project pp on tpt.Tpt_P_Id=pp.P_ID
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%' and
+        Tpt_Approval_Type='退回'
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+
+        </if>
+        )t1 group by D_Id,D_Name,Tpt_User_Name,Tpt_User_Account,P_Name,Tpt_File_Code,Tpt_File_Id,Tpt_Name,Tpt_Act_Name
+
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by D_Name DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getRejectStatisticsUDCount" resultType="java.lang.Integer">
+        select count(1) from (
+        select D_Id as did,D_Name as dname,Tpt_User_Name as uname,Tpt_User_Account as uaccount,P_Name as pname,Tpt_Name
+        as filetitle,Tpt_File_Code as filecode,Tpt_File_Id as tptFileId,Tpt_Act_Name as actname,count(tp_id) as rejectionsnumber,
+        <include refid="explainStr"/>
+        from (
+        select
+        case when Tpt_D_Id is null or Tpt_D_Id='' then Tpt_P_Did else Tpt_D_Id end as D_Id,
+        case when Tpt_D_Name is null or Tpt_D_Name='' then Tpt_P_Dname else Tpt_D_Name end as D_Name ,
+        Tpt_User_Name,Tpt_User_Account,P_Name,Tpt_File_Code,Tpt_File_Id,Tpt_Name,Tpt_Act_Name,tp_id,Tpt_Explain
+        from Sys_Task_Processin_Time tpt
+        left join Pre_Project pp on tpt.Tpt_P_Id=pp.P_ID
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%' and
+        Tpt_Approval_Type='退回'
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tpt_User not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tpt_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tpt_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tpt_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tpt_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+
+        </if>
+        )t1 group by D_Id,D_Name,Tpt_User_Name,Tpt_User_Account,P_Name,Tpt_File_Code,Tpt_File_Id,Tpt_Name,Tpt_Act_Name
+        )d1
+    </select>
+    <select id="getRejectStatisticsRUD" resultType="com.jpmsoft.jpbpm.pojo.vo.RejectStatisticsVo">
+        select D_Id as did,D_Name as dname,Tptr_User_Name as uname,Tptr_User_Account as uaccount,P_Name as
+        pname,Tpt_Name as filetitle,Tpt_File_Code as filecode,Tpt_File_Id as TptFileId, Tptr_Act_Name as actname,count(tp_id) as rejectionsnumber,
+        <include refid="explainStr"/>
+        from (
+        select
+        case when Tptr_D_Id is null or Tptr_D_Id='' then Tpt_P_Did else Tptr_D_Id end as D_Id,
+        case when Tptr_D_Name is null or Tptr_D_Name='' then Tpt_P_Dname else Tptr_D_Name end as D_Name,
+        Tptr_User_Name,Tptr_User_Account,P_Name,Tpt_File_Code,Tpt_File_Id,Tpt_Name,Tptr_Act_Name,tp_id,Tpt_Explain
+        from Sys_Task_Processin_Time tpt
+        left join Pre_Project pp on tpt.Tpt_P_Id=pp.P_ID
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%' and
+        Tpt_Approval_Type='退回'
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tptr_User_Id not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tptr_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tptr_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tptr_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tptr_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+
+        </if>
+        )t1 group by D_Id,D_Name,Tptr_User_Name,Tptr_User_Account,P_Name,Tpt_File_Code,Tpt_File_Id,Tpt_Name,Tptr_Act_Name
+
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by D_Name DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <update id="updateTptFileCodeByFileIds" >
+            update  Sys_Task_Processin_Time set Tpt_File_Code=(select  FileCode from  SYS_File where FileID=Sys_Task_Processin_Time.Tpt_File_Id )  where  Tpt_File_Code is  null and  Tpt_File_Id=#{id}
+    </update>
+
+    <select id="getRejectStatisticsRUDCount" resultType="java.lang.Integer">
+        select count(1) from (
+        select D_Id as did,D_Name as dname,Tptr_User_Name as uname,Tptr_User_Account as uaccount,P_Name as
+        pname,Tpt_Name
+        as filetitle,Tpt_File_Code as filecode,Tpt_File_Id AS tptFileId,Tptr_Act_Name as actname,count(tp_id) as rejectionsnumber,
+        <include refid="explainStr"/>
+        from (
+        select
+        case when Tptr_D_Id is null or Tptr_D_Id='' then Tpt_P_Did else Tptr_D_Id end as D_Id,
+        case when Tptr_D_Name is null or Tptr_D_Name='' then Tpt_P_Dname else Tptr_D_Name end as D_Name,
+        Tptr_User_Name,Tptr_User_Account,P_Name,Tpt_File_Code,Tpt_File_Id,Tpt_Name,Tptr_Act_Name,tp_id,Tpt_Explain
+        from Sys_Task_Processin_Time tpt
+        left join Pre_Project pp on tpt.Tpt_P_Id=pp.P_ID
+        where
+        Tpt_Act_Type not like '%Gateway' and
+        Tpt_Act_Id not like 'Gateway_%' and
+        Tpt_Approval_Type='退回'
+        <if test="params.teId!=null and params.teId!='All'">
+            and Te_Id = #{params.teId}
+        </if>
+        <if test="params.tpTypes!=null">
+            and Tpt_Approval_Type in
+            <foreach collection="params.tpTypes" open="(" close=")" item="tpType" separator=",">
+                #{tpType}
+            </foreach>
+        </if>
+        <if test="params.notUidS!=null">
+            and Tptr_User_Id not in
+            <foreach collection="params.notUidS" open="(" close=")" item="uId" separator=",">
+                #{uId}
+            </foreach>
+        </if>
+        <if test="params.notActName!=null">
+            and Tpt_Act_Name not in
+            <foreach collection="params.notActName" open="(" close=")" item="actName" separator=",">
+                #{actName}
+            </foreach>
+        </if>
+        <if test="params.tptFileCode!=null ">
+            and Tpt_File_Code like concat('%',#{params.tptFileCode},'%')
+        </if>
+        <if test="params.starTime!=null">
+            and
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{params.starTime}
+        </if>
+        <if test="params.endTime!=null">
+            and<include refid="dateFormatFilterSendTime"/>&lt;= #{params.endTime}
+        </if>
+        <if test="params.completeStarTime!=null and params.completeEndTime!=null">
+            and
+            <include refid="tptApprovalTime"/> &gt;= #{params.completeStarTime}
+            and<include refid="tptApprovalTime"/>&lt;= #{params.completeEndTime}
+            and Tpt_Approval_State=7
+        </if>
+        <if test=" params.userAccount!=null">
+            and Tptr_User_Account=#{params.userAccount}
+        </if>
+        <if test="params.uName!=null ">
+            and Tptr_User_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test=" params.uType!='ALL'">
+            and Tptr_User_Type=#{params.uType}
+        </if>
+
+        <if test="params.dIds!=null">
+            and Tptr_D_Id in
+            <foreach collection="params.dIds" open="(" close=")" item="dId" separator=",">
+                #{dId}
+            </foreach>
+        </if>
+        )t1 group by D_Id,D_Name,Tptr_User_Name,Tptr_User_Account,P_Name,Tpt_File_Code,Tpt_File_Id,Tpt_Name,Tptr_Act_Name
+        )d1
+    </select>
+
+
+    <select id="getUserInfo" resultType="java.util.Map">
+        select uer.U_Name,uer.U_Type,uer.U_Account,sd.D_Id,sd.D_Name,sd.D_Code,sc.C_Name,
+        sc.C_ID,sp.P_Name,sp.P_Id,spu.Pu_Main_Dep from SYS_User uer
+        left join SYS_Position_User spu on spu.U_ID=uer.U_ID
+        left join SYS_Position sp on sp.P_ID=spu.P_ID
+        left join SYS_Department sd on sd.D_ID=sp.D_ID
+        left join SYS_Company sc on sc.C_ID=uer.C_ID where uer.U_ID=#{uId}
+        <if test="teId!=null and teId!='All'">
+            and Te_Id = #{teId}
+        </if>
+    </select>
+
+    <select id="getDName" resultType="java.util.Map">
+        select sdp.D_Id,sdp.D_Name,sdp.D_Code from SYS_File sf
+        left join Pre_Project prp on sf.FileProject=prp.P_ID
+        left join SYS_Department sdp on sdp.D_ID=prp.P_Competent_Department
+        where sf.FileID=#{fileId}
+        <if test="teId!=null and teId!='All'">
+            and Te_Id = #{teId}
+        </if>
+        limit 0,1
+
+    </select>
+
+    <select id="getTpId" resultType="java.lang.String">
+        select tp_id from Sys_Task_Processin_Time where
+        Tpt_File_Id in
+        <foreach collection="fileIds" open="(" close=")" item="fileId" separator=",">
+            #{fileId}
+        </foreach>
+        <if test="teId!=null and teId!='All'">
+            and Te_Id = #{teId}
+        </if>
+    </select>
+    <select id="getTaskProcessinTimeNotCode" resultType="com.jpmsoft.jpbpm.pojo.entity.SysTaskProcessinTime">
+        select * from Sys_Task_Processin_Time where Tpt_File_Code is  null and  Tpt_File_Id is not null  <if test="teId!=null and teId!='All'">
+        and Te_Id = #{teId}
+    </if> and ((
+            <include refid="dateFormatFilterSendTime"/> &gt;= #{starTime}
+            and <include refid="dateFormatFilterSendTime"/>&lt; #{endTime}
+        ) or (
+            <include refid="dateFormatFilterTpStartTime"/> &gt;= #{starTime}
+            and <include refid="dateFormatFilterTpStartTime"/>&lt; #{endTime}
+        ))
+
+    </select>
+    <sql id="dateFormatFilterSendTime" databaseId="dm">
+        to_char(Tpt_Do_Time,'YYYY-MM-DD')
+    </sql>
+    <sql id="dateFormatFilterSendTime" databaseId="postgre">
+        to_char(Tpt_Do_Time,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterSendTime" databaseId="mysql">
+         date_format(Tpt_Do_Time,'%Y-%m-%d')
+    </sql>
+
+    <sql id="dateFormatFilterTpStartTime" databaseId="dm">
+        to_char(Tpt_Begin_Time,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterTpStartTime" databaseId="postgre">
+        to_char(Tpt_Begin_Time,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateFormatFilterTpStartTime" databaseId="mysql">
+        date_format(Tpt_Begin_Time,'%Y-%m-%d')
+    </sql>
+
+    <sql id="tptApprovalTime" databaseId="dm">
+        to_char(Tpt_Approval_Time,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="tptApprovalTime" databaseId="postgre">
+        to_char(Tpt_Approval_Time,'YYYY-MM-DD')
+    </sql>
+
+    <sql id="tptApprovalTime" databaseId="mysql">
+        date_format(Tpt_Approval_Time,'%Y-%m-%d')
+    </sql>
+
+
+    <sql id="explainStr" databaseId="dm">
+        wm_concat(Tpt_Explain) as explainStr
+    </sql>
+
+    <sql id="explainStr" databaseId="postgre">
+        string_agg(Tpt_Explain,',') as explainStr
+    </sql>
+
+    <sql id="explainStr" databaseId="mysql">
+          GROUP_CONCAT(Tpt_Explain Separator '    ') as explainStr
+    </sql>
+
+</mapper>

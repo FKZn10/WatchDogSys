@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.FundSchemeApplyMapper">
+
+    <select id="getFundSchemeApplyDtlAmtSumByConId" resultType="java.math.BigDecimal">
+      select
+      sum(dtl.Fsad_Current_Applied) as fsadCurAppliedCount
+      from  Fund_Scheme_Apply_Dtl dtl
+      left join  Fund_Scheme_Apply fsa on fsa.Fsa_Id=dtl.Fsa_Id
+      where fsa.Fsa_State=7
+      and dtl.Con_Id=#{conId}
+    </select>
+
+    <select id="getFundSchemeApplyAmtSumByPid" resultType="Map">
+    select
+    case when bdAuditAmtCount is null then 0 else bdAuditAmtCount end  as "bdAuditAmtCount",
+    case when fsaCurAppliedCount is null then 0 else fsaCurAppliedCount end as "fsaCurAppliedCount"
+    from (
+    select
+    (select sum(Bd_Audit_Amt) from  Inv_Budget_Declare where P_Id=#{pId} and Bd_State=7) as bdAuditAmtCount,
+    (select sum(Fsa_Current_Applied) from  Fund_Scheme_Apply where P_Id=#{pId} and Fsa_State=7) as fsaCurAppliedCount) a
+    </select>
+
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.FundSchemeApplyModel"
+               id="selectFundSchemeApplyById">
+        <id column="Fsa_Id" property="fsaId"/>
+        <collection property="schemeApplyDtlModels"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.FundSchemeApplyDtlModel"
+                    column="Fsa_Id" select="getFundSchemeApplyDtls">
+        </collection>
+    </resultMap>
+
+    <select id="getFundSchemeApplyDtls"
+            resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.FundSchemeApplyDtlModel">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        mn.*
+        from  Fund_Scheme_Apply_Dtl mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        where mn.Fsa_Id=#{fsaId}
+    </select>
+
+    <select id="getFundSchemeApplyById" resultMap="selectFundSchemeApplyById">
+        select
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        dep.D_Name as fsaApplyDepName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Fund_Scheme_Apply mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_Department dep on dep.D_Id=mn.Fsa_Apply_Department
+        left join  Sys_File f on f.FileID=mn.Fsa_Id
+        where mn.Fsa_Id=#{fsaId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.fsaState!=null">
+            and mn.Fsa_State=#{params.fsaState}
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.pName!=null">
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </if>
+            </otherwise>
+        </choose>
+        <if test="params.pCode!=null">
+            and pro.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.fsaCreateUname!=null">
+            and mn.Fsa_Create_Uname like concat('%',#{params.fsaCreateUname},'%')
+        </if>
+        <if test="params.fsaApplyDepName!=null">
+            and dep.D_Name like concat('%',#{params.fsaApplyDepName},'%')
+        </if>
+    </sql>
+
+    <select id="getFundSchemeApplyList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.FundSchemeApplyModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        dep.D_Name as fsaApplyDepName,
+        mn.*
+        from Fund_Scheme_Apply mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sys_Department dep on dep.D_Id=mn.Fsa_Apply_Department
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Fsa_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

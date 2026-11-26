@@ -1,0 +1,956 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.gmgws.mapper.InfrastrExcelMapper">
+
+
+    <select id="getContractList" resultType="com.jpmsoft.gmgws.pojo.vo.ContractTotlaVo">
+        select
+        con.con_id as conId,
+        con.con_name AS contractName,
+        con.con_code AS  contractCode,
+        ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) AS contractAmt,
+        pany.c_name AS companyName,
+        (SELECT SUM(cpaf_application) FROM Con_Pay_Apply_Flow ff WHERE ff.con_id = con.con_id and ff.State = '7' ) AS paymentAmtTotal,
+
+        CASE
+        WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0
+        THEN '0'
+        ELSE ROUND(COALESCE((SELECT SUM(cpaf_application) FROM Con_Pay_Apply_Flow ff
+        WHERE ff.con_id = con.con_id and ff.State = '7'), 0) / COALESCE((( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )), 1) * 100, 2)
+        END AS fkjindu,
+
+        app.sa_approved_amt as settlement
+        FROM Con_Contract con
+        LEFT JOIN con_pay pay ON pay.con_id = con.con_id
+        left join Inv_Settlement_Apply app  on con.con_id  =  app.con_id
+        left join sys_company pany on con.Con_Party_B_Id = pany.c_id
+        left join Con_Pay_Apply appl on appl.con_id = con.con_id
+        LEFT join Con_Pay_Apply_Flow flow on flow.con_id =con.con_id
+        <where>
+            flow.State = '7'
+            <if test="statisticsVo.contractName!=null and statisticsVo.contractName!=''">
+                and   con.con_name like '%${statisticsVo.contractName}%'
+            </if>
+            <if test="statisticsVo.companyName!=null and statisticsVo.companyName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.gmgws.config.XmlConfig@hsEnable()">
+                        and likeCname(#{statisticsVo.companyName},pany.c_id)=true
+                    </when>
+                    <otherwise>
+                        and   pany.c_name like '%${statisticsVo.companyName}%'
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="statisticsVo.contractNumber!=null and statisticsVo.contractNumber!=''">
+                and   con.con_code like '%${statisticsVo.contractNumber}%'
+            </if>
+
+
+            <if test="statisticsVo.paymentAmountStr!=null and statisticsVo.paymentAmountStr!='' and  (statisticsVo.paymentAmountEnd==null or statisticsVo.paymentAmountEnd=='') ">
+                AND (SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id AND ff.State = '7' )  &gt;= #{statisticsVo.paymentAmountStr}
+            </if>
+
+            <if test="(statisticsVo.paymentAmountStr == null or statisticsVo.paymentAmountStr) == '' and (statisticsVo.paymentAmountEnd != null and statisticsVo.paymentAmountEnd != '')">
+                AND (SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id AND ff.State = '7' )  &lt;= #{statisticsVo.paymentAmountEnd}
+            </if>
+
+            <if test="statisticsVo.paymentAmountStr!=null and statisticsVo.paymentAmountStr!='' and  statisticsVo.paymentAmountEnd!=null and statisticsVo.paymentAmountEnd!='' ">
+                AND (SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id AND ff.State = '7' ) BETWEEN #{statisticsVo.paymentAmountStr} AND #{statisticsVo.paymentAmountEnd}
+            </if>
+
+
+            <if test="statisticsVo.contractAmtStr!=null and statisticsVo.contractAmtStr!='' and  (statisticsVo.contractAmtEnd==null or statisticsVo.contractAmtEnd=='') ">
+                and ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  &gt;= #{statisticsVo.contractAmtStr}
+            </if>
+
+            <if test="(statisticsVo.contractAmtStr == null or statisticsVo.contractAmtStr) == '' and (statisticsVo.contractAmtEnd != null and statisticsVo.contractAmtEnd != '')">
+                and ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  &lt;= #{statisticsVo.contractAmtEnd}
+            </if>
+
+            <if test="statisticsVo.contractAmtStr!=null and statisticsVo.contractAmtStr!='' and  statisticsVo.contractAmtEnd!=null and statisticsVo.contractAmtEnd!='' ">
+                and ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  BETWEEN #{statisticsVo.contractAmtStr} AND #{statisticsVo.contractAmtEnd}
+            </if>
+
+
+            <if test="statisticsVo.paymentSpeedStr!=null and  statisticsVo.paymentSpeedStr!='' and  (statisticsVo.paymentSpeedEnd==null or statisticsVo.paymentSpeedEnd=='') ">
+                AND CASE
+                WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0 THEN '0'
+                ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id and ff.State = '7'), 0) / COALESCE(con.Con_Money_Total, 1) * 100, 2)
+                END &gt;= #{statisticsVo.paymentSpeedStr}
+            </if>
+
+            <if test="(statisticsVo.paymentSpeedStr==null or statisticsVo.paymentSpeedStr=='') and  (statisticsVo.paymentSpeedEnd!=null and statisticsVo.paymentSpeedEnd!='') ">
+                AND CASE
+                WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0 THEN '0'
+                ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id and ff.State = '7'), 0) / COALESCE(con.Con_Money_Total, 1) * 100, 2)
+                END &lt;= #{statisticsVo.paymentSpeedEnd}
+            </if>
+
+            <if test="statisticsVo.paymentSpeedStr!=null and statisticsVo.paymentSpeedStr!='' and  statisticsVo.paymentSpeedEnd!=null and statisticsVo.paymentSpeedEnd!='' ">
+                AND CASE
+                WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0 THEN '0'
+                ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id and ff.State = '7'), 0) / COALESCE(con.Con_Money_Total, 1) * 100, 2)
+                END BETWEEN #{statisticsVo.paymentSpeedStr} AND #{statisticsVo.paymentSpeedEnd}
+            </if>
+
+
+
+            <if test="statisticsVo.settlementStr!=null and statisticsVo.settlementStr!='' and  (statisticsVo.settlementEnd==null or statisticsVo.settlementEnd=='') ">
+                AND  app.sa_approved_amt
+                &gt;= #{statisticsVo.settlementStr}
+            </if>
+
+            <if test="(statisticsVo.settlementStr==null or statisticsVo.settlementStr=='') and  (statisticsVo.settlementEnd!=null and statisticsVo.settlementEnd!='') ">
+                AND  app.sa_approved_amt
+                &lt;= #{statisticsVo.settlementEnd}
+            </if>
+
+
+            <if test="statisticsVo.settlementStr!=null and statisticsVo.settlementStr!='' and  statisticsVo.settlementEnd!=null and statisticsVo.settlementEnd!='' ">
+                AND  app.sa_approved_amt
+                BETWEEN #{statisticsVo.settlementStr} AND #{statisticsVo.settlementEnd}
+            </if>
+
+        </where>
+        group by
+        con.con_id,
+        con.con_name,
+        con.con_code,
+        con.Con_Money_Total,
+        pany.c_name,
+        app.sa_approved_amt,app.sa_state_time
+        order by
+        con.con_name,
+        app.sa_state_time desc
+    </select>
+
+    <select id="getProjectList" resultType="com.jpmsoft.gmgws.pojo.vo.ContractTotlaVo">
+        SELECT
+        ject.p_id AS pId,
+        ject.p_name AS pName,
+        con.con_id,
+        con.con_name AS contractName,
+        con.con_code AS contractCode,
+        con.con_Create_User_Id as conCreateUserId,
+        con.con_Create_User_Name AS conCreateUserName,
+        ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) AS contractAmt,
+        pany.c_name AS companyName,
+        (SELECT SUM(cpaf_application) FROM Con_Pay_Apply_Flow ff WHERE ff.con_id = con.con_id and ff.State = '7' ) AS paymentAmtTotal,
+        CASE
+        WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0
+        THEN '0'
+        ELSE ROUND(COALESCE((SELECT SUM(cpaf_application) FROM Con_Pay_Apply_Flow ff
+        WHERE ff.con_id = con.con_id and ff.State = '7'), 0) / COALESCE(( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ), 1) * 100, 2)
+        END AS fkjindu
+        from Pre_Project ject
+        LEFT JOIN Con_Contract con ON ject.p_id = con.con_project_id
+        LEFT JOIN (
+        SELECT con_id, MAX(sa_state_time) AS sa_state_time
+        FROM Inv_Settlement_Apply
+        GROUP BY con_id
+        ) app ON con.con_id = app.con_id
+        LEFT JOIN con_pay pay ON pay.con_id = con.con_id
+        LEFT JOIN sys_company pany ON con.Con_Party_B_Id = pany.c_id
+        left join Con_Pay_Apply appl on appl.con_id = con.con_id
+        <where>
+            AND EXISTS (
+            SELECT 1
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = con.con_id
+            AND ff.State = '7'
+            ) and ject.p_id is not null
+            <if test="statisticsVo.contractName!=null and statisticsVo.contractName!=''">
+                and   con.con_name like '%${statisticsVo.contractName}%'
+            </if>
+            <if test="statisticsVo.companyName!=null and statisticsVo.companyName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.gmgws.config.XmlConfig@hsEnable()">
+                        and likeCname(#{statisticsVo.companyName},pany.c_id)=true
+                    </when>
+                    <otherwise>
+                        and   pany.c_name like '%${statisticsVo.companyName}%'
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="statisticsVo.contractNumber!=null and statisticsVo.contractNumber!=''">
+                and   con.con_code like '%${statisticsVo.contractNumber}%'
+            </if>
+            <if test="statisticsVo.projectName!=null and statisticsVo.projectName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.gmgws.config.XmlConfig@hsEnable()">
+                        and likePname(#{statisticsVo.projectName},ject.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and   ject.p_name like '%${statisticsVo.projectName}%'
+                    </otherwise>
+                </choose>
+            </if>
+
+
+            <if test="statisticsVo.paymentSpeedStr!=null and statisticsVo.paymentSpeedStr!='' and  (statisticsVo.paymentSpeedEnd==null or statisticsVo.paymentSpeedEnd=='') ">
+                AND CASE
+                WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0 THEN '0'
+                ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id and ff.State = '7'), 0) / COALESCE(con.Con_Money_Total, 1) * 100, 2)
+                END &gt;= #{statisticsVo.paymentSpeedStr}
+            </if>
+
+            <if test="(statisticsVo.paymentSpeedStr==null or statisticsVo.paymentSpeedStr=='') and  (statisticsVo.paymentSpeedEnd!=null and statisticsVo.paymentSpeedEnd!='') ">
+                AND CASE
+                WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0 THEN '0'
+                ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id and ff.State = '7'), 0) / COALESCE(con.Con_Money_Total, 1) * 100, 2)
+                END &lt;= #{statisticsVo.paymentSpeedEnd}
+            </if>
+
+
+            <if test="statisticsVo.paymentSpeedStr!=null and statisticsVo.paymentSpeedStr!='' and  statisticsVo.paymentSpeedEnd!=null and statisticsVo.paymentSpeedEnd!='' ">
+                AND CASE
+                WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0 THEN '0'
+                ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id and ff.State = '7'), 0) / COALESCE(con.Con_Money_Total, 1) * 100, 2)
+                END BETWEEN #{statisticsVo.paymentSpeedStr} AND #{statisticsVo.paymentSpeedEnd}
+            </if>
+
+
+
+            <if test="statisticsVo.contractAmtStr!=null and statisticsVo.contractAmtStr!='' and  (statisticsVo.contractAmtEnd==null or statisticsVo.contractAmtEnd=='') ">
+                and ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  &gt;=  #{statisticsVo.contractAmtStr}
+            </if>
+
+
+            <if test="(statisticsVo.contractAmtStr==null or statisticsVo.contractAmtStr=='') and  (statisticsVo.contractAmtEnd!=null and statisticsVo.contractAmtEnd!='') ">
+                and ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  &lt;= #{statisticsVo.contractAmtEnd}
+            </if>
+
+            <if test="statisticsVo.contractAmtStr!=null and statisticsVo.contractAmtStr!='' and  statisticsVo.contractAmtEnd!=null and statisticsVo.contractAmtEnd!='' ">
+                and ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  BETWEEN #{statisticsVo.contractAmtStr} AND #{statisticsVo.contractAmtEnd}
+            </if>
+
+
+
+            <if test="statisticsVo.paymentAmountStr!=null and statisticsVo.paymentAmountStr!='' and  (statisticsVo.paymentAmountEnd==null or statisticsVo.paymentAmountEnd=='') ">
+                AND (SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id AND ff.State = '7') &gt;= #{statisticsVo.paymentAmountStr}
+            </if>
+
+            <if test="(statisticsVo.paymentAmountStr==null or statisticsVo.paymentAmountStr=='') and  (statisticsVo.paymentAmountEnd!=null and statisticsVo.paymentAmountEnd!='') ">
+                AND (SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id AND ff.State = '7') &lt;= #{statisticsVo.paymentAmountEnd}
+            </if>
+
+            <if test="statisticsVo.paymentAmountStr!=null and statisticsVo.paymentAmountStr!='' and  statisticsVo.paymentAmountEnd!=null and statisticsVo.paymentAmountEnd!='' ">
+                AND (SELECT SUM(cpaf_application)
+                FROM Con_Pay_Apply_Flow ff
+                WHERE ff.con_id = con.con_id AND ff.State = '7') BETWEEN #{statisticsVo.paymentAmountStr} AND #{statisticsVo.paymentAmountEnd}
+            </if>
+        </where>
+        group by
+        ject.p_id,
+        ject.p_name,
+        con.con_id,
+        con.con_name,
+        con.con_code,
+        con.Con_Money_Total,
+        con.con_Create_User_Id,
+        con.con_Create_User_Name,
+        pany.c_name,app.sa_state_time
+        order by
+        ject.p_name,
+        app.sa_state_time desc
+    </select>
+
+    <select id="getProjectAuthenticationList" resultType="com.jpmsoft.gmgws.pojo.vo.ContractTotlaVo">
+        SELECT
+        ject.p_id AS pId,
+        ject.p_name AS pName,
+        mn.con_id,
+        mn.con_name AS contractName,
+        mn.con_code AS contractCode,
+        total.contractAmt AS contractAmt,
+        pany.c_name AS companyName,
+        payTotal.paymentAmtTotal AS paymentAmtTotal,
+        CASE
+        WHEN total.contractAmt = 0 THEN 0
+        ELSE ROUND(COALESCE(payTotal.paymentAmtTotal, 0) / NULLIF(total.contractAmt, 0) * 100, 2)
+        END AS fkjindu
+        from Pre_Project ject
+        LEFT JOIN Con_Contract mn ON ject.p_id = mn.con_project_id
+        LEFT JOIN (
+        SELECT
+        c.con_id,
+        ( c.Con_Money_Total + COALESCE(sup.sup_change_amt, 0) ) AS contractAmt
+        FROM Con_Contract c
+        LEFT JOIN (
+        SELECT
+        cc.Con_Master_Con_Id AS con_id,
+        SUM(CASE
+        WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money
+        WHEN cc.Con_Sup_Change_Mon_Type = 0 THEN -cc.Con_Sup_Change_Money
+        ELSE 0 END) AS sup_change_amt
+        FROM Con_Contract cc
+        WHERE cc.Con_Sup = '是'
+        AND cc.Con_Master_Con_Id IS NOT NULL
+        AND cc.Con_Approval_State = 7
+        GROUP BY cc.Con_Master_Con_Id
+        ) sup ON sup.con_id = c.con_id
+        ) total ON mn.con_id = total.con_id
+        LEFT JOIN (
+        SELECT
+        ff.con_id,
+        SUM(ff.cpaf_application) AS paymentAmtTotal
+        FROM Con_Pay_Apply_Flow ff
+        WHERE ff.State = '7'
+        GROUP BY ff.con_id
+        ) payTotal ON payTotal.con_id = mn.con_id
+        LEFT JOIN (
+        SELECT con_id, MAX(sa_approved_amt) sa_approved_amt, MAX(sa_state_time) sa_state_time
+        FROM Inv_Settlement_Apply
+        GROUP BY con_id
+        ) app ON mn.con_id = app.con_id
+        LEFT JOIN sys_company pany ON mn.Con_Party_B_Id = pany.c_id
+        ${authSql}
+        and mn.con_id is not null
+        AND mn.con_Type NOT IN ('07','0701','0702','0703')
+        AND mn.Con_Approval_State = 7
+        <if test="statisticsVo.contractName!=null and statisticsVo.contractName!=''">
+            and   mn.con_name like '%${statisticsVo.contractName}%'
+        </if>
+        <if test="statisticsVo.companyName!=null and statisticsVo.companyName!=''">
+            <choose>
+                <when test="@com.jpmsoft.gmgws.config.XmlConfig@hsEnable()">
+                    and likeCname(#{statisticsVo.companyName},pany.c_id)=true
+                </when>
+                <otherwise>
+                    and   pany.c_name like '%${statisticsVo.companyName}%'
+                </otherwise>
+            </choose>
+        </if>
+        <if test="statisticsVo.contractNumber!=null and statisticsVo.contractNumber!=''">
+            and   mn.con_code like '%${statisticsVo.contractNumber}%'
+        </if>
+        <if test="statisticsVo.projectName!=null and statisticsVo.projectName!=''">
+            <choose>
+                <when test="@com.jpmsoft.gmgws.config.XmlConfig@hsEnable()">
+                    and likePname(#{statisticsVo.projectName},ject.p_id)=true
+                </when>
+                <otherwise>
+                    and   ject.p_name like '%${statisticsVo.projectName}%'
+                </otherwise>
+            </choose>
+        </if>
+
+        <if test="statisticsVo.paymentSpeedStr!=null and  statisticsVo.paymentSpeedEnd==null ">
+            AND CASE
+            WHEN total.contractAmt = 0 THEN 0
+            ELSE ROUND(COALESCE(payTotal.paymentAmtTotal, 0) / NULLIF(total.contractAmt, 0) * 100, 2)
+            END &gt;= #{statisticsVo.paymentSpeedStr}
+        </if>
+
+        <if test="statisticsVo.paymentSpeedStr==null and  statisticsVo.paymentSpeedEnd!=null ">
+            AND CASE
+            WHEN total.contractAmt = 0 THEN 0
+            ELSE ROUND(COALESCE(payTotal.paymentAmtTotal, 0) / NULLIF(total.contractAmt, 0) * 100, 2)
+            END &lt;= #{statisticsVo.paymentSpeedEnd}
+        </if>
+
+        <if test="statisticsVo.paymentSpeedStr!=null and  statisticsVo.paymentSpeedEnd!=null ">
+            AND CASE
+            WHEN total.contractAmt = 0 THEN 0
+            ELSE ROUND(COALESCE(payTotal.paymentAmtTotal, 0) / NULLIF(total.contractAmt, 0) * 100, 2)
+            END BETWEEN #{statisticsVo.paymentSpeedStr} AND #{statisticsVo.paymentSpeedEnd}
+        </if>
+
+        <if test="statisticsVo.contractAmtStr!=null and statisticsVo.contractAmtStr!='' and  (statisticsVo.contractAmtEnd==null or statisticsVo.contractAmtEnd=='') ">
+            and total.contractAmt &gt;=  #{statisticsVo.contractAmtStr}
+        </if>
+
+        <if test="(statisticsVo.contractAmtStr==null or statisticsVo.contractAmtStr=='') and  (statisticsVo.contractAmtEnd!=null and statisticsVo.contractAmtEnd!='') ">
+            and total.contractAmt &lt;= #{statisticsVo.contractAmtEnd}
+        </if>
+
+        <if test="statisticsVo.contractAmtStr!=null and statisticsVo.contractAmtStr!='' and  statisticsVo.contractAmtEnd!=null and statisticsVo.contractAmtEnd!='' ">
+            and total.contractAmt BETWEEN #{statisticsVo.contractAmtStr} AND #{statisticsVo.contractAmtEnd}
+        </if>
+
+        <if test="statisticsVo.paymentAmountStr!=null and statisticsVo.paymentAmountStr!='' and  (statisticsVo.paymentAmountEnd==null or statisticsVo.paymentAmountEnd=='') ">
+            AND COALESCE(payTotal.paymentAmtTotal,0) &gt;= #{statisticsVo.paymentAmountStr}
+        </if>
+
+        <if test="(statisticsVo.paymentAmountStr==null or statisticsVo.paymentAmountStr=='') and  (statisticsVo.paymentAmountEnd!=null and statisticsVo.paymentAmountEnd!='') ">
+            AND COALESCE(payTotal.paymentAmtTotal,0) &lt;= #{statisticsVo.paymentAmountEnd}
+        </if>
+
+        <if test="statisticsVo.paymentAmountStr!=null and statisticsVo.paymentAmountStr!='' and  statisticsVo.paymentAmountEnd!=null and statisticsVo.paymentAmountEnd!='' ">
+            AND COALESCE(payTotal.paymentAmtTotal,0) BETWEEN #{statisticsVo.paymentAmountStr} AND #{statisticsVo.paymentAmountEnd}
+        </if>
+
+        <!-- 结算金额 -->
+        <if test="statisticsVo.settlementStr!=null and statisticsVo.settlementStr!=''">
+            AND COALESCE(app.sa_approved_amt,0) &gt;= #{statisticsVo.settlementStr}
+        </if>
+        <if test="statisticsVo.settlementEnd!=null and statisticsVo.settlementEnd!=''">
+            AND COALESCE(app.sa_approved_amt,0) &lt;= #{statisticsVo.settlementEnd}
+        </if>
+
+        group by
+        ject.p_id,
+        ject.p_name,
+        mn.con_id,
+        mn.con_name,
+        mn.con_code,
+        total.contractAmt,
+        pany.c_name,
+        payTotal.paymentAmtTotal,
+        app.sa_state_time
+
+        ORDER BY
+        mn.con_name ASC
+    </select>
+
+    <select id="getProjectAuthenticationListOriginal" resultType="com.jpmsoft.gmgws.pojo.vo.ContractTotlaVo">
+        SELECT
+        ject.p_id AS pId,
+        ject.p_name AS pName,
+        mn.con_id,
+        mn.con_name AS contractName,
+        mn.con_code AS contractCode,
+        ( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) ) AS contractAmt,
+        pany.c_name AS companyName,
+        (SELECT SUM(cpaf_application) FROM Con_Pay_Apply_Flow ff WHERE ff.con_id = mn.con_id and ff.State = '7' ) AS paymentAmtTotal,
+        -- 修复：防除0，分母用 NULLIF(xxx,0)，如果为0则返回NULL，不会报错
+        CASE
+        WHEN ( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) ) = 0
+        THEN 0
+        ELSE ROUND(COALESCE((SELECT SUM(cpaf_application) FROM Con_Pay_Apply_Flow ff
+        WHERE ff.con_id = mn.con_id and ff.State = '7'), 0)
+        / NULLIF(( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) ), 0) * 100, 2)
+        END AS fkjindu
+        from Pre_Project ject
+        LEFT JOIN Con_Contract mn ON ject.p_id = mn.con_project_id
+        LEFT JOIN (
+        SELECT con_id, MAX(sa_approved_amt) sa_approved_amt, MAX(sa_state_time) sa_state_time
+        FROM Inv_Settlement_Apply
+        GROUP BY con_id
+        ) app ON mn.con_id = app.con_id
+        LEFT JOIN con_pay pay ON pay.con_id = mn.con_id
+        LEFT JOIN sys_company pany ON mn.Con_Party_B_Id = pany.c_id
+        left join Con_Pay_Apply appl on appl.con_id = mn.con_id
+        LEFT join Con_Pay_Apply_Flow flow on flow.con_id =mn.con_id
+        ${authSql}
+        and mn.con_id is not null
+        AND mn.con_Type NOT IN ('07','0701','0702','0703')
+        AND mn.Con_Approval_State = 7
+        <if test="statisticsVo.contractName!=null and statisticsVo.contractName!=''">
+            and   mn.con_name like '%${statisticsVo.contractName}%'
+        </if>
+        <if test="statisticsVo.companyName!=null and statisticsVo.companyName!=''">
+            <choose>
+                <when test="@com.jpmsoft.gmgws.config.XmlConfig@hsEnable()">
+                    and likeCname(#{statisticsVo.companyName},pany.c_id)=true
+                </when>
+                <otherwise>
+                    and   pany.c_name like '%${statisticsVo.companyName}%'
+                </otherwise>
+            </choose>
+        </if>
+        <if test="statisticsVo.contractNumber!=null and statisticsVo.contractNumber!=''">
+            and   mn.con_code like '%${statisticsVo.contractNumber}%'
+        </if>
+        <if test="statisticsVo.projectName!=null and statisticsVo.projectName!=''">
+            <choose>
+                <when test="@com.jpmsoft.gmgws.config.XmlConfig@hsEnable()">
+                    and likePname(#{statisticsVo.projectName},ject.p_id)=true
+                </when>
+                <otherwise>
+                    and   ject.p_name like '%${statisticsVo.projectName}%'
+                </otherwise>
+            </choose>
+        </if>
+
+        <if test="statisticsVo.paymentSpeedStr!=null and  statisticsVo.paymentSpeedEnd==null ">
+            AND CASE
+            WHEN ( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) ) = 0 THEN 0
+            ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = mn.con_id and ff.State = '7'), 0)
+            / NULLIF(( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) ), 0) * 100, 2)
+            END &gt;= #{statisticsVo.paymentSpeedStr}
+        </if>
+
+        <if test="statisticsVo.paymentSpeedStr==null and  statisticsVo.paymentSpeedEnd!=null ">
+            AND CASE
+            WHEN ( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) ) = 0 THEN 0
+            ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = mn.con_id and ff.State = '7'), 0)
+            / NULLIF(( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) ), 0) * 100, 2)
+            END &lt;= #{statisticsVo.paymentSpeedEnd}
+        </if>
+
+        <if test="statisticsVo.paymentSpeedStr!=null and  statisticsVo.paymentSpeedEnd!=null ">
+            AND CASE
+            WHEN ( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) ) = 0 THEN 0
+            ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = mn.con_id and ff.State = '7'), 0)
+            / NULLIF(( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) ), 0) * 100, 2)
+            END BETWEEN #{statisticsVo.paymentSpeedStr} AND #{statisticsVo.paymentSpeedEnd}
+        </if>
+
+        <if test="statisticsVo.contractAmtStr!=null and statisticsVo.contractAmtStr!='' and  (statisticsVo.contractAmtEnd==null or statisticsVo.contractAmtEnd=='') ">
+            and ( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) )  &gt;=  #{statisticsVo.contractAmtStr}
+        </if>
+
+        <if test="(statisticsVo.contractAmtStr==null or statisticsVo.contractAmtStr=='') and  (statisticsVo.contractAmtEnd!=null and statisticsVo.contractAmtEnd!='') ">
+            and ( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) )  &lt;= #{statisticsVo.contractAmtEnd}
+        </if>
+
+        <if test="statisticsVo.contractAmtStr!=null and statisticsVo.contractAmtStr!='' and  statisticsVo.contractAmtEnd!=null and statisticsVo.contractAmtEnd!='' ">
+            and ( mn.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = mn.con_id), 0 ) )  BETWEEN #{statisticsVo.contractAmtStr} AND #{statisticsVo.contractAmtEnd}
+        </if>
+
+        <if test="statisticsVo.paymentAmountStr!=null and statisticsVo.paymentAmountStr!='' and  (statisticsVo.paymentAmountEnd==null or statisticsVo.paymentAmountEnd=='') ">
+            AND COALESCE((SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = mn.con_id AND ff.State = '7'),0) &gt;= #{statisticsVo.paymentAmountStr}
+        </if>
+
+        <if test="(statisticsVo.paymentAmountStr==null or statisticsVo.paymentAmountStr=='') and  (statisticsVo.paymentAmountEnd!=null and statisticsVo.paymentAmountEnd!='') ">
+            AND COALESCE((SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = mn.con_id AND ff.State = '7'),0) &lt;= #{statisticsVo.paymentAmountEnd}
+        </if>
+
+        <if test="statisticsVo.paymentAmountStr!=null and statisticsVo.paymentAmountStr!='' and  statisticsVo.paymentAmountEnd!=null and statisticsVo.paymentAmountEnd!='' ">
+            AND COALESCE((SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = mn.con_id AND ff.State = '7'),0) BETWEEN #{statisticsVo.paymentAmountStr} AND #{statisticsVo.paymentAmountEnd}
+        </if>
+
+        <!-- 结算金额 -->
+        <if test="statisticsVo.settlementStr!=null and statisticsVo.settlementStr!=''">
+            AND COALESCE(app.sa_approved_amt,0) &gt;= #{statisticsVo.settlementStr}
+        </if>
+        <if test="statisticsVo.settlementEnd!=null and statisticsVo.settlementEnd!=''">
+            AND COALESCE(app.sa_approved_amt,0) &lt;= #{statisticsVo.settlementEnd}
+        </if>
+
+        group by
+        ject.p_id,
+        ject.p_name,
+        mn.con_id,
+        mn.con_name,
+        mn.con_code,
+        mn.Con_Money_Total,
+        pany.c_name,
+        app.sa_state_time
+        order by
+        ject.p_name,
+        app.sa_state_time desc
+        </select>
+
+
+    <!--    弃用-->
+    <select id="getContractLedgerList" resultType="com.jpmsoft.gmgws.pojo.vo.ContractTotlaVo">
+        select
+        con.con_id as conId,
+        con.con_name as contractName,
+        con.con_code AS contractCode,
+        ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) AS contractAmt,
+        pany.c_name AS companyName, (SELECT SUM(cpaf_application) FROM Con_Pay_Apply_Flow ff WHERE
+        ff.con_id = con.con_id and ff.State = '7' ) AS paymentAmtTotal,
+        CASE WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0 THEN '0'
+        ELSE ROUND(COALESCE((SELECT SUM(cpaf_application) FROM Con_Pay_Apply_Flow ff
+        WHERE ff.con_id = con.con_id and ff.State = '7'),0) / COALESCE((( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) ),1) * 100,2) END AS fkjindu,
+        app.sa_approved_amt as settlement
+        from
+        Con_Contract con
+        left join Con_Pay_Apply appl on appl.con_id = con.con_id
+        LEFT join Con_Pay_Apply_Flow flow on flow.con_id = con.con_id
+        LEFT JOIN con_pay pay ON pay.con_id = con.con_id
+        LEFT JOIN sys_company pany ON con.Con_Party_B_Id = pany.c_id
+        left join Inv_Settlement_Apply app on con.con_id = app.con_id
+        where
+        flow.State = '7'
+        and app.sa_state = '7'
+
+        <if test="statisticsVo.contractName!=null and statisticsVo.contractName!=''">
+            and   con.con_name like concat('%',#{statisticsVo.contractName},'%')
+
+        </if>
+        <if test="statisticsVo.companyName!=null and statisticsVo.companyName!=''">
+            and   pany.c_name like concat('%',#{statisticsVo.companyName},'%')
+        </if>
+        <if test="statisticsVo.contractNumber!=null and statisticsVo.contractNumber!=''">
+            and   con.con_code like concat('%',#{statisticsVo.contractNumber},'%')
+        </if>
+
+        <if test="statisticsVo.contractAmtStr!=null and statisticsVo.contractAmtStr!='' and  (statisticsVo.contractAmtEnd==null or statisticsVo.contractAmtEnd=='') ">
+            and ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  &gt;= #{statisticsVo.contractAmtStr}
+        </if>
+
+        <if test="(statisticsVo.contractAmtStr == null or statisticsVo.contractAmtStr) == '' and (statisticsVo.contractAmtEnd != null and statisticsVo.contractAmtEnd != '')">
+            and ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) &lt;= #{statisticsVo.contractAmtEnd}
+        </if>
+
+        <if test="statisticsVo.contractAmtStr!=null and statisticsVo.contractAmtStr!='' and  statisticsVo.contractAmtEnd!=null and statisticsVo.contractAmtEnd!='' ">
+            and ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) BETWEEN #{statisticsVo.contractAmtStr} AND #{statisticsVo.contractAmtEnd}
+        </if>
+
+
+        <if test="statisticsVo.paymentAmountStr!=null and statisticsVo.paymentAmountStr!='' and  (statisticsVo.paymentAmountEnd==null or statisticsVo.paymentAmountEnd=='') ">
+            AND (SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = con.con_id AND ff.State = '7') &gt;= #{statisticsVo.paymentAmountStr}
+        </if>
+
+        <if test="(statisticsVo.paymentAmountStr==null or statisticsVo.paymentAmountStr=='') and  (statisticsVo.paymentAmountEnd!=null and statisticsVo.paymentAmountEnd!='') ">
+            AND (SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = con.con_id AND ff.State = '7') &lt;= #{statisticsVo.paymentAmountEnd}
+        </if>
+
+        <if test="statisticsVo.paymentAmountStr!=null and statisticsVo.paymentAmountStr!='' and  statisticsVo.paymentAmountEnd!=null and statisticsVo.paymentAmountEnd!='' ">
+            AND (SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = con.con_id AND ff.State = '7') BETWEEN #{statisticsVo.paymentAmountStr} AND #{statisticsVo.paymentAmountEnd}
+        </if>
+
+
+        <if test="statisticsVo.paymentSpeedStr!=null and  statisticsVo.paymentSpeedStr!='' and  (statisticsVo.paymentSpeedEnd==null or statisticsVo.paymentSpeedEnd=='') ">
+            AND CASE
+            WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0 THEN '0'
+            ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = con.con_id and ff.State = '7'), 0) / COALESCE(con.Con_Money_Total, 1) * 100, 2)
+            END &gt;= #{statisticsVo.paymentSpeedStr}
+        </if>
+
+        <if test="(statisticsVo.paymentSpeedStr==null or statisticsVo.paymentSpeedStr=='') and  (statisticsVo.paymentSpeedEnd!=null and statisticsVo.paymentSpeedEnd!='') ">
+            AND CASE
+            WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0 THEN '0'
+            ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = con.con_id and ff.State = '7'), 0) / COALESCE(con.Con_Money_Total, 1) * 100, 2)
+            END &lt;= #{statisticsVo.paymentSpeedEnd}
+        </if>
+
+        <if test="statisticsVo.paymentSpeedStr!=null and statisticsVo.paymentSpeedStr!='' and  statisticsVo.paymentSpeedEnd!=null and statisticsVo.paymentSpeedEnd!='' ">
+            AND CASE
+            WHEN con.Con_Money_Total IS NULL OR con.Con_Money_Total = 0 THEN '0'
+            ELSE ROUND(COALESCE((SELECT SUM(cpaf_application)
+            FROM Con_Pay_Apply_Flow ff
+            WHERE ff.con_id = con.con_id and ff.State = '7'), 0) / COALESCE(con.Con_Money_Total, 1) * 100, 2)
+            END BETWEEN #{statisticsVo.paymentSpeedStr} AND #{statisticsVo.paymentSpeedEnd}
+        </if>
+
+        <if test="statisticsVo.settlementStr!=null and statisticsVo.settlementStr!='' and  (statisticsVo.settlementEnd==null or statisticsVo.settlementEnd=='') ">
+            AND  app.sa_approved_amt
+            &gt;= #{statisticsVo.settlementStr}
+        </if>
+
+        <if test="(statisticsVo.settlementStr==null or statisticsVo.settlementStr=='') and  (statisticsVo.settlementEnd!=null and statisticsVo.settlementEnd!='') ">
+            AND  app.sa_approved_amt
+            &lt;= #{statisticsVo.settlementEnd}
+        </if>
+
+        <if test="statisticsVo.settlementStr!=null and statisticsVo.settlementStr!='' and  statisticsVo.settlementEnd!=null and statisticsVo.settlementEnd!='' ">
+            AND  app.sa_approved_amt
+            BETWEEN #{statisticsVo.settlementStr} AND #{statisticsVo.settlementEnd}
+        </if>
+
+
+        GROUP BY
+        con.con_id,
+        con.con_name,
+        con.con_code,
+        con.Con_Money_Total,
+        pany.c_name,
+        app.sa_approved_amt
+    </select>
+
+    <select id="getCapitalPaymentList" resultType="com.jpmsoft.gmgws.pojo.vo.ContractTotlaVo">
+        SELECT
+            P_Id AS pId,
+            P_Name AS pName
+        FROM
+            (
+                SELECT
+                    pre_project.P_Id,
+                    pre_project.P_Name
+                FROM
+                    pre_project
+                        LEFT JOIN inv_project_plan ON pre_project.P_ID = inv_project_plan.P_Id
+                        LEFT JOIN inv_fund_release ON inv_fund_release.Ifr_Id = inv_project_plan.Ifr_Id
+                WHERE
+                    inv_project_plan.P_Id IS NOT NULL
+                  AND inv_fund_release.State = 7
+            <if test="statisticsVo.projectName!=null and statisticsVo.projectName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.gmgws.config.XmlConfig@hsEnable()">
+                        and  likePname(#{statisticsVo.projectName},pre_project.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and   pre_project.P_Name like concat('%',#{statisticsVo.projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            ) tq
+        GROUP BY
+            P_Id,
+            P_Name
+    </select>
+
+    <!--    查询前一天的已审批的数据-->
+    <select id="getContractAdopt" resultType="com.jpmsoft.gmgws.pojo.vo.ContractVo">
+
+        select pay.Pay_Create_Uid as createUid,pay.Pay_Create_Uname as createUname,pay.Pay_Create_Time as createTime,
+               pay.Pay_State as  state , pay.Pay_State_Time as stateTime, pay.con_id as conId ,
+               ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                   cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                                                  FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                                                      cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) AS contractAmt, con.Con_Pay_Clause as csPaymentMethod,
+               con.Con_Lower_Rate as csSettlemenDowngrading
+        from Con_Contract con
+                 left join Con_Pay pay on con.con_id = pay.Con_Id
+        where pay.Pay_State = 7 and con.Con_Approval_State = 7
+          AND TRUNC(pay.Pay_State_Time) = CURRENT_DATE - INTERVAL '1' DAY
+    </select>
+
+    <select id="getContract" resultType="com.jpmsoft.gmgws.pojo.vo.ContractVo">
+        SELECT
+            con.Con_Create_User_Id as createUid,
+            con.Con_Create_User_Name as createUname,
+            con.Con_Create_Time as createTime,
+            con.Con_Approval_State as state,
+            con.Con_Approval_Time as stateTime,
+            con.con_id as conId,
+            con.Con_Money_Total as csMoney ,
+            con.Con_Pay_Clause as csPaymentMethod
+        FROM
+            con_contract con
+                LEFT JOIN Contract_Statistics cs ON con.con_id = cs.con_id
+        WHERE
+            cs.con_id IS NULL
+          AND con.Con_Approval_State = 7
+    </select>
+
+
+    <select id="getContractStatisticsList" resultType="com.jpmsoft.gmgws.pojo.vo.ContractTotlaVo">
+        SELECT
+        pp.p_Name AS pName,
+        mn.con_id as conId,
+        mn.con_name AS contractName,
+        mn.con_code AS contractCode,
+        mn.con_Create_User_Id as conCreateUserId,
+        mn.con_Create_User_Name AS conCreateUserName,
+        total.contractAmt,
+        pany.c_name AS companyName,
+        total.paymentAmtTotal,
+        mn.con_Type AS conType,
+        CASE
+        WHEN total.contractAmt = 0 THEN 0.00
+        ELSE ROUND(total.paymentAmtTotal / total.contractAmt * 100, 2)
+        END AS fkjindu,
+        COALESCE(app.sa_approved_amt, 0) as settlement
+        FROM Con_Contract mn
+        left join pre_project pp ON mn.con_project_id = pp.p_id
+        LEFT JOIN sys_company pany ON mn.Con_Party_B_Id = pany.c_id
+
+        LEFT JOIN (
+        SELECT
+        c.con_id,
+        (c.Con_Money_Total + COALESCE((
+        SELECT SUM(CASE
+        WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money
+        WHEN cc.Con_Sup_Change_Mon_Type = 0 THEN -cc.Con_Sup_Change_Money
+        ELSE 0 END)
+        FROM Con_Contract cc
+        WHERE cc.Con_Sup = '是'
+        AND cc.Con_Master_Con_Id = c.con_id
+        AND cc.Con_Approval_State = 7
+        ), 0)) AS contractAmt,
+        COALESCE((
+        SELECT SUM(ff.cpaf_application)
+        FROM Con_Pay_Apply_Flow ff
+        WHERE ff.con_id = c.con_id
+        AND ff.State = '7'
+        ), 0) AS paymentAmtTotal
+        FROM Con_Contract c
+        ) total ON mn.con_id = total.con_id
+
+        LEFT JOIN (
+        SELECT con_id, MAX(sa_approved_amt) sa_approved_amt
+        FROM Inv_Settlement_Apply
+        GROUP BY con_id
+        ) app ON mn.con_id = app.con_id
+
+        ${authSql}
+        AND mn.Con_Approval_State = 7
+        AND mn.con_Type NOT IN ('07','0701','0702','0703')
+        <if test="statisticsVo.contractName!=null and statisticsVo.contractName!=''">
+            AND mn.con_name LIKE '%' || #{statisticsVo.contractName} || '%'
+        </if>
+        <if test="statisticsVo.companyName!=null and statisticsVo.companyName!=''">
+            <choose>
+                <when test="@com.jpmsoft.gmgws.config.XmlConfig@hsEnable()">
+                    AND likeCname(#{statisticsVo.companyName}, pany.c_id)=true
+                </when>
+                <otherwise>
+                    AND pany.c_name LIKE '%' || #{statisticsVo.companyName} || '%'
+                </otherwise>
+            </choose>
+        </if>
+        <if test="statisticsVo.contractNumber!=null and statisticsVo.contractNumber!=''">
+            AND mn.con_code LIKE '%' || #{statisticsVo.contractNumber} || '%'
+        </if>
+
+        <!-- 付款金额 -->
+        <if test="statisticsVo.paymentAmountStr!=null and statisticsVo.paymentAmountStr!=''">
+            AND total.paymentAmtTotal &gt;= #{statisticsVo.paymentAmountStr}
+        </if>
+        <if test="statisticsVo.paymentAmountEnd!=null and statisticsVo.paymentAmountEnd!=''">
+            AND total.paymentAmtTotal &lt;= #{statisticsVo.paymentAmountEnd}
+        </if>
+
+        <!-- 合同金额 -->
+        <if test="statisticsVo.contractAmtStr!=null and statisticsVo.contractAmtStr!=''">
+            AND total.contractAmt &gt;= #{statisticsVo.contractAmtStr}
+        </if>
+        <if test="statisticsVo.contractAmtEnd!=null and statisticsVo.contractAmtEnd!=''">
+            AND total.contractAmt &lt;= #{statisticsVo.contractAmtEnd}
+        </if>
+
+        <!-- 付款进度 -->
+        <if test="statisticsVo.paymentSpeedStr != null">
+            AND (CASE WHEN total.contractAmt = 0 THEN 0.00 ELSE ROUND(total.paymentAmtTotal / total.contractAmt * 100, 2) END) &gt;= #{statisticsVo.paymentSpeedStr}
+        </if>
+        <if test="statisticsVo.paymentSpeedEnd != null">
+            AND (CASE WHEN total.contractAmt = 0 THEN 0.00 ELSE ROUND(total.paymentAmtTotal / total.contractAmt * 100, 2) END) &lt;= #{statisticsVo.paymentSpeedEnd}
+        </if>
+
+        <!-- 结算金额 -->
+        <if test="statisticsVo.settlementStr!=null and statisticsVo.settlementStr!=''">
+            AND COALESCE(app.sa_approved_amt,0) &gt;= #{statisticsVo.settlementStr}
+        </if>
+        <if test="statisticsVo.settlementEnd!=null and statisticsVo.settlementEnd!=''">
+            AND COALESCE(app.sa_approved_amt,0) &lt;= #{statisticsVo.settlementEnd}
+        </if>
+
+        GROUP BY
+        pp.p_Name,
+        mn.con_id,
+        mn.con_name,
+        mn.con_code,
+        mn.Con_Create_User_Id,
+        mn.Con_Create_User_Name,
+        contractAmt,
+        paymentAmtTotal,
+        pany.c_name,
+        sa_approved_amt,
+        mn.con_Type
+
+        ORDER BY
+        pp.p_Name ASC
+
+        </select>
+</mapper>

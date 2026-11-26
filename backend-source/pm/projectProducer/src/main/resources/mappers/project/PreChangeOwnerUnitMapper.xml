@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreChangeOwnerUnitMapper">
+    <select id="getChangeOwnerUnitByPprcId" resultType="com.jpmsoft.common.model.request.project.PreChangeOwnerUnitDTO">
+        select
+        pcou.id,
+        pcou.order_number,
+        pcou.owner_unit,
+        ou.C_Name as ownerUnitName,
+        pcou.project_manger,
+        pmu.U_Name as projectMangerName,
+        pcou.project_leader,
+        plu.U_Name as projectLeaderName,
+        pcou.remark
+        from pre_change_owner_unit pcou
+        left join sys_company ou on ou.C_ID = pcou.owner_unit
+        left join sys_user pmu on pmu.U_ID = pcou.project_manger
+        left join sys_user plu on plu.U_ID = pcou.project_leader
+        where pcou.pprc_id = #{pprcId}
+        order by order_number asc
+    </select>
+</mapper>

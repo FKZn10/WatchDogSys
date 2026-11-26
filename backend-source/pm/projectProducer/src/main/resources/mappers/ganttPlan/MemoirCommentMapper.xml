@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.ganttPlan.MemoirCommentMapper">
+
+    <select id="selectByMiIds" resultType="com.jpmsoft.projectProducer.pojo.dto.ganttPlan.MemoirCommentDTO">
+        select
+            c1.c_name as mcCpyName,
+            mn.*
+        from memoir_comment mn
+        left join Sys_Company c1 on c1.c_id=mn.mc_cpy
+        where mn.mi_id in
+        <foreach collection="miIds" separator="," item="miId" open="(" close=")">
+            #{miId}
+        </foreach>
+        order by mn.mc_sort asc
+    </select>
+</mapper>

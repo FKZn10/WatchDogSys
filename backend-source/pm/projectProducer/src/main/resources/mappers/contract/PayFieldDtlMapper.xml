@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.PayFieldDtlMapper">
+
+    <select id="getPayFieldDtlByPayId"
+            resultType="com.jpmsoft.common.model.response.pay.PayFieldDtlVo">
+        select
+        spf.Pf_Name as pfName,
+        spf.Pf_Code as pfCode,
+        spf.Pf_Formula as pfFormula,
+        spf.Pf_Verification as  pfVerification,
+        spf.Pf_Sort as pfSort,
+        spf.Pf_Write as pfWrite,
+        mn.*
+        from  Pay_Field_Dtl mn
+        left join  Sys_Pay_Field spf on spf.id=mn.Pf_Id
+        where mn.Pay_Id=#{payId}
+        order by spf.Pf_Sort asc
+    </select>
+
+</mapper>

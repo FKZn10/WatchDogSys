@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecEvalReportMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecEvalReportResponse" id="getSecEvalReport">
+        <id column="Er_Id" property="erId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Er_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Eval_Report er on er.Sec_Id=sec.Sec_Id
+        where er.Er_Id=#{erId}
+    </select>
+
+    <select id="getSecEvalReportByErId" resultMap="getSecEvalReport">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Other_Valuation as secOtherValuation,
+        sec.Sec_Pricing_Method as secPricingMethod,
+        sec.Sec_Money as secMoney,
+        c1.C_Name as erCandidateName,
+        c1.C_Abbreviation as erCandiAbbName,
+        er.*
+        from  Sec_Eval_Report er
+        left join  Sec_Info sec on sec.Sec_Id=er.Sec_Id
+        left join  SYS_Company c1 on er.Er_Candidate_Unit=c1.C_Id
+        where er.Er_Id=#{erId}
+    </select>
+
+    <select id="getSecEvalReportDtlModel"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecEvalReportDtlModel">
+        select
+        sed.erd_Id as erdId,
+        sed.Er_Id as erId,
+        sed.C_Id as cId,
+        c1.C_Name as cName,
+        sed.Erd_Price_And_Rate as erdPriceAndRate,
+        sed.Erd_Sort as erdSort,
+        sed.Erd_Price as erdPrice,
+        sed.Erd_Rate as erdRate
+        from  Sec_Eval_Report_Dtl sed
+        left join  SYS_Company c1 on sed.C_Id=c1.C_Id
+        where sed.er_Id=#{erId}
+    </select>
+
+    <select id="getSecEvalReportList"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecEvalReportResponse">
+        select
+        sec.Sec_Name as secName,
+        case when pre.P_Name is null then sp.P_Name else pre.P_Name end as pName,
+        case when pre.P_Category is null then sp.p_Category else pre.P_Category end as pCategory,
+        case when pre.P_Build_Model is null then sp.P_Build_Model else pre.P_Build_Model end as pBuildModel,
+        case when sd.D_Name is null then sp.D_Name else sd.D_Name end as pCompetentDepartmentName,
+        mn.*,
+        case when mn.P_Id is null then sp.P_Id else mn.P_Id end as pId
+        from Sec_Eval_Report mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join pre_project pre on pre.P_Id = mn.P_Id
+        left join SYS_Department sd on pre.P_Competent_Department = sd.D_Id
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Er_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select ${selectClause}
+        from Sec_Eval_Report mn
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join pre_project pre on pre.P_Id = mn.P_Id
+        left join SYS_Department sd on pre.P_Competent_Department = sd.D_Id
+        left join Sec_Bidding_Plan sbp on sbp.Bp_Id=sec.Bp_Id
+        left join (
+        select sp1.Sec_Id, sp1.P_ID, pro1.P_Name, pro1.p_Category, pro1.P_Build_Model, dpre1.D_Name
+        from Sec_Project sp1
+        inner join pre_project pro1 on pro1.P_Id = sp1.P_Id
+        left join SYS_Department dpre1 on dpre1.D_Id = pro1.p_Competent_Department
+        where not exists (
+        select 1
+        from Sec_Project sp2
+        inner join pre_project pro2 on pro2.P_Id = sp2.P_Id
+        where sp2.Sec_Id = sp1.Sec_Id
+        and pro2.P_Create_Time > pro1.P_Create_Time
+        )) sp on sp.Sec_Id = mn.Sec_Id
+        <include refid="listFilter"/>
+    </select>
+
+    <sql id="listFilter">
+        ${authSql}
+        <if test="params.isNew != null and params.isNew != ''">
+            and sbp.is_new = 1
+        </if>
+        <if test="params.pNameList!=null and params.pNameList.size()>0 ">
+            <choose>
+                <when test="params.pNameList.contains('空白数据')">
+                    and (
+                    (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) is null
+                    or
+                    (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) = ''
+                    )
+                </when>
+                <otherwise>
+                    and (case when pre.P_Name is null then sp.P_Name else pre.P_Name end) in
+                    <foreach collection="params.pNameList" open="(" close=")" separator="," item="pName">
+                        #{pName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.secNameList!=null and params.secNameList.size()>0 ">
+            <choose>
+                <when test="params.secNameList.contains('空白数据')">
+                    and (sec.sec_name is null or sec.sec_name = '')
+                </when>
+                <otherwise>
+                    and sec.sec_name in
+                    <foreach collection="params.secNameList" open="(" close=")" separator="," item="secName">
+                        #{secName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategoryList!=null and params.pCategoryList.size()>0 ">
+            <choose>
+                <when test="params.pCategoryList.contains('空白数据')">
+                    and (
+                    (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) is null
+                    or
+                    (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) = ''
+                    )
+                </when>
+                <otherwise>
+                    and (case when pre.P_Category is null then sp.p_Category else pre.P_Category end) in
+                    <foreach collection="params.pCategoryList" open="(" close=")" separator="," item="pCategory">
+                        #{pCategory}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createUnameList!=null and params.createUnameList.size()>0 ">
+            <choose>
+                <when test="params.createUnameList.contains('空白数据')">
+                    and (mn.Er_Create_Uname is null or mn.Er_Create_Uname = '')
+                </when>
+                <otherwise>
+                    and mn.Er_Create_Uname in
+                    <foreach collection="params.createUnameList" open="(" close=")" separator="," item="createUname">
+                        #{createUname}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.stateList!=null and params.stateList.size()>0">
+            <choose>
+                <when test="params.stateList.contains('空白数据')">
+                    and (mn.Er_State is null or mn.Er_State = '')
+                </when>
+                <otherwise>
+                    and mn.Er_State in
+                    <foreach collection="params.stateList" open="(" close=")" separator="," item="state">
+                        #{state}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createTimeStr != null and params.createTimeStr != ''">
+            <include refid="getAllValuesDateFilter"/>
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and (case when pre.P_Id is null then sp.P_Id else pre.P_Id end) = #{params.pId}
+        </if>
+        <if test="params.secName != null and params.secName != ''">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.secId != null and params.secId != ''">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+    </sql>
+
+    <sql id="getAllValuesDateFilter" databaseId="dm">
+        and to_char(mn.Er_Create_Time,'yyyy-MM-dd') = #{params.createTimeStr}
+    </sql>
+
+    <sql id="getAllValuesDateFilter" databaseId="mysql">
+        and date_format(mn.Er_Create_Time,'%Y-%m-%d') = #{params.createTimeStr}
+    </sql>
+</mapper>

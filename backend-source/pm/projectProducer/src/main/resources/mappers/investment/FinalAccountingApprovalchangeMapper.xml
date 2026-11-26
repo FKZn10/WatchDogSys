@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.FinalAccountingApprovalchangeMapper">
+
+    <select id="getprojectValueByCode"
+            resultType="com.jpmsoft.common.model.FilterObject">
+        select distinct mn.${value} as dbValue,p.P_Name as label
+        from Final_Accounting_Report mn
+                 left join Pre_Project p on p.P_Id=mn.P_Id
+        where mn.status=1
+    </select>
+
+
+    <select id="getStateByCode"
+            resultType="com.jpmsoft.common.model.FilterObject">
+        select distinct mn.${value} as dbValue,mn.${value} as label
+        from Final_Accounting_Report mn
+        where mn.status=1
+    </select>
+
+    <select id="getApprovedBudgetAmountByCode"
+            resultType="com.jpmsoft.common.model.FilterObject">
+        select distinct mn.${value} as dbValue,mn.approved_Budget_Amount as label
+        from Final_Accounting_Report mn
+        where mn.status=1
+    </select>
+
+    <select id="getAmountSubmittedByCode"
+            resultType="com.jpmsoft.common.model.FilterObject">
+        select distinct mn.${value} as dbValue,mn.amount_Submitted as label
+        from Final_Accounting_Report mn
+        where mn.status=1
+    </select>
+
+    <select id="getCreateUidByCode"
+            resultType="com.jpmsoft.common.model.FilterObject">
+        select distinct mn.${value} as dbValue,mn.Create_Uname as label
+        from Final_Accounting_Report mn
+        where mn.status=1
+    </select>
+
+    <select id="getValueByCode" resultType="java.lang.Object">
+        select distinct mn.${value} as dbValue
+        from Final_Accounting_Report mn
+        where mn.status=1
+    </select>
+
+    <select id="getfinalApprovalChangeById" resultType="com.jpmsoft.projectProducer.pojo.vo.investment.FinalAccountingApprovalChangeVo">
+        select mn.*,pre.p_name as pName,sys.c_name as cName,sys.c_id as cId
+        from Final_Accounting_Approval_Change mn
+        left join pre_project pre on mn.p_id = pre.p_id
+        left join sys_company sys on mn.faa_Approval_Unit = sys.c_id
+        <where>
+            mn.status=1
+            <if test="id!=null">
+                and mn.id = #{id}
+            </if>
+        </where>
+    </select>
+
+    <select id="getfinalApprovalChangeList" resultType="com.jpmsoft.projectProducer.pojo.vo.investment.FinalAccountingApprovalChangeVo">
+        select mn.*,pre.p_name as pName,sys.c_name as cName,sys.c_id as cId
+        from Final_Accounting_Approval_Change mn
+        left join pre_project pre on mn.p_id = pre.p_id
+        left join sys_company sys on mn.faa_Approval_Unit = sys.c_id
+        <where>
+            mn.status=1
+            <if test="request.pId!=null">
+                and mn.pId = #{request.pId}
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    <if test="request.pName!=null">
+                        and likePname(#{request.pName},pre.P_Id)=true
+                    </if>
+                    <if test="request.cName!=null">
+                        and likeCname(#{request.cName},sys.C_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="request.pName!=null">
+                        and pre.P_Name like concat('%',#{request.pName},'%')
+                    </if>
+                    <if test="request.cName!=null">
+                        and sys.c_name like concat('%',#{request.cName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="request.state!=null">
+                and mn.state = #{request.state}
+            </if>
+            <if test="request.faaApprovalTime!=null">
+                and mn.faa_Approval_Time = #{request.faaApprovalTime}
+            </if>
+            <if test="request.faaApprovalUnit!=null">
+                and mn.faa_Approval_Unit = #{request.faaApprovalUnit}
+            </if>
+            <if test="request.createUid!=null">
+                and mn.create_Uid = #{request.createUid}
+            </if>
+            <if test="request.faaId!=null">
+                and mn.faa_id = #{request.faaId}
+            </if>
+        </where>
+    </select>
+
+
+
+</mapper>

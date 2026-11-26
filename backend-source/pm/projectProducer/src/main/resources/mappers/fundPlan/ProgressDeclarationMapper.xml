@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fundPlan.ProgressDeclarationMapper">
+
+    <select id="getProgressDeclarationById" resultType="com.jpmsoft.projectProducer.pojo.dto.fundPlan.ProgressDeclarationDTO">
+        select
+            c1.c_name as pdCompanyName,
+            sd.d_name as pdDepartmentName,
+            mn.*
+        from Progress_Declaration mn
+                 left join sys_company c1 on c1.c_id=mn.pd_company
+                 left join sys_department sd on sd.d_id=mn.pd_department
+        where mn.id=#{id}
+    </select>
+
+
+
+    <select id="getProgressDeclarationList" resultType="com.jpmsoft.projectProducer.pojo.dto.fundPlan.ProgressDeclarationDTO">
+        select
+            c1.c_name as pdCompanyName,
+            sd.d_name as pdDepartmentName,
+            mn.*
+        from Progress_Declaration mn
+                 left join sys_company c1 on c1.c_id=mn.pd_company
+                 left join sys_department sd on sd.d_id=mn.pd_department
+        <where>
+            <if test="params.state!=null">
+                and mn.state=#{params.state}
+            </if>
+            <if test="params.pdCompany!=null">
+                and mn.pd_company=#{params.pdCompany}
+            </if>
+            <if test="params.pdDepartment!=null">
+                and mn.pd_department=#{params.pdDepartment}
+            </if>
+            <if test="params.createUname!=null">
+                and INSTR(mn.Create_Uname,#{params.createUname})
+            </if>
+            <if test="params.pdCompanyName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.pdCompanyName},c1.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c1.c_name,#{params.pdCompanyName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.pdDepartmentName!=null">
+                and INSTR(sd.d_name,#{params.pdDepartmentName})
+            </if>
+        </where>
+    </select>
+
+    <select id="getPlanNodes" resultType="com.jpmsoft.projectProducer.pojo.entity.fundPlan.ProgressDeclarationDtl">
+        select pddtl.* from  Progress_Declaration_Dtl pddtl
+        left join  Progress_Declaration pd  on pd.id = pddtl.Pd_id
+        <where>
+             pd.state = 7
+            <if test="conId!=null">
+                and pddtl.con_id=#{conId}
+            </if>
+        </where>
+        order by state_time desc limit 1
+    </select>
+
+    <select id="getPlanNodeLists" resultType="com.jpmsoft.projectProducer.pojo.entity.fundPlan.ProgressDeclarationDtl">
+        select pddtl.* from  Progress_Declaration_Dtl pddtl
+        left join  Progress_Declaration pd  on pd.id = pddtl.Pd_id
+        <where>
+            pd.state = 7
+            <if test="conId!=null">
+                and pddtl.con_id=#{conId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getContractDeclarationList" resultType="com.jpmsoft.projectProducer.pojo.dto.fundPlan.ProgressContractPlanDTO">
+        select con.con_id as conId,
+        con.con_name as conName,
+        con.con_Code as conCode,
+        con.con_Money_Total as  conMoneyTotal,
+        pre.p_id as pId,
+        pre.p_name as pName
+        from con_contract con
+        left join pre_project pre on con.Con_Project_Id = pre.P_ID
+        <where>
+            con.Con_Approval_State = 7 and pre.State = 7
+            <if test="dto.cId!=null">
+                and con.con_Department=#{dto.cId}
+            </if>
+            <if test="dto.conName!=null">
+                and con.con_name like concat('%',#{dto.conName},'%')
+            </if>
+            <if test="dto.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{dto.pName},pre.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pre.pName like concat('%',#{dto.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+
+    <delete id="deleteSysTaskEntityId" >
+        delete from sys_task  where TaskEntityID = #{id}
+    </delete>
+
+    <delete id="deleteSysTaskProcessinEntityId" >
+        delete from sys_task_processin  where tp_entityid = #{id}
+    </delete>
+</mapper>

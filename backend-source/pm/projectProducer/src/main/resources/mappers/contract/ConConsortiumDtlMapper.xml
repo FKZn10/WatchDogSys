@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConConsortiumDtlMapper">
+
+<select id="slectConConsortiumDtlListByConId"   resultType="com.jpmsoft.common.model.requestAndResponse.Contract.conConsortiumModel" >
+         select   mn.* ,c1.C_Name from  Con_Consortium_Dtl mn  left join  Sys_Company c1   on  mn.C_Id=c1.C_Id where  mn.Con_Id=#{conId}
+
+</select>
+</mapper>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.peInfo.PeMoneyReturnMapper">
+
+    <select id="getPeMoneySumByConId" resultType="java.math.BigDecimal">
+        SELECT sum(mr_Amt)
+        from Pe_Money_Return where con_id=#{conId} and state=7
+     </select>
+
+    <select id="getPeMoneyReturnById" resultType="com.jpmsoft.projectProducer.pojo.dto.peinfo.PeMoneyReturnDTO">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        mn.*
+        from Pe_Money_Return mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        where mn.id=#{id}
+    </select>
+
+
+    <select id="getListAmtSum" resultType="com.jpmsoft.projectProducer.pojo.vo.peInfo.PeMoneyReturnVO">
+        select
+        sum(mn.Mr_Amt) as mrAmtSum,
+        sum(mn.Mr_Con_Amt) as mrConAmtSum
+        from Pe_Money_Return mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <include refid="listFilter"/>
+    </select>
+
+    <select id="getPeMoneyReturnList" resultType="com.jpmsoft.projectProducer.pojo.dto.peinfo.PeMoneyReturnDTO">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        mn.*
+        from Pe_Money_Return mn
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.mrType!=null">
+            and mn.mr_Type = #{params.mrType}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_ID = #{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_ID = #{params.conId}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.mrConstruction!=null">
+            and INSTR(mn.mr_Construction,#{params.mrConstruction})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and INSTR(pro.P_Code,#{params.pCode})
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.conCode!=null">
+            and INSTR(con.Con_Code,#{params.conCode})
+        </if>
+    </sql>
+</mapper>

@@ -1,0 +1,46 @@
+package com.jpmsoft.userProducer.pojo.dto.sms;
+
+import lombok.Data;
+
+import java.io.Serializable;
+
+/**
+ * 苏相短信入参数
+ *
+ * @author: 李文涛 aaron
+ * @date: 2022/9/6 10:35
+ */
+@Data
+public class SxSmsDto implements Serializable {
+    private static final long serialVersionUID = 19972942577832974L;
+
+    /**
+     * 请求地址
+     */
+    private String sscUrl;
+    /**
+     * 区标识
+     */
+    private String sscRegion;
+    /**
+     * 短信签名
+     */
+    private String sscSign;
+    /**
+     * 短信模板编码
+     */
+    private String sscTempCode;
+    /**
+     * 手机号
+     */
+    private String phoneNumber;
+    /**
+     * 加密盐
+     */
+    private String salt;
+    /**
+     * 短信参数
+     * 例如：验证码 {"code":"134551"}
+     */
+    private String tempParam;
+}

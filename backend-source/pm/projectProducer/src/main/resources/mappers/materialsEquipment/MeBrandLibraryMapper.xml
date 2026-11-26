@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MeBrandLibraryMapper">
+
+    <select id="getMeBrandLibraryByMetId"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeBrandLibraryVo">
+        select mtl.Met_Name       as metName,
+               c1.C_Name          as brandSupplierName,
+               c2.C_Name          as brandProducerName,
+               apl.Bla_Code       as blaCode,
+               apl.Bla_Title      as blaTitle,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Me_BrandLibrary mn
+                 left join Me_Type_Library mtl on mtl.Met_Id = mn.Met_Id
+                 left join Sys_Company c1 on c1.C_Id = mn.Brand_Supplier
+                 left join Sys_Company c2 on c2.C_Id = mn.Brand_Producer
+                 left join Me_BrandLibrary_Apply apl on apl.Bla_Id = mn.Bla_Id
+                 left join Sys_File f on f.FileId = mn.id
+        where mn.Met_Id = #{metId} and mn.State = 7
+        order by mn.Create_Time DESC
+    </select>
+    <select id="getMeBrandLibraryById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeBrandLibraryVo">
+        select mtl.Met_Name       as metName,
+               c1.C_Name          as brandSupplierName,
+               c2.C_Name          as brandProducerName,
+               apl.Bla_Code       as blaCode,
+               apl.Bla_Title      as blaTitle,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Me_BrandLibrary mn
+                 left join Me_Type_Library mtl on mtl.Met_Id = mn.Met_Id
+                 left join Sys_Company c1 on c1.C_Id = mn.Brand_Supplier
+                 left join Sys_Company c2 on c2.C_Id = mn.Brand_Producer
+                 left join Me_BrandLibrary_Apply apl on apl.Bla_Id = mn.Bla_Id
+                 left join Sys_File f on f.FileId = mn.id
+        where mn.id = #{id}
+    </select>
+
+    <select id="getMeBrandLibraryList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeBrandLibraryVo">
+        select mtl.Met_Name as metName,
+        c1.C_Name as brandSupplierName,
+        c2.C_Name as brandProducerName,
+        apl.Bla_Code as blaCode,
+        apl.Bla_Title as blaTitle,
+        mn.*
+        from Me_BrandLibrary mn
+        left join Me_Type_Library mtl on mtl.Met_Id = mn.Met_Id
+        left join Sys_Company c1 on c1.C_Id=mn.Brand_Supplier
+        left join Sys_Company c2 on c2.C_Id=mn.Brand_Producer
+        left join Me_BrandLibrary_Apply apl on apl.Bla_Id=mn.Bla_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.state=#{params.state}
+        </if>
+        <if test="params.brandEnable!=null">
+            and mn.Brand_Enable=#{params.brandEnable}
+        </if>
+        <if test="params.brandLevel!=null">
+            and mn.Brand_Level=#{params.brandLevel}
+        </if>
+        <if test="params.metId!=null">
+            and mn.Met_Id=#{params.metId}
+        </if>
+        <if test="params.brandName!=null">
+            and INSTR(mn.Brand_Name,#{params.brandName})
+        </if>
+        <if test="params.brandCode!=null">
+            and INSTR(mn.Brand_Code,#{params.brandCode})
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.ReportedCompanyMapper">
+
+    <select id="getReportedCompanyGroupTypeByPid" resultType="com.jpmsoft.projectProducer.pojo.vo.oa.ReportedCompanyVo">
+        select pro.P_Name         as pName,
+               pro.P_Code         as pCode,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Reported_Company mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_File f on f.FileId = mn.id
+        where mn.P_Id = #{pId}
+        order by mn.Create_Time desc
+    </select>
+
+    <select id="getReportedCompanyById" resultType="com.jpmsoft.projectProducer.pojo.vo.oa.ReportedCompanyVo">
+        select pro.P_Name         as pName,
+               pro.P_Code         as pCode,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Reported_Company mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_File f on f.FileId = mn.id
+        where mn.id = #{id}
+    </select>
+
+    <select id="getReportedCompanyList" resultType="com.jpmsoft.projectProducer.pojo.vo.oa.ReportedCompanyVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Reported_Company mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.state!=null">
+            and mn.state=#{params.state}
+        </if>
+        <if test="params.cType!=null">
+            and mn.C_Type=#{params.cType}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.cName!=null">
+            and INSTR(mn.C_Name,#{params.cName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

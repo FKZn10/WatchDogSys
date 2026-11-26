@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.design.DesignDrawReviewMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.dto.design.DesignDrawReviewDTO"
+               id="selectDesignDrawReview">
+        <id column="id" property="id"/>
+        <collection property="designDrawReviewDtls"
+                    ofType="com.jpmsoft.projectProducer.pojo.dto.design.DesignDrawReviewDtlDTO"
+                    column="id" select="selectDesignDrawReviewDtl">
+        </collection>
+    </resultMap>
+
+    <select id="selectDesignDrawReviewDtl" resultType="com.jpmsoft.projectProducer.pojo.dto.design.DesignDrawReviewDtlDTO">
+        select
+            u1.U_Name as drdHandlersName,
+            mn.*
+        from Design_Draw_Review_Dtl mn
+        left join Sys_User u1 on u1.U_Id=mn.Drd_Handlers
+        where mn.Dr_Id=#{id}
+        order by mn.Drd_Sort ASC
+    </select>
+
+    <select id="getDesignDrawReviewById" resultMap="selectDesignDrawReview">
+        select
+            pro.P_Name as pName,
+            pro.P_Type as pType,
+            u1.U_Name as drHandlersName,
+            mn.*
+        from Design_Draw_Review mn
+                 left join Pre_Project pro on pro.P_Id=mn.P_Id
+                 left join Sys_User u1 on u1.U_Id=mn.Dr_Handlers
+            where mn.id=#{id}
+    </select>
+
+
+    <select id="getDesignDrawReviewList" resultType="com.jpmsoft.projectProducer.pojo.dto.design.DesignDrawReviewDTO">
+        select
+            pro.P_Name as pName,
+            pro.P_Type as pType,
+            u1.U_Name as drHandlersName,
+            mn.*
+        from Design_Draw_Review mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join Sys_User u1 on u1.U_Id=mn.Dr_Handlers
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id=#{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type=#{params.pType}
+        </if>
+        <if test="params.drTitle!=null">
+            and INSTR(mn.Dr_Title,#{params.drTitle})
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecInfoSubjectChangeMapper">
+    <delete id="deleteAllOldByBpcId">
+        delete from Sec_Info_Subject_Change where Sec_Id in (Select Sec_Id from Sec_Info_Change where Bpc_Id=#{bpcId})
+    </delete>
+
+    <select id="getSecInfoSubjectChangeList"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecInfoSubjectChangeResponse">
+        select
+        mn.*,
+        case
+        when mn.Sub_Ieb_Id is not null then
+        (select Isbd_Fee_Type_Name from Investment_Estimate_Breakdown_Details where id = mn.Sub_Ieb_Id)
+        when mn.Sub_Ibb_Id is not null then
+        (select Isbd_Fee_Type_Name from Investment_Budget_Breakdown_Details where id = mn.Sub_Ibb_Id)
+        else null
+        end as subName
+        from Sec_Info_Subject_Change mn
+        where mn.Sic_Id in
+        <foreach item="item" index="index" collection="sicIdList" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

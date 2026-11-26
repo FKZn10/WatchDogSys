@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PpOwnerUnitMapper">
+    <select id="getPpOwnerUnitByPId" resultType="com.jpmsoft.common.model.request.project.PpOwnerUnitDTO">
+        select
+        pou.id,
+        pou.order_number,
+        pou.owner_unit,
+        ou.C_Name as ownerUnitName,
+        pou.project_manger,
+        pmu.U_Name as projectMangerName,
+        pou.project_leader,
+        plu.U_Name as projectLeaderName,
+        pou.remark
+        from pp_owner_unit pou
+        left join sys_company ou on ou.C_ID = pou.owner_unit
+        left join sys_user pmu on pmu.U_ID = pou.project_manger
+        left join sys_user plu on plu.U_ID = pou.project_leader
+        where pou.p_id = #{pId}
+        order by order_number asc
+    </select>
+
+    <select id="listPpOwnerUnitByPIds" resultType="com.jpmsoft.common.model.request.project.PpOwnerUnitDTO">
+        select
+            pou.id,
+            pou.order_number,
+            pou.owner_unit,
+            ou.C_Name as ownerUnitName,
+            pou.project_manger,
+            pmu.U_Name as projectMangerName,
+            pou.project_leader,
+            plu.U_Name as projectLeaderName,
+            pou.remark,
+            pou.p_id
+        from pp_owner_unit pou
+                 left join sys_company ou on ou.C_ID = pou.owner_unit
+                 left join sys_user pmu on pmu.U_ID = pou.project_manger
+                 left join sys_user plu on plu.U_ID = pou.project_leader
+        where
+            pou.p_id in
+            <foreach item="item" collection="pIds" separator="," open="(" close=")" index="index">
+                #{item}
+            </foreach>
+        order by order_number asc
+    </select>
+</mapper>

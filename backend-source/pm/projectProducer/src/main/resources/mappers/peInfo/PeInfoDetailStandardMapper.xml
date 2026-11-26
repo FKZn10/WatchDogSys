@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.peInfo.PeInfoDetailStandardMapper">
+
+    <delete id="deletePeInfoStandardByPedIds" parameterType="java.util.List">
+        delete
+        from  Pe_Info_Detail_Standard
+        where Ped_Id in
+        <foreach item="item" index="index" collection="pedIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <insert id="insertBatchs" parameterType="java.util.List">
+        <foreach item="item" index="index" collection="models" separator=";">
+            insert into
+             Pe_Info_Detail_Standard
+            ("Peds_Id", "Ped_Id", "Peds_Content", "Peds_Score", "Peds_Order", "Peds_Flag","Peds_Remark")
+            VALUES(#{item.pedsId},#{item.pedId},#{item.pedsContent},#{item.pedsScore},#{item.pedsOrder},#{item.pedsFlag}
+            ,#{item.pedsRemark})
+        </foreach>
+    </insert>
+
+    <select id="getPeInfoDetailStandardByPeId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.PeInfo.PeInfoDetailStandardModel">
+            select
+            s.Peds_Id as pedsId,
+            s.Ped_Id as  pedId,
+            s.Peds_Content as pedsContent,
+            s.Peds_Score as pedsScore,
+            s.Peds_Order as pedsOrder,
+            s.Peds_Flag as pedsFlag,
+            s.Peds_Remark as pedsRemark
+        from  Pe_Info_Detail_Standard s
+        left join   Pe_Info_Detail d on s.Ped_Id=d.Ped_Id
+        where d.Pe_id=#{peId}
+        order by s.Peds_Order asc
+    </select>
+</mapper>

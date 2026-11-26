@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.NoticeInfoMapper">
+    <select id="getNoticeInfoList" resultType="com.jpmsoft.common.model.requestAndResponse.NoticeInfoModel">
+        select
+        ni.*
+        from Notice_Info ni
+        where ni.state !=3
+        <if test="params.noticeInfoCode != null and params.noticeInfoCode != ''">
+            and ni.notice_info_code = #{params.noticeInfoCode}
+        </if>
+        <if test="params.sourceId != null and params.sourceId != ''">
+            and ni.source_id = #{params.sourceId}
+        </if>
+        order by ni.create_time desc
+    </select>
+    <select id="getNoticeInfoById" resultType="com.jpmsoft.common.model.requestAndResponse.NoticeInfoModel">
+        select
+        ni.*
+        from Notice_Info ni
+        where ni.id = #{id}
+    </select>
+    <select id="selectBySourceId" resultType="com.jpmsoft.projectProducer.pojo.entity.other.NoticeInfo">
+        select
+        ni.*
+        from Notice_Info ni
+        where ni.source_id = #{sourceId} and ni.state =7 limit 1
+    </select>
+
+    <select id="selectList2" resultType="com.jpmsoft.projectProducer.pojo.entity.other.NoticeInfo">
+        select
+            ni.*
+        from Notice_Info ni
+        where ni.Create_Time >'2025-10-10' and ni.state =7
+    </select>
+</mapper>

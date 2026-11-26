@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvInfrastructureMonthDtlMapper">
+
+    <sql id="listFilter">
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.teId!=null">
+            and im.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and im.State=#{params.state}
+        </if>
+        <if test="params.imYear!=null">
+            and im.Im_Year=#{params.imYear}
+        </if>
+        <if test="params.imMon!=null">
+            and im.Im_Mon=#{params.imMon}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.imdSchoolName!=null">
+            and INSTR(mn.Imd_School_Name,#{params.imdSchoolName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="getInvInfrastructureMonthDtlList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.investment.InvInfrastructureMonthDtlVo">
+        select
+        im.Im_Year as imYear,
+        im.Im_Mon as imMon,
+        im.State as state,
+        im.State_Time as stateTime,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Inv_Infrastructure_Month_Dtl mn
+        left join Inv_Infrastructure_Month im on im.id=mn.Im_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Imd_Sort desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectReserveChangeMapper">
+
+    <select id="getProjectReserveChangeById" resultType="com.jpmsoft.projectProducer.pojo.dto.project.PreProjectReserveChangeDTO">
+    select
+    c2.c_name as pprBusinessUnitName,
+    c3.c_name as pprReserveCpyName,
+    mn.*,
+    u1.U_Name as pprProjectManagerName,
+    u2.U_Name as pprProjectLeaderName,
+    u3.U_Name as pprEngineerName,
+    u4.U_Name as pprEngineerLeaderName,
+    d1.d_name as pprManagerUnitName,
+    d2.d_name as pprManagerDepName
+    from Pre_Project_Reserve_Change mn
+    left join sys_department d1 on d1.d_id=mn.ppr_manager_unit
+    left join sys_department d2 on d2.d_id=mn.ppr_Manager_Dep
+    left join sys_company c2 on c2.c_id=mn.ppr_business_unit
+    left join sys_company c3 on c3.c_id=mn.ppr_Reserve_cpy
+    left join SYS_User u1 on u1.u_id=mn.ppr_project_manager
+    left join SYS_User u2 on u2.u_id=mn.ppr_project_leader
+    left join SYS_User u3 on u3.u_id=mn.ppr_engineer
+    left join SYS_User u4 on u4.u_id=mn.ppr_engineer_leader
+    where mn.id=#{id}
+    </select>
+
+    <select id="getProjectReserveChangeList" resultType="com.jpmsoft.projectProducer.pojo.dto.project.PreProjectReserveChangeDTO">
+        select
+        c2.c_name as pprBusinessUnitName,
+        c3.c_name as pprReserveCpyName,
+        mn.*,
+        u1.U_Name as pprProjectManagerName,
+        u2.U_Name as pprProjectLeaderName,
+        u3.U_Name as pprEngineerName,
+        u4.U_Name as pprEngineerLeaderName,
+        d1.d_name as pprManagerUnitName,
+        d2.d_name as pprManagerDepName
+        from Pre_Project_Reserve_Change mn
+        left join sys_department d1 on d1.d_id=mn.ppr_manager_unit
+        left join sys_department d2 on d2.d_id=mn.ppr_Manager_Dep
+        left join sys_company c2 on c2.c_id=mn.ppr_business_unit
+        left join sys_company c3 on c3.c_id=mn.ppr_Reserve_cpy
+        left join SYS_User u1 on u1.u_id=mn.ppr_project_manager
+        left join SYS_User u2 on u2.u_id=mn.ppr_project_leader
+        left join SYS_User u3 on u3.u_id=mn.ppr_engineer
+        left join SYS_User u4 on u4.u_id=mn.ppr_engineer_leader
+        <where>
+            <if test="params.excludeDeprecated != null and params.excludeDeprecated != ''">
+                and mn.state != 3
+            </if>
+            <if test="params.pprCompose!=null and params.pprCompose!=''">
+                and mn.ppr_compose=#{params.pprCompose}
+            </if>
+            <if test="params.pprModel!=null and params.pprModel!=''">
+                and mn.ppr_model=#{params.pprModel}
+            </if>
+            <if test="params.pprShape!=null and params.pprShape!=''">
+                and mn.ppr_shape=#{params.pprShape}
+            </if>
+            <if test="params.pprClassify!=null and params.pprClassify!=''">
+                and mn.ppr_classify=#{params.pprClassify}
+            </if>
+            <if test="params.pprApproval!=null and params.pprApproval!=''">
+                and mn.ppr_approval=#{params.pprApproval}
+            </if>
+            <if test="params.pprConstructionYear!=null and params.pprConstructionYear!=''">
+                and mn.ppr_construction_year=#{params.pprConstructionYear}
+            </if>
+            <if test="params.pprWorkStage!=null and params.pprWorkStage!=''">
+                and mn.ppr_work_stage=#{params.pprWorkStage}
+            </if>
+            <if test="params.pprReserveStatus!=null and params.pprReserveStatus!=''">
+                and mn.ppr_Reserve_status=#{params.pprReserveStatus}
+            </if>
+            <if test="params.pprReserveStage!=null and params.pprReserveStage!=''">
+                and mn.ppr_Reserve_stage=#{params.pprReserveStage}
+            </if>
+            <if test="params.state!=null">
+                and mn.state=#{params.state}
+            </if>
+            <if test="params.pprManagerUnit!=null and params.pprManagerUnit!=''">
+                and mn.ppr_manager_unit=#{params.pprManagerUnit}
+            </if>
+            <if test="params.pprBusinessUnit!=null and params.pprBusinessUnit!=''">
+                and mn.ppr_business_unit=#{params.pprBusinessUnit}
+            </if>
+            <if test="params.pprId!=null and params.pprId!=''">
+                and mn.ppr_id=#{params.pprId}
+            </if>
+            <if test="params.pprReserveCpy!=null and params.pprReserveCpy!=''">
+                and mn.ppr_Reserve_cpy=#{params.pprReserveCpy}
+            </if>
+            <if test="params.createUname!=null and params.createUname!=''">
+                and INSTR(mn.create_uname,#{params.createUname})
+            </if>
+            <if test="params.pprName!=null and params.pprName!=''">
+                and INSTR(mn.ppr_name,#{params.pprName})
+            </if>
+            <if test="params.pprManagerDep!=null and params.pprManagerDep!=''">
+                and INSTR(mn.ppr_manager_dep,#{params.pprManagerDep})
+            </if>
+            <if test="params.pprManagerDepName!=null and params.pprManagerDepName!=''">
+                and INSTR(d2.d_name,#{params.pprManagerDepName})
+            </if>
+            <if test="params.pprManagerUnitName!=null and params.pprManagerUnitName!=''">
+                and INSTR(d1.d_name,#{params.pprManagerUnitName})
+            </if>
+            <if test="params.pprBusinessUnitName!=null and params.pprBusinessUnitName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.pprBusinessUnitName},c2.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c2.c_name,#{params.pprBusinessUnitName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.pprReserveCpyName!=null and params.pprReserveCpyName!=''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.pprReserveCpyName},c3.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c3.c_name,#{params.pprReserveCpyName})
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ISNULL(mn.${params.sortFiled}),mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ISNULL(${params.sortSideFiled}),${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

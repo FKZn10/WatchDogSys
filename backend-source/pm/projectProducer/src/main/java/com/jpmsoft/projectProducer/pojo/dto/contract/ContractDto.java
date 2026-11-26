@@ -1,0 +1,21 @@
+package com.jpmsoft.projectProducer.pojo.dto.contract;
+
+import lombok.Data;
+
+@Data
+public class ContractDto {
+    /**
+     * 合同id
+     */
+    private String contractId;
+
+    /**
+     * 合同名称
+     */
+    private String contractName;
+
+    /**
+     * 合同编号
+     */
+    private String contractCode;
+}

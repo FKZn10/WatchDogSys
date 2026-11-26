@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.conSupNotice.ConSupNoticeMapper">
+
+    <select id="getConSupNoticeList" resultType="com.jpmsoft.common.model.request.ConBop.ConSupNoticeRequest">
+        select *
+        from (select t.Sn_Id                  as SnId,
+                     t.P_Id                   as pid,
+                     t.Con_Id                 as conId,
+                     t.Sn_Code                as snCode,
+                     t.Sn_No                  as snNo,
+                     t.Sn_Issuing_Unit_Id     as snIssuingUnitId,
+                     t.Sn_Receiving_Unit_Id   as snReceivingUnitId,
+                     t.Sn_Issue_Date          as snIssueDate,
+                     t.Sn_Need_Reply          as snNeedReply,
+                     t.Sn_Reply               as snReply,
+                     t.Sn_Reply_Deadline      as snReplyDeadline,
+                     t.Sn_Content             as snContent,
+                     t.Sn_Reply_State         as snReplyState,
+                     t.Sn_Create_Uid          as snCreateUid,
+                     t.Sn_Create_Uname        as snCreateUname,
+                     t.Sn_Create_Time         as snCreateTime,
+                     t.Sn_State               as snState,
+                     t.Sn_State_Time          as snStateTime,
+                     t1.p_Name                as pname,
+                     t2.Con_Name              as conName,
+                     t.Sn_Receiving_Unit_Name as snReceivingUnitName,
+                     t.Sn_Issuing_Unit_Name   as snIssuingUnitName,
+                     t.Te_Id                  as teId
+              from Con_Sup_Notice t
+              left join Pre_Project t1 on t1.p_id = t.P_id
+              left join Con_Contract t2 on t2.Con_Id = t.Con_Id
+              LEFT JOIN Pre_Project mn
+                        ON mn.p_id = t.P_id
+                  ${authSql}
+              ) c ${ew.customSqlSegment}
+    </select>
+
+    <select id="getQuestionNumByWrId" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(d.wrd_number), 0)
+        FROM oa_work_report_detail d
+        WHERE d.wr_id = #{wrId}
+    </select>
+</mapper>

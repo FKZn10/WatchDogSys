@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.visaChange.ConEcmMapper">
+
+    <select id="getConEcmById" resultType="com.jpmsoft.common.model.response.DesignChange.ConEcmResponse">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        d.D_Name as ecmDepName,
+        enis.Enis_Code as enisCode,
+        dco.Dco_Code as dcoCode,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Name as dcoName,
+        dco.Dco_Major as dcoMajor,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Con_Ecm  mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Department d on d.D_Id=mn.Ecm_Dep
+        left join Con_Enis enis on enis.Enis_Id=mn.Enis_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        left join Sys_File f on f.FileID=mn.Ecm_Id
+        where mn.Ecm_Id=#{ecmId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.ecmType!=null">
+            and mn.Ecm_Type=#{params.ecmType}
+        </if>
+        <if test="params.ecmState!=null">
+            and mn.Ecm_State=#{params.ecmState}
+        </if>
+        <if test="params.ecmYesNo!=null">
+            and mn.Ecm_Yes_No=#{params.ecmYesNo}
+        </if>
+        <if test="params.ecmIsHistory!=null">
+            and mn.Ecm_Is_History=#{params.ecmIsHistory}
+        </if>
+        <if test="params.ecmDep!=null">
+            and mn.Ecm_Dep=#{params.ecmDep}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ecmReason!=null">
+            and mn.Ecm_Reason like concat('%',#{params.ecmReason},'%')
+        </if>
+        <if test="params.ecmContent!=null">
+            and mn.Ecm_Content like concat('%',#{params.ecmContent},'%')
+        </if>
+        <if test="params.ecmName!=null">
+            and mn.Ecm_Name like concat('%',#{params.ecmName},'%')
+        </if>
+        <if test="params.ecmCreateUname!=null">
+            and mn.Ecm_Create_Uname like concat('%',#{params.ecmCreateUname},'%')
+        </if>
+        <if test="params.ecmDepName!=null">
+            and d.D_Name like concat('%',#{params.ecmDepName},'%')
+        </if>
+        <if test="params.enisCode!=null">
+            and enis.Enis_Code like concat('%',#{params.enisCode},'%')
+        </if>
+        <if test="params.dcoMajor!=null">
+            and dco.Dco_Major like concat('%',#{params.dcoMajor},'%')
+        </if>
+        <if test="params.ecmAmountStart!=null">
+            and mn.Ecm_Amount > #{params.ecmAmountStart}
+        </if>
+        <if test="params.ecmAmountEnd!=null">
+            and mn.Ecm_Amount &lt; #{params.ecmAmountEnd}
+        </if>
+        <if test="params.ecmCreateTimeStart!=null">
+            and mn.Ecm_Create_Time > #{params.ecmCreateTimeStart}
+        </if>
+        <if test="params.ecmCreateTimeEnd!=null">
+            and mn.Ecm_Create_Time &lt; #{params.ecmCreateTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getConEcmList" resultType="com.jpmsoft.common.model.response.DesignChange.ConEcmResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        d.D_Name as ecmDepName,
+        enis.Enis_Code as enisCode,
+        dco.Dco_Code as dcoCode,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Name as dcoName,
+        dco.Dco_Major as dcoMajor,
+        mn.*
+        from Con_Ecm mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department d on d.D_Id=mn.Ecm_Dep
+        left join Con_Enis enis on enis.Enis_Id=mn.Enis_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ecm_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

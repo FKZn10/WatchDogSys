@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.ComplaintLawsuitImportMapper">
+
+    <select id="selectComplaintCandidates" resultType="com.jpmsoft.fileUpload.pojo.entity.Complaint">
+        select *
+        from tb_complaint
+        where pre_id in
+        <foreach collection="preIds" item="preId" open="(" close=")" separator=",">
+            #{preId}
+        </foreach>
+        and unit_id in
+        <foreach collection="unitIds" item="unitId" open="(" close=")" separator=",">
+            #{unitId}
+        </foreach>
+    </select>
+
+    <delete id="deleteComplaintBatchIds">
+        delete from tb_complaint
+        where id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+    <insert id="insertComplaintBatch">
+        insert into tb_complaint (
+            id,
+            complaint_time,
+            reply_time,
+            pre_id,
+            unit_id,
+            contract_id,
+            original_project_name,
+            original_unit_name,
+            match_status,
+            need_manual_confirm,
+            missing_type,
+            missing_info,
+            reporter_name,
+            reporter_id,
+            phone_number,
+            case_source,
+            complaint_content,
+            investigation_result,
+            wage_count,
+            wage_amount,
+            blacklist_status,
+            identity_number,
+            create_uid,
+            create_uname,
+            create_time,
+            state,
+            state_time
+        ) values
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.id},
+                #{item.complaintTime},
+                #{item.replyTime},
+                #{item.preId},
+                #{item.unitId},
+                #{item.contractId},
+                #{item.originalProjectName},
+                #{item.originalUnitName},
+                #{item.matchStatus},
+                #{item.needManualConfirm},
+                #{item.missingType},
+                #{item.missingInfo},
+                #{item.reporterName},
+                #{item.reporterId},
+                #{item.phoneNumber},
+                #{item.caseSource},
+                #{item.complaintContent},
+                #{item.investigationResult},
+                #{item.wageCount},
+                #{item.wageAmount},
+                #{item.blacklistStatus},
+                #{item.identityNumber},
+                #{item.createUid},
+                #{item.createUname},
+                #{item.createTime},
+                #{item.state},
+                #{item.stateTime}
+            )
+        </foreach>
+    </insert>
+
+    <select id="selectLawsuitCandidates" resultType="com.jpmsoft.fileUpload.pojo.entity.Lawsuit">
+        select *
+        from tb_lawsuit
+        where pre_id in
+        <foreach collection="preIds" item="preId" open="(" close=")" separator=",">
+            #{preId}
+        </foreach>
+        and unit_id in
+        <foreach collection="unitIds" item="unitId" open="(" close=")" separator=",">
+            #{unitId}
+        </foreach>
+    </select>
+
+    <delete id="deleteLawsuitBatchIds">
+        delete from tb_lawsuit
+        where id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+    <insert id="insertLawsuitBatch">
+        insert into tb_lawsuit (
+            id,
+            unit_id,
+            pre_id,
+            contract_id,
+            original_project_name,
+            original_unit_name,
+            match_status,
+            need_manual_confirm,
+            missing_type,
+            missing_info,
+            unit_type,
+            project_category,
+            receive_time,
+            case_closed,
+            case_closed_time,
+            direct_interest,
+            dispute_negotiation,
+            case_summary,
+            informed_person,
+            informed_person_id,
+            remark,
+            create_uid,
+            create_uname,
+            create_time,
+            state,
+            state_time
+        ) values
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.id},
+                #{item.unitId},
+                #{item.preId},
+                #{item.contractId},
+                #{item.originalProjectName},
+                #{item.originalUnitName},
+                #{item.matchStatus},
+                #{item.needManualConfirm},
+                #{item.missingType},
+                #{item.missingInfo},
+                #{item.unitType},
+                #{item.projectCategory},
+                #{item.receiveTime},
+                #{item.caseClosed},
+                #{item.caseClosedTime},
+                #{item.directInterest},
+                #{item.disputeNegotiation},
+                #{item.caseSummary},
+                #{item.informedPerson},
+                #{item.informedPersonId},
+                #{item.remark},
+                #{item.createUid},
+                #{item.createUname},
+                #{item.createTime},
+                #{item.state},
+                #{item.stateTime}
+            )
+        </foreach>
+    </insert>
+
+</mapper>

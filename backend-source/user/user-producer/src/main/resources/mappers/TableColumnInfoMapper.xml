@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.TableColumnInfoMapper">
+
+    <select id="getTableColumn" databaseId="dm" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo">
+
+        select c1.table_Name as table_Code,c1.column_Name as column_Code,c2.Column_Name,c1.data_Type,c1.data_Length,c1.data_Precision,c1.data_Scale,c2.Column_Remark  from sys.user_tab_columns c1
+left  join Sys_TableColumn c2 on c1.Column_Name=c2.Column_Code  and  Table_Code=c1.Table_Name where lower(table_Code)=lower(#{tableName}) order by c1.column_Id asc;
+    </select>
+
+
+    <select id="getTableColumn" databaseId="mysql" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo">
+select   t1.table_name as tableCode,t1.column_name as columnCode,c2.Column_Name,Column_Remark,t1.data_type as dataType,IFNULL(t1.character_maximum_length,t1.numeric_precision)  as dataLength,t1.ORDINAL_POSITION as columnId, t1.column_type as columnType,t1.numeric_precision as dataPrecision,t1.numeric_scale as  dataScale
+       FROM INFORMATION_SCHEMA.Columns t1   left join     Sys_TableColumn c2 on t1.column_name=c2.Column_Code   and  c2.Table_Code=t1.table_name where lower(table_Code)=lower(#{tableName}) order by t1.ORDINAL_POSITION asc;
+    </select>
+
+    <select id="getTableColumn" databaseId="postgre" resultType="com.jpmsoft.userProducer.pojo.vo.TabcolumsVo">
+        select   t1.table_name as tableCode,t1.column_name as columnCode,c2.Column_Name,Column_Remark,t1.data_type as dataType,IFNULL(t1.character_maximum_length,t1.numeric_precision)  as dataLength,t1.ORDINAL_POSITION as columnId, t1.column_type as columnType,t1.numeric_precision as dataPrecision,t1.numeric_scale as  dataScale
+        FROM INFORMATION_SCHEMA.Columns t1   left join     Sys_TableColumn c2 on t1.column_name=c2.Column_Code  and  c2.Table_Code=t1.table_name where lower(table_Code)=lower(#{tableName}) order by t1.ORDINAL_POSITION asc;
+    </select>
+</mapper>

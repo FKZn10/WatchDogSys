@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProConstructionPlanListMapper">
+    <select id="getProConstructionPlanListByPcpId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProConstructionPlanListModel">
+        select
+        pcp.Pcp_File_Name as pcpFileName,
+        pcp.Pcp_Year as pcpYear,
+        pcp.Pcp_Create_Uname as pcpCreateUname,
+        pcp.Pcp_State as pcpState,
+        c1.C_Name as cplAgencyName,
+        c2.C_Name as cplLiableCompanyName,
+        dp1.D_Name as cplDeclareDepName,
+        dp2.D_Name as cplUseDepName,
+        mn.*
+        from  Pro_Construction_Plan_List mn
+        left join  Pro_Construction_Plan pcp on pcp.Pcp_Id=mn.Pcp_Id
+        left join  SYS_Company c1 on c1.C_Id=mn.Cpl_Agency
+        left join  SYS_Company c2 on c2.C_Id=mn.Cpl_Liable_Company
+        left join  SYS_Department dp1 on dp1.D_Id=mn.Cpl_Declare_Dep
+        left join  SYS_Department dp2 on dp2.D_Id=mn.Cpl_Use_Dep
+        where mn.Pcp_Id=#{pcpId}
+    </select>
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.Project.ProConstructionPlanListModel"
+               id="selectConstructionPlanList">
+        <id column="Cpl_Id" property="cplId"/>
+        <collection property="proConstructionSourcesFunds"
+                    ofType="com.jpmsoft.common.model.request.project.ProConstructionSourcesFundsDto"
+                    column="Cpl_Id" select="selectConstructionSourcesFunds">
+        </collection>
+        <collection property="proFundsUsageDetails"
+                    ofType="com.jpmsoft.common.model.request.project.ProFundsUsageDetailsDto"
+                    column="Cpl_Id" select="selectFundsUsageDetails">
+        </collection>
+    </resultMap>
+
+    <select id="selectConstructionSourcesFunds" resultType="com.jpmsoft.common.model.request.project.ProConstructionSourcesFundsDto">
+        select * from Pro_Construction_Sources_Funds where Cpl_Id=#{cplId} order by Fs_Sort ASC
+    </select>
+
+    <select id="selectFundsUsageDetails" resultType="com.jpmsoft.common.model.request.project.ProFundsUsageDetailsDto">
+        select * from Pro_Funds_Usage_Details where Cpl_Id=#{cplId} order by Fud_Sort ASC
+    </select>
+
+    <select id="getProConstructionPlanListById"
+            resultMap="selectConstructionPlanList">
+        select
+        f.file_relation_id as fileRelationId,
+        pcp.Pcp_File_Name as pcpFileName,
+        pcp.Pcp_Year as pcpYear,
+        pcp.Pcp_Create_Uname as pcpCreateUname,
+        pcp.Pcp_State as pcpState,
+        c1.C_Name as cplAgencyName,
+        c2.C_Name as cplLiableCompanyName,
+        dp1.D_Name as cplDeclareDepName,
+        dp2.D_Name as cplUseDepName,
+        mn.*
+        from  Pro_Construction_Plan_List mn
+        left join  Pro_Construction_Plan pcp on pcp.Pcp_Id=mn.Pcp_Id
+        left join  SYS_Company c1 on c1.C_Id=mn.Cpl_Agency
+        left join  SYS_Company c2 on c2.C_Id=mn.Cpl_Liable_Company
+        left join  SYS_Department dp1 on dp1.D_Id=mn.Cpl_Declare_Dep
+        left join  SYS_Department dp2 on dp2.D_Id=mn.Cpl_Use_Dep
+        left join  Sys_File f on f.FileID=pcp.Pcp_Id
+        where mn.Cpl_Id=#{cplId}
+    </select>
+
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pcpYear!=null">
+            and pcp.Pcp_Year = #{params.pcpYear}
+        </if>
+        <if test="params.pcpState!=null">
+            and pcp.Pcp_State = #{params.pcpState}
+        </if>
+        <if test="params.cplPType!=null">
+            and mn.Cpl_P_Type = #{params.cplPType}
+        </if>
+        <if test="params.cplYear!=null">
+            and mn.Cpl_Year = #{params.cplYear}
+        </if>
+        <if test="params.cplCategory!=null">
+            and mn.Cpl_Category = #{params.cplCategory}
+        </if>
+        <if test="params.cplApproval!=null">
+            and mn.Cpl_Approval = #{params.cplApproval}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.cplSource!=null">
+            and mn.Cpl_Source = #{params.cplSource}
+        </if>
+        <if test="params.cplAppend!=null">
+            and mn.Cpl_Append = #{params.cplAppend}
+        </if>
+        <if test="params.queryAppend!=null and params.queryAppend==false">
+            and  (mn.Cpl_Append=false or (mn.Cpl_Append=true and mn.State=7))
+        </if>
+        <if test="params.queryAppend!=null and params.queryAppend==true">
+            and  mn.Cpl_Append=true
+        </if>
+        <if test="params.pCode!=null">
+            and mn.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            and mn.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.pcpFileName!=null">
+            and pcp.Pcp_File_Name like concat('%',#{params.pcpFileName},'%')
+        </if>
+        <if test="params.pcpCreateUname!=null">
+            and pcp.Pcp_Create_Uname like concat('%',#{params.pcpCreateUname},'%')
+        </if>
+    </sql>
+
+    <select id="getProConstructionPlanList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProConstructionPlanListModel">
+        select
+        pcp.Pcp_File_Name as pcpFileName,
+        pcp.Pcp_Year as pcpYear,
+        pcp.Pcp_Create_Uname as pcpCreateUname,
+        pcp.Pcp_State as pcpState,
+        c1.C_Name as cplAgencyName,
+        c2.C_Name as cplLiableCompanyName,
+        dp1.D_Name as cplDeclareDepName,
+        dp2.D_Name as cplUseDepName,
+        mn.*
+        from  Pro_Construction_Plan_List mn
+        left join  Pro_Construction_Plan pcp on pcp.Pcp_Id=mn.Pcp_Id
+        left join  SYS_Company c1 on c1.C_Id=mn.Cpl_Agency
+        left join  SYS_Company c2 on c2.C_Id=mn.Cpl_Liable_Company
+        left join  SYS_Department dp1 on dp1.D_Id=mn.Cpl_Declare_Dep
+        left join  SYS_Department dp2 on dp2.D_Id=mn.Cpl_Use_Dep
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Cpl_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

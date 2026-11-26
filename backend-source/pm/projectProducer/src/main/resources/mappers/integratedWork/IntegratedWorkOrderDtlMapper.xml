@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.integratedWork.IntegratedWorkOrderDtlMapper">
+    <select id="getLastWeekOrders"
+            resultType="com.jpmsoft.common.model.requestAndResponse.integratedWork.IntegratedWorkOrderDtlDTO">
+        select mn.*
+        from Integrated_Work_Order_Dtl mn
+        left join Integrated_Work_Order iwo on mn.iwo_id = iwo.id
+        where mn.iwod_type = '01'
+        and iwo.Con_Construction_Id = #{conConstructionId}
+        and iwo.Con_Supervision_Id = #{conSupervisionId}
+        and iwo.State = 7
+        <if test="id != null and id != ''">
+            and iwo.id != #{id}
+        </if>
+        and iwo.work_start_date = (
+        select MAX(sub_iwo.work_start_date)
+        from Integrated_Work_Order sub_iwo
+        where sub_iwo.Con_Construction_Id = #{conConstructionId}
+        and sub_iwo.Con_Supervision_Id = #{conSupervisionId}
+        <include refid="dateCondition"/>)
+    </select>
+
+    <sql id="dateCondition" databaseId="dm">
+        AND sub_iwo.work_start_date &lt;= TO_DATE(#{weeklyStartDate}, 'YYYY-MM-DD')
+    </sql>
+
+    <sql id="dateCondition" databaseId="mysql">
+        AND sub_iwo.work_start_date &lt;= STR_TO_DATE(#{weeklyStartDate}, '%Y-%m-%d')
+    </sql>
+</mapper>

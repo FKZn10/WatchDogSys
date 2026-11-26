@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.construction.ConStartApplyMapper">
+
+    <select id="getConStartApplyById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Construction.ConStartApplyModel">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        c1.C_Name as exContractorName,
+        c1.C_Name_History as exContractorNameHistory,
+        c2.C_Name as exSupervisorName,
+        c2.C_Name_History as exSupervisorNameHistory,
+        c1.C_Abbreviation as exContractorAbbName,
+        c2.C_Abbreviation as exSupervisorAbbName,
+        mn.*
+        from  Con_Start_Apply mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_Company c1 on c1.C_Id=mn.Sa_Contractor_Id
+        left join  Sys_Company c2 on c2.C_Id=mn.Sa_Supervisor_Id
+        left join  Sys_File f on f.FileID=mn.Sa_Id
+        where mn.Sa_Id=#{saId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.saState!=null">
+            and mn.Sa_State = #{params.saState}
+        </if>
+        <if test="params.saTitle!=null">
+            and mn.Sa_Title like concat('%',#{params.saTitle},'%')
+        </if>
+        <if test="params.saRemark!=null">
+            and mn.Sa_Remark like concat('%',#{params.saRemark},'%')
+        </if>
+        <if test="params.saCreateUname!=null">
+            and mn.Sa_Create_Uname like concat('%',#{params.saCreateUname},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pNameHistory!=null">
+            and pro.P_Name_History like concat('%',#{params.pNameHistory},'%')
+        </if>
+        <if test="params.saContractorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.saContractorName},mn.Sa_Contractor_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.saContractorName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.saContractorNameHistory!=null">
+            and c1.C_Name_History like concat('%',#{params.saContractorNameHistory},'%')
+        </if>
+        <if test="params.saSupervisorName!=null">
+            and c2.C_Name like concat('%',#{params.saSupervisorName},'%')
+        </if>
+        <if test="params.saSupervisorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.saSupervisorName},mn.Sa_Supervisor_Id)=true
+                </when>
+                <otherwise>
+                    and c2.C_Name like concat('%',#{params.saSupervisorName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.saSupervisorNameHistory!=null">
+            and c2.C_Name_History like concat('%',#{params.saSupervisorNameHistory},'%')
+        </if>
+    </sql>
+
+    <select id="getConStartApplyList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Construction.ConStartApplyModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        f.file_relation_id as fileRelationId,
+        c1.C_Name as exContractorName,
+        c1.C_Name_History as exContractorNameHistory,
+        c2.C_Name as exSupervisorName,
+        c2.C_Name_History as exSupervisorNameHistory,
+        c1.C_Abbreviation as exContractorAbbName,
+        c2.C_Abbreviation as exSupervisorAbbName,
+        mn.*
+        from  Con_Start_Apply mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sys_Company c1 on c1.C_Id=mn.Sa_Contractor_Id
+        left join  Sys_Company c2 on c2.C_Id=mn.Sa_Supervisor_Id
+        left join  Sys_File f on f.FileID=mn.Sa_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sa_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

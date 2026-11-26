@@ -1,0 +1,13 @@
+/target/
+/.idea/
+*.iml
+/.local/
+/logs/
+*.log
+# PM's parent ignore excludes *.yml; track only the six environment-free templates.
+!/src/main/resources/application.yml
+!/src/main/resources/application-local.yml
+!/src/main/resources/application-module.yml
+!/src/main/resources/application-wvp.yml
+!/src/main/resources/application-company-directory.yml
+!/src/main/resources/application-registry.yml

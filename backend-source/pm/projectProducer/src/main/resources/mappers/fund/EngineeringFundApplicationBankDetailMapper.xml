@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.EngineeringFundApplicationBankDetailMapper">
+    <insert id="addBatch">
+        insert into Engineering_Fund_Application_Bank_Detail(id,Efa_Id, Ba_Id)
+        values
+        <foreach collection="list" item="entity" separator=",">
+            (#{entity.id}, #{entity.efaId}, #{entity.baId})
+        </foreach>
+    </insert>
+    <select id="getDetailByEfaId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.fund.EngineeringFundApplicationBankDetail">
+        select * from Engineering_Fund_Application_Bank_Detail where Efa_Id = #{efaId}
+    </select>
+</mapper>

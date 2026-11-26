@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecInquiryTeamGroupMapper">
+
+    <select id="getSecInquiryTeamGroupBySitId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecInquiryTeamGroupModel">
+      select
+      sitg.*
+      from  Sec_Inquiry_Team_Group sitg
+      where sitg.Sit_Id=#{sitId}
+    </select>
+
+    <select id="getSecInquiryTeamGroupBySecId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecInquiryTeamGroupModel">
+     select
+      sitg.*
+      from  Sec_Inquiry_Team_Group sitg
+      left join   Sec_Inquiry_Team  sit on sit.Sit_Id=sitg.Sit_Id
+      left join   Sec_Info sec on sec.Sec_Id=sit.Sec_Id
+      where sec.Sec_Id=#{secId}
+    </select>
+</mapper>

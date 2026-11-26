@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecInvitationSchemaMapper">
+    <select id="getSecInvitationSchemaList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecInvitationSchemaDTO">
+        select mn.*,
+        p.p_name as pName,
+        s.sec_name as secName,
+        p.P_Category as pCategory
+        from Sec_Invitation_Schema mn
+        left join Pre_Project p on mn.P_Id = p.P_Id
+        left join Sec_Info s on mn.Sec_Id = s.Sec_Id
+        left join sec_bidding_plan sbp on s.Bp_Id = sbp.Bp_Id
+        ${params.authSql}
+        <include refid="filter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select ${selectClause}
+        from Sec_Invitation_Schema mn
+        left join Pre_Project p on mn.P_Id = p.P_Id
+        left join Sec_Info s on mn.Sec_Id = s.Sec_Id
+        left join sec_bidding_plan sbp on s.Bp_Id = sbp.Bp_Id
+        ${params.authSql}
+        <include refid="filter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="filter">
+        <if test="params.isNew != null and params.isNew != ''">
+            and sbp.is_new = 1
+        </if>
+        <if test="params.createUid != null and params.createUid != ''">
+            and mn.Create_Uid = #{params.createUid}
+        </if>
+        <if test="params.createTime != null and params.createTime != ''">
+            and mn.Create_Time = #{params.createTime}
+        </if>
+        <if test="params.state != null">
+            and mn.state = #{params.state}
+        </if>
+        <if test="params.stateTime != null and params.stateTime != ''">
+            and mn.state_time = #{params.stateTime}
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and mn.p_id = #{params.pId}
+        </if>
+        <if test="params.secId != null and params.secId != ''">
+            and mn.sec_id = #{params.secId}
+        </if>
+        <if test="params.pCategory != null and params.pCategory != ''">
+            and mn.p_category = #{params.pCategory}
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            and p.p_name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.secName != null and params.secName != ''">
+            and s.sec_name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.createUname != null and params.createUname != ''">
+            and mn.Create_Uname like concat('%',#{params.createUname},'%')
+        </if>
+        <if test="params.createTimeStart != null and params.createTimeStart != ''">
+            and mn.create_time >= #{params.createTimeStart}
+        </if>
+        <if test="params.createTimeEnd != null and params.createTimeEnd != ''">
+            and mn.create_time &lt;= #{params.createTimeEnd}
+        </if>
+        <if test="params.pNames != null and params.pNames.size() > 0">
+            <choose>
+                <when test="params.pNames.contains('空白数据')">
+                    and (p.p_name is null or p.p_name = '')
+                </when>
+                <otherwise>
+                    and p.p_name in
+                    <foreach item="pName" index="index" collection="params.pNames" open="(" separator="," close=")">
+                        #{pName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.secNames != null and params.secNames.size() > 0">
+            <choose>
+                <when test="params.secNames.contains('空白数据')">
+                    and (s.sec_name is null or s.sec_name = '')
+                </when>
+                <otherwise>
+                    and s.sec_name in
+                    <foreach item="secName" index="index" collection="params.secNames" open="(" separator="," close=")">
+                        #{secName}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCategorys != null and params.pCategorys.size() > 0">
+            and p.p_category in
+            <foreach item="pCategory" index="index" collection="params.pCategorys" open="(" separator="," close=")">
+                #{pCategory}
+            </foreach>
+        </if>
+        <if test="params.createUnames != null and params.createUnames.size() > 0">
+            <choose>
+                <when test="params.createUnames.contains('空白数据')">
+                    and (mn.Create_Uname is null or mn.Create_Uname = '')
+                </when>
+                <otherwise>
+                    and mn.Create_Uname in
+                    <foreach item="createUname" index="index" collection="params.createUnames" open="(" separator="," close=")">
+                        #{createUname}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.states != null and params.states.size() > 0">
+            and mn.state in
+            <foreach item="state" index="index" collection="params.states" open="(" separator="," close=")">
+                #{state}
+            </foreach>
+        </if>
+    </sql>
+</mapper>

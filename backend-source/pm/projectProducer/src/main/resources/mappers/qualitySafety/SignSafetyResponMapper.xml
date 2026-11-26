@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.qualitySafety.SignSafetyResponMapper">
+    <select id="getSignSafetyResponList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SafeResponsibility.SignSafetyResponDTO">
+        SELECT mn.*,
+        sc.c_name AS cName,
+        pp.p_name AS pName,
+        cc.con_name AS conName
+        FROM sign_safety_respon mn
+        LEFT JOIN pre_project pp ON mn.p_Id = pp.p_id
+        LEFT JOIN Con_Contract cc ON mn.con_Id = cc.con_id
+        LEFT JOIN Sys_company sc ON mn.company_Id = sc.c_id
+        <where>
+            mn.deleted = 0
+            <if test="params.saId != null and params.saId != ''">
+                AND mn.sa_Id = #{params.saId}
+            </if>
+            <if test="params.repPersonId != null and params.repPersonId != ''">
+                AND mn.rep_person_Id = #{params.repPersonId}
+            </if>
+            <if test="params.pId != null and params.pId != ''">
+                AND mn.p_Id = #{params.pId}
+            </if>
+            <if test="params.conId != null and params.conId != ''">
+                AND mn.con_Id = #{params.conId}
+            </if>
+            <if test="params.companyId != null and params.companyId != ''">
+                AND mn.company_Id = #{params.companyId}
+            </if>
+            <if test="params.saName != null and params.saName != ''">
+                AND mn.sa_Name LIKE CONCAT('%', #{params.saName}, '%')
+            </if>
+            <if test="params.saPost != null and params.saPost != ''">
+                AND mn.sa_Post LIKE CONCAT('%', #{params.saPost}, '%')
+            </if>
+            <if test="params.state != null and params.state != ''">
+                AND mn.State = #{params.state}
+            </if>
+            <if test="params.createUid != null and params.createUid != ''">
+                AND mn.Create_Uid = #{params.createUid}
+            </if>
+            <if test="params.createUname != null and params.createUname != ''">
+                AND mn.Create_Uname LIKE CONCAT('%', #{params.createUname}, '%')
+            </if>
+            <if test="params.pName != null and params.pName != ''">
+                AND pp.p_name LIKE CONCAT('%', #{params.pName}, '%')
+            </if>
+            <if test="params.conName != null and params.conName != ''">
+                AND cc.con_name LIKE CONCAT('%', #{params.conName}, '%')
+            </if>
+            <if test="params.cName != null and params.cName != ''">
+                AND sc.c_name LIKE CONCAT('%', #{params.cName}, '%')
+            </if>
+            <if test="params.saSignTimeStart != null and params.saSignTimeStart != ''">
+                AND mn.sa_Sign_Time &gt;= #{params.saSignTimeStart}
+            </if>
+            <if test="params.saSignTimeEnd != null and params.saSignTimeEnd != ''">
+                AND mn.sa_Sign_Time &lt;= #{params.saSignTimeEnd}
+            </if>
+            <if test="params.createTimeStart != null and params.createTimeStart != ''">
+                AND mn.Create_Time &gt;= #{params.createTimeStart}
+            </if>
+            <if test="params.createTimeEnd != null and params.createTimeEnd != ''">
+                AND mn.Create_Time &lt;= #{params.createTimeEnd}
+            </if>
+        </where>
+        ORDER BY mn.Create_Time DESC
+    </select>
+
+    <select id="getSignSafetyResponById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SafeResponsibility.SignSafetyResponDTO">
+        SELECT mn.*,
+        sc.c_name AS cName,
+        pp.p_name AS pName,
+        cc.con_name AS conName
+        FROM sign_safety_respon mn
+        LEFT JOIN pre_project pp ON mn.p_Id = pp.p_id
+        LEFT JOIN Con_Contract cc ON mn.con_Id = cc.con_id
+        LEFT JOIN Sys_company sc ON mn.company_Id = sc.c_id
+        WHERE mn.sa_Id = #{id}
+    </select>
+</mapper>

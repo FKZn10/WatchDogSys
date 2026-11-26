@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.SysShortMessageMapper">
+    <select id="selectSysShortMessage"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.other.SysShortMessage">
+        select * from SYS_Short_Message
+        <where>
+            <if test="id != null">
+                and Sm_FileId = #{id}
+            </if>
+            <if test="contentType != null">
+                and Sm_Content like concat('%',#{contentType},'%')
+            </if>
+        </where>
+    </select>
+</mapper>

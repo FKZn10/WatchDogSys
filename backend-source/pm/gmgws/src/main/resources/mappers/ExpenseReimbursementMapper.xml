@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.gmgws.mapper.ExpenseReimbursementMapper">
+
+    <select id="getExpenseReimbursementList" resultType="com.jpmsoft.gmgws.pojo.dto.ExpenseReimbursementDTO">
+        select
+            dp.d_name as erDepartmentName,
+            mn.*
+        from Expense_Reimbursement mn
+        left join Sys_Department dp on dp.d_id=mn.Er_Department
+        <where>
+            <if test="params.erCategory!=null">
+                and mn.er_Category = #{params.erCategory}
+            </if>
+            <if test="params.state!=null">
+                and mn.state = #{params.state}
+            </if>
+            <if test="params.createUid!=null">
+                and mn.create_Uid = #{params.createUid}
+            </if>
+            <if test="params.erDepartment!=null">
+                and mn.er_Department = #{params.erDepartment}
+            </if>
+            <if test="params.createUname!=null">
+                and mn.create_uname like concat('%',#{params.createUname},'%')
+            </if>
+            <if test="params.erApplicantr!=null">
+                and mn.er_Applicantr like concat('%',#{params.erApplicantr},'%')
+            </if>
+            <if test="params.erDepartmentName!=null">
+                and dp.d_name like concat('%',#{params.erDepartmentName},'%')
+            </if>
+            <if test="params.erCode!=null">
+                and mn.er_code like concat('%',#{params.erCode},'%')
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

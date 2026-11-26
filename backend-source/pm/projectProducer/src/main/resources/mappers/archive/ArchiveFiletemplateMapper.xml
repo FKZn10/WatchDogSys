@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.archive.ArchiveFiletemplateMapper">
+
+    <select id="getArchiveFiletemplateByTCodes"
+            resultType="com.jpmsoft.common.model.response.Archive.ArchiveFiletemplateResponse">
+        select mn.*,
+        ft.T_Name as tName,
+        ad.Ad_Name as adName,
+        ad.Ad_Link as adLink
+        from Archive_FileTemplate mn
+        left join SYS_FileTemplate ft on ft.T_Code=mn.At_T_Code
+        left join Archive_Directory ad on ad.Ad_Id=mn.Ad_Id
+        where mn.At_T_Code in
+        <foreach collection="tCodes" open="(" close=")" separator="," item="code">
+            #{code}
+        </foreach>
+        <if test="adId!=null">
+            and mn.Ad_Id!=#{adId}
+        </if>
+    </select>
+</mapper>

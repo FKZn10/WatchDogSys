@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysSequenceCurrentCodeMapper">
+
+    <select id="getSysSequenceCurrentCodeBySid"
+            resultType="com.jpmsoft.userProducer.pojo.dto.SysSequenceCurrentDto">
+        select
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        scc.*
+        from  SYS_Sequence_Current_Code scc
+        left join  Pre_Project pro on pro.P_Id=scc.P_Id
+        left join  Sec_Info sec on sec.Sec_Id=scc.Sec_Id
+        left join  Con_Contract con on con.Con_Id=scc.Con_Id
+        where scc.S_Id=#{params.sId}
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by scc.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by scc.Cc_No desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSysSequenceCurrentCodeBySidCount"
+            resultType="java.lang.Integer">
+         select
+         count(1)
+        from  SYS_Sequence_Current_Code scc
+        left join  Pre_Project pro on pro.P_Id=scc.P_Id
+        left join  Sec_Info sec on sec.Sec_Id=scc.Sec_Id
+        left join  Con_Contract con on con.Con_Id=scc.Con_Id
+        where scc.S_Id=#{params.sId}
+    </select>
+</mapper>

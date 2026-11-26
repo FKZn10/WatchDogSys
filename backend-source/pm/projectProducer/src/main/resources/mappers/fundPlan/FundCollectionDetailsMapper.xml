@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fundPlan.FundCollectionDetailsMapper">
+
+    <sql id="ProjectFundCollectionDetailsFilter">
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.state!=null">
+            and  mn.State=#{params.state}
+        </if>
+        <if test="params.pBuildModel!=null">
+            and INSTR(mn.P_Build_Model,#{params.pBuildModel})
+        </if>
+        <if test="params.pType!=null">
+            and INSTR(mn.P_Type,#{params.pType})
+        </if>
+        <if test="params.pImpCompany!=null">
+            and INSTR(mn.P_Imp_Company,#{params.pImpCompany})
+        </if>
+        <if test="params.pCompetentDepartmentName!=null">
+            and INSTR(dp.D_Name,#{params.pCompetentDepartmentName})
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </if>
+                <if test="params.pConstructionUnitName!=null">
+                    and likeCname(#{params.pConstructionUnitName},c1.C_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.pName!=null">
+                    and INSTR(mn.P_Name,#{params.pName})
+                </if>
+                <if test="params.pConstructionUnitName!=null">
+                    and INSTR(c1.C_Name,#{params.pConstructionUnitName})
+                </if>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="getMoneySum"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.ProjectFundCollectionDetailsStatisticsVo">
+        select
+        SUM(a.fcdMoney) as fcdMoneySum,
+        SUM(a.faDemand) as faDemandSum,
+        sum(a.payAmt) as payApplySum
+        from
+        (
+        select
+        (select sum(p.Pay_Apply) from Con_Pay p where p.P_Id=mn.P_Id and p.Pay_State=7) as payAmt,
+        (select SUM(fcd.Fcd_Money) from Fund_Collection_Details fcd where fcd.P_Id=mn.P_Id and fcd.State=7) as fcdMoney,
+        (select SUM(fa.Fa_Demand) from Fund_Appropriation fa where fa.P_Id=mn.P_Id and fa.State=7) as faDemand
+        from Pre_Project mn
+        left join SYS_Department dp on dp.D_Id = mn.P_Competent_Department
+        left join SYS_Company c1 on c1.C_Id = mn.P_Construction_Unit
+        <include refid="ProjectFundCollectionDetailsFilter"/>
+        ) a
+    </select>
+
+    <select id="getProjectFundCollectionDetailsList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.ProjectFundCollectionDetailsVo">
+        select
+        (b.fcdMoney-b.faDemand) as balanceAmt,
+        (b.fcdMoney-b.payApply) as payBalanceAmt,
+        b.* from
+        (
+            select
+            (case when fcdAmt is null then 0 else fcdAmt end ) as fcdMoney,
+            (case when faAmt is null then 0 else faAmt end ) as faDemand,
+            (case when payAmt is null then 0 else payAmt end ) as payApply,
+            a.*
+            from (
+            select mn.P_Id as pId,
+            mn.P_Name as pName,
+            mn.P_Use_Unit as pUseUnit,
+            mn.P_Build_Model as pBuildModel,
+            mn.P_Type as pType,
+            mn.P_Imp_Company as pImpCompany,
+            mn.P_Create_Time as pCreateTime,
+            dp.D_Name as pCompetentDepartmentName,
+            c1.C_Name as pConstructionUnitName,
+            (select max(fcd.Fcd_Batch_No) from Fund_Collection_Details fcd where fcd.P_Id=mn.P_Id and fcd.State=7 ) as
+            fcdBatchNo,
+            (select SUM(fcd.Fcd_Money) from Fund_Collection_Details fcd where fcd.P_Id=mn.P_Id and fcd.State=7) as fcdAmt,
+            (select count(*) from Fund_Appropriation fa where fa.P_Id=mn.P_Id and fa.State=7 ) as faBatchNo,
+            (select SUM(fa.Fa_Demand) from Fund_Appropriation fa where fa.P_Id=mn.P_Id and fa.State=7) as faAmt,
+            (select count(*) from Con_Pay p where p.P_Id=mn.P_Id and p.Pay_State=7) as conPayBatchNo,
+            (select sum(p.Pay_Apply) from Con_Pay p where p.P_Id=mn.P_Id and p.Pay_State=7) as payAmt
+            from Pre_Project mn
+            left join SYS_Department dp on dp.D_Id = mn.P_Competent_Department
+            left join SYS_Company c1 on c1.C_Id = mn.P_Construction_Unit
+            <include refid="ProjectFundCollectionDetailsFilter"/>
+            ) a
+        ) b
+        <choose>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by pCreateTime DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getFundCollectionDetailsStatistic"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundCollectionDetailsStatisticVo">
+        select
+        ( select SUM(P_Inv_Total) from Pre_Project where P_Id in(
+        select
+        mn.P_Id
+        from Fund_Collection_Details mn
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join Fund_Appropriation fa on fa.id = mn.Fa_Id
+        left join SYS_Department dp on dp.D_Id = pro.P_Competent_Department
+        left join SYS_Company c1 on c1.C_Id = pro.P_Construction_Unit
+        <include refid="listFilter"/>
+        )) as pInvTotalSum,
+        (select
+        sum(mn.Fcd_Money)
+        from Fund_Collection_Details mn
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join Fund_Appropriation fa on fa.id = mn.Fa_Id
+        left join SYS_Department dp on dp.D_Id = pro.P_Competent_Department
+        left join SYS_Company c1 on c1.C_Id = pro.P_Construction_Unit
+        <include refid="listFilter"/>
+        ) as fcdMoneySum
+    </select>
+
+    <sql id="listFilter">
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pBuildModel!=null">
+            and pro.P_Build_Model=#{params.pBuildModel}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+    </sql>
+    <select id="getFundCollectionDetailsList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundCollectionDetailsVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        fa.Fa_Code as faCode,
+        pro.P_Approve_Budget as pApproveBudget,
+        mn.*
+        from Fund_Collection_Details mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Fund_Appropriation fa on fa.id = mn.Fa_Id
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getFundCollectionDetailsById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundCollectionDetailsVo">
+        select fa.Fa_Code           as faCode,
+               pro.P_Name           as pName,
+               pro.P_Build_Model    as pBuildModel,
+               pro.P_Inv_Total      as pInvTotal,
+               pro.P_Approve_Budget as pApproveBudget,
+               pro.P_Use_Unit       as pUseUnit,
+               dp.D_Name            as pCompetentDepartmentName,
+               c1.C_Name            as pConstructionUnitName,
+               mn.*
+        from Fund_Collection_Details mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Fund_Appropriation fa on fa.id = mn.Fa_Id
+                 left join SYS_Department dp on dp.D_Id = pro.P_Competent_Department
+                 left join SYS_Company c1 on c1.C_Id = pro.P_Construction_Unit
+        where mn.id = #{id}
+    </select>
+
+
+    <select id="getLastFundCollectionDetailsByPid"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundCollectionDetailsVo">
+        select fa.Fa_Code           as faCode,
+               pro.P_Name           as pName,
+               pro.P_Build_Model    as pBuildModel,
+               pro.P_Inv_Total      as pInvTotal,
+               pro.P_Approve_Budget as pApproveBudget,
+               pro.P_Use_Unit       as pUseUnit,
+               dp.D_Name            as pCompetentDepartmentName,
+               c1.C_Name            as pConstructionUnitName,
+               mn.*
+        from Fund_Collection_Details mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Fund_Appropriation fa on fa.id = mn.Fa_Id
+                 left join SYS_Department dp on dp.D_Id = pro.P_Competent_Department
+                 left join SYS_Company c1 on c1.C_Id = pro.P_Construction_Unit
+        where mn.P_Id = #{pId}
+          and mn.State = 7
+        order by mn.Create_Time desc limit 1
+    </select>
+
+
+    <select id="getFundCollectionProjectList" resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundCollectionProjectVo">
+        select
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        d.D_Name as pCompetentDepartmentName,
+        (select sum(Fcd_Money) from Fund_Collection_Details where P_Id=proj.P_Id and State=7) as fcdMoneySum,
+        proj.*
+        from Pre_Project proj
+        left join SYS_Company c1 on c1.C_Id=proj.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=proj.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=proj.P_Design_And_Construction_Integration_Unit
+        left join SYS_Department d on proj.P_Competent_Department=d.D_Id
+        <where>
+            <if test="params.teId!=null">
+                and proj.Te_Id = #{params.teId}
+            </if>
+            <if test="params.pId!=null">
+                and proj.P_Id=#{params.pId}
+            </if>
+            <if test="params.pBuildModel!=null">
+                and proj.P_Build_Model=#{params.pBuildModel}
+            </if>
+            <if test="params.pType!=null">
+                and proj.P_Type=#{params.pType}
+            </if>
+            <if test="params.pConstructionUnitName!=null">
+                and INSTR(c1.C_Name,#{params.pConstructionUnitName})
+            </if>
+            <if test="params.pImpCompany!=null">
+                and INSTR(proj.P_Imp_Company,#{params.pImpCompany})
+            </if>
+            <if test="params.pCompetentDepartmentName!=null">
+                and INSTR(d.D_Name,#{params.pCompetentDepartmentName})
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},proj.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(proj.P_Name,#{params.pName})
+                    </otherwise>
+                </choose>
+            </if>
+            and proj.P_Id in (select mn.P_Id from Fund_Collection_Details mn ${params.authSql})
+        </where>
+    </select>
+</mapper>

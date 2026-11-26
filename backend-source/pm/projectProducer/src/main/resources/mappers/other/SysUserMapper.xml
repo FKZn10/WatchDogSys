@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.SysUserMapper">
+
+    <select id="getUesrInfoByIds" resultType="com.jpmsoft.projectProducer.pojo.vo.sys.SysUserVo">
+        select
+        p.PL_Name as plName,
+        c.C_Name as cName,
+        <include refid="sqlFileds"/>
+        from SYS_User u
+        left join SYS_PositionLV p on u.PL_ID=p.PL_ID
+        left join SYS_Company c on u.C_ID=c.C_ID
+        <where>
+            u.U_Id in
+            <foreach collection="uIds" item="uId" separator="," open="(" close=")">
+                #{uId}
+            </foreach>
+        </where>
+    </select>
+
+    <sql id="listFilter">
+        <where>
+            1=1
+            <if test="params.pId != null">
+                and spu.P_Id=#{params.pId}
+            </if>
+            <if test="params.uState != null">
+                and u.U_State=#{params.uState}
+            </if>
+            <if test="params.uType != null">
+                and u.U_Type=#{params.uType}
+            </if>
+            <if test="params.cId != null">
+                and u.C_ID=#{params.cId}
+            </if>
+            <if test="params.plId != null">
+                and p.PL_ID = #{params.plId}
+            </if>
+            <if test="params.timeStart!=null and params.timeEnd!=null">
+                and u.U_CreateTime between #{params.timeStart} and #{params.timeEnd}
+            </if>
+            <if test="params.uName != null">
+                and u.U_Name like concat('%',#{params.uName},'%')
+            </if>
+            <if test="params.cName != null">
+                and c.C_Name like concat('%',#{params.cName},'%')
+            </if>
+            <if test="params.uAccount != null">
+                and u.U_Account like concat('%',#{params.uAccount},'%')
+            </if>
+            <if test="params.uCode != null">
+                and u.U_Code like concat('%',#{params.uCode},'%')
+            </if>
+            <if test="params.uMtel != null">
+                and u.U_MTel like concat('%',#{params.uMtel},'%')
+            </if>
+        </where>
+    </sql>
+
+
+    <sql id="conditionFilter">
+        <if test="params.uState != null">
+            and u.U_State=#{params.uState}
+        </if>
+        <if test="params.uType != null">
+            and u.U_Type=#{params.uType}
+        </if>
+        <if test="params.uId != null">
+            and u.U_Id=#{params.uId}
+        </if>
+        <if test="params.cId != null">
+            and u.C_ID=#{params.cId}
+        </if>
+        <if test="params.dId!=null">
+            and d.D_ID=#{params.dId}
+        </if>
+        <if test="params.dId==null and params.all!=null and params.all==true">
+            and d.D_ID is not null
+        </if>
+        <if test="params.plId != null">
+            and plv.PL_ID = #{params.plId}
+        </if>
+        <if test="params.timeStart!=null and params.timeEnd!=null">
+            and u.U_CreateTime between #{params.timeStart} and #{params.timeEnd}
+        </if>
+        <if test="params.uName != null">
+            and u.U_Name like concat('%',#{params.uName},'%')
+        </if>
+        <if test="params.cName != null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.cName},c.C_Id)=true
+                </when>
+                <otherwise>
+                    and c.C_Name like concat('%',#{params.cName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.uAccount != null">
+            and u.U_Account like concat('%',#{params.uAccount},'%')
+        </if>
+        <if test="params.uCode != null">
+            and u.U_Code like concat('%',#{params.uCode},'%')
+        </if>
+        <if test="params.uMtel != null">
+            and u.U_MTel like concat('%',#{params.uMtel},'%')
+        </if>
+        <if test="params.depIds!=null and params.depIds.size()>0">
+            and d.D_Id in
+            <foreach collection="params.depIds" open="(" close=")" item="depId" separator=",">
+                #{depId}
+            </foreach>
+        </if>
+    </sql>
+    <select id="getUserListByMoreCondition" resultType="com.jpmsoft.projectProducer.pojo.vo.sys.SysUserVo">
+        select
+        p.P_ID as pId,
+        p.D_ID as dId,
+        p.P_Name as pName,
+        d.D_Name as dName,
+        c.C_Name as cName,
+        plv.PL_Name as plName,
+        pu.Pu_Id as puId,
+        pu.PU_Sort as puSort,
+        pu.PU_Main_Duty as puMainDuty,
+        pu.Pu_Duty as puDuty,
+        pu.Pu_Main_Dep as puMainDep,
+        <include refid="sqlFileds"/>
+        from
+        SYS_User u
+        left join SYS_Position_User pu on u.U_ID=pu.U_ID
+        left join SYS_Position p on pu.P_ID=p.P_ID
+        left join SYS_Department d on d.D_ID=p.D_ID
+        left join SYS_Company c on c.C_ID=u.C_ID
+        left join SYS_PositionLV plv on plv.PL_ID=u.PL_ID
+        where 1=1
+        <include refid="conditionFilter"/>
+        <choose>
+            <when test="params.sortFiled=='PL_NAME'">
+                order by plv.PL_Name ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by u.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType==null and params.sortFiled==null and params.sortSideFiled==null and params.dId!=null">
+                order by puSort ASC
+            </when>
+            <otherwise>
+                order by u.U_CreateTime DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getUserByPid" resultType="com.jpmsoft.projectProducer.pojo.vo.sys.SysUserVo">
+        select
+        u.*
+        from
+        SYS_User u
+        left join SYS_Position_User_P pu on u.U_ID=pu.U_ID
+        left join SYS_Position_P p on pu.PP_ID=p.PP_ID
+        left join SYS_Department_P d on d.PD_ID=p.PD_ID
+        where 1=1
+        <if test="ids!=null and ids.size()>0">
+            and d.P_Id in
+            <foreach collection="ids" open="(" close=")" item="id" separator=",">
+                #{id}
+            </foreach>
+        </if>
+    </select>
+
+
+    <sql id="sqlFileds">
+        u.U_ID as uId,
+        u.PL_ID as plID,
+        u.C_ID as cID,
+        u.U_Name as uName,
+        u.U_Code as uCode,
+        u.U_MTel as uMtel,
+        u.U_Tel as uTel,
+        u.U_Email as uEmail,
+        u.U_Account as uAccount,
+        u.U_PassWord as uPassword,
+        u.U_Sex as uSex,
+        u.U_Birthday as uBirthday,
+        u.U_State as uState,
+        u.U_MDM_NO as uMdmNo,
+        u.U_CreateTime as uCreatetime,
+        u.U_CreateU_ID as uCreateuID,
+        u.U_CreateU_Name as uCreateuName,
+        u.U_Type  as uType,
+        u.U_Office as uOffice,
+        u.U_Cornet as uCornet,
+        u.U_IdCard as uIdcard,
+        u.U_Sort as uSort,
+        u.U_Push_Id as uPushId,
+        u.Open_Id as openId,
+        u.U_Signature as uSignature,
+        u.U_Qualification as uQualification
+    </sql>
+
+
+    <select id="getComPanyUser" resultType="com.jpmsoft.projectProducer.pojo.vo.sys.SysUserVo">
+        SELECT
+            p.P_ID AS pId,
+            p.D_ID AS dId,
+            p.P_Name AS pName,
+            d.D_Name AS dName,
+            c.C_Name AS cName,
+            plv.PL_Name AS plName,
+            pu.Pu_Id AS puId,
+            pu.PU_Sort AS puSort,
+            pu.PU_Main_Duty AS puMainDuty,
+            pu.Pu_Duty AS puDuty,
+            pu.Pu_Main_Dep AS puMainDep,
+            u.U_ID AS uId,
+            u.PL_ID AS plID,
+            u.C_ID AS cID,
+            u.U_Name AS uName,
+            u.U_Code AS uCode,
+            u.U_MTel AS uMtel,
+            u.U_Tel AS uTel,
+            u.U_Email AS uEmail,
+            u.U_Account AS uAccount,
+            u.U_PassWord AS uPassword,
+            u.U_Sex AS uSex,
+            u.U_Birthday AS uBirthday,
+            u.U_State AS uState,
+            u.U_MDM_NO AS uMdmNo,
+            u.U_CreateTime AS uCreatetime,
+            u.U_CreateU_ID AS uCreateuID,
+            u.U_CreateU_Name AS uCreateuName,
+            u.U_Type AS uType,
+            u.U_Office AS uOffice,
+            u.U_Cornet AS uCornet,
+            u.U_IdCard AS uIdcard,
+            u.U_Sort AS uSort,
+            u.U_Push_Id AS uPushId,
+            u.Open_Id AS openId,
+            u.U_Signature AS uSignature,
+            u.U_Qualification AS uQualification,
+            u.sign AS sign,
+            u.u_class AS uClass
+        FROM
+            SYS_User u
+                LEFT JOIN SYS_Position_User pu ON u.U_ID = pu.U_ID
+                LEFT JOIN SYS_Position p ON pu.P_ID = p.P_ID
+                LEFT JOIN SYS_Department d ON d.D_ID = p.D_ID
+                LEFT JOIN SYS_Company c ON c.C_ID = u.C_ID
+                LEFT JOIN SYS_PositionLV plv ON plv.PL_ID = u.PL_ID
+        WHERE
+            u.U_State = 1
+        <if test="dName!=null and dName.size()>0">
+            and d.D_Name in
+            <foreach collection="dName" open="(" close=")" item="dNames" separator=",">
+                #{dNames}
+            </foreach>
+        </if>
+        <if test="pName!=null and pName.size()>0">
+            and p.P_Name in
+            <foreach collection="pName" open="(" close=")" item="pNames" separator=",">
+                #{pNames}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="getUserRoleNames" resultType="java.lang.String">
+        select mn.Role_Name
+        from SYS_Role mn
+        left join SYS_PositionP_Role ppr on ppr.Role_ID=mn.Role_ID
+        left join SYS_Position_Role pr on pr.Role_ID=mn.Role_ID
+        left join SYS_Position_User_P pup on pup.PP_ID=ppr.PP_ID
+        left join SYS_Position_User pu on pu.P_ID=pr.P_ID
+        where pup.U_ID=#{uId} or pu.U_ID=#{uId}
+    </select>
+</mapper>

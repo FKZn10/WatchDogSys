@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.constructionProcedure.ProjectCpMapper">
+
+    <select id="selectByCpdId" resultType="com.jpmsoft.projectProducer.pojo.entity.constructionProcedure.ProjectCp">
+        select mn.*
+        from project_cp mn
+        where mn.cp_id=(select cpd.cp_id from project_cp_dtl cpd where cpd.cpd_id=#{cpdId})
+    </select>
+
+    <select id="getProjectCpByCpId" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpResponse">
+        select
+        p.P_Name as pName,
+        p.P_Name_History as pNameHistory,
+        p.P_Code as pCode,
+        p.P_Type as pType,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.File_Relation_Id as fileRelationId,
+        <include refid="entityFileds"/>
+        from Project_Cp mn
+        left join Pre_Project p on p.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=p.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=p.P_Competent_Department
+        left join Sys_File f on f.FileId=mn.Cp_Id
+        where mn.Cp_Id=#{cpId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and pro.P_Id=#{params.pId}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type = #{params.pType}
+        </if>
+        <if test="params.pRegion!=null">
+            and pro.P_Region = #{params.pRegion}
+        </if>
+        <if test="params.pBuildModel!=null">
+            and pro.P_Build_Model = #{params.pBuildModel}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.proState!=null">
+            and pro.State = #{params.proState}
+        </if>
+        <if test="params.pProjectStage!=null">
+            and pro.P_Project_Stage = #{params.pProjectStage}
+        </if>
+        <if test="params.pConstructionUnit!=null">
+            and pro.P_Construction_Unit = #{params.pConstructionUnit}
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.P_Competent_Department = #{params.pCompetentDepartment}
+        </if>
+        <if test="params.pImpCompany!=null">
+            and INSTR(pro.P_Imp_Company,#{params.pImpCompany})
+        </if>
+        <if test="params.pUseUnit!=null">
+            and INSTR(pro.P_Use_Unit,#{params.pUseUnit})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and INSTR(pro.P_Code,#{params.pCode})
+        </if>
+    </sql>
+
+
+    <select id="getProCpList" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        <include refid="entityFileds"/>,
+        ifnull(c11.C_Name, pro.P_Use_Unit) as pUseUnitName
+        from Project_Cp mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c11 on c11.C_Id=pro.P_Use_Unit
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Cp_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <sql id="entityFileds">
+        mn.Cp_Id as cpId,
+        mn.P_Id as pId,
+        mn.Cp_Create_Time as cpCreateTime,
+        mn.Cp_Create_Uid as cpCreateUid,
+        mn.Cp_Create_Uname as cpCreateUname,
+        mn.Cp_Remark as cpRemark,
+        mn.Cplt_Id as cpltId,
+        mn.State as state,
+        mn.State_Time as stateTime
+    </sql>
+
+
+    <!--  统计办理  -->
+    <select id="statisticalUserProCp" resultType="com.jpmsoft.common.model.response.UserProjectCpResponse">
+        select dta.*,(dta.cpDtlCount-dta.completeCount) as unfinishedCount from (
+        select us.*,
+        (
+        select  count(distinct cp1.Cp_Id) from Project_Cp cp1 left join Project_Cp_Dtl pcd on
+        cp1.Cp_Id=pcd.Cp_Id
+        where pcd.Cpd_Person_Id=us.uId or pcd.Cpd_Create_Uid=us.uId) as userCpCount,
+        (select count(1) from Project_Cp_Dtl cpDtl1 where cpDtl1.Cpd_Person_Id=us.uId and
+        cpDtl1.Cpd_Status=1) as cpDtlCount,
+        (select count(1) from Project_Cp_Dtl cpDtl2 where cpDtl2.Cpd_Person_Id=us.uId and
+        cpDtl2.Cpd_Status=1 and
+        cpDtl2.Cpd_State=7) as completeCount,
+        (select count(1) from Project_Cp_Dtl cpDtl4 where cpDtl4.Cpd_Person_Id=us.uId and
+        cpDtl4.Cpd_Status=1  and ((cpDtl4.Cpd_End_Time is null and cpDtl4.Cpd_Plan_End_Time&lt;now()) or
+        (cpDtl4.Cpd_End_Time is not null and cpDtl4.Cpd_Plan_End_Time &lt;= cpDtl4.Cpd_End_Time) )) as overTimeCount
+        from (
+        select cpDtl.Cpd_Person_Id as uId,cpDtl.Cpd_Person_Name as uName from Project_Cp_Dtl cpDtl
+        where cpDtl.Cpd_Status=1 and cpDtl.Cpd_Person_Id is not null
+        union
+        select cpDtl1.Cpd_Create_Uid as uId,cpDtl1.Cpd_Create_Uname as uName from Project_Cp_Dtl cpDtl1
+        where cpDtl1.Cpd_Status=1 and cpDtl1.Cpd_Create_Uid is not null
+        ) us
+        ) dta
+        <where>
+            <if test="params.uName!=null">
+                uName like concat('%',#{params.uName},'%')
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by ${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="statisticalUserProCpPage" resultType="com.jpmsoft.common.model.response.UserProjectCpResponse">
+        select dta.*,(dta.cpDtlCount-dta.completeCount) as unfinishedCount from (
+        select us.*,
+        (
+        select  count(distinct cp1.Cp_Id) from Project_Cp cp1 left join Project_Cp_Dtl pcd on
+        cp1.Cp_Id=pcd.Cp_Id
+        where pcd.Cpd_Person_Id=us.uId or pcd.Cpd_Create_Uid=us.uId) as userCpCount,
+        (select count(1) from Project_Cp_Dtl cpDtl1 where cpDtl1.Cpd_Person_Id=us.uId and
+        cpDtl1.Cpd_Status=1) as cpDtlCount,
+        (select count(1) from Project_Cp_Dtl cpDtl2 where cpDtl2.Cpd_Person_Id=us.uId and
+        cpDtl2.Cpd_Status=1 and
+        cpDtl2.Cpd_State=7) as completeCount,
+        (select count(1) from Project_Cp_Dtl cpDtl4 where cpDtl4.Cpd_Person_Id=us.uId and
+        cpDtl4.Cpd_Status=1  and ((cpDtl4.Cpd_End_Time is null and cpDtl4.Cpd_Plan_End_Time&lt;now()) or
+        (cpDtl4.Cpd_End_Time is not null and cpDtl4.Cpd_Plan_End_Time &lt;= cpDtl4.Cpd_End_Time) )) as overTimeCount
+        from (
+        select cpDtl.Cpd_Person_Id as uId,cpDtl.Cpd_Person_Name as uName from Project_Cp_Dtl cpDtl
+        where cpDtl.Cpd_Status=1 and cpDtl.Cpd_Person_Id is not null
+        union
+        select cpDtl1.Cpd_Create_Uid as uId,cpDtl1.Cpd_Create_Uname as uName from Project_Cp_Dtl cpDtl1
+        where cpDtl1.Cpd_Status=1 and cpDtl1.Cpd_Create_Uid is not null
+        ) us
+        ) dta
+        <where>
+            dta.uid is not null  and dta.uid != ''
+            <if test="params.uName!=null">
+              and uName like concat('%',#{params.uName},'%')
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by ${params.sortFiled} ${params.sortType}
+        </if>
+    </select>
+
+    <select id="statisticalUserProCpCount" resultType="java.lang.Integer">
+        select count(1) from (select cp.Cp_Create_Uid as uId,u.u_name as uName from Project_Cp cp
+        left join Sys_User u on u.U_Id=cp.Cp_Create_Uid
+        union
+        select cpDtl.Cpd_Person_Id as uId,u.u_name as uName from Project_Cp_Dtl cpDtl
+        left join Sys_User u on u.U_Id=cpDtl.Cpd_Person_Id where cpDtl.Cpd_Status=1 and
+        cpDtl.Cpd_Person_Id is not null) a
+        <where>
+            <if test="params.uName!=null">
+                uName like concat('%',#{params.uName},'%')
+            </if>
+        </where>
+    </select>
+
+    <select id="getProCpLedgerNJCJ" resultType="com.jpmsoft.common.model.response.proCp.ProjectCpResponse">
+        WITH
+        cp_scope AS (
+        SELECT pc.Cp_Id, pc.P_Id
+        FROM Project_Cp pc
+        JOIN Pre_Project pro ON pro.P_Id = pc.P_Id
+        WHERE pc.State = 7
+        <include refid="filter"/>
+        ),
+        valid_cpd AS (
+        SELECT DISTINCT
+        pcd.Cpd_Id,
+        pcd.Cp_Id
+        FROM Project_Cp_Dtl pcd
+        JOIN cp_scope sc ON sc.Cp_Id = pcd.Cp_Id
+        JOIN Gantt_Tasks gt ON gt.Cpl_Id = pcd.Cpd_Cpl_Id AND gt.Task_Type = '01'
+        JOIN Gantt_Plan gp ON gp.Plan_Id = gt.Plan_Id AND gp.P_Id = sc.P_Id
+        ),
+        latest_pcr AS (
+        SELECT Cpd_Id, Cp_Id, state
+        FROM (
+        SELECT
+        p1.Cpd_Id, p1.Cp_Id, p1.state, p1.create_time, p1.id,
+        ROW_NUMBER() OVER (
+        PARTITION BY p1.Cpd_Id
+        ORDER BY p1.create_time DESC, p1.id DESC
+        ) AS rn
+        FROM project_cp_rpr p1
+        JOIN cp_scope sc ON sc.Cp_Id = p1.Cp_Id
+        ) t
+        WHERE t.rn = 1
+        ),
+        proc_stat AS (
+        SELECT vc.Cp_Id,
+        SUM(CASE WHEN lp.state = 7 THEN 1 ELSE 0 END) AS alreadyOverCount,
+        SUM(CASE WHEN lp.state NOT IN (0,3,7) THEN 1 ELSE 0 END) AS underApprovalCount
+        FROM valid_cpd vc
+        JOIN latest_pcr lp ON lp.Cpd_Id = vc.Cpd_Id
+        GROUP BY vc.Cp_Id
+        ),
+        imp_stat AS (
+        SELECT pcd.Cp_Id,
+        SUM(CASE WHEN pcd.task_importance = '99' THEN 1 ELSE 0 END) AS milestoneCount,
+        SUM(CASE WHEN pcd.task_importance = '01' THEN 1 ELSE 0 END) AS firstLevelCount,
+        SUM(CASE WHEN pcd.task_importance = '02' THEN 1 ELSE 0 END) AS secondLevelCount
+        FROM Project_Cp_Dtl pcd
+        JOIN valid_cpd vc ON vc.Cpd_Id = pcd.Cpd_Id
+        GROUP BY pcd.Cp_Id
+        )
+        SELECT
+        mn.*,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        NVL(ps.alreadyOverCount , 0) AS alreadyOverCount,
+        NVL(ps.underApprovalCount, 0) AS underApprovalCount,
+        NVL(ti.milestoneCount , 0) AS milestoneCount,
+        NVL(ti.firstLevelCount, 0) AS firstLevelCount,
+        NVL(ti.secondLevelCount, 0) AS secondLevelCount
+        FROM Project_Cp mn
+        JOIN cp_scope sc ON sc.Cp_Id = mn.Cp_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        LEFT JOIN proc_stat ps ON ps.Cp_Id = mn.Cp_Id
+        LEFT JOIN imp_stat ti ON ti.Cp_Id = mn.Cp_Id
+        WHERE mn.State = 7
+        <include refid="filter"/>
+    </select>
+
+    <select id="getProCpLedgerNJCJCount" resultType="java.lang.Integer">
+        SELECT
+        COUNT(1)
+        FROM Project_Cp mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        WHERE mn.State = 7
+        <include refid="filter"/>
+    </select>
+
+    <sql id="filter">
+        <if test="params.pName != null and params.pName != ''">
+            and pro.P_Name like concat('%', #{params.pName}, '%')
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and pro.p_Competent_Department=#{params.pCompetentDepartment}
+        </if>
+    </sql>
+
+    <select id="getProCpLedgerNJCJStats" resultType="java.util.Map">
+        SELECT
+        IFNULL(ps.alreadyOver, 0) as alreadyOver,
+        IFNULL(ps.underApproval, 0) as underApproval,
+        IFNULL(ts.milestoneCount, 0) as milestoneCount,
+        IFNULL(ts.firstLevelCount, 0) as firstLevelCount,
+        IFNULL(ts.secondLevelCount, 0) as secondLevelCount
+        FROM
+        (
+        SELECT
+        SUM(CASE WHEN lp.state = 7 THEN 1 ELSE 0 END) AS alreadyOver,
+        SUM(CASE WHEN lp.state NOT IN (0,3,7) THEN 1 ELSE 0 END) AS underApproval
+        FROM (
+        SELECT p1.*
+        FROM project_cp_rpr p1
+        LEFT JOIN project_cp_rpr p2
+        ON p2.Cpd_Id = p1.Cpd_Id
+        AND (
+        p2.create_time > p1.create_time
+        OR (p2.create_time = p1.create_time AND p2.id > p1.id)
+        )
+        WHERE p2.Cpd_Id IS NULL
+        ) lp
+        JOIN Project_Cp pc ON pc.Cp_Id = lp.Cp_Id AND pc.State = 7
+        JOIN pre_project pro ON pro.P_Id = pc.P_Id
+        WHERE EXISTS (
+        SELECT 1
+        FROM Project_Cp_Dtl pcd
+        JOIN Gantt_Tasks gt ON gt.Cpl_Id = pcd.Cpd_Cpl_Id
+        JOIN Gantt_Plan gp ON gp.Plan_Id = gt.Plan_Id
+        WHERE pcd.Cpd_Id = lp.Cpd_Id
+        AND gp.P_Id = pc.P_Id
+        AND gt.Task_Type = '01'
+        )
+        <include refid="filter"/>
+        ) ps,
+        (
+        SELECT
+        SUM(CASE WHEN pcd.task_importance = '99' THEN 1 ELSE 0 END) AS milestoneCount,
+        SUM(CASE WHEN pcd.task_importance = '01' THEN 1 ELSE 0 END) AS firstLevelCount,
+        SUM(CASE WHEN pcd.task_importance = '02' THEN 1 ELSE 0 END) AS secondLevelCount
+        FROM Project_Cp_Dtl pcd
+        JOIN Project_Cp pc ON pc.Cp_Id = pcd.Cp_Id AND pc.State = 7
+        JOIN pre_project pro ON pro.P_Id = pc.P_Id
+        WHERE EXISTS (
+        SELECT 1
+        FROM Gantt_Tasks gt
+        JOIN Gantt_Plan gp ON gp.Plan_Id = gt.Plan_Id
+        WHERE gt.Cpl_Id = pcd.Cpd_Cpl_Id
+        AND gp.P_Id = pc.P_Id
+        AND gt.Task_Type = '01'
+        )
+        <include refid="filter"/>
+        ) ts
+    </select>
+</mapper>

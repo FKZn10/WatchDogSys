@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.RemarkInfoMapper">
+    <select id="getRemarkInfoList" resultType="com.jpmsoft.common.model.requestAndResponse.RemarkInfoDto">
+        select mn.*
+        from Remark_Info mn
+        <where>
+            <if test="params.remarkSourceId!= null and params.remarkSourceId!= ''">
+                and mn.Remark_Source_ID = #{params.remarkSourceId}
+            </if>
+            <if test="params.remarkFunctionCode!= null and params.remarkFunctionCode!= ''">
+                and mn.Remark_Function_Code = #{params.remarkFunctionCode}
+            </if>
+        </where>
+    </select>
+</mapper>

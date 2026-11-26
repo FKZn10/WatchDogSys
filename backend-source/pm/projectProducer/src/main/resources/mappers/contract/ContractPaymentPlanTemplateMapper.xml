@@ -1,0 +1,769 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ContractPaymentPlanTemplateMapper">
+
+    <select id="getPayableContrDataList" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ContractManageVo">
+        select con.con_id as conId,
+               ject.p_name as preName,
+        con.Con_Payment_State as conPaymentState,
+        con.con_name as conName,
+        pany.c_name AS companyPartybName,
+        con.con_type as conCategory,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conAmtStr,
+        ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) AS conSupplementAmtStr,
+        app.sa_approved_amt as settlementAmtStr,
+        con.con_Party_A_Agent as  conPartyAAgent,
+        con.con_Party_B_Agent as conPartyBAgent,
+        con.con_Party_B_Agent_Tel as conPartyBAgentTel,
+        (select sum(COALESCE(Pay_Apply,0)) from con_pay conp where conp.con_id =con.con_id  and   Pay_State NOT IN (0, 3, 7)) as conApplyAmtApprovalStr,
+        (select sum(COALESCE(Pay_Apply,0)) from con_pay conp where conp.con_id =con.con_id  and   Pay_State in 7) as conApplyAmtApprovalComStr,
+        (select sum(COALESCE(tiondtl.Fad_Actual_Payment,0)) from Fund_Allocation tion left join Fund_Allocation_Dtl  tiondtl on tion.id = tiondtl.Fa_Id where tion.state NOT IN (0, 3, 7) and tiondtl.con_id = con.con_id ) as conDisAmtApprovalStr,
+        (select sum(COALESCE(tiondtl.Fad_Actual_Payment,0)) from Fund_Allocation tion left join Fund_Allocation_Dtl  tiondtl on tion.id = tiondtl.Fa_Id where tion.state = 7 and tiondtl.con_id = con.con_id ) as conDisApprovalCompletedStr
+        from con_contract con
+        left join pre_project ject on con.con_project_id = ject.p_id
+        left join SYS_Company pany on  con.Con_Party_B_Id = pany.c_id
+        left join Inv_Settlement_Apply app  on con.con_id  =  app.con_id
+        <where>
+            con.Con_Payment_State = #{contractManageVo.conPaymentState}
+            <if test="contractManageVo.preName!=null and contractManageVo.preName!=''">
+                and   ject.p_name like concat('%',#{contractManageVo.preName},'%')
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    <if test="contractManageVo.preName!=null and contractManageVo.preName!=''">
+                        and   likePname(#{contractManageVo.preName},ject.P_Id)=true
+                    </if>
+                    <if test="contractManageVo.companyPartybName!=null and contractManageVo.companyPartybName!=''">
+                        and   likeCname(#{contractManageVo.companyPartybName},pany.C_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="contractManageVo.preName!=null and contractManageVo.preName!=''">
+                        and   ject.p_name like concat('%',#{contractManageVo.preName},'%')
+                    </if>
+                    <if test="contractManageVo.companyPartybName!=null and contractManageVo.companyPartybName!=''">
+                        and   pany.c_name like concat('%',#{contractManageVo.companyPartybName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="contractManageVo.conName!=null and contractManageVo.conName!=''">
+                and   con.con_name like concat('%',#{contractManageVo.conName},'%')
+            </if>
+            <if test="contractManageVo.companyPartybName!=null and contractManageVo.companyPartybName!=''">
+                and   pany.c_name like concat('%',#{contractManageVo.companyPartybName},'%')
+            </if>
+            <if test="contractManageVo.conCategory!=null and contractManageVo.conCategory!=''">
+                and   con.con_type like concat('%',#{contractManageVo.conCategory},'%')
+            </if>
+            <if test="contractManageVo.conCode!=null and contractManageVo.conCode!=''">
+                and   con.Con_Code like concat('%',#{contractManageVo.conCode},'%')
+            </if>
+
+            <if test="contractManageVo.conAmtStr!=null and contractManageVo.conAmtStr!='' and  (contractManageVo.conAmtEnd==null or contractManageVo.conAmtEnd=='') ">
+                AND con.Con_Money_Total &gt;= #{contractManageVo.conAmtStr}
+            </if>
+
+            <if test="(contractManageVo.conAmtStr==null or contractManageVo.conAmtStr=='') and  (contractManageVo.conAmtEnd!=null and contractManageVo.conAmtEnd!='') ">
+                AND con.Con_Money_Total &lt;= #{contractManageVo.conAmtEnd}
+            </if>
+
+            <if test="contractManageVo.conAmtStr!=null and contractManageVo.conAmtStr!='' and  contractManageVo.conAmtEnd!=null and contractManageVo.conAmtEnd!='' ">
+                AND con.Con_Money_Total BETWEEN #{contractManageVo.conAmtStr} AND #{contractManageVo.conAmtEnd}
+            </if>
+
+
+            <if test="contractManageVo.conSupplementAmtStr!=null and contractManageVo.conSupplementAmtStr!='' and  (contractManageVo.conSupplementAmtEnd==null or contractManageVo.conSupplementAmtEnd=='') ">
+                AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) &gt;= #{contractManageVo.conSupplementAmtStr}
+            </if>
+
+            <if test="(contractManageVo.conSupplementAmtStr==null or contractManageVo.conSupplementAmtStr=='') and  (contractManageVo.conSupplementAmtEnd!=null and contractManageVo.conSupplementAmtEnd!='') ">
+                AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  &lt;= #{contractManageVo.conAmtEnd}
+            </if>
+
+            <if test="contractManageVo.conSupplementAmtStr!=null and contractManageVo.conSupplementAmtStr!='' and  contractManageVo.conSupplementAmtEnd!=null and contractManageVo.conSupplementAmtEnd!='' ">
+                AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  BETWEEN #{contractManageVo.conSupplementAmtStr} AND #{contractManageVo.conSupplementAmtEnd}
+            </if>
+
+            <if test="contractManageVo.settlementAmtStr!=null and contractManageVo.settlementAmtStr!='' and  (contractManageVo.settlementAmtEnd==null or contractManageVo.settlementAmtEnd=='') ">
+                AND  app.sa_approved_amt
+                &gt;= #{contractManageVo.settlementAmtStr}
+            </if>
+
+            <if test="(contractManageVo.settlementAmtStr==null or contractManageVo.settlementAmtStr=='') and  (contractManageVo.settlementAmtEnd!=null and contractManageVo.settlementAmtEnd!='') ">
+                AND  app.sa_approved_amt
+                &lt;= #{contractManageVo.settlementAmtEnd}
+            </if>
+
+            <if test="contractManageVo.settlementAmtStr!=null and contractManageVo.settlementAmtStr!='' and  settlementAmtEnd!=null and settlementAmtEnd!='' ">
+                AND  app.sa_approved_amt
+                BETWEEN #{contractManageVo.settlementAmtStr} AND #{contractManageVo.settlementAmtEnd}
+            </if>
+            <if test="contractManageVo.conPartyAAgent!=null and contractManageVo.conPartyAAgent!=''">
+                and   con.con_Party_A_Agent like concat('%',#{contractManageVo.conPartyAAgent},'%')
+            </if>
+
+            <if test="contractManageVo.conPartyBAgent!=null and contractManageVo.conPartyBAgent!=''">
+                and   con.con_Party_B_Agent like concat('%',#{contractManageVo.conPartyBAgent},'%')
+            </if>
+
+            <if test="contractManageVo.conPartyBAgentTel!=null and contractManageVo.conPartyBAgentTel!=''">
+                and   con.con_Party_B_Agent_Tel like concat('%',#{contractManageVo.conPartyBAgentTel},'%')
+            </if>
+
+        </where>
+
+    </select>
+
+
+    <update id="updatePaymentState">
+        update con_contract set Con_Payment_State=#{state} , Con_Rmk =#{rmk}
+        where con_id = #{conId}
+    </update>
+
+
+    <select id="getPaymentStateContr" resultType="java.util.Map">
+        select * from con_contract
+        where con_id = #{cId}
+    </select>
+
+    <select id="getCompanyPaySum" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ContractManageVo">
+        SELECT
+            pany.c_name as companyPartyAName,
+            SUM(COALESCE(flow.Cpaf_Application, 0)) AS conAmtStr
+        FROM
+            Con_Pay_Apply_Flow flow
+                LEFT JOIN con_contract con ON flow.con_id = con.con_id
+                LEFT JOIN sys_company pany ON con.Con_Party_A_Id = pany.c_id
+            <where>
+                   flow.State = 7
+            </where>
+        GROUP BY pany.c_name,pany.c_id having 1=1
+        <if test="contractManageVo.comPayIds!=null and contractManageVo.comPayIds.size()>0">
+            and pany.c_id  in
+            <foreach collection="contractManageVo.comPayIds" open="(" close=")" separator="," item="ids">
+                #{ids}
+            </foreach>
+        </if>
+        <if test="contractManageVo.conAmtStr!=null and contractManageVo.conAmtStr!='' and  (contractManageVo.conAmtEnd==null or contractManageVo.conAmtEnd=='') ">
+            AND SUM(COALESCE(flow.Cpaf_Application, 0)) &gt;= #{contractManageVo.conAmtStr}
+        </if>
+
+
+        <if test="(contractManageVo.conAmtStr==null or contractManageVo.conAmtStr=='') and  (contractManageVo.conAmtEnd!=null and contractManageVo.conAmtEnd!='') ">
+            AND SUM(COALESCE(flow.Cpaf_Application, 0)) &lt;= #{contractManageVo.conAmtEnd}
+        </if>
+
+        <if test="contractManageVo.conAmtStr!=null and contractManageVo.conAmtStr!='' and  contractManageVo.conAmtEnd!=null and contractManageVo.conAmtEnd!='' ">
+            AND SUM(COALESCE(flow.Cpaf_Application, 0)) BETWEEN #{contractManageVo.conAmtStr} AND #{contractManageVo.conAmtEnd}
+        </if>
+
+    </select>
+
+    <select id="getCapitalSituation" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ContractManageVo">
+        select pre.p_id ,
+               pre.p_name as preName,
+               con.con_id as conId,
+               con.con_name as conName,
+               panya.c_name as  companyPartyAName,
+               panyb.c_name as companyPartybName,
+               con.Con_Money_Total as conAmtStr,
+        ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) AS conSupplementAmtStr,
+               app.sa_approved_amt as settlementAmtStr,
+               con.con_Party_A_Agent as  conPartyAAgent
+        from  con_contract con
+                  left join pre_project pre on con.con_project_id = pre.p_id
+                  left join sys_company panya ON con.Con_Party_A_Id = panya.c_id
+                  left join sys_company panyb ON con.Con_Party_B_Id = panyb.c_id
+                  left join Inv_Settlement_Apply app  on con.con_id  =  app.con_id
+            <where>
+                con.Con_Approval_State = 7
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        <if test="contractManageVo.preName!=null and contractManageVo.preName!=''">
+                            and likePname(#{contractManageVo.preName},pre.P_Id)=true
+                        </if>
+                        <if test="contractManageVo.companyPartyAName!=null and contractManageVo.companyPartyAName!=''">
+                            and (likeCname(#{contractManageVo.companyPartyAName},panya.C_Id)=true or panya.c_id =#{contractManageVo.companyPartyAName})
+                        </if>
+                        <if test="contractManageVo.companyPartybName!=null and contractManageVo.companyPartybName!=''">
+                            and likeCname(#{contractManageVo.companyPartybName},panyb.C_Id)=true
+                        </if>
+                    </when>
+                    <otherwise>
+                        <if test="contractManageVo.preName!=null and contractManageVo.preName!=''">
+                            and pre.p_name  like concat('%',#{contractManageVo.preName},'%')
+                        </if>
+                        <if test="contractManageVo.companyPartyAName!=null and contractManageVo.companyPartyAName!=''">
+                            and (panya.c_name like concat('%',#{contractManageVo.companyPartyAName},'%') or panya.c_id =#{contractManageVo.companyPartyAName})
+                        </if>
+                        <if test="contractManageVo.companyPartybName!=null and contractManageVo.companyPartybName!=''">
+                            and panyb.c_name like concat('%',#{contractManageVo.companyPartybName},'%')
+                        </if>
+                    </otherwise>
+                </choose>
+                <if test="contractManageVo.conName!=null and contractManageVo.conName!=''">
+                    and con.con_name like concat('%',#{contractManageVo.conName},'%')
+                </if>
+                <if test="contractManageVo.conPartyAAgent!=null and contractManageVo.conPartyAAgent!=''">
+                    and   con.con_Party_A_Agent like concat('%',#{contractManageVo.conPartyAAgent},'%')
+                </if>
+
+                <if test="contractManageVo.conAmtStr!=null and contractManageVo.conAmtStr!='' and  (contractManageVo.conAmtEnd==null or contractManageVo.conAmtEnd=='') ">
+                    AND con.Con_Money_Total &gt;= #{contractManageVo.conAmtStr}
+                </if>
+
+                <if test="(contractManageVo.conAmtStr==null or contractManageVo.conAmtStr=='') and  (contractManageVo.conAmtEnd!=null and contractManageVo.conAmtEnd!='') ">
+                    AND con.Con_Money_Total &lt;= #{contractManageVo.conAmtEnd}
+                </if>
+
+                <if test="contractManageVo.conAmtStr!=null and contractManageVo.conAmtStr!='' and  contractManageVo.conAmtEnd!=null and contractManageVo.conAmtEnd!='' ">
+                    AND con.Con_Money_Total BETWEEN #{contractManageVo.conAmtStr} AND #{contractManageVo.conAmtEnd}
+                </if>
+
+
+                <if test="contractManageVo.conSupplementAmtStr!=null and contractManageVo.conSupplementAmtStr!='' and  (contractManageVo.conSupplementAmtEnd==null or contractManageVo.conSupplementAmtEnd=='') ">
+                    AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                    cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                    FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                    cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 )) &gt;= #{contractManageVo.conSupplementAmtStr}
+                </if>
+
+                <if test="(contractManageVo.conSupplementAmtStr==null or contractManageVo.conSupplementAmtStr=='') and  (contractManageVo.conSupplementAmtEnd!=null and contractManageVo.conSupplementAmtEnd!='') ">
+                    AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                    cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                    FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                    cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )   &lt;= #{contractManageVo.conSupplementAmtEnd}
+                </if>
+
+                <if test="contractManageVo.conSupplementAmtStr!=null and contractManageVo.conSupplementAmtStr!='' and  contractManageVo.conSupplementAmtEnd!=null and contractManageVo.conSupplementAmtEnd!='' ">
+                    AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                    cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                    FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                    cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  BETWEEN #{contractManageVo.conSupplementAmtStr} AND #{contractManageVo.conSupplementAmtEnd}
+                </if>
+
+                <if test="contractManageVo.settlementAmtStr!=null and contractManageVo.settlementAmtStr!='' and  (contractManageVo.settlementAmtEnd==null or contractManageVo.settlementAmtEnd=='') ">
+                    AND  app.sa_approved_amt
+                    &gt;= #{contractManageVo.settlementAmtStr}
+                </if>
+
+                <if test="(contractManageVo.settlementAmtStr==null or contractManageVo.settlementAmtStr=='') and  (contractManageVo.settlementAmtEnd!=null and contractManageVo.settlementAmtEnd!='') ">
+                    AND  app.sa_approved_amt
+                    &lt;= #{contractManageVo.settlementAmtEnd}
+                </if>
+
+                <if test="contractManageVo.settlementAmtStr!=null and contractManageVo.settlementAmtStr!='' and  contractManageVo.settlementAmtEnd!=null and contractManageVo.settlementAmtEnd!='' ">
+                    AND  app.sa_approved_amt
+                    BETWEEN #{contractManageVo.settlementAmtStr} AND #{contractManageVo.settlementAmtEnd}
+                </if>
+            </where>
+    </select>
+
+
+
+    <select id="getCapitalSituationTwo" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ContractManageVo">
+        select pre.p_id ,
+        pre.p_name as preName,
+        con.con_id as conId,
+        con.con_name as conName,
+        panya.c_name as  companyPartyAName,
+        panyb.c_name as companyPartybName,
+        con.Con_Money_Total as conAmtStr,
+        ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+        cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+        FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+        cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) AS conSupplementAmtStr,
+        app.sa_approved_amt as settlementAmtStr,
+        con.con_Party_A_Agent as  conPartyAAgent
+        from  con_contract con
+        left join pre_project pre on con.con_project_id = pre.p_id
+        left join sys_company panya ON con.Con_Party_A_Id = panya.c_id
+        left join sys_company panyb ON con.Con_Party_B_Id = panyb.c_id
+        left join Inv_Settlement_Apply app  on con.con_id  =  app.con_id
+        <where>
+            con.Con_Approval_State = 7
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    <if test="preName!=null and preName!=''">
+                        and likePname(#{preName},pre.P_Id)=true
+                    </if>
+                    <if test="companyPartyAName!=null and companyPartyAName!=''">
+                        and (likeCname(#{companyPartyAName},panya.C_Id)=true or panya.c_id =#{companyPartyAName})
+                    </if>
+                    <if test="companyPartybName!=null and companyPartybName!=''">
+                        and likeCname(#{companyPartybName},panyb.C_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="preName!=null and preName!=''">
+                        and pre.p_name  like concat('%',#{preName},'%')
+                    </if>
+                    <if test="companyPartyAName!=null and companyPartyAName!=''">
+                        and (panya.c_name like concat('%',#{companyPartyAName},'%') or panya.c_id =#{companyPartyAName})
+                    </if>
+                    <if test="companyPartybName!=null and companyPartybName!=''">
+                        and panyb.c_name like concat('%',#{companyPartybName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="conName!=null and conName!=''">
+                and con.con_name like concat('%',#{conName},'%')
+            </if>
+            <if test="conPartyAAgent!=null and conPartyAAgent!=''">
+                and   con.con_Party_A_Agent like concat('%',#{conPartyAAgent},'%')
+            </if>
+
+            <if test="conAmtStr!=null and conAmtStr!='' and  (conAmtEnd==null or conAmtEnd=='') ">
+                AND con.Con_Money_Total &gt;= #{conAmtStr}
+            </if>
+
+            <if test="(conAmtStr==null or conAmtStr=='') and  (conAmtEnd!=null and conAmtEnd!='') ">
+                AND con.Con_Money_Total &lt;= #{conAmtEnd}
+            </if>
+
+            <if test="conAmtStr!=null and conAmtStr!='' and  conAmtEnd!=null and conAmtEnd!='' ">
+                AND con.Con_Money_Total BETWEEN #{conAmtStr} AND #{conAmtEnd}
+            </if>
+
+
+            <if test="conSupplementAmtStr!=null and conSupplementAmtStr!='' and  (conSupplementAmtEnd==null or conSupplementAmtEnd=='') ">
+                AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 )) &gt;= #{conSupplementAmtStr}
+            </if>
+
+            <if test="(conSupplementAmtStr==null or conSupplementAmtStr=='') and  (conSupplementAmtEnd!=null and conSupplementAmtEnd!='') ">
+                AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )   &lt;= #{conSupplementAmtEnd}
+            </if>
+
+            <if test="conSupplementAmtStr!=null and conSupplementAmtStr!='' and  conSupplementAmtEnd!=null and conSupplementAmtEnd!='' ">
+                AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  BETWEEN #{conSupplementAmtStr} AND #{conSupplementAmtEnd}
+            </if>
+
+            <if test="settlementAmtStr!=null and settlementAmtStr!='' and  (settlementAmtEnd==null or settlementAmtEnd=='') ">
+                AND  app.sa_approved_amt
+                &gt;= #{settlementAmtStr}
+            </if>
+
+            <if test="(settlementAmtStr==null or settlementAmtStr=='') and  (settlementAmtEnd!=null and settlementAmtEnd!='') ">
+                AND  app.sa_approved_amt
+                &lt;= #{settlementAmtEnd}
+            </if>
+
+            <if test="settlementAmtStr!=null and settlementAmtStr!='' and  settlementAmtEnd!=null and settlementAmtEnd!='' ">
+                AND  app.sa_approved_amt
+                BETWEEN #{settlementAmtStr} AND #{settlementAmtEnd}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="getPaymentfundsAmt" resultType="java.util.Map">
+        SELECT
+            EXTRACT(MONTH FROM cpaf_apply_time) AS "month",
+    SUM(cpaf_application) AS amt,
+    con_id as conId
+        FROM
+            Con_Pay_Apply_Flow
+            <where>
+                state = 7
+                <if test="year!=null and year!=''">
+                    and  EXTRACT(YEAR FROM cpaf_apply_time) = #{year}
+                </if>
+
+                <if test="conIds!=null and conIds.size()>0">
+                    and con_id  in
+                    <foreach collection="conIds" open="(" close=")" separator="," item="ids">
+                        #{ids}
+                    </foreach>
+                </if>
+            </where>
+        GROUP BY
+            EXTRACT(MONTH FROM cpaf_apply_time),con_id
+        order by EXTRACT(MONTH FROM cpaf_apply_time)
+
+    </select>
+
+
+    <select id="getDisbursementAmt" resultType="java.util.Map">
+        SELECT
+            EXTRACT(MONTH FROM tion.Fa_Disbursement_Time) AS "month",
+            SUM(tiondtl.Fad_Actual_Payment) AS amt,
+            tiondtl.con_id  as conId
+        FROM
+            Fund_Allocation tion
+                left join Fund_Allocation_Dtl  tiondtl on tion.id = tiondtl.Fa_Id
+        <where>
+            tion.state = 7
+            <if test="year!=null and year!=''">
+                and  EXTRACT(YEAR FROM tion.Fa_Disbursement_Time) = #{year}
+            </if>
+            <if test="conIds!=null and conIds.size()>0">
+                and tiondtl.con_id   in
+                <foreach collection="conIds" open="(" close=")" separator="," item="ids">
+                    #{ids}
+                </foreach>
+            </if>
+        </where>
+        GROUP BY
+            EXTRACT(MONTH FROM tion.Fa_Disbursement_Time),tiondtl.con_id
+        order by EXTRACT(MONTH FROM tion.Fa_Disbursement_Time)
+
+    </select>
+
+
+    <select id="getProgressPlan" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ProgressDeclarationVo">
+        select
+            decl.id as id,
+            pre.p_name as pName,
+            con.con_id as conId,
+            con.con_name as conName,
+            con.con_code as conCode,
+            panya.c_name as contrPartyAName ,
+            panyb.c_name as contrPartyBName,
+            con.Con_Money_Total as conAmtStr,
+            app.sa_approved_amt as settlementAmtStr,
+            decl.Pd_Date as progressDateStr,
+            dtl.Pdd_Progress as progressStr,
+            decl.Create_Time as declareDateStr,
+            decl.Create_Uname as declarePeople,
+            decl.State as state,
+            decl.Pd_Remark as pdRemark
+        from
+            Progress_Declaration decl
+                left join Progress_Declaration_Dtl dtl on dtl.pd_id = decl.id
+                left join pre_project pre on pre.p_id = dtl.p_id
+                left join con_contract con on con.con_id = dtl.con_id
+                left join sys_company panya ON con.Con_Party_A_Id = panya.c_id
+                left join sys_company panyb ON con.Con_Party_B_Id = panyb.c_id
+                left join Inv_Settlement_Apply app  on con.con_id  =  app.con_id
+        <where>
+              1=1
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    <if test="preName!=null and preName!=''">
+                        and likePname(#{progressDeclarationVo.pName},pre.P_Id)=true
+                    </if>
+                    <if test="companyPartyAName!=null and companyPartyAName!=''">
+                        and (likeCname(#{progressDeclarationVo.contrPartyAName},panya.C_Id)=true or vpanya.c_id =#{companyPartyAName})
+                    </if>
+                    <if test="companyPartybName!=null and companyPartybName!=''">
+                        and likeCname(#{progressDeclarationVo.contrPartyBName},panyb.C_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="progressDeclarationVo.pName!=null and progressDeclarationVo.pName!=''">
+                        and   pre.p_name like concat('%',#{progressDeclarationVo.pName},'%')
+                    </if>
+                    <if test="progressDeclarationVo.contrPartyAName!=null and progressDeclarationVo.contrPartyAName!=''">
+                        and   panya.c_name like concat('%',#{progressDeclarationVo.contrPartyAName},'%')
+                    </if>
+                    <if test="progressDeclarationVo.contrPartyBName!=null and progressDeclarationVo.contrPartyBName!=''">
+                        and   panyb.c_name like concat('%',#{progressDeclarationVo.contrPartyBName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="progressDeclarationVo.conId!=null and progressDeclarationVo.conId!=''">
+                and   con.con_id  = #{progressDeclarationVo.conId}
+            </if>
+            <if test="progressDeclarationVo.conName!=null and progressDeclarationVo.conName!=''">
+                and   con.con_name like concat('%',#{progressDeclarationVo.conName},'%')
+            </if>
+            <if test="progressDeclarationVo.conCode!=null and progressDeclarationVo.conCode!=''">
+                and   con.con_code like concat('%',#{progressDeclarationVo.conCode},'%')
+            </if>
+
+
+            <if test="progressDeclarationVo.progressStr!=null and progressDeclarationVo.progressStr!='' and  (progressDeclarationVo.progressEnd==null or progressDeclarationVo.progressEnd=='') ">
+                AND dtl.Pdd_Progress &gt;= #{progressDeclarationVo.progressStr}
+            </if>
+
+            <if test="(progressDeclarationVo.progressStr==null or progressDeclarationVo.progressStr=='') and  (progressDeclarationVo.progressEnd!=null and progressDeclarationVo.progressEnd!='') ">
+                AND dtl.Pdd_Progress &lt;= #{progressDeclarationVo.progressEnd}
+            </if>
+
+            <if test="progressDeclarationVo.progressStr!=null and progressDeclarationVo.progressStr!='' and  progressDeclarationVo.progressEnd!=null and progressDeclarationVo.progressEnd!='' ">
+                AND dtl.Pdd_Progress BETWEEN #{progressDeclarationVo.progressStr} AND #{progressDeclarationVo.progressEnd}
+            </if>
+
+            <if test="progressDeclarationVo.declarePeople!=null and progressDeclarationVo.declarePeople!=''">
+                and   decl.Create_Uname   like concat('%',#{progressDeclarationVo.declarePeople},'%')
+            </if>
+
+            <if test="progressDeclarationVo.pdRemark!=null and progressDeclarationVo.pdRemark!=''">
+                and   decl.Pd_Remark   like concat('%',#{progressDeclarationVo.pdRemark},'%')
+            </if>
+
+            <if test="progressDeclarationVo.state!=null and progressDeclarationVo.state!=''">
+                and   decl.State  = #{progressDeclarationVo.state}
+            </if>
+
+            <if test="progressDeclarationVo.conAmtStr!=null and progressDeclarationVo.conAmtStr!='' and  (progressDeclarationVo.conAmtEnd==null or progressDeclarationVo.conAmtEnd=='') ">
+                AND con.Con_Money_Total &gt;= #{progressDeclarationVo.conAmtStr}
+            </if>
+
+            <if test="(progressDeclarationVo.conAmtStr==null or progressDeclarationVo.conAmtStr=='') and  (progressDeclarationVo.conAmtEnd!=null and progressDeclarationVo.conAmtEnd!='') ">
+                AND con.Con_Money_Total &lt;= #{progressDeclarationVo.conAmtEnd}
+            </if>
+
+            <if test="progressDeclarationVo.conAmtStr!=null and progressDeclarationVo.conAmtStr!='' and  progressDeclarationVo.conAmtEnd!=null and progressDeclarationVo.conAmtEnd!='' ">
+                AND con.Con_Money_Total BETWEEN #{progressDeclarationVo.conAmtStr} AND #{progressDeclarationVo.conAmtEnd}
+            </if>
+
+            <if test="progressDeclarationVo.settlementAmtStr!=null and progressDeclarationVo.settlementAmtStr!='' and  (progressDeclarationVo.settlementAmtEnd==null or progressDeclarationVo.settlementAmtEnd=='') ">
+                AND  app.sa_approved_amt
+                &gt;= #{progressDeclarationVo.settlementAmtStr}
+            </if>
+
+            <if test="(progressDeclarationVo.settlementAmtStr==null or progressDeclarationVo.settlementAmtStr=='') and  (progressDeclarationVo.settlementAmtEnd!=null and progressDeclarationVo.settlementAmtEnd!='') ">
+                AND  app.sa_approved_amt
+                &lt;= #{progressDeclarationVo.settlementAmtEnd}
+            </if>
+
+            <if test="progressDeclarationVo.settlementAmtStr!=null and progressDeclarationVo.settlementAmtStr!='' and  progressDeclarationVo.settlementAmtEnd!=null and progressDeclarationVo.settlementAmtEnd!='' ">
+                AND  app.sa_approved_amt
+                BETWEEN #{progressDeclarationVo.settlementAmtStr} AND #{progressDeclarationVo.settlementAmtEnd}
+            </if>
+
+
+            <if test="progressDeclarationVo.progressDateStr!=null and progressDeclarationVo.progressDateStr!='' and  (progressDeclarationVo.progressDateEnd==null or progressDeclarationVo.progressDateEnd=='') ">
+                AND  decl.Pd_Date
+                &gt;= #{progressDeclarationVo.progressDateStr}
+            </if>
+
+            <if test="(progressDeclarationVo.progressDateStr==null or progressDeclarationVo.progressDateStr=='') and  (progressDeclarationVo.progressDateEnd!=null and progressDeclarationVo.progressDateEnd!='') ">
+                AND  decl.Pd_Date
+                &lt;= #{progressDeclarationVo.progressDateEnd}
+            </if>
+
+            <if test="progressDeclarationVo.progressDateStr!=null and progressDeclarationVo.progressDateStr!='' and  progressDeclarationVo.progressDateEnd!=null and progressDeclarationVo.progressDateEnd!='' ">
+                AND  decl.Pd_Date
+                BETWEEN #{progressDeclarationVo.progressDateStr} AND #{progressDeclarationVo.progressDateEnd}
+            </if>
+
+            <if test="progressDeclarationVo.declareDateStr!=null and progressDeclarationVo.declareDateStr!='' and  (progressDeclarationVo.declareDateEnd==null or progressDeclarationVo.declareDateEnd=='') ">
+                AND  decl.Create_Time
+                &gt;= #{progressDeclarationVo.declareDateStr}
+            </if>
+
+            <if test="(progressDeclarationVo.declareDateStr==null or progressDeclarationVo.declareDateStr=='') and  (progressDeclarationVo.declareDateEnd!=null and progressDeclarationVo.declareDateEnd!='') ">
+                AND  decl.Create_Time
+                &lt;= #{progressDeclarationVo.declareDateEnd}
+            </if>
+
+            <if test="progressDeclarationVo.declareDateStr!=null and progressDeclarationVo.declareDateStr!='' and  progressDeclarationVo.declareDateEnd!=null and progressDeclarationVo.declareDateEnd!='' ">
+                AND  decl.Create_Time
+                BETWEEN #{progressDeclarationVo.declareDateStr} AND #{progressDeclarationVo.declareDateEnd}
+            </if>
+
+        </where>
+
+    </select>
+
+
+    <select id="contrBrowse" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ContractBrowseVo">
+        select
+            pre.p_id  as pId,
+            pre.p_name as preName,
+            con.con_id as conId,
+            con.con_name as conName,
+            panya.c_name as  companyPartyAName,
+            panyb.c_name as companyPartybName,
+            con.con_type as conCategory,
+            con.Con_Code as conCode,
+            con.Con_Money_Total as conAmtStr,
+            ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+            cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+            FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+            cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) AS conSupplementAmtStr,
+            pre.P_Final as pFinal,
+            app.sa_approved_amt as settlementAmtStr,
+            con.Con_Date as signDateStr,
+            pre.P_Actual_Complete_Date as completedDateStr,
+            dep.d_name as dName,
+            con.con_Party_A_Agent as  conPartyAAgent,
+            con.con_Party_B_Agent as conPartyBAgent,
+            con.con_Party_B_Agent_Tel as conPartyBAgentTel,
+            con.Con_Approval_State as state,
+            con.Con_Payment_State as conPaymentState,
+            con.Con_Create_User_Name as contrCreatePeople,
+            con.Con_Create_Time as contrCreateDateStr,
+            (select sum(COALESCE(Pay_Apply,0)) from con_pay conp where conp.con_id =con.con_id  and   Pay_State NOT IN (0, 3, 7)) as conApplyAmtApprovalStr,
+            (select sum(COALESCE(Pay_Apply,0)) from con_pay conp where conp.con_id =con.con_id  and   Pay_State = 7) as conApplyAmtApprovalComStr,
+            (select sum(COALESCE(tiondtl.Fad_Actual_Payment,0)) from Fund_Allocation tion left join Fund_Allocation_Dtl  tiondtl on tion.id = tiondtl.Fa_Id where tion.state NOT IN (0, 3, 7) and tiondtl.con_id = con.con_id ) as conDisAmtApprovalStr,
+            (select sum(COALESCE(tiondtl.Fad_Actual_Payment,0)) from Fund_Allocation tion left join Fund_Allocation_Dtl  tiondtl on tion.id = tiondtl.Fa_Id where tion.state = 7 and tiondtl.con_id = con.con_id ) as conDisApprovalCompletedStr,
+            (select sum(COALESCE(cpaf_application,0)) From  Con_Pay_Apply_Flow flow where flow.con_id = con.con_id  and  flow.state NOT IN (0, 3, 7)) as  fundsPaymentStr,
+            (select sum(COALESCE(cpaf_application,0)) From  Con_Pay_Apply_Flow flow where flow.con_id = con.con_id  and  flow.state = 7) as  fundsPaymentEnd
+
+        From con_contract con
+                 left join pre_project pre on con.con_project_id = pre.p_id
+                 left join sys_company panya ON con.Con_Party_A_Id = panya.c_id
+                 left join sys_company panyb ON con.Con_Party_B_Id = panyb.c_id
+                 left join Inv_Settlement_Apply app  on con.con_id  =  app.con_id
+                 left join SYS_Department dep on pre.P_Competent_Department = dep.d_id
+
+            <where>
+                  1=1
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        <if test="vo.preName!=null and vo.preName!=''">
+                            and   likePname(#{vo.preName},pre.P_Id)=true
+                        </if>
+                        <if test="vo.companyPartyAName!=null and vo.companyPartyAName!=''">
+                            and   likeCname(#{vo.companyPartyAName},panya.C_Id)=true
+                        </if>
+                        <if test="vo.companyPartybName!=null and vo.companyPartybName!=''">
+                            and   likeCname(#{vo.companyPartybName},panyb.C_Id)=true
+                        </if>
+                    </when>
+                    <otherwise>
+                        <if test="vo.preName!=null and vo.preName!=''">
+                            and   pre.p_name like concat('%',#{vo.preName},'%')
+                        </if>
+                        <if test="vo.companyPartyAName!=null and vo.companyPartyAName!=''">
+                            and   panya.c_name like concat('%',#{vo.companyPartyAName},'%')
+                        </if>
+                        <if test="vo.companyPartybName!=null and vo.companyPartybName!=''">
+                            and   panyb.c_name like concat('%',#{vo.companyPartybName},'%')
+                        </if>
+                    </otherwise>
+                </choose>
+                <if test="vo.conName!=null and vo.conName!=''">
+                    and   con.con_name like concat('%',#{vo.conName},'%')
+                </if>
+                <if test="vo.conCode!=null and vo.conCode!=''">
+                    and   con.con_code like concat('%',#{vo.conCode},'%')
+                </if>
+                <if test="vo.conCategory!=null and vo.conCategory!=''">
+                    and   con.con_type like concat('%',#{vo.conCategory},'%')
+                </if>
+                <if test="vo.conPartyAAgent!=null and vo.conPartyAAgent!=''">
+                    and   con.con_Party_A_Agent like concat('%',#{vo.conPartyAAgent},'%')
+                </if>
+
+                <if test="vo.conPartyBAgent!=null and vo.conPartyBAgent!=''">
+                    and   con.con_Party_B_Agent like concat('%',#{vo.conPartyBAgent},'%')
+                </if>
+
+                <if test="vo.conPartyBAgentTel!=null and vo.conPartyBAgentTel!=''">
+                    and   con.con_Party_B_Agent_Tel like concat('%',#{vo.conPartyBAgentTel},'%')
+                </if>
+
+                <if test="vo.dName!=null and vo.dName!=''">
+                    and   dep.d_name like concat('%',#{vo.dName},'%')
+                </if>
+                <if test="vo.conAmtStr!=null and vo.conAmtStr!='' and  (vo.conAmtEnd==null or vo.conAmtEnd=='') ">
+                    AND con.Con_Money_Total &gt;= #{vo.conAmtStr}
+                </if>
+
+                <if test="(vo.conAmtStr==null or vo.conAmtStr=='') and  (vo.conAmtEnd!=null and vo.conAmtEnd!='') ">
+                    AND con.Con_Money_Total &lt;= #{vo.conAmtEnd}
+                </if>
+
+                <if test="vo.conAmtStr!=null and vo.conAmtStr!='' and  vo.conAmtEnd!=null and vo.conAmtEnd!='' ">
+                    AND con.Con_Money_Total BETWEEN #{vo.conAmtStr} AND #{vo.conAmtEnd}
+                </if>
+
+
+                <if test="vo.conSupplementAmtStr!=null and vo.conSupplementAmtStr!='' and  (vo.conSupplementAmtEnd==null or vo.conSupplementAmtEnd=='') ">
+                    AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                    cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                    FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                    cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) ) &gt;= #{vo.conSupplementAmtStr}
+                </if>
+
+                <if test="(vo.conSupplementAmtStr==null or vo.conSupplementAmtStr=='') and  (vo.conSupplementAmtEnd!=null and vo.conSupplementAmtEnd!='') ">
+                    AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                    cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                    FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                    cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  &lt;= #{vo.conSupplementAmtEnd}
+                </if>
+
+                <if test="vo.conSupplementAmtStr!=null and vo.conSupplementAmtStr!='' and  vo.conSupplementAmtEnd!=null and vo.conSupplementAmtEnd!='' ">
+                    AND ( con.Con_Money_Total + COALESCE( (SELECT SUM( CASE WHEN cc.Con_Sup_Change_Mon_Type = 1 THEN cc.Con_Sup_Change_Money WHEN
+                    cc.Con_Sup_Change_Mon_Type = 0 THEN -Con_Sup_Change_Money ELSE 0 END )
+                    FROM Con_Contract cc WHERE cc.Con_Sup = '是' AND cc.Con_Master_Con_Id IS NOT NULL AND
+                    cc.Con_Approval_State = 7 AND cc.Con_Master_Con_Id = con.con_id), 0 ) )  BETWEEN #{vo.conSupplementAmtStr} AND #{vo.conSupplementAmtEnd}
+                </if>
+                <if test="vo.settlementAmtStr!=null and vo.settlementAmtStr!='' and  (vo.settlementAmtEnd==null or vo.settlementAmtEnd=='') ">
+                    AND  app.sa_approved_amt
+                    &gt;= #{vo.settlementAmtStr}
+                </if>
+
+                <if test="(vo.settlementAmtStr==null or vo.settlementAmtStr=='') and  (vo.settlementAmtEnd!=null and vo.settlementAmtEnd!='') ">
+                    AND  app.sa_approved_amt
+                    &lt;= #{vo.settlementAmtEnd}
+                </if>
+
+                <if test="vo.settlementAmtStr!=null and vo.settlementAmtStr!='' and  vo.settlementAmtEnd!=null and vo.settlementAmtEnd!='' ">
+                    AND  app.sa_approved_amt
+                    BETWEEN #{vo.settlementAmtStr} AND #{vo.settlementAmtEnd}
+                </if>
+
+            </where>
+
+    </select>
+
+    <select id="moneyDisbursement" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConPayDisbursementVo">
+        select
+            pany.c_name as cName,
+            pre.p_name as pName,
+            pre.p_id as pId,
+            con.con_id as conId,
+            con.con_name  as conName,
+            con.con_type as conType,
+            con.Con_Money_Total,
+            app.fa_Approved_Amt as pFinal ,
+            pay.Pay_Apply,
+            pany.c_id as cId,
+            pay.Pay_Total,
+            dep.d_name,
+            dep.d_id as dId,
+            con.con_Party_A_Agent,
+            pay.Pay_Create_Time,
+            pay.Pay_State_Time,
+            pay.pay_id as payId,
+            flow.cpaf_Application as actualPaymentAmt,
+            sett.as_Audited_Amount as asAuditedAmount,
+            paudit.pa_Examine_Approve as paExamineApprove
+        From con_pay  pay
+                 left join pre_project pre on pre.p_id  = pay.p_id
+                 left join con_contract con on pay.con_id = con.con_id
+                 left join sys_company pany on pany.c_id = con.Con_Payee_Id
+                 left join SYS_Department dep on con.con_Department = dep.d_id
+                 left join Audit_Settlement sett on sett.con_id = con.con_id
+                 left join Inv_Final_Accounts_Apply app on app.con_id = con.con_id
+                 left join Con_Pay_Apply_Flow flow on flow.con_id = con.con_id
+                 left join Preliminary_Audit paudit on paudit.con_id = con.con_id
+
+            <where>
+                 pay.Pay_State = 7
+                <if test="panyId!=null and panyId!=''">
+                    and   pany.c_id  = #{panyId}
+                </if>
+            </where>
+    </select>
+</mapper>

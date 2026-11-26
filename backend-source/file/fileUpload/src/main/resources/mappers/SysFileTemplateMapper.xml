@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.SysFileTemplateMapper">
+
+    <select id="getFileTemplateTableAndPrimaryByPid"
+            resultType="com.jpmsoft.fileUpload.pojo.dto.FileTemplateTableAndPrimaryDto">
+        select T_Table,T_Primary_Key from  SYS_FileTemplate where T_Code in
+        <foreach collection="tCodes" item="item" open="(" close=")" separator=",">
+            #{item}
+        </foreach>
+        and T_Table is not null
+    </select>
+
+</mapper>

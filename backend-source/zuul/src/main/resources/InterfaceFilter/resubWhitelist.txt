@@ -1,0 +1,3 @@
+/v1/jgSelectionRecord/createOrUpdateJGExpertExtract
+/v1/selectionRecord/createOrUpdateExpertExtract
+/v1/jgAgencySelectionRecord/createOrUpdateJGAgencyExpertExtract

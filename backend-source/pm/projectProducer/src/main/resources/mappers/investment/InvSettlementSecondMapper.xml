@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvSettlementSecondMapper">
+
+    <select id="getInvSettlementSecondById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.investment.InvSettlementSecondVo">
+        select pro.P_Name                as pName,
+               con.Con_Name              as conName,
+               con.Con_Money_Total       as conMoneyTotal,
+               con.Con_Code              as conCode,
+               con.Con_Type              as conType,
+               c1.C_Name                 as saContractorName,
+               c2.C_Name                 as saSupervisorName,
+               c3.C_Name                 as saCostConsultName,
+               c4.C_Name                 as ssApprovedComName,
+               sa.Sa_Contractor_Amount   as saContractorAmount,
+               sa.Sa_Supervisor_Amount   as saSupervisorAmount,
+               sa.Sa_Cost_Consult_Amount as saCostConsultAmount,
+               sa.Sa_Approved_Amt        as saApprovedAmt,
+               sa.Sa_Historical          as saHistorical,
+               f.File_Relation_Id        as fileRelationId,
+               mn.*
+        from Inv_Settlement_Second mn
+                 left join Inv_Settlement_Apply sa on sa.Sa_Id = mn.Sa_Id
+                 left join SYS_Company c1 on sa.Sa_Contractor = c1.C_Id
+                 left join SYS_Company c2 on sa.Sa_Supervisor = c2.C_Id
+                 left join SYS_Company c3 on sa.Sa_Cost_Consult = c3.C_Id
+                 left join SYS_Company c4 on mn.Ss_Approved_Com = c4.C_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_File f on f.FileId = mn.id
+        where mn.id = #{id}
+    </select>
+
+
+    <select id="getInvSettlementSecondList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.investment.InvSettlementSecondVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Code as conCode,
+        con.Con_Type as conType,
+        c1.C_Name as saContractorName,
+        c2.C_Name as saSupervisorName,
+        c3.C_Name as saCostConsultName,
+        c4.C_Name as ssApprovedComName,
+        sa.Sa_Contractor_Amount as saContractorAmount,
+        sa.Sa_Supervisor_Amount as saSupervisorAmount,
+        sa.Sa_Cost_Consult_Amount as saCostConsultAmount,
+        sa.Sa_Approved_Amt as saApprovedAmt,
+        sa.Sa_Historical as saHistorical,
+        mn.*
+        from Inv_Settlement_Second mn
+        left join Inv_Settlement_Apply sa on sa.Sa_Id = mn.Sa_Id
+        left join SYS_Company c1 on sa.Sa_Contractor = c1.C_Id
+        left join SYS_Company c2 on sa.Sa_Supervisor = c2.C_Id
+        left join SYS_Company c3 on sa.Sa_Cost_Consult = c3.C_Id
+        left join SYS_Company c4 on mn.Ss_Approved_Com = c4.C_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id=#{params.conId}
+        </if>
+        <if test="params.conType!=null">
+            and con.Con_Type=#{params.conType}
+        </if>
+        <if test="params.ssHistory!=null">
+            and mn.Ss_History=#{params.ssHistory}
+        </if>
+        <if test="params.saHistorical!=null">
+            and sa.Sa_Historical=#{params.saHistorical}
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.saContractorName!=null">
+                    and likeCname(#{params.saContractorName},c1.C_Id)=true
+                </if>
+                <if test="params.saSupervisorName!=null">
+                    and likeCname(#{params.saSupervisorName},c2.C_Id)=true
+                </if>
+                <if test="params.saCostConsultName!=null">
+                    and likeCname(#{params.saCostConsultName},c3.C_Id)=true
+                </if>
+                <if test="params.ssApprovedComName!=null">
+                    and likeCname(#{params.ssApprovedComName},c4.C_Id)=true
+                </if>
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.saContractorName!=null">
+                    and INSTR(c1.C_Name,#{params.saContractorName})
+                </if>
+                <if test="params.saSupervisorName!=null">
+                    and INSTR(c2.C_Name,#{params.saSupervisorName})
+                </if>
+                <if test="params.saCostConsultName!=null">
+                    and INSTR(c3.C_Name,#{params.saCostConsultName})
+                </if>
+                <if test="params.ssApprovedComName!=null">
+                    and INSTR(c4.C_Name,#{params.ssApprovedComName})
+                </if>
+                <if test="params.pName!=null">
+                    and INSTR(pro.P_Name,#{params.pName})
+                </if>
+            </otherwise>
+        </choose>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

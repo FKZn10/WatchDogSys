@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.PayAmountInitMapper">
+    <select id="getByPId" resultType="com.jpmsoft.projectProducer.pojo.entity.fund.PayAmountInit"
+            parameterType="java.lang.String">
+        select * from PayAmount_Init where P_Id = #{pId} and state != 3
+    </select>
+    <select id="getPayAmountInitList" resultType="com.jpmsoft.projectProducer.pojo.vo.fund.PayAmountInitVo">
+        select pi.* , pp.P_Name as pName, pp.P_Name as projectName
+        from PayAmount_Init pi
+        left join Pre_Project pp on pi.P_Id = pp.P_Id
+        where pi.state != 3
+        <if test="params.projectName != null and params.projectName != ''">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.projectName},pp.P_Id)=true
+                </when>
+                <otherwise>
+                    and pp.P_Name like concat('%',#{params.projectName},'%')
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+    <select id="getPayAmountInit" resultType="com.jpmsoft.projectProducer.pojo.entity.fund.PayAmountInit">
+        select
+        mn.*
+        from PayAmount_Init mn
+        where mn.P_Id= #{pId} and mn.State=7
+    </select>
+</mapper>

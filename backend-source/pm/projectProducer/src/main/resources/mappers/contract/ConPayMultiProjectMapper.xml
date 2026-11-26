@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConPayMultiProjectMapper">
+    <select id="getConPayMultiProjectByCpmId"
+            resultType="com.jpmsoft.common.model.response.Contract.ConPayMultiProjectResponse">
+        select
+        mn.*,
+        pp.P_Name as pName,
+        cc.Con_Name as conName,
+        cc.Con_Code as conCode,
+        cp.Pay_Code as payCode
+        from Con_Pay_Multi_Project mn
+        left join Pre_Project pp on mn.p_Id = pp.P_ID
+        left join Con_Contract cc on mn.Con_Id = cc.Con_Id
+        left join Con_Pay cp on mn.Pay_Id = cp.Pay_Id
+        where mn.cpm_Id = #{id}
+    </select>
+</mapper>

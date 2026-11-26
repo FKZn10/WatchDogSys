@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MeBrandApprovalMapper">
+
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeBrandApprovalVo"
+               id="getMeBrandApproval">
+        <id column="Ba_Id" property="baId"/>
+        <result column="reviews_count" property="reviewsCount"/>
+        <collection property="meBrandApprovalDtls"
+                    ofType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeBrandApprovalDtlVo"
+                    column="Ba_Id" select="getMeBrandApprovalDtl">
+        </collection>
+    </resultMap>
+
+
+    <select id="getMeBrandApprovalDtl"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeBrandApprovalDtlVo">
+        select
+        c1.C_Name as badSupplierName,
+        c2.C_Name as badProducerName,
+        met.Met_Name as metName,
+        mn.*
+        from Me_Brand_Approval_Dtl mn
+        left join Sys_Company c1 on c1.C_Id=mn.Bad_Supplier
+        left join Sys_Company c2 on c2.C_Id=mn.Bad_Producer
+        left join Me_Type_Library met on met.Met_Id=mn.Met_Id
+        where mn.Ba_Id = #{baId}
+        order by mn.Bad_Sort ASC
+    </select>
+
+
+    <select id="getMeBrandApprovalById" resultMap="getMeBrandApproval">
+        select pro.P_Name         as pName,
+               sec.Sec_Name       as secName,
+               con.Con_name       as conName,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Me_Brand_Approval mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join Con_Contract con on con.Con_Id=mn.Con_Id
+                 left join Sys_File f on f.FileId = mn.Ba_Id
+        where mn.Ba_Id = #{id}
+    </select>
+
+
+    <select id="getMeBrandApprovalList" resultMap="getMeBrandApproval">
+        select
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_name as conName,
+        mn.*
+        from Me_Brand_Approval mn
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.state!=null">
+            and mn.state=#{params.state}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id=#{params.conId}
+        </if>
+        <if test="params.reviewsCount!=null">
+            and mn.reviews_count=#{params.reviewsCount}
+        </if>
+        <if test="params.baCategory!=null">
+            and mn.Ba_Category=#{params.baCategory}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.secName!=null">
+            and INSTR(sec.Sec_Name,#{params.secName})
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_name,#{params.conName})
+        </if>
+        <if test="params.baCode!=null">
+            and INSTR(mn.Ba_Code,#{params.baCode})
+        </if>
+        <if test="params.baPm!=null">
+            and INSTR(mn.Ba_Pm,#{params.baPm})
+        </if>
+        <if test="params.baType!=null">
+            and INSTR(mn.Ba_Type,#{params.baType})
+        </if>
+        <if test="params.baProfessional!=null">
+            and INSTR(mn.Ba_Professional,#{params.baProfessional})
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getMeBrandApprovalReportById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeBrandApprovalReportVo">
+        select pro.P_Name         as pName,
+               sec.Sec_Name       as secName,
+               con.Con_name       as conName,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Me_Brand_Approval mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Sec_Info sec on sec.Sec_Id = mn.Sec_Id
+                 left join Con_Contract con on con.Con_Id=mn.Con_Id
+                 left join Sys_File f on f.FileId = mn.Ba_Id
+        where mn.Ba_Id = #{id}
+    </select>
+
+    <select id="getMeBrandApprovalReviewsCount" resultType="java.lang.Integer">
+        select count(*)
+        from Me_Brand_Approval
+        where P_Id = #{pId} and Con_Id = #{conId}
+        and State = 7
+    </select>
+
+</mapper>

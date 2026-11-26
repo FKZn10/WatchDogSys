@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.SysCoordinationProcessMapper">
+
+    <select id="getUserCoordinationProcessList" resultType="com.jpmsoft.common.model.response.CoordinationProcessResponse">
+        select
+        f.FileTitle as cpFileTitle,
+        flow.FlowName as cpFlowName,
+        fa.ActName as cpActName,
+        u.U_Name as cpSendName,
+        t.TaskName as cpTaskName,
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        f.T_Code as tCode,
+        <include refid="CoordinationProcessEntity"/>
+        from  SYS_CoordinationProcess cp
+        left join  SYS_FlowActivity fa on fa.ActID=cp.CP_ActID
+        left join  SYS_Task t on t.TaskID=cp.CP_TaskID
+        left join  SYS_Flow flow on flow.FlowID=cp.CP_FlowID
+        left join  Sys_File f on f.FileID=cp.CP_FileID
+        left join  Sys_User u on u.U_Id=cp.CP_SendUser
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        <where>
+              cp.CP_User=#{params.userId}
+            <if test="params.cpName!=null">
+                and  cp.cp_name like concat('%',#{params.cpName},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.cpActName!=null">
+                and  fa.ActName like concat('%',#{params.cpActName},'%')
+            </if>
+            <if test="params.cpFileTitle!=null">
+                and   f.FileTitle like concat('%',#{params.cpFileTitle},'%')
+            </if>
+            <if test="params.cpFileTitle!=null">
+                and   f.FileTitle like concat('%',#{params.cpFileTitle},'%')
+            </if>
+            <if test="params.cpSendUser!=null">
+                and   u.U_Name like concat('%',#{params.cpSendUser},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and cp.Te_Id = #{params.teId}
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by cp.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getUserCoordinationProcessListCount" resultType="java.lang.Integer">
+        select
+          COUNT(1)
+        from  SYS_CoordinationProcess cp
+        left join  SYS_FlowActivity fa on fa.ActID=cp.CP_ActID
+        left join  SYS_Flow flow on flow.FlowID=cp.CP_FlowID
+        left join  Sys_File f on f.FileID=cp.CP_FileID
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        left join  Sys_User u on u.U_Id=cp.CP_SendUser
+        <where>
+            cp.CP_User=#{params.userId}
+            <if test="params.cpName!=null">
+                and  cp.cp_name like concat('%',#{params.cpName},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.cpActName!=null">
+                and  fa.ActName like concat('%',#{params.cpActName},'%')
+            </if>
+            <if test="params.cpFileTitle!=null">
+                and   f.FileTitle like concat('%',#{params.cpFileTitle},'%')
+            </if>
+            <if test="params.cpSendUser!=null">
+                and   u.U_Name like concat('%',#{params.cpSendUser},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and cp.Te_Id = #{params.teId}
+            </if>
+        </where>
+    </select>
+
+
+
+    <select id="getCoordinationProcessList" resultType="com.jpmsoft.common.model.response.CoordinationProcessResponse">
+        select
+        f.FileTitle as cpFileTitle,
+        flow.FlowName as cpFlowName,
+        fa.ActName as cpActName,
+        u.U_Name as cpSendName,
+        u1.U_Name as cpUserName,
+        t.TaskName as cpTaskName,
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        f.T_Code as tCode,
+        <include refid="CoordinationProcessEntity"/>
+        from  SYS_CoordinationProcess cp
+        left join  SYS_FlowActivity fa on fa.ActID=cp.CP_ActID
+        left join  SYS_Task t on t.TaskID=cp.CP_TaskID
+        left join  SYS_Flow flow on flow.FlowID=cp.CP_FlowID
+        left join  Sys_File f on f.FileID=cp.CP_FileID
+        left join  Sys_User u on u.U_Id=cp.CP_SendUser
+        left join  Sys_User u1 on u1.U_Id=cp.CP_User
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        <where>
+            1=1
+            <if test="params.cpName!=null">
+                and  cp.cp_name like concat('%',#{params.cpName},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.cpActName!=null">
+                and  fa.ActName like concat('%',#{params.cpActName},'%')
+            </if>
+            <if test="params.cpFileTitle!=null">
+                and   f.FileTitle like concat('%',#{params.cpFileTitle},'%')
+            </if>
+            <if test="params.cpSendUser!=null">
+                and   u.U_Name like concat('%',#{params.cpSendUser},'%')
+            </if>
+            <if test="params.cpUser!=null">
+                and  u1.U_Name like concat('%',#{params.cpUser},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and cp.Te_Id = #{params.teId}
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by cp.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getCoordinationProcessListCount" resultType="java.lang.Integer">
+        select
+          COUNT(1)
+        from  SYS_CoordinationProcess cp
+        left join  SYS_FlowActivity fa on fa.ActID=cp.CP_ActID
+        left join  SYS_Flow flow on flow.FlowID=cp.CP_FlowID
+        left join  Sys_File f on f.FileID=cp.CP_FileID
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        left join  Sys_User u on u.U_Id=cp.CP_SendUser
+        left join  Sys_User u1 on u1.U_Id=cp.CP_User
+        <where>
+             1=1
+            <if test="params.cpName!=null">
+                and  cp.cp_name like concat('%',#{params.cpName},'%')
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.cpActName!=null">
+                and  fa.ActName like concat('%',#{params.cpActName},'%')
+            </if>
+            <if test="params.cpFileTitle!=null">
+                and   f.FileTitle like concat('%',#{params.cpFileTitle},'%')
+            </if>
+            <if test="params.cpSendUser!=null">
+                and   u.U_Name like concat('%',#{params.cpSendUser},'%')
+            </if>
+            <if test="params.cpUser!=null">
+                and  u1.U_Name like concat('%',#{params.cpUser},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and cp.Te_Id = #{params.teId}
+            </if>
+        </where>
+    </select>
+
+
+    <sql id="CoordinationProcessEntity">
+        cp.CP_ID as cpId,
+        cp.CP_Name as cpName,
+        cp.CP_TaskID as cpTaskid,
+        cp.CP_SendUser as cpSenduser,
+        cp.CP_User as cpUser,
+        cp.CP_Explain as cpExplain,
+        cp.CP_SendTime as cpSendtime,
+        cp.CP_Time as cpTime,
+        cp.CP_ActID as cpActid,
+        cp.CP_FlowID as cpFlowid,
+        cp.CP_FileID as cpFileid
+    </sql>
+
+</mapper>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaKnowledgeGroupMapper">
+
+    <select id="getDirPowerRole" resultType="com.jpmsoft.projectProducer.pojo.dto.other.DirPowerRoleDTO">
+        select
+        srp.Role_Id as roleId,
+        mn.Power_Code as powerCode
+        from Sys_Power mn
+        left join SYS_Role_Power srp on srp.Power_ID=mn.Power_ID
+        where mn.Power_Type='1' and mn.Power_Status='1'
+        and srp.Role_Id in
+        <foreach collection="roleIds" open="(" close=")" separator="," item="roleId">
+            #{roleId}
+        </foreach>
+    </select>
+
+    <select id="getUserOaKnowledgePower" resultType="com.jpmsoft.projectProducer.pojo.vo.oa.OaKnowledgeGroupVO">
+        select
+        mn.*
+        from OA_Knowledge_Group mn
+        where (mn.Kbg_Type='02' and mn.Kbg_Group_Id=#{userInfo.id})
+        <if test="userInfo.departmentIds!=null and userInfo.departmentIds.size()>0">
+            or ( mn.Kbg_Type='01' and mn.Kbg_Group_Id in
+            <foreach collection="userInfo.departmentIds" open="(" close=")" separator="," item="depId">
+                #{depId}
+            </foreach>
+            )
+        </if>
+    </select>
+
+
+    <sql id="kbgGroupNameSelect">
+        (case when mn.Kbg_Type='01' then (select U_Name from Sys_User where U_Id=mn.Kbg_Group_Id)
+            else (select D_Name from SYS_Department where D_Id=mn.Kbg_Group_Id) end) as kbgGroupName,
+    </sql>
+
+    
+    <select id="getOaKnowledgeGroupByKbId" resultType="com.jpmsoft.projectProducer.pojo.vo.oa.OaKnowledgeGroupVO">
+        select
+        <include refid="kbgGroupNameSelect"/>
+        sr.Role_Name as roleName,
+        sr.Role_Code as roleCode,
+        mn.*
+        from OA_Knowledge_Group mn
+        left join SYS_Role sr on sr.Role_ID=mn.Kbg_Role
+        where mn.Kb_Id=#{kbId}
+        order by mn.Create_Time DESC
+    </select>
+</mapper>

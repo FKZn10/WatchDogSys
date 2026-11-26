@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaAnnualPlanMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.oa.OaAnnualPlanVo"
+               id="selectOaAnnualPlan">
+        <id column="id" property="id"/>
+        <collection property="oaAnnualPlanDtls"
+                    ofType="com.jpmsoft.projectProducer.pojo.vo.oa.OaAnnualPlanDtlVo"
+                    column="id" select="selectOaAnnualPlanDt">
+        </collection>
+    </resultMap>
+
+    <select id="selectOaAnnualPlanDt" resultType="com.jpmsoft.projectProducer.pojo.vo.oa.OaAnnualPlanDtlVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Oa_Annual_Plan_Dtl mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        where mn.Ap_Id=#{id}
+        order by Apd_Sort ASC
+    </select>
+
+    <select id="getOaAnnualPlanById" resultMap="selectOaAnnualPlan">
+        select *
+        from Oa_Annual_Plan
+        where id = #{id}
+    </select>
+
+    <select id="getOaAnnualPlanList" resultType="com.jpmsoft.projectProducer.pojo.vo.oa.OaAnnualPlanVo">
+        select
+        (select count(*) from Oa_Annual_Plan_Dtl where Ap_Id=mn.Id) as dtlCount,
+        mn.*
+        from Oa_Annual_Plan mn
+        <where>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.apYear!=null">
+                and mn.Ap_Year=#{params.apYear}
+            </if>
+            <if test="params.state!=null">
+                and mn.State=#{params.state}
+            </if>
+            <if test="params.createUname!=null">
+                and INSTR(mn.Create_Uname,#{params.createUname})
+            </if>
+            <if test="params.apTitle!=null">
+                and INSTR(mn.Ap_Title,#{params.apTitle})
+            </if>
+            <if test="params.apRemark!=null">
+                and INSTR(mn.Ap_Remark,#{params.apRemark})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

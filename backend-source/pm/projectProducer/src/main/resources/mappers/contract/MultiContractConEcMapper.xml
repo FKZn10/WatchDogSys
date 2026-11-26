@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.MultiContractConEcMapper">
+    <select id="page" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.MultiContractConEcPageVO">
+        select mcce.*,mn.p_name projectName
+        from multi_contract_con_ec mcce
+        left join pre_project mn on mn.p_id = mcce.project_id
+        <if test="authSql != null and authSql != ''">
+            ${authSql}
+        </if>
+        and ec_change_type = #{ecChangeType}
+        <if test="projectName != null and projectName != ''">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{projectName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and mn.p_name like concat('%',#{projectName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="pId != null and pId != ''">
+            and mn.p_Id=#{pId}
+        </if>
+        order by create_time desc
+    </select>
+
+    <select id="getFinishedDesignChangeApplyMoneyByProjectId" resultType="java.math.BigDecimal">
+        select coalesce(sum(
+            case
+                when pdc.opera_sign = '0' then -pdc.change_Declare_Money
+                else pdc.change_Declare_Money
+            end
+        ), 0)
+        from pre_Design_Change pdc
+        left join pre_project mn on mn.p_id = pdc.pro_Id
+        <if test="authSql != null and authSql != ''">
+            ${authSql}
+        </if>
+        and pdc.pro_Id = #{projectId}
+        and pdc.State = #{finishedState}
+    </select>
+</mapper>

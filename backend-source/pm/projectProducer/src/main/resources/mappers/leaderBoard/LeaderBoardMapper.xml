@@ -1,0 +1,1184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.leaderBoard.LeaderBoardMapper">
+    <sql id="projectEntityFields">
+        mn.P_ID as pId,
+        mn.PR_ID as prId,
+        mn.P_Code as pCode,
+        mn.P_Parent_ID as pParentId,
+        mn.P_Name as pName,
+        mn.P_Project_Abbreviation as pProjectAbbreviation,
+        mn.P_Original_Name as pOriginalName,
+        mn.P_Name_Initials as pNameInitials,
+        mn.P_Project_Code as pProjectCode,
+        mn.P_Address as pAddress,
+        mn.P_Region as pRegion,
+        mn.P_Construction_Area as pConstructionArea,
+        mn.P_Longitude as pLongitude,
+        mn.P_Latitude as pLatitude,
+        mn.P_Overview as pOverview,
+        mn.P_Volume_Rate as pVolumeRate,
+        mn.P_Land_Area as pLandArea,
+        mn.P_Seat as pSeat,
+        mn.P_Number_Of_Elevators as pNumberOfElevators,
+        mn.P_Max_Height as pMaxHeight,
+        mn.P_Parking_Number as pParkingNumber,
+        mn.P_Buildings_Number as pBuildingsNumber,
+        mn.P_Design_Life as pDesignLife,
+        mn.P_Super_Structure as pSuperStructure,
+        mn.P_Basic_Structure as pBasicStructure,
+        mn.P_Ground_Floors as pGroundFloors,
+        mn.P_Under_Ground_Floors as pUnderGroundFloors,
+        mn.P_Is_Gas as pIsGas,
+        mn.P_Basement_Area as pBasementArea,
+        mn.P_Is_Air_Defense as pIsAirDefense,
+        mn.P_Air_Defense_Area as pAirDefenseArea,
+        mn.P_Type as pType,
+        mn.P_Major_Type as pMajorType,
+        mn.P_Construction_Unit as pConstructionUnit,
+        mn.P_Competent_Department as pCompetentDepartment,
+        mn.P_Project_Director as pProjectDirector,
+        mn.P_Project_Stage as pProjectStage,
+        mn.P_Project_Status as pProjectStatus,
+        mn.P_PLan_Start_Date as pPlanStartDate,
+        mn.P_Plan_Complete_Date as pPlanCompleteDate,
+        mn.P_Total_Duration as pTotalDuration,
+        mn.P_Actual_Start_Time as pActualStartTime,
+        mn.P_Actual_Complete_Date as pActualCompleteDate,
+        mn.P_Actual_Total_Duration as pActualTotalDuration,
+        mn.P_Intervention_Date as pInterventionDate,
+        mn.P_Intervention_Year as pInterventionYear,
+        mn.P_Receipt_Time as pReceiptTime,
+        mn.P_Acceptance_Record_Date as pAcceptanceRecordDate,
+        mn.P_Handover_Date as pHandoverDate,
+        mn.P_Is_Project_Summary as pIsProjectSummary,
+        mn.P_Use_Unit as pUseUnit,
+        mn.P_Sources_Funds as pSourcesFunds,
+        mn.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+        mn.P_Estimate_Amount as pEstimateAmount,
+        mn.P_Approve_Budget as pApproveBudget,
+        mn.P_Approve_Budget_Code as pApproveBudgetCode,
+        mn.P_Approve_Budget_Date as pApproveBudgetDate,
+        mn.P_Final_Accounts as pFinalAccounts,
+        mn.P_Final_Accounts_Report_Date as pFinalAccountsReportDate,
+        mn.P_Construction_Project_Planning_Permit_Code as pConstructionProjectPlanningPermitCode,
+        mn.P_Construction_Land_Planning_PermitCode as pConstructionLandPlanningPermitcode,
+        mn.P_Opinions_On_Site_Selection_For_Construction_Projects_Code as pOpinionsOnSiteSelectionForConstructionProjectsCode,
+        mn.P_Land_Use_Right_Assignment_Contract_Code as pLandUseRightAssignmentContractCode,
+        mn.P_Feasibility_Study_Approval_Code as pFeasibilityStudyApprovalCode,
+        mn.P_EIA_Approval_Code as pEiaApprovalCode,
+        mn.P_Is_Agent_Construction as pIsAgentConstruction,
+        mn.P_Agent_Construction_Unit as pAgentConstructionUnit,
+        mn.P_Design_Grade as pDesignGrade,
+        mn.P_Is_Prefabricated as pIsPrefabricated,
+        mn.P_Four_New_Technologies as pFourNewTechnologies,
+        mn.P_BIM_Technology as pBimTechnology,
+        mn.P_Is_EPC as pIsEpc,
+        mn.P_Is_Sponge_City as pIsSpongeCity,
+        mn.P_Is_Regular_Mode as pIsRegularMode,
+        mn.P_Is_Design_And_Construction_Integration as pIsDesignAndConstructionIntegration,
+        mn.P_Design_And_Construction_Integration_Unit as  pDesignAndConstructionIntegrationUnit,
+        mn.P_Is_Whole_Process_Management as pIsWholeProcessManagement,
+        mn.P_Whole_Process_Management_Unit as pWholeProcessManagementUnit,
+        mn.P_Construction_Cooperation as pConstructionCooperation,
+        mn.P_Status as pStatus,
+        mn.P_Create_User_ID as pCreateUserId,
+        mn.P_Create_User_Name as pCreateUserName,
+        mn.P_Create_Time as pCreateTime,
+        mn.P_Update_User_ID as pUpdateUserId,
+        mn.P_Update_Time as pUpdateTime,
+        mn.P_Serial_Number as pSerialNumber,
+        mn.deleted as deleted,
+        mn.P_Assignment_No as pAssignmentNo,
+        mn.P_Raise_Funds as pRaiseFunds,
+        mn.P_Introduction as pIntroduction,
+        mn.P_Land_Warrant as pLandWarrant,
+        mn.P_Parking_Number_Un as pParkingNumberUn,
+        mn.P_Parking_Number_On as pParkingNumberOn,
+        mn.P_Item_Number as pItemNumber,
+        mn.P_Pre_Item_Number as pPreItemNumber,
+        mn.P_Pre_Item_Time as pPreItemTime,
+        mn.P_Item_Time as pItemTime,
+        mn.P_Site_Area as pSiteArea,
+        mn.P_Cm_Mode as pCmMode,
+        mn.P_Name_History as pNameHistory,
+        mn.P_Assignment_File as pAssignmentFile,
+        mn.P_Committee_Approva_Document as pCommitteeApprovaDocument,
+        mn.P_City_Leader_Meeting_Minutes as pCityLeaderMeetingMinutes,
+        mn.P_City_Leader_Instructions as pCityLeaderInstructions,
+        mn.P_Other as pOther,
+        mn.P_Nature as pNature,
+        mn.P_Reported_Amount as pReportedAmount,
+        mn.P_Approva_Document as pApprovaDocument,
+        mn.P_Leader_Meeting_Minutes as pLeaderMeetingMinutes,
+        mn.P_Leader_Instructions as pLeaderInstructions,
+        mn.P_Project_Director_Tel as pProjectDirectorTel,
+        mn.P_Construction_Cost as pConstructionCost,
+        mn.P_Contract_Price as pContractPrice,
+        mn.P_Purchase_Price as pPurchasePrice,
+        mn.P_Estimate_File as pEstimateFile,
+        mn.P_Scale_Describe as pScaleDescribe,
+        mn.P_Bim as pBim,
+        mn.P_Smart_Site as pSmartSite,
+        mn.P_Management_System as pManagementSystem,
+        mn.P_New_Technology as pNewTechnology,
+        mn.P_New_Material as pNewMaterial,
+        mn.P_New_Craft as pNewCraft,
+        mn.P_Save_Energy as pSaveEnergy,
+        mn.P_Save_Land as pSaveLand,
+        mn.P_Save_Water as pSaveWater,
+        mn.P_Save_Material as pSaveMaterial,
+        mn.P_Digital_Construction as pDigitalConstruction,
+        mn.P_Green_Construction as pGreenConstruction,
+        mn.P_Centralized_Construction as pCentralizedConstruction,
+        mn.P_Contracting_Mode as pContractingMode,
+        mn.P_Process_Consulting as pProcessConsulting,
+        mn.P_Engineer_Responsible as pEngineerResponsible,
+        mn.P_Is_Project_Approval  as pIsProjectApproval,
+        mn.P_Building_Scale  as pBuildingScale,
+        mn.P_Building_Unit  as pBuildingUnit,
+        mn.State as state,
+        mn.State_Time as stateTime,
+        mn.P_Supervise_Type as pSuperviseType,
+        mn.P_Group_Type as pGroupType,
+        mn.P_Remark_Planned as pRemarkPlanned,
+        mn.P_Plan_Number as pPlanNumber,
+        mn.P_Cons_Release as pConsRelease,
+        mn.P_Imp_Company as pImpCompany,
+        mn.P_Imp_State as pImpState,
+        mn.P_Apply_Tilte as pApplyTilte,
+        mn.P_Inv_Total as pInvTotal,
+        mn.P_Inv_Caliber as pInvCaliber,
+        mn.P_Inv_Tilte as pInvTilte,
+        mn.P_Inv_Code as pInvCode,
+        mn.P_Inv_Date as pInvDate,
+        mn.P_Inv_File as pInvFile,
+        mn.P_Pass_Video as pPassVideo,
+        mn.P_Build_Model as pBuildModel,
+        mn.P_Intervention_End_Year as  pInterventionEndYear,
+        mn.P_Each_District as pEachDistrict,
+        mn.P_Approval_Unit as  pApprovalUnit,
+        mn.P_Construction_Start as  pConstructionStart,
+        mn.P_Construction_End as  pConstructionEnd,
+        mn.P_Check_Type as  pCheckType,
+        mn.P_Progress_Situation as pProgressSituation,
+        mn.P_Record_Number as pRecordNumber,
+        mn.P_Category as pCategory,
+        mn.P_Economic_File as pEconomicFile,
+        mn.P_Proposal_File as pProposalFile,
+        mn.P_Report_File as pReportFile,
+        mn.P_Inv_Category as pInvCategory,
+        mn.P_Advance_Fund as pAdvanceFund,
+        mn.P_Corporate_Risk as pCorporateRisk,
+        mn.P_Safety_Filing as pSafetyFiling,
+        mn.Cpl_Id as cplId,
+        mn.P_Apply_Name as pApplyName,
+        mn.P_Fiscal_Budget as pFiscalBudget,
+        mn.P_Campus as pCampus,
+        mn.P_Audit_Unit as pAuditUnit,
+        mn.P_Cost_Unit  as pCostUnit,
+        mn.P_Opinion_File  as pOpinionFile,
+        mn.P_Plan_File  as pPlanFile,
+        mn.P_Feasibility_File  as pFeasibilityFile,
+        mn.P_Approve_File  as pApproveFile,
+        mn.P_Sbgjgzf_Amt  as pSbgjgzfAmt,
+        mn.P_Gcjsqt_Amt  as pGcjsqtAmt,
+        mn.P_Yb_Amt  as pYbAmt,
+        mn.P_Construction_File  as pConstructionFile,
+        mn.P_Sbgjgzf_File  as pSbgjgzfFile,
+        mn.P_Gcjsqt_File  as pGcjsqtFile,
+        mn.P_Yb_File  as pYbFile,
+        mn.P_Rate  as pRate,
+        mn.P_Weight  as pWeight,
+        mn.P_Contact as pContact,
+        mn.P_Contact_Phone as pContactPhone,
+        mn.P_Repair_Project as pRepairProject,
+        mn.P_Project_Basis as pProjectBasis,
+        mn.P_Content as pContent,
+        mn.P_Sec_Type as pSecType,
+        mn.P_Funds_Sources as pFundsSources,
+        mn.P_Initial_Approval_Number as pInitialApprovalNumber,
+        mn.P_Initial_Approval_Amount as pInitialApprovalAmount,
+        mn.P_Settlement_Audit_Report_Date as pSettlementAuditReportDate,
+        mn.P_Settlement_Audit_Amount as pSettlementAuditAmount,
+        mn.P_Address_Detail as pAddressDetail,
+        mn.total_building_scale as totalBuildingScale,
+        mn.P_Project_Form_Type as pProjectFormType,
+        mn.P_Project_Number as pProjectNumber,
+        mn.P_Approval_Investment_Amount as pApprovalInvestmentAmount,
+        mn.P_Record_Num as pRecordNum,
+        mn.P_Can_Yan_Apply_Unit as pCanYanApplyUnit,
+        mn.P_Can_Yan_Approval_Unit as pCanYanApprovalUnit,
+        mn.P_Record_Date as pRecordDate,
+        mn.P_Record_File as pRecordFile,
+        mn.P_Record_Amount as pRecordAmount,
+        mn.P_Legal_Unit as pLegalUnit,
+        mn.P_Record_Issue_Unit as pRecordIssueUnit,
+        mn.P_Apply_File as pApplyFile,
+        mn.P_Apply_Date as pApplyDate,
+        mn.P_Approval_Amount as pApprovalAmount,
+        mn.P_Investment_Constitute as pInvestmentConstitute,
+        mn.P_Build_Type as pBuildType,
+        mn.P_Build_Year as pBuildYear,
+        mn.P_Professional_Type as pProfessionalType,
+        mn.P_Transfer_Unit as pTransferUnit,
+        mn.P_Project_Manager as pProjectManager,
+        mn.P_Project_Leader as pProjectLeader,
+        mn.P_Engineer as pEngineer,
+        mn.P_Engineer_Leader as pEngineerLeader,
+        mn.comprehensive_plan_department_contact_user_id,
+        mn.comprehensive_plan_department_contact_user_name,
+        mn.office_contact_user_id,
+        mn.office_contact_user_name,
+        mn.comprehensive_technology_department_contact_user_id,
+        mn.comprehensive_technology_department_contact_user_name,
+        mn.pm_department_contact_user_id,
+        mn.pm_department_contact_user_name,
+        mn.Pr_Committee_Project_Code prCommitteeProjectCode,
+        mn.Pr_Committee_Approva_Document prCommitteeApprovaDocument,
+        mn.Pr_City_Leader_Meeting_Minutes prCityLeaderMeetingMinutes,
+        mn.Pr_City_Leader_Instructions prCityLeaderInstructions,
+        mn.Pr_Other prOther,
+        mn.is_group_investment as isGroupInvestment,
+        mn.project_nature as projectNature,
+        mn.project_investment_category as projectInvestmentCategory,
+        mn.project_category_details as projectCategoryDetails,
+        mn.project_category as projectCategory,
+        mn.is_history as isHistory,
+        mn.project_owner as projectOwner,
+        mn.project_initiating_unit as projectInitiatingUnit,
+        mn.P_Investment_Constitute_Remark as pInvestmentConstituteRemark,
+        mn.P_Item_Time_New as pItemTimeNew,
+        mn.P_Feasibility_Title as pFeasibilityTitle,
+        mn.P_Feasibility_Time as pFeasibilityTime,
+        mn.P_Approve_Budget_Name as pApproveBudgetName,
+        mn.p_Approve_Budget_Date_New as pApproveBudgetDateNew,
+        mn.P_Construction_Time as pConstructionTime,
+        mn.P_Construction_Land_Time as pConstructionLandTime,
+        mn.P_Opinions_On_Time as pOpinionsOnTime,
+        mn.P_Land_Use_Time as pLandUseTime,
+        mn.P_Engineering_Construction_Code as pEngineeringConstructionCode,
+        mn.P_Engineering_Construction_Time as pEngineeringConstructionTime,
+        mn.ppr_id as pprId
+    </sql>
+    <select id="getPreProjectInfo" resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c4.C_Name as pAuditUnitName,
+        c5.C_Name as pCostUnitName,
+        c6.C_Name as pCanYanApplyUnitName,
+        c7.C_Name as pCanYanApprovalUnitName,
+        c8.C_Name as pLegalUnitName,
+        c9.C_Name as pRecordIssueUnitName,
+        c10.C_Name as pTransferUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name as pParentName,
+        parent.P_code as pParentCode,
+        cpl.P_Name as cplName,
+        f.file_relation_id as fileRelationId,
+        us1.U_Name as pProjectManagerName,
+        us2.U_Name as pProjectLeaderName,us3.U_Name as pEngineerName,
+        us4.U_Name as pEngineerLeaderName,d2.D_Name as pDepartmentName,
+        <include refid="projectEntityFields"/>,mn.P_Committee_Approva_Document as pCommitteeApprovaDocument,c11.C_Name
+        as pUseUnitName,
+        mn.p_Project_Form_Type_Remark as pProjectFormTypeRemark ,mn.p_Build_Model_Remark as pBuildModelRemark
+        ,mn.p_Professional_Type_Remark as pProfessionalTypeRemark,
+        mn.p_Build_Type_Remark as pBuildTypeRemark,
+        CASE WHEN mn.P_Construction_Start IS NOT NULL THEN YEAR(mn.P_Construction_Start)
+        WHEN mn.P_Create_Time IS NOT NULL THEN YEAR(mn.P_Create_Time)
+        END as projectYear
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Company c4 on c4.C_Id=mn.P_Audit_Unit
+        left join SYS_Company c5 on c5.C_Id=mn.P_Cost_Unit
+        left join SYS_Company c6 on c6.C_Id=mn.P_Can_Yan_Apply_Unit
+        left join SYS_Company c7 on c7.C_Id=mn.P_Can_Yan_Approval_Unit
+        left join SYS_Company c8 on c8.C_Id=mn.P_Legal_Unit
+        left join SYS_Company c9 on c9.C_Id=mn.P_Record_Issue_Unit
+        left join SYS_Company c10 on c10.C_Id=mn.P_Transfer_Unit
+        left join SYS_Company c11 on c11.C_Id=mn.P_Use_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join SYS_Department d2 on mn.P_Department = d2.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        left join Pro_Construction_Plan_List cpl on cpl.Cpl_Id=mn.Cpl_Id
+        left join Sys_User us1 on us1.U_Id=mn.P_Project_Manager
+        left join Sys_User us2 on us2.U_Id=mn.P_Project_Leader
+        left join Sys_User us3 on us3.U_Id=mn.P_Engineer
+        left join Sys_User us4 on us4.U_Id=mn.P_Engineer_Leader
+        left join Sys_File f on f.FileID=mn.P_ID
+        <where>
+          mn.P_Cm_Mode = '01' and mn.deleted = false
+        </where>
+    </select>
+    <select id="getPreProjectInfoList"
+            resultType="com.jpmsoft.common.model.response.Project.PreProjectResponse">
+        select
+        c1.C_Name as pConstructionUnitName,
+        c2.C_Name as pAgentConstructionUnitName,
+        c3.C_Name as pDesignAndConstructionIntegrationUnitName,
+        c4.C_Name as pAuditUnitName,
+        c5.C_Name as pCostUnitName,
+        c6.C_Name as pCanYanApplyUnitName,
+        c7.C_Name as pCanYanApprovalUnitName,
+        c8.C_Name as pLegalUnitName,
+        c9.C_Name as pRecordIssueUnitName,
+        c10.C_Name as pTransferUnitName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as pAgentConsAbbName,
+        c3.C_Abbreviation as pDesConsIntegAbbName,
+        d.D_Name as pCompetentDepartmentName,
+        parent.P_Name as pParentName,
+        parent.P_code as pParentCode,
+        cpl.P_Name as cplName,
+        f.file_relation_id as fileRelationId,
+        us1.U_Name as pProjectManagerName,
+        us2.U_Name as pProjectLeaderName,us3.U_Name as pEngineerName,
+        us4.U_Name as pEngineerLeaderName,d2.D_Name as pDepartmentName,
+        <include refid="projectEntityFields"/>,mn.P_Committee_Approva_Document as pCommitteeApprovaDocument,c11.C_Name
+        as pUseUnitName,
+        mn.p_Project_Form_Type_Remark as pProjectFormTypeRemark ,mn.p_Build_Model_Remark as pBuildModelRemark
+        ,mn.p_Professional_Type_Remark as pProfessionalTypeRemark,
+        mn.p_Build_Type_Remark as pBuildTypeRemark,
+        CASE WHEN mn.P_Construction_Start IS NOT NULL THEN YEAR(mn.P_Construction_Start)
+        WHEN mn.P_Create_Time IS NOT NULL THEN YEAR(mn.P_Create_Time)
+        END as projectYear
+        from Pre_Project mn
+        left join SYS_Company c1 on c1.C_Id=mn.P_Construction_Unit
+        left join SYS_Company c2 on c2.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Company c3 on c3.C_Id=mn.P_Design_And_Construction_Integration_Unit
+        left join SYS_Company c4 on c4.C_Id=mn.P_Audit_Unit
+        left join SYS_Company c5 on c5.C_Id=mn.P_Cost_Unit
+        left join SYS_Company c6 on c6.C_Id=mn.P_Can_Yan_Apply_Unit
+        left join SYS_Company c7 on c7.C_Id=mn.P_Can_Yan_Approval_Unit
+        left join SYS_Company c8 on c8.C_Id=mn.P_Legal_Unit
+        left join SYS_Company c9 on c9.C_Id=mn.P_Record_Issue_Unit
+        left join SYS_Company c10 on c10.C_Id=mn.P_Transfer_Unit
+        left join SYS_Company c11 on c11.C_Id=mn.P_Use_Unit
+        left join SYS_Department d on mn.P_Competent_Department=d.D_Id
+        left join SYS_Department d2 on mn.P_Department = d2.D_Id
+        left join Pre_Project parent on parent.P_ID=mn.P_Parent_ID
+        left join Pro_Construction_Plan_List cpl on cpl.Cpl_Id=mn.Cpl_Id
+        left join Sys_User us1 on us1.U_Id=mn.P_Project_Manager
+        left join Sys_User us2 on us2.U_Id=mn.P_Project_Leader
+        left join Sys_User us3 on us3.U_Id=mn.P_Engineer
+        left join Sys_User us4 on us4.U_Id=mn.P_Engineer_Leader
+        left join Sys_File f on f.FileID=mn.P_ID
+        <where>
+            mn.deleted = false
+            <if test="params.projectName != null and params.projectName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.projectName},mn.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and mn.P_Name like concat('%',#{params.projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.projectCode != null and params.projectCode != ''">
+                and mn.P_Code like concat('%',#{params.projectCode},'%')
+            </if>
+            <if test="params.projectType != null and params.projectType != ''">
+                and mn.P_Type = #{params.projectType}
+            </if>
+            <if test="params.projectTypes != null and params.projectTypes.size()>0">
+                and mn.P_Type IN
+                <foreach collection="params.projectTypes" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.projectStatus != null and params.projectStatus != ''">
+                and mn.P_Project_Status = #{params.projectStatus}
+            </if>
+            <if test="params.projectStatuses != null and params.projectStatuses.size()>0">
+                and mn.P_Project_Status IN
+                <foreach collection="params.projectStatuses" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.projectUseUnit  != null and params.projectUseUnit != ''">
+                and mn.P_Use_Unit  like concat('%',#{params.projectUseUnit},'%')
+            </if>
+            <if test="params.year != null">
+                and (CASE WHEN mn.P_Construction_Start IS NOT NULL THEN YEAR(mn.P_Construction_Start)
+                WHEN mn.P_Create_Time IS NOT NULL THEN YEAR(mn.P_Create_Time)
+                END) = #{params.year}
+            </if>
+        </where>
+    </select>
+    <select id="getContractInfo" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select CASE WHEN mn.Con_Date IS NOT NULL THEN YEAR(mn.Con_Date)
+                WHEN mn.Con_Create_Time IS NOT NULL THEN YEAR(mn.Con_Create_Time)
+                END as contractYear,mn.*
+        from Con_Contract mn
+        <where>
+              mn.Con_Approval_State !=3 and mn.Con_Approval_State !=0
+        </where>
+    </select>
+    <select id="getContractInfoList"
+            resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select pro.P_Name                          as conProjectName,
+               pro.P_Advance_Fund                  as pAdvanceFund,
+               pro.P_Corporate_Risk                as pCorporateRisk,
+               proc.C_Name                         as pConstructionUnitName,
+               proc.C_Abbreviation                 as pConsAbbName,
+               prod.D_Name                         as pCompetentDepartmentName,
+               pro.P_Competent_Department          as pCompetentDepartment,
+               c.C_Name                            as conPartyBName,
+               c1.C_Name                           as conPartyAName,
+               c2.C_Name                           as conPartyAOtherName,
+               c3.C_Name                           as conPartyB1Name,
+               c4.C_Name                           as conPartyB2Name,
+               c5.C_Name                           as conPartyB3Name,
+               c6.C_Name                           as conPartyB4Name,
+               c7.C_Name                           as conPartyB5Name,
+               c8.C_Name                           as conPartyCName,
+               c9.C_Name                           as conPartyDName,
+               c10.C_Name                          as conAcClientName,
+               c11.C_Name                          as conAcBidSubjectName,
+               c12.C_Name                          as conAcImplementName,
+               c13.C_Name                          as conPbBeneficiaryName,
+               c14.C_Name                          as conEvaluateBName,
+               c15.C_Name                          as conEvaluateAName,
+               c16.C_Name                          as conPartyEName,
+               c17.C_Name                          as conPartyFName,
+               c.C_Abbreviation                    as conPartyBAbbName,
+               c1.C_Abbreviation                   as conPartyAAbbName,
+               c2.C_Abbreviation                   as conPartyAOtherAbbName,
+               c3.C_Abbreviation                   as conPartyB1AbbName,
+               c4.C_Abbreviation                   as conPartyB2AbbName,
+               c5.C_Abbreviation                   as conPartyB3AbbName,
+               c6.C_Abbreviation                   as conPartyB4AbbName,
+               c7.C_Abbreviation                   as conPartyB5AbbName,
+               c8.C_Abbreviation                   as conPartyCAbbName,
+               c9.C_Abbreviation                   as conPartyDAbbName,
+               c10.C_Abbreviation                  as conAcClientAbbName,
+               c11.C_Abbreviation                  as conAcBidSubjectAbbName,
+               c12.C_Abbreviation                  as conAcImplementAbbName,
+               sec.Sec_Name                        as secName,
+               sec.sec_bidding_type                as secBiddingType,
+               master.Con_Name                     as conMasterConName,
+               parent.Con_Name                     as conParentConName,
+               con.Con_Name                        as conRelieveConName,
+               con.Con_Code                        as conRelieveConCode,
+               con1.Con_Name                       as conEvaluateName,
+               con1.Con_Code                       as conEvaluateCode,
+               con1.Con_Provisional_Pe             as conEvaluatePeAmt,
+               con1.Con_Money_Total                as conEvaluateMoneyTotal,
+               jl.Con_Id                         as conJlId,
+               prop.p_name                         as conSubPName,
+               jl.Con_Name                         as conJlName,
+               sdep.D_Name                         as conDepName,
+               CASE WHEN mn.Con_Date IS NOT NULL THEN YEAR(mn.Con_Date)
+                    WHEN mn.Con_Create_Time IS NOT NULL THEN YEAR(mn.Con_Create_Time)
+                   END as contractYear,
+               mn.*
+        from Con_Contract mn
+         left join Pre_Project pro on mn.con_Project_Id = pro.P_Id
+         left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+         left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+         left join SYS_Department sdep on sdep.D_Id = mn.Con_Department
+         left join SYS_Company c on mn.con_Party_B_Id = c.C_Id
+         left join SYS_Company c1 on mn.Con_Party_A_Id = c1.C_Id
+         left join SYS_Company c2 on mn.Con_Party_A_Other_Id = c2.C_Id
+         left join SYS_Company c3 on mn.Con_Party_B1 = c3.C_Id
+         left join SYS_Company c4 on mn.Con_Party_B2 = c4.C_Id
+         left join SYS_Company c5 on mn.Con_Party_B3 = c5.C_Id
+         left join SYS_Company c6 on mn.Con_Party_B4 = c6.C_Id
+         left join SYS_Company c7 on mn.Con_Party_B5 = c7.C_Id
+         left join SYS_Company c8 on mn.Con_Party_C_Id = c8.C_Id
+         left join SYS_Company c9 on mn.Con_Party_D_Id = c9.C_Id
+         left join SYS_Company c16 on mn.Con_Party_E_Id = c16.C_Id
+         left join SYS_Company c17 on mn.Con_Party_F_Id = c17.C_Id
+         left join Con_Contract master on mn.Con_Master_Con_Id = master.Con_Id
+         left join Con_Contract parent on mn.Con_Parent_Con_Id = parent.Con_Id
+         left join Sec_Info sec on sec.Sec_Id = mn.con_Section_Id
+         left join SYS_Company c10 on mn.Con_AC_Client_Id = c10.C_Id
+         left join SYS_Company c11 on mn.Con_AC_Bid_Subject_Id = c11.C_Id
+         left join SYS_Company c12 on mn.Con_AC_Implement_Id = c12.C_Id
+         left join SYS_Company c13 on mn.Con_Pb_Beneficiary_Id = c13.C_Id
+         left join Con_Contract con on mn.Con_Relieve_Con_Id = con.Con_Id
+         left join Con_Contract con1 on mn.Con_Evaluate_Id = con1.Con_Id
+         left join SYS_Company c14 on con1.con_Party_B_Id = c14.C_Id
+         left join SYS_Company c15 on con1.Con_Party_A_Id = c15.C_Id
+         left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+         left join Pre_Project prop on mn.Con_Sub_P_Id = prop.P_Id
+         <where>
+             mn.Con_Approval_State !=3 and mn.Con_Approval_State !=0
+             <if test="params.projectName != null and params.projectName != ''">
+                 <choose>
+                     <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                         and likePname(#{params.projectName},pro.P_Id)=true
+                     </when>
+                     <otherwise>
+                         and pro.P_Name like concat('%',#{params.projectName},'%'))
+                     </otherwise>
+                 </choose>
+             </if>
+              <if test="params.projectCode != null and params.projectCode != ''">
+                 and pro.P_Code like concat('%',#{params.projectCode},'%')
+             </if>
+              <if test="params.contractName != null and params.contractName != ''">
+                 and mn.Con_Name like concat('%',#{params.contractName},'%')
+             </if>
+              <if test="params.contractCode != null and params.contractCode != ''">
+                 and mn.Con_Code like concat('%',#{params.contractCode},'%')
+             </if>
+              <if test="params.contractStatus != null and params.contractStatus != ''">
+                  and mn.Con_State = #{params.contractStatus}
+              </if>
+             <if test="params.contractStatuses != null and params.contractStatuses.size()>0">
+                 and mn.Con_State IN
+                 <foreach collection="params.contractStatuses" separator="," open="(" close=")" item="item">
+                     #{item}
+                 </foreach>
+             </if>
+              <if test="params.contractType != null and params.contractType != ''">
+                  and mn.Con_Type = #{params.contractType}
+              </if>
+              <if test="params.contractTypes != null and params.contractTypes.size()>0">
+                 and mn.Con_Type IN
+                 <foreach collection="params.contractTypes" separator="," open="(" close=")" item="item">
+                     #{item}
+                 </foreach>
+              </if>
+              <if test="params.year != null ">
+                  and (CASE WHEN mn.Con_Date IS NOT NULL THEN YEAR(mn.Con_Date)
+                  WHEN mn.Con_Create_Time IS NOT NULL THEN YEAR(mn.Con_Create_Time)
+                  END) = #{params.year}
+              </if>
+         </where>
+    </select>
+    <select id="getSysDictionaryCodeByParentId" resultType="java.lang.String">
+        SELECT distinct dic.D_Code
+        FROM sys_dictionary dic
+        WHERE dic.D_ParentID = #{parentId}
+    </select>
+    <select id="getSysDictionaryByParentId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.other.SysDictionary">
+        SELECT dic.*
+        FROM sys_dictionary dic
+        WHERE dic.D_ParentID = #{parentId}
+    </select>
+
+    <select id="getQsRecordList" resultType="com.jpmsoft.common.model.response.Qs.QsRecordResponse">
+        select  qr.*,        qt.Qst_Is_Important as qstIsImportant,
+        qt.qst_path         as qstPath,
+        qt.qst_id           as qstId
+        from Qs_Record qr
+        left join QS_Type qt  on qt.Qst_Id=qr.Qst_Id
+        <where>
+            and qr.Qsr_State!=3
+            <if test="ptIds!=null and ptIds.size() > 0">
+                and qr.Pt_Id in
+                <foreach collection="ptIds" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getQsPlanTask" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskVo">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        pro.P_Code as pCode,
+        pro.P_Agent_Construction_Unit as pAgentConstructionUnit,
+        pro.P_Type as pType,
+        pro.P_Major_Type as pMajorType,
+        pro.P_Use_Unit as pUseUnit,
+        pro.P_Imp_Company as pImpCompany,
+        pro.P_Competent_Department as pCompetentDepartment,
+        pro.P_Construction_Unit as pConstructionUnit,
+        pro.P_Approval_Unit as pApprovalUnit,
+        pro.P_Build_Model as pBuildModel,
+        pro.P_Each_District as pEachDistrict,
+        pro.P_Inv_Total as pInvTotal,
+        pro.P_Region as pRegion,
+        pro.P_Project_Stage as pProjectStage,
+        pro.P_Overview as pOverview,
+        pro.P_Project_Code as pProjectCode,
+        pro.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+        pro.P_Advance_Fund as pAdvanceFund,
+        pro.P_Corporate_Risk as pCorporateRisk,
+        pro.P_Approve_Budget as pApproveBudget,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Name as pConsName,
+        proc.C_Abbreviation as pConsAbbName,
+        pAgentc.C_Name as pAgentUnitName,
+        prod.D_Name as pCompetentDepartmentName,
+        prod.D_Name as pCompDepName,
+        pro.p_Plan_Start_Date as pPlanStartDate,
+        pro.p_Plan_Complete_Date as pPlanCompleteDate,
+        pro.P_Campus as pCampus,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name as ptContractorName,
+        c1.C_Abbreviation as ptContractorAbbName,
+        c2.C_Name as ptSupervisorName,
+        c2.C_Abbreviation as ptSupervisorAbbName,
+        c3.C_Name as ptEvaluationUnitName,
+        c3.C_Abbreviation as ptEvaluationUnitAbbName,
+        c4.C_Name as ptRectifyName,
+        c4.C_Abbreviation as ptRectifyAbbName,
+        u1.U_Name as ptPmName,
+        u2.U_Name as ptCseName,
+        qp.Qsp_Code as qspCode,
+        qp.Qsp_Name as qspName,
+        CASE WHEN mn.Pt_Evaluation_Time IS NOT NULL THEN YEAR(mn.Pt_Evaluation_Time)
+        WHEN mn.Create_Time IS NOT NULL THEN YEAR(mn.Create_Time)
+        END as qptYear,
+        CASE WHEN mn.Pt_Evaluation_Time IS NOT NULL THEN MONTH(mn.Pt_Evaluation_Time)
+        WHEN mn.Create_Time IS NOT NULL THEN MONTH(mn.Create_Time)
+        END as qptMonth,
+        CASE WHEN (SELECT COUNT(*) FROM qs_pt_spot_check qsPtCheck WHERE qsPtCheck.pt_id=mn.id AND qsPtCheck.State NOT IN (0,3))>0 THEN 1
+        WHEN (SELECT COUNT(*) FROM sys_task_processin tp WHERE tp.tp_entityid=mn.id AND tp.tp_type='退回')>0 THEN 1
+        ELSE 0 END as qptIsCheck,
+        mn.*
+        from Qs_Plan_Task mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Company pAgentc on pAgentc.C_Id=pro.P_Agent_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join Qs_Plan qp on qp.Qsp_Id=mn.Qsp_Id
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id = mn.Pt_Contractor_Id
+        left join SYS_Company c2 on c2.C_Id = mn.Pt_Supervisor_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Pt_Evaluation_Unit_Id
+        left join SYS_Company c4 on c4.C_Id = mn.Pt_Rectify_Cid
+        left join Sys_User u1 on u1.U_Id = mn.Pt_Pm
+        left join Sys_User u2 on u2.U_Id = mn.Pt_Cse
+        <where>
+            and mn.State!=3 and mn.State!=0
+        </where>
+    </select>
+
+    <select id="getSiteManagementInfoList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.leaderBoard.QsLeaderBoardInfoListVo">
+        select
+            pro.P_Name as projectName,
+            c1.C_Name as ptContractorName,
+            c2.C_Name as ptSupervisorName,
+            (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3) as qsRecordCount,
+            (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3 and rec.Qsr_Rectify_Status='03') as qsFinishCount,
+            (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3 and rec.Qsr_Rectify_Reply is not null) as qsReplyCount,
+            mn.*
+        from Qs_Plan_Task mn
+                 left join Pre_Project pro on pro.P_Id=mn.P_Id
+                 left join SYS_Company c1 on c1.C_Id = mn.Pt_Contractor_Id
+                 left join SYS_Company c2 on c2.C_Id = mn.Pt_Supervisor_Id
+        <where>
+             mn.State!=3 and mn.State!=0
+            <if test="params.year!=null">
+                and (CASE WHEN mn.Pt_Evaluation_Time IS NOT NULL THEN YEAR(mn.Pt_Evaluation_Time)
+                WHEN mn.Create_Time IS NOT NULL THEN YEAR(mn.Create_Time)
+                END )= #{params.year}
+            </if>
+            <if test="params.month!=null">
+                and (CASE WHEN mn.Pt_Evaluation_Time IS NOT NULL THEN MONTH(mn.Pt_Evaluation_Time)
+                WHEN mn.Create_Time IS NOT NULL THEN MONTH(mn.Create_Time)
+                END )= #{params.month}
+            </if>
+            <if test="params.isFinished!=null">
+                and (IF(mn.Pt_Rectify_Actual_Time IS NOT NULL, 1, 0) )= #{params.isFinished}
+            </if>
+        </where>
+    </select>
+
+    <select id="getConPayResponse" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        pro.P_Code as pCode,
+        pro.P_Agent_Construction_Unit as pAgentConstructionUnit,
+        pro.P_Type as pType,
+        pro.P_Major_Type as pMajorType,
+        pro.P_Use_Unit as pUseUnit,
+        pro.P_Imp_Company as pImpCompany,
+        pro.P_Competent_Department as pCompetentDepartment,
+        pro.P_Construction_Unit as pConstructionUnit,
+        pro.P_Approval_Unit as pApprovalUnit,
+        pro.P_Build_Model as pBuildModel,
+        pro.P_Each_District as pEachDistrict,
+        pro.P_Inv_Total as pInvTotal,
+        pro.P_Region as pRegion,
+        pro.P_Project_Stage as pProjectStage,
+        pro.P_Overview as pOverview,
+        pro.P_Project_Code as pProjectCode,
+        pro.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+        pro.P_Advance_Fund as pAdvanceFund,
+        pro.P_Corporate_Risk as pCorporateRisk,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Name as pConsName,
+        proc.C_Abbreviation as pConsAbbName,
+        pAgentc.C_Name as pAgentUnitName,
+        prod.D_Name as pCompetentDepartmentName,
+        prod.D_Name as pCompDepName,
+        pro.p_Plan_Start_Date as pPlanStartDate,
+        pro.p_Plan_Complete_Date as pPlanCompleteDate,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Type as conType,
+        con.Con_State as conState,
+        c1.C_Name as payPayeeName,
+        c2.C_Name as payDraweeName,
+        c3.C_Name as payApplicantName,
+        c4.C_Name as conPartyBName,
+        c1.C_Abbreviation as payPayeeAbbName,
+        c2.C_Abbreviation as payDraweeAbbName,
+        c3.C_Abbreviation as payApplicantAbbName,
+        c4.C_Abbreviation as conPartyBAbbName,
+        dep.D_Name as dName,
+        dep1.D_Name as payApplicationDepartmentName,
+        mn.*
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Company pAgentc on pAgentc.C_Id=pro.P_Agent_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Company c3 on c3.C_Id=mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        left join SYS_Department dep1 on dep1.D_Id=mn.Pay_Application_Department_Id
+        <where>
+             mn.Pay_State!=3 and mn.Pay_State!=0 and mn.Pay_Type!='04' and mn.Pay_Type!='05'
+        </where>
+    </select>
+    <select id="getConPayResponse2" resultType="com.jpmsoft.common.model.response.pay.ConPayResponse">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        pro.P_Code as pCode,
+        pro.P_Agent_Construction_Unit as pAgentConstructionUnit,
+        pro.P_Type as pType,
+        pro.P_Major_Type as pMajorType,
+        pro.P_Use_Unit as pUseUnit,
+        pro.P_Imp_Company as pImpCompany,
+        pro.P_Competent_Department as pCompetentDepartment,
+        pro.P_Construction_Unit as pConstructionUnit,
+        pro.P_Approval_Unit as pApprovalUnit,
+        pro.P_Build_Model as pBuildModel,
+        pro.P_Each_District as pEachDistrict,
+        pro.P_Inv_Total as pInvTotal,
+        pro.P_Region as pRegion,
+        pro.P_Project_Stage as pProjectStage,
+        pro.P_Overview as pOverview,
+        pro.P_Project_Code as pProjectCode,
+        pro.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+        pro.P_Advance_Fund as pAdvanceFund,
+        pro.P_Corporate_Risk as pCorporateRisk,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Name as pConsName,
+        proc.C_Abbreviation as pConsAbbName,
+        pAgentc.C_Name as pAgentUnitName,
+        prod.D_Name as pCompetentDepartmentName,
+        prod.D_Name as pCompDepName,
+        pro.p_Plan_Start_Date as pPlanStartDate,
+        pro.p_Plan_Complete_Date as pPlanCompleteDate,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Type as conType,
+        con.Con_State as conState,
+        c1.C_Name as payPayeeName,
+        c2.C_Name as payDraweeName,
+        c3.C_Name as payApplicantName,
+        c4.C_Name as conPartyBName,
+        c1.C_Abbreviation as payPayeeAbbName,
+        c2.C_Abbreviation as payDraweeAbbName,
+        c3.C_Abbreviation as payApplicantAbbName,
+        c4.C_Abbreviation as conPartyBAbbName,
+        dep.D_Name as dName,
+        dep1.D_Name as payApplicationDepartmentName,
+        mn.*,
+        CASE WHEN mn.Pay_Application_Date IS NOT NULL THEN YEAR(mn.Pay_Application_Date)
+        WHEN mn.Pay_Create_Time IS NOT NULL THEN YEAR(mn.Pay_Create_Time)
+        END as payYear,
+        CASE WHEN mn.Pay_Application_Date IS NOT NULL THEN MONTH(mn.Pay_Application_Date)
+        WHEN mn.Pay_Create_Time IS NOT NULL THEN MONTH(mn.Pay_Create_Time)
+        END as payMonth
+        from Con_Pay mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Company pAgentc on pAgentc.C_Id=pro.P_Agent_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Company c1 on c1.C_Id=mn.Pay_Payee
+        left join SYS_Company c2 on c2.C_Id=mn.Pay_Drawee
+        left join SYS_Company c3 on c3.C_Id=mn.Pay_Applicant_Id
+        left join SYS_Company c4 on c4.C_Id=con.Con_Party_B_Id
+        left join SYS_Department dep on dep.D_Id=mn.D_Id
+        left join SYS_Department dep1 on dep1.D_Id=mn.Pay_Application_Department_Id
+        <where>
+            mn.Pay_State!=3 and mn.Pay_State!=0
+        </where>
+    </select>
+    <select id="getPayInfoList" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select pro.P_Name                          as conProjectName,
+        pro.P_Advance_Fund                  as pAdvanceFund,
+        pro.P_Corporate_Risk                as pCorporateRisk,
+        proc.C_Name                         as pConstructionUnitName,
+        proc.C_Abbreviation                 as pConsAbbName,
+        prod.D_Name                         as pCompetentDepartmentName,
+        pro.P_Competent_Department          as pCompetentDepartment,
+        c.C_Name                            as conPartyBName,
+        c1.C_Name                           as conPartyAName,
+        c2.C_Name                           as conPartyAOtherName,
+        c3.C_Name                           as conPartyB1Name,
+        c4.C_Name                           as conPartyB2Name,
+        c5.C_Name                           as conPartyB3Name,
+        c6.C_Name                           as conPartyB4Name,
+        c7.C_Name                           as conPartyB5Name,
+        c8.C_Name                           as conPartyCName,
+        c9.C_Name                           as conPartyDName,
+        c10.C_Name                          as conAcClientName,
+        c11.C_Name                          as conAcBidSubjectName,
+        c12.C_Name                          as conAcImplementName,
+        c13.C_Name                          as conPbBeneficiaryName,
+        c14.C_Name                          as conEvaluateBName,
+        c15.C_Name                          as conEvaluateAName,
+        c16.C_Name                          as conPartyEName,
+        c17.C_Name                          as conPartyFName,
+        c.C_Abbreviation                    as conPartyBAbbName,
+        c1.C_Abbreviation                   as conPartyAAbbName,
+        c2.C_Abbreviation                   as conPartyAOtherAbbName,
+        c3.C_Abbreviation                   as conPartyB1AbbName,
+        c4.C_Abbreviation                   as conPartyB2AbbName,
+        c5.C_Abbreviation                   as conPartyB3AbbName,
+        c6.C_Abbreviation                   as conPartyB4AbbName,
+        c7.C_Abbreviation                   as conPartyB5AbbName,
+        c8.C_Abbreviation                   as conPartyCAbbName,
+        c9.C_Abbreviation                   as conPartyDAbbName,
+        c10.C_Abbreviation                  as conAcClientAbbName,
+        c11.C_Abbreviation                  as conAcBidSubjectAbbName,
+        c12.C_Abbreviation                  as conAcImplementAbbName,
+        sec.Sec_Name                        as secName,
+        sec.sec_bidding_type                as secBiddingType,
+        master.Con_Name                     as conMasterConName,
+        parent.Con_Name                     as conParentConName,
+        con.Con_Name                        as conRelieveConName,
+        con.Con_Code                        as conRelieveConCode,
+        con1.Con_Name                       as conEvaluateName,
+        con1.Con_Code                       as conEvaluateCode,
+        con1.Con_Provisional_Pe             as conEvaluatePeAmt,
+        con1.Con_Money_Total                as conEvaluateMoneyTotal,
+        jl.Con_Id                         as conJlId,
+        prop.p_name                         as conSubPName,
+        jl.Con_Name                         as conJlName,
+        sdep.D_Name                         as conDepName,
+        CASE WHEN mn.Con_Date IS NOT NULL THEN YEAR(mn.Con_Date)
+        WHEN mn.Con_Create_Time IS NOT NULL THEN YEAR(mn.Con_Create_Time)
+        END as contractYear,
+        mn.*
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id = pro.P_Id
+        left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        left join SYS_Department sdep on sdep.D_Id = mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id = c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id = c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id = c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_B1 = c3.C_Id
+        left join SYS_Company c4 on mn.Con_Party_B2 = c4.C_Id
+        left join SYS_Company c5 on mn.Con_Party_B3 = c5.C_Id
+        left join SYS_Company c6 on mn.Con_Party_B4 = c6.C_Id
+        left join SYS_Company c7 on mn.Con_Party_B5 = c7.C_Id
+        left join SYS_Company c8 on mn.Con_Party_C_Id = c8.C_Id
+        left join SYS_Company c9 on mn.Con_Party_D_Id = c9.C_Id
+        left join SYS_Company c16 on mn.Con_Party_E_Id = c16.C_Id
+        left join SYS_Company c17 on mn.Con_Party_F_Id = c17.C_Id
+        left join Con_Contract master on mn.Con_Master_Con_Id = master.Con_Id
+        left join Con_Contract parent on mn.Con_Parent_Con_Id = parent.Con_Id
+        left join Sec_Info sec on sec.Sec_Id = mn.con_Section_Id
+        left join SYS_Company c10 on mn.Con_AC_Client_Id = c10.C_Id
+        left join SYS_Company c11 on mn.Con_AC_Bid_Subject_Id = c11.C_Id
+        left join SYS_Company c12 on mn.Con_AC_Implement_Id = c12.C_Id
+        left join SYS_Company c13 on mn.Con_Pb_Beneficiary_Id = c13.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id = con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id = con1.Con_Id
+        left join SYS_Company c14 on con1.con_Party_B_Id = c14.C_Id
+        left join SYS_Company c15 on con1.Con_Party_A_Id = c15.C_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        left join Pre_Project prop on mn.Con_Sub_P_Id = prop.P_Id
+        <where>
+            mn.Con_Approval_State !=3 and mn.Con_Approval_State !=0
+            <if test="params.projectName != null and params.projectName != ''">
+                and pro.P_Name like concat('%',#{params.projectName},'%')
+            </if>
+            <if test="params.projectCode != null and params.projectCode != ''">
+                and pro.P_Code like concat('%',#{params.projectCode},'%')
+            </if>
+            <if test="params.contractName != null and params.contractName != ''">
+                and mn.Con_Name like concat('%',#{params.contractName},'%')
+            </if>
+            <if test="params.contractCode != null and params.contractCode != ''">
+                and mn.Con_Code like concat('%',#{params.contractCode},'%')
+            </if>
+            <if test="params.contractState != null and params.contractState != ''">
+                and mn.Con_State = #{params.contractState}
+            </if>
+            <if test="params.contractType != null and params.contractType != ''">
+                and mn.Con_Type = #{params.contractType}
+            </if>
+            <if test="params.contractStatuses != null and params.contractStatuses.size()>0">
+                and mn.Con_State IN
+                <foreach collection="params.contractStatuses" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.contractTypes != null and params.contractTypes.size()>0">
+                and mn.Con_Type IN
+                <foreach collection="params.contractTypes" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.year != null ">
+                and (CASE WHEN mn.Con_Date IS NOT NULL THEN YEAR(mn.Con_Date)
+                WHEN mn.Con_Create_Time IS NOT NULL THEN YEAR(mn.Con_Create_Time)
+                END) = #{params.year}
+            </if>
+        </where>
+    </select>
+
+    <select id="getPayInfoList" resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select pro.P_Name                          as conProjectName,
+        pro.P_Advance_Fund                  as pAdvanceFund,
+        pro.P_Corporate_Risk                as pCorporateRisk,
+        proc.C_Name                         as pConstructionUnitName,
+        proc.C_Abbreviation                 as pConsAbbName,
+        prod.D_Name                         as pCompetentDepartmentName,
+        pro.P_Competent_Department          as pCompetentDepartment,
+        c.C_Name                            as conPartyBName,
+        c1.C_Name                           as conPartyAName,
+        c2.C_Name                           as conPartyAOtherName,
+        c3.C_Name                           as conPartyB1Name,
+        c4.C_Name                           as conPartyB2Name,
+        c5.C_Name                           as conPartyB3Name,
+        c6.C_Name                           as conPartyB4Name,
+        c7.C_Name                           as conPartyB5Name,
+        c8.C_Name                           as conPartyCName,
+        c9.C_Name                           as conPartyDName,
+        c10.C_Name                          as conAcClientName,
+        c11.C_Name                          as conAcBidSubjectName,
+        c12.C_Name                          as conAcImplementName,
+        c13.C_Name                          as conPbBeneficiaryName,
+        c14.C_Name                          as conEvaluateBName,
+        c15.C_Name                          as conEvaluateAName,
+        c16.C_Name                          as conPartyEName,
+        c17.C_Name                          as conPartyFName,
+        c.C_Abbreviation                    as conPartyBAbbName,
+        c1.C_Abbreviation                   as conPartyAAbbName,
+        c2.C_Abbreviation                   as conPartyAOtherAbbName,
+        c3.C_Abbreviation                   as conPartyB1AbbName,
+        c4.C_Abbreviation                   as conPartyB2AbbName,
+        c5.C_Abbreviation                   as conPartyB3AbbName,
+        c6.C_Abbreviation                   as conPartyB4AbbName,
+        c7.C_Abbreviation                   as conPartyB5AbbName,
+        c8.C_Abbreviation                   as conPartyCAbbName,
+        c9.C_Abbreviation                   as conPartyDAbbName,
+        c10.C_Abbreviation                  as conAcClientAbbName,
+        c11.C_Abbreviation                  as conAcBidSubjectAbbName,
+        c12.C_Abbreviation                  as conAcImplementAbbName,
+        sec.Sec_Name                        as secName,
+        sec.sec_bidding_type                as secBiddingType,
+        master.Con_Name                     as conMasterConName,
+        parent.Con_Name                     as conParentConName,
+        con.Con_Name                        as conRelieveConName,
+        con.Con_Code                        as conRelieveConCode,
+        con1.Con_Name                       as conEvaluateName,
+        con1.Con_Code                       as conEvaluateCode,
+        con1.Con_Provisional_Pe             as conEvaluatePeAmt,
+        con1.Con_Money_Total                as conEvaluateMoneyTotal,
+        jl.Con_Id                         as conJlId,
+        prop.p_name                         as conSubPName,
+        jl.Con_Name                         as conJlName,
+        sdep.D_Name                         as conDepName,
+        CASE WHEN mn.Con_Date IS NOT NULL THEN YEAR(mn.Con_Date)
+        WHEN mn.Con_Create_Time IS NOT NULL THEN YEAR(mn.Con_Create_Time)
+        END as contractYear,
+        mn.*
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id = pro.P_Id
+        left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        left join SYS_Department sdep on sdep.D_Id = mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id = c.C_Id
+        left join SYS_Company c1 on mn.Con_Party_A_Id = c1.C_Id
+        left join SYS_Company c2 on mn.Con_Party_A_Other_Id = c2.C_Id
+        left join SYS_Company c3 on mn.Con_Party_B1 = c3.C_Id
+        left join SYS_Company c4 on mn.Con_Party_B2 = c4.C_Id
+        left join SYS_Company c5 on mn.Con_Party_B3 = c5.C_Id
+        left join SYS_Company c6 on mn.Con_Party_B4 = c6.C_Id
+        left join SYS_Company c7 on mn.Con_Party_B5 = c7.C_Id
+        left join SYS_Company c8 on mn.Con_Party_C_Id = c8.C_Id
+        left join SYS_Company c9 on mn.Con_Party_D_Id = c9.C_Id
+        left join SYS_Company c16 on mn.Con_Party_E_Id = c16.C_Id
+        left join SYS_Company c17 on mn.Con_Party_F_Id = c17.C_Id
+        left join Con_Contract master on mn.Con_Master_Con_Id = master.Con_Id
+        left join Con_Contract parent on mn.Con_Parent_Con_Id = parent.Con_Id
+        left join Sec_Info sec on sec.Sec_Id = mn.con_Section_Id
+        left join SYS_Company c10 on mn.Con_AC_Client_Id = c10.C_Id
+        left join SYS_Company c11 on mn.Con_AC_Bid_Subject_Id = c11.C_Id
+        left join SYS_Company c12 on mn.Con_AC_Implement_Id = c12.C_Id
+        left join SYS_Company c13 on mn.Con_Pb_Beneficiary_Id = c13.C_Id
+        left join Con_Contract con on mn.Con_Relieve_Con_Id = con.Con_Id
+        left join Con_Contract con1 on mn.Con_Evaluate_Id = con1.Con_Id
+        left join SYS_Company c14 on con1.con_Party_B_Id = c14.C_Id
+        left join SYS_Company c15 on con1.Con_Party_A_Id = c15.C_Id
+        left join Con_Contract jl on mn.Con_JL_Id = jl.Con_Id
+        left join Pre_Project prop on mn.Con_Sub_P_Id = prop.P_Id
+        <where>
+            mn.Con_Approval_State !=3 and mn.Con_Approval_State !=0
+            <if test="params.projectName != null and params.projectName != ''">
+                and pro.P_Name like concat('%',#{params.projectName},'%')
+            </if>
+            <if test="params.projectCode != null and params.projectCode != ''">
+                and pro.P_Code like concat('%',#{params.projectCode},'%')
+            </if>
+            <if test="params.contractName != null and params.contractName != ''">
+                and mn.Con_Name like concat('%',#{params.contractName},'%')
+            </if>
+            <if test="params.contractCode != null and params.contractCode != ''">
+                and mn.Con_Code like concat('%',#{params.contractCode},'%')
+            </if>
+            <if test="params.contractState != null and params.contractState != ''">
+                and mn.Con_State = #{params.contractState}
+            </if>
+            <if test="params.contractType != null and params.contractType != ''">
+                and mn.Con_Type = #{params.contractType}
+            </if>
+            <if test="params.contractStatuses != null and params.contractStatuses.size()>0">
+                and mn.Con_State IN
+                <foreach collection="params.contractStatuses" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.contractTypes != null and params.contractTypes.size()>0">
+                and mn.Con_Type IN
+                <foreach collection="params.contractTypes" separator="," open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="params.year != null ">
+                and (CASE WHEN mn.Con_Date IS NOT NULL THEN YEAR(mn.Con_Date)
+                WHEN mn.Con_Create_Time IS NOT NULL THEN YEAR(mn.Con_Create_Time)
+                END) = #{params.year}
+            </if>
+        </where>
+    </select>
+
+    <select id="getInvPlanYears" resultType="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse">
+        select
+            pro.P_Name as pName,
+            pro.P_Name_History as pNameHistory,
+            pro.P_Code as pCode,
+            pro.P_Agent_Construction_Unit as pAgentConstructionUnit,
+            pro.P_Type as pType,
+            pro.P_Major_Type as pMajorType,
+            pro.P_Use_Unit as pUseUnit,
+            pro.P_Imp_Company as pImpCompany,
+            pro.P_Competent_Department as pCompetentDepartment,
+            pro.P_Construction_Unit as pConstructionUnit,
+            pro.P_Approval_Unit as pApprovalUnit,
+            pro.P_Build_Model as pBuildModel,
+            pro.P_Each_District as pEachDistrict,
+            pro.P_Inv_Total as pInvTotal,
+            pro.P_Region as pRegion,
+            pro.P_Project_Stage as pProjectStage,
+            pro.P_Overview as pOverview,
+            pro.P_Project_Code as pProjectCode,
+            pro.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+            pro.P_Advance_Fund as pAdvanceFund,
+            pro.P_Corporate_Risk as pCorporateRisk,
+            proc.C_Name as pConstructionUnitName,
+            proc.C_Name as pConsName,
+            proc.C_Abbreviation as pConsAbbName,
+            prod.D_Name as pCompetentDepartmentName,
+            prod.D_Name as pCompDepName,
+            pro.p_Plan_Start_Date as pPlanStartDate,
+            pro.p_Plan_Complete_Date as pPlanCompleteDate,
+            sd.D_Name as ipvDName,
+            con.Con_Name as conName,
+            cany.c_name as ipvCName,
+            mn.*
+        from Inv_Plan_Year mn
+        left join Pre_Project pro on mn.P_Id = pro.P_Id
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        left join SYS_Department sd on mn.Ipv_D_Id=sd.D_ID
+        left join SYS_Company cany on mn.Ipv_C_id = cany.c_Id
+        <where>
+            mn.Ipv_State!=3 and mn.Ipv_State!=0
+        </where>
+    </select>
+
+    <select id="getInvPlanYearYw" resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvPlanYearYw">
+        select
+            mn.*
+        from Inv_Plan_Year_Yw mn
+        <where>
+            mn.Ipv_State!=3 and mn.Ipv_State!=0
+        </where>
+    </select>
+
+    <select id="getInvMonthlySchedule" resultType="com.jpmsoft.common.model.response.InvestmentControl.InvMonthlyScheduleResponse">
+        select
+            ipv.Ipv_Declare_Year as ipvDeclareYear,
+            mn.*
+            from  Inv_Monthly_Schedule mn
+            left join  Inv_Plan_Year ipv on ipv.Ipv_Id=mn.Ipv_Id
+        <where>
+            <if test="ipvIds != null and ipvIds.size()>0">
+                mn.ipv_Id in
+                <foreach collection="ipvIds" separator="," open="(" close=")" item="ipvId">
+                    #{ipvId}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getPlanInfoList" resultType="com.jpmsoft.projectProducer.pojo.vo.leaderBoard.PlanLeaderBoardInfoListVo">
+        select
+        mn.*,
+        pro.P_Name as projectName,
+        con.Con_Name as contractName
+        from  Inv_Plan_Year mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <where>
+            <if test="params.projectName != null and params.projectName != ''">
+                and pro.P_Name like concat('%',#{params.projectName},'%')
+            </if>
+            <if test="params.contractName != null and params.contractName != ''">
+                and con.Con_Name like concat('%',#{params.contractName},'%')
+            </if>
+            <if test="params.year!=null">
+                and mn.Ipv_Declare_Year=#{params.year}
+            </if>
+        </where>
+    </select>
+
+    <select id="getInvSettlementEnd"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvSettlementEndVO">
+        select
+            mn.*
+        from Inv_Settlement_End mn
+        <where>
+            mn.State=7
+        </where>
+    </select>
+
+
+</mapper>

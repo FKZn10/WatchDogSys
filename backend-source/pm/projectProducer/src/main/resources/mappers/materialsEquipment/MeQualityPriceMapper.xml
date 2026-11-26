@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MeQualityPriceMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeQualityPriceVo"
+               id="getMeQualityPrice">
+        <id column="Qp_Id" property="qpId"/>
+        <collection property="meQualityPriceDtls"
+                    ofType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeQualityPriceDtlVo"
+                    column="Qp_Id" select="getMeQualityPriceDtl">
+        </collection>
+    </resultMap>
+    <select id="getMeQualityPriceDtl" resultType="com.jpmsoft.projectProducer.pojo.vo.materialsEquipment.MeQualityPriceDtlVo">
+        select mn.*
+        from Me_Quality_Price_Dtl mn
+        where mn.Qp_Id = #{qpId}
+        order by mn.Qpd_Create_Time DESC
+    </select>
+
+    <select id="getMeQualityPriceById"  resultMap="getMeQualityPrice">
+        select
+            pro.P_Name as pName,
+            con.Con_name as conName,
+            c1.C_Name as qpContractorName,
+            c2.C_Name as qpSupervisorName,
+            f.File_Relation_Id as fileRelationId,
+            mn.*
+        from Me_Quality_Price mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Con_Contract con on con.Con_Id=mn.Con_Id
+                 left join Sys_Company c1 on c1.C_Id=mn.Qp_Contractor_Id
+                 left join Sys_Company c2 on c2.C_Id=mn.Qp_Supervisor_Id
+                 left join Sys_File f on f.FileId = mn.Qp_Id
+        where mn.Qp_Id = #{id}
+    </select>
+
+    <select id="getMeQualityPriceList"  resultMap="getMeQualityPrice">
+        select
+            pro.P_Name as pName,
+            con.Con_name as conName,
+            c1.C_Name as qpContractorName,
+            c2.C_Name as qpSupervisorName,
+            mn.*
+        from Me_Quality_Price mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Con_Contract con on con.Con_Id=mn.Con_Id
+                 left join Sys_Company c1 on c1.C_Id=mn.Qp_Contractor_Id
+                 left join Sys_Company c2 on c2.C_Id=mn.Qp_Supervisor_Id
+            ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.qpState!=null">
+            and mn.Qp_State=#{params.qpState}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_name,#{params.conName})
+        </if>
+        <if test="params.qpCreateUname!=null">
+            and INSTR(mn.Qp_Create_Uname,#{params.qpCreateUname})
+        </if>
+        <if test="params.qpFirstPartyRname!=null">
+            and INSTR(mn.Qp_First_Party_Rname,#{params.qpFirstPartyRname})
+        </if>
+        <if test="params.qpInitiatorName!=null">
+            and INSTR(mn.Qp_Initiator_Name,#{params.qpInitiatorName})
+        </if>
+        <if test="params.qpTitle!=null">
+            and INSTR(mn.Qp_Title,#{params.qpTitle})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Qp_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

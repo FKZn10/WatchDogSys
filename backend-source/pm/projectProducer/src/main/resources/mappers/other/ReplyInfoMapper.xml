@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.ReplyInfoMapper">
+    <select id="getReplyInfoList" resultType="com.jpmsoft.common.model.requestAndResponse.ReplyInfoModel">
+        select * from Reply_Info
+        <where>
+            <if test="params.sourceCode != null and params.sourceCode != ''">
+                and Source_Code = #{params.sourceCode}
+            </if>
+            <if test="params.riCode != null and params.riCode != ''">
+                and Ri_Code = #{params.riCode}
+            </if>
+            <if test="params.riTitle != null and params.riTitle != ''">
+                and Ri_Title like concat('%',#{params.riTitle},'%')
+            </if>
+            <if test="params.riContent != null and params.riContent != ''">
+                and Ri_Content like concat('%',#{params.riContent},'%')
+            </if>
+        </where>
+    </select>
+
+    <select id="getReplyInfoById" resultType="com.jpmsoft.common.model.requestAndResponse.ReplyInfoModel">
+        select * from Reply_Info where id = #{id}
+    </select>
+</mapper>

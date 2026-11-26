@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreOwnerUnitMapper">
+    <select id="getPreOwnerUnitByPprId" resultType="com.jpmsoft.common.model.request.project.PreOwnerUnitDTO">
+        select
+        pou.id,
+        pou.order_number,
+        pou.owner_unit,
+        ou.C_Name as ownerUnitName,
+        pou.project_manger,
+        pmu.U_Name as projectMangerName,
+        pou.project_leader,
+        plu.U_Name as projectLeaderName,
+        pou.remark
+        from pre_owner_unit pou
+        left join sys_company ou on ou.C_ID = pou.owner_unit
+        left join sys_user pmu on pmu.U_ID = pou.project_manger
+        left join sys_user plu on plu.U_ID = pou.project_leader
+        where pou.ppr_id = #{pprId}
+        order by order_number asc
+    </select>
+</mapper>

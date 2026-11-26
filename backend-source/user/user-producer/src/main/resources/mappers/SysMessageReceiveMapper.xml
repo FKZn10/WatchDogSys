@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysMessageReceiveMapper">
+
+    <select id="getSysMessageReceiveList" resultType="com.jpmsoft.userProducer.pojo.vo.SysMessageReceiveVo">
+        select
+        u1.U_Name as smrUserName,
+        u2.U_Name as smSendUserName,
+        sm.Sm_Title as smTitle,
+        sm.Sm_Type as smType,
+        sm.Sm_Content as smContent,
+        sm.Sm_Send_User as smSendUser,
+        sm.t_code as tCode,
+        sm.entity_id as entityId,
+        mn.*
+        from Sys_Message_Receive mn
+        left join SYS_User u1 on u1.U_Id=mn.Smr_User
+        left join Sys_Message sm on sm.id=mn.Sm_Id
+        left join SYS_User u2 on u2.U_Id=sm.Sm_Send_User
+        <where>
+            <if test="params.smrSendStatus!=null">
+                and mn.Smr_Send_Status=#{params.smrSendStatus}
+            </if>
+            <if test="params.smrRead!=null">
+                and mn.Smr_Read=#{params.smrRead}
+            </if>
+            <if test="params.smId!=null">
+                and mn.Sm_Id=#{params.smId}
+            </if>
+            <if test="params.smrUser!=null">
+                and mn.Smr_User=#{params.smrUser}
+            </if>
+            <if test="params.smrUserName!=null">
+                and INSTR(u1.U_Name,#{params.smrUserName})
+            </if>
+            <if test="params.smTitle!=null">
+                and INSTR(sm.Sm_Title,#{params.smTitle})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by sm.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

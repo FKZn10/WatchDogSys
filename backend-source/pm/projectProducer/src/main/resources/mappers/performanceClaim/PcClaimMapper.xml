@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.performanceClaim.PcClaimMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.Claim.PcClaimResponse" id="onePcClaim">
+        <id column="Claim_Id" property="claimId"/>
+        <collection property="pcClaimDtls"
+                    ofType="com.jpmsoft.common.model.response.Claim.PcClaimDtlResponse"
+                    column="Claim_Id" select="getCliamDtlsByCliamId">
+        </collection>
+    </resultMap>
+
+    <select id="getCliamDtlsByCliamId" resultType="com.jpmsoft.common.model.response.Claim.PcClaimDtlResponse">
+        select
+        c1.C_Name as cdCName,
+        c1.C_Abbreviation as cdCAbbName,
+        dtl.*
+        from  Pc_Claim_Dtl dtl
+        left join  SYS_Company c1 on c1.C_Id=dtl.Cd_C_Id
+        where dtl.Claim_Id=#{claimId}
+    </select>
+
+    <select id="getPcClaimById" resultMap="onePcClaim">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        c1.C_Name as claimFpName,
+        c2.C_Name as claimSpName,
+        c1.C_Abbreviation as claimFpAbbName,
+        c2.C_Abbreviation as claimSpAbbName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Pc_Claim mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  SYS_Company c1 on c1.C_Id=mn.Claim_Fp
+        left join  SYS_Company c2 on c2.C_Id=mn.Claim_Sp
+        left join  Sys_File f on f.FileID=mn.Claim_Id
+        where mn.Claim_Id=#{claimId}
+    </select>
+
+
+    <select id="getPcClaimList" resultMap="onePcClaim">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name_History as claimFpNameHistory,
+        c2.C_Name_History as claimSpNameHistory,
+        c1.C_Name as claimFpName,
+        c2.C_Name as claimSpName,
+        c1.C_Abbreviation as claimFpAbbName,
+        c2.C_Abbreviation as claimSpAbbName,
+        mn.*
+        from  Pc_Claim mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  SYS_Company c1 on c1.C_Id=mn.Claim_Fp
+        left join  SYS_Company c2 on c2.C_Id=mn.Claim_Sp
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.claimType!=null">
+            and mn.Claim_Type=#{params.claimType}
+        </if>
+        <if test="params.claimFp!=null">
+            and mn.Claim_Fp=#{params.claimFp}
+        </if>
+        <if test="params.claimSp!=null">
+            and mn.Claim_Sp=#{params.claimSp}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Claim_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

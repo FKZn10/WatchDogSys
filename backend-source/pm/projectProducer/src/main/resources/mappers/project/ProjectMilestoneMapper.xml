@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProjectMilestoneMapper">
+
+    <select id="findAllByPmsId" resultType="com.jpmsoft.projectProducer.pojo.entity.project.ProjectMilestone">
+        select *
+        from Project_Milestone
+        where pms_id = #{pmsId}
+        order by sort asc
+    </select>
+
+    <select id="getProjectMilestoneByPmId" resultType="com.jpmsoft.common.model.response.milestones.ProjectMilestoneResponse">
+        select dep.D_Name as unitName,
+               mn.*
+        from Project_Milestone mn
+                 left join SYS_Department dep on dep.D_ID = mn.unit_id
+        where mn.pm_id = #{pmId}
+        order by sort asc
+    </select>
+
+</mapper>

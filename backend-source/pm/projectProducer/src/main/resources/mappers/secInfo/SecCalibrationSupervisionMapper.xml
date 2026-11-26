@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecCalibrationSupervisionMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecCalibrationSupervisionVO"
+               id="getSecCalibrationSupervision">
+        <id column="Scs_Id" property="scsId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Scs_Id" select="getSecInfoProject">
+        </collection>
+        <collection property="secCalibrationDtls" ofType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecCalibrationDtlsVO"
+                    column="Scs_Id" select="getSecCalibrationDtls">
+        </collection>
+        <collection property="secSupervisionDtls" ofType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecSupervisionDtlsVO"
+                    column="Scs_Id" select="getSupervisionDtls">
+        </collection>
+    </resultMap>
+
+    <select id="getSecCalibrationDtls" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecCalibrationDtlsVO">
+        select
+            c1.C_Name as scdCompanyName,
+            mn.*
+        from Sec_Calibration_Dtls mn
+                 left join Sys_Company c1 on c1.C_Id=mn.Scd_Company
+        where mn.Scs_Id=#{scsId}
+        order by mn.Scd_Sort asc
+    </select>
+
+    <select id="getSupervisionDtls" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecSupervisionDtlsVO">
+        select
+            c1.C_Name as ssdCompanyName,
+            mn.*
+        from Sec_Supervision_Dtls mn
+                 left join Sys_Company c1 on c1.C_Id=mn.Ssd_Company
+        where mn.Scs_Id=#{scsId}
+        order by mn.Ssd_Sort asc
+    </select>
+
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Calibration_Supervision scs on scs.Sec_Id=sec.Sec_Id
+        where scs.Scs_Id=#{scsId}
+    </select>
+
+    <select id="getSecCalibrationSupervisionById" resultMap="getSecCalibrationSupervision">
+        select
+            c1.C_Name as tendereeName,
+            sec.Sec_Name as secName,
+            mn.*
+        from Sec_Calibration_Supervision mn
+        left join Sys_Company c1 on c1.C_Id=mn.Scs_Tenderee
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where mn.Scs_Id=#{id}
+    </select>
+
+</mapper>

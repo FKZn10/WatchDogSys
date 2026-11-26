@@ -1,0 +1,61 @@
+package com.jpmsoft.projectConsumer.pojo.dto.secInfo;
+
+import com.jpmsoft.common.model.requestAndResponse.SecInfo.SecExpertShieldDto;
+import lombok.Data;
+
+import java.io.Serializable;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 抽取专家
+ *
+ * @author: 李文涛 aaron
+ * @date: 2022/10/10 14:55
+ */
+@Data
+public class ExtractExpertDto implements Serializable {
+
+    private static final long serialVersionUID = -3171669600101179527L;
+    /**
+     * 技术类人数
+     */
+    private int esTechnologyNum;
+    /**
+     * 经济类人数
+     */
+    private int esEconomicsNum;
+    /**
+     * 需要排除的单位
+     * 将无法抽取到该单位下的专家
+     * 需基础配置secExpertLogicalConf内启用 否则传入无效
+     */
+    private String excludeCpy;
+    /**
+     * 需要屏蔽的专家
+     */
+    private List<SecExpertShieldDto> secExpertShields;
+    /**
+     * 技术类专业列表
+     */
+    private List<String> exTechTypes;
+    /**
+     * 经济类专业列表
+     */
+    private List<String> exEconTypes;
+
+    /**
+     * 回避企业id
+     */
+    private String avoidCompanyId;
+
+    private String avoidCompanyName;
+
+    //开标时间
+    private Date srBidTime;
+
+    //标段id
+    private String secId;
+
+    private String keyExpertSelection;
+}

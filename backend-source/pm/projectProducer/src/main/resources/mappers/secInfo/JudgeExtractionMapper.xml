@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.JudgeExtractionMapper">
+
+    <select id="queryJudgeExtractionByPage" resultType="com.jpmsoft.projectProducer.pojo.entity.secInfo.JudgeExtraction">
+        select
+            mn.*
+        from judge_extraction mn
+        ${authSql}
+        <if test="params.jeCategory!=null">
+            and mn.je_Category=#{params.jeCategory}
+        </if>
+        <if test="params.pName!=null and params.pName.size()>0">
+            and mn.p_name in
+            <foreach collection="params.pName" open="(" close=")" separator="," item="valItm">
+                #{valItm}
+            </foreach>
+        </if>
+        <if test="params.secName!=null and params.secName.size()>0">
+            and mn.sec_name in
+            <foreach collection="params.secName" open="(" close=")" separator="," item="valItm">
+                #{valItm}
+            </foreach>
+        </if>
+        <if test="params.cName!=null and params.cName.size()>0">
+            and mn.c_name in
+            <foreach collection="params.cName" open="(" close=")" separator="," item="valItm">
+                #{valItm}
+            </foreach>
+        </if>
+        <if test="params.insideCount!=null and params.insideCount.size()>0">
+            and mn.Inside_Count in
+            <foreach collection="params.insideCount" open="(" close=")" separator="," item="valItm">
+                #{valItm}
+            </foreach>
+        </if>
+        <if test="params.outCount!=null and params.outCount.size()>0">
+            and mn.Out_Count in
+            <foreach collection="params.outCount" open="(" close=")" separator="," item="valItm">
+                #{valItm}
+            </foreach>
+        </if>
+        <if test="params.createUname!=null and params.createUname.size()>0">
+            and mn.Create_Uname in
+            <foreach collection="params.createUname" open="(" close=")" separator="," item="valItm">
+                #{valItm}
+            </foreach>
+        </if>
+        <if test="params.createTime!=null and params.createTime.size()>0">
+            and to_char(mn.Create_Time,'YYYY-MM-DD') in
+            <foreach collection="params.createTime" open="(" close=")" separator="," item="valItm">
+                #{valItm}
+            </foreach>
+        </if>
+        <if test="params.state!=null and params.state.size()>0">
+            and mn.state in
+            <foreach collection="params.state" open="(" close=")" separator="," item="valItm">
+                #{valItm}
+            </foreach>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getJudgeExtractionClassInfo" resultType="java.lang.Object">
+        select distinct ${value} as dbValue
+        from judge_extraction mn
+        ${authSql}
+    </select>
+</mapper>

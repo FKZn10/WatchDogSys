@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.zdyxy.ConstructionCompletionConfirmMapper">
+
+    <select id="getList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.ConstructionCompletionConfirmModel">
+        select mn.* , mr.mr_serial_number as mrSerialNumber,mr.Mr_Report_Amount_Pre as mrReportAmountPre
+        , sc.C_NAME as constructionUnitName
+        , sc2.C_NAME as auditUnitName
+        , sc3.C_NAME as constructionContractorName
+        , mr.P_NAME as pName
+        from construction_completion_confirm mn
+        left join maintenance_record mr on mr.mr_id = mn.mr_id
+        left join sys_company sc on sc.C_ID = mn.Construction_Unit
+        left join sys_company sc2 on sc2.C_ID = mn.Audit_Unit
+        left join sys_company sc3 on sc3.C_ID = mn.Construction_Contractor
+        ${params.authSql}
+        <if test="params.id != null and params.id != ''">
+            and mn.id = #{params.id}
+        </if>
+        <if test="params.mrId != null and params.mrId != ''">
+            and mn.mr_id = #{params.mrId}
+        </if>
+        <if test="params.mrSerialNumber != null and params.mrSerialNumber != ''">
+            and mr.mr_serial_number like concat('%',#{params.mrSerialNumber},'%')
+        </if>
+        <if test="params.confirmSerialNumber != null and params.confirmSerialNumber != ''">
+            and mn.confirm_serial_number like concat('%',#{params.confirmSerialNumber},'%')
+        </if>
+        <if test="params.constructionSite != null and params.constructionSite != ''">
+            and mn.construction_site like concat('%',#{params.constructionSite},'%')
+        </if>
+        <if test="params.constructionUnit != null and params.constructionUnit != ''">
+            and mn.construction_unit = #{params.constructionUnit}
+        </if>
+        <if test="params.constructionUnitName != null and params.constructionUnitName != ''">
+            and sc.C_NAME like concat('%',#{params.constructionUnitName},'%')
+        </if>
+        <if test="params.auditUnit != null and params.auditUnit != ''">
+            and mn.audit_unit = #{params.auditUnit}
+        </if>
+        <if test="params.auditUnitName != null and params.auditUnitName != ''">
+            and sc2.C_NAME like concat('%',#{params.auditUnitName},'%')
+        </if>
+        <if test="params.constructionContractor != null and params.constructionContractor != ''">
+            and mn.construction_contractor = #{params.constructionContractor}
+        </if>
+        <if test="params.constructionContractorName != null and params.constructionContractorName != ''">
+            and sc3.C_NAME like concat('%',#{params.constructionContractorName},'%')
+        </if>
+        <if test="params.state != null ">
+            and mn.state = #{params.state}
+        </if>
+        <if test="params.createTimeRange!=null and params.createTimeRange.size() > 1">
+            and mn.Create_Time between #{params.createTimeRange[0]} and #{params.createTimeRange[1]}
+        </if>
+        <if test="params.isSelect != null and params.isSelect==1">
+            and mn.id not in (select distinct sad.completion_Confirm_Id
+            from inv_settlement_apply_dtl sad
+            left join inv_settlement_apply sa on sa.Sa_Id=sad.isa_id
+            where sa.Sa_State!=3)
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            and mr.P_NAME like concat('%',#{params.pName},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getDetail"
+            resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.ConstructionCompletionConfirmModel">
+        select mn.* , mr.mr_serial_number as mrSerialNumber,mr.Mr_Report_Amount_Pre as mrReportAmountPre
+             , sc.C_NAME as constructionUnitName
+             , sc2.C_NAME as auditUnitName
+             , sc3.C_NAME as constructionContractorName
+            , mr.P_NAME as pName,
+        mr.Mr_Create_Uid as mrCreateUid,
+        mr.Mr_Create_Uname as mrCreateUname
+        from construction_completion_confirm mn
+        left join maintenance_record mr on mr.mr_id = mn.mr_id
+        left join sys_company sc on sc.C_ID = mn.Construction_Unit
+        left join sys_company sc2 on sc2.C_ID = mn.Audit_Unit
+        left join sys_company sc3 on sc3.C_ID = mn.Construction_Contractor
+        where mn.id = #{id}
+    </select>
+</mapper>

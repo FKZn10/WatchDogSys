@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.visaChange.ConSvBudgetMapper">
+
+    <select id="getConSvBudgetById" resultType="com.jpmsoft.projectProducer.pojo.dto.visaChange.ConSvBudgetDTO">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name as csbContractorName,
+        c2.C_Name as csbSupervisorName,
+        svis.Svis_Name as svisName,
+        svis.Svis_Code as svisCode,
+        svis.Svis_Project_Name as svisProjectName,
+        svis.Svis_Sub_Code as svisSubCode,
+        mn.*
+        from Con_Sv_Budget mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on mn.Csb_Contractor_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Csb_Supervisor_Id=c2.C_Id
+        left join Con_Svis svis on mn.Svis_Id=svis.Svis_Id
+        where mn.id=#{id}
+    </select>
+
+    <select id="getConSvBudgetList" resultType="com.jpmsoft.projectProducer.pojo.dto.visaChange.ConSvBudgetDTO">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name as csbContractorName,
+        c2.C_Name as csbSupervisorName,
+        svis.Svis_Name as svisName,
+        svis.Svis_Code as svisCode,
+        svis.Svis_Project_Name as svisProjectName,
+        svis.Svis_Sub_Code as svisSubCode,
+        mn.*
+        from Con_Sv_Budget mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on mn.Csb_Contractor_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Csb_Supervisor_Id=c2.C_Id
+        left join Con_Svis svis on mn.Svis_Id=svis.Svis_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.csbCode!=null">
+            and INSTR(mn.Csb_Code,#{params.csbCode})
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.svisName!=null">
+            and INSTR(svis.Svis_Name,#{params.svisName})
+        </if>
+        <if test="params.svisCode!=null">
+            and INSTR(svis.Svis_Code,#{params.svisCode})
+        </if>
+        <if test="params.svisProjectName!=null">
+            and INSTR(svis.Svis_Project_Name,#{params.svisProjectName})
+        </if>
+        <if test="params.svisSubCode!=null">
+            and INSTR(svis.Svis_Sub_Code,#{params.svisSubCode})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+    </sql>
+</mapper>

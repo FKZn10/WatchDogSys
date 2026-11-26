@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.custom.mapper.SysTableMapper">
+    <update id="alterTable">
+        <foreach collection="columns" item="cm" separator=";">
+            alter table ${tbName} ${action} ${cm.cmCode} ${cm.cmType}
+            <if test="cm.cmLength!=null">(${cm.cmLength}<if test="cm.cmSxLength!=null">,${cm.cmSxLength}</if>)
+            </if>
+        </foreach>
+    </update>
+
+
+    <update id="renameColumn">
+        <foreach collection="columns" item="cm" separator=";">
+            alter table ${tbName} RENAME COLUMN ${cm.cmOldCode} TO ${cm.cmCode}
+        </foreach>
+    </update>
+
+
+    <update id="renameColumn" databaseId="mysql">
+        <foreach collection="columns" item="cm" separator=";">
+            alter table ${tbName} CHANGE ${cm.cmOldCode} ${cm.cmCode} ${cm.cmType}
+            <if test="cm.cmLength!=null">(${cm.cmLength}<if test="cm.cmSxLength!=null">,${cm.cmSxLength}</if>)
+            </if>
+        </foreach>
+    </update>
+
+    <insert id="createTable" databaseId="dm">
+        CREATE TABLE ${tbName}(
+        <foreach collection="columns" item="cm" separator=",">
+            ${cm.cmCode} ${cm.cmType}
+            <if test="cm.cmLength!=null">(${cm.cmLength}<if test="cm.cmSxLength!=null">,${cm.cmSxLength}</if>)
+            </if>
+            <if test="cm.cmPk==true">NOT NULL</if>
+            <if test="cm.cmPk==false">
+                <if test="cm.cmMust==true">NOT NULL</if>
+                <if test="cm.cmMust==false">NULL</if>
+            </if>
+        </foreach>
+        ,
+        <if test="pk!=null">
+            CONSTRAINT PK_${tbName} PRIMARY KEY (${pk})
+        </if>
+        );
+        <!--        <if test="pk!=null">-->
+        <!--         CREATE UNIQUE INDEX ${tbName}_PK ON ${tbName}(${pk} ASC);-->
+        <!--        </if>-->
+    </insert>
+
+    <!--mysql不指定字段字符集 默认使用数据库字符集-->
+    <insert id="createTable" databaseId="mysql">
+        CREATE TABLE ${tbName}(
+        <foreach collection="columns" item="cm" separator=",">
+            ${cm.cmCode} ${cm.cmType}
+            <if test="cm.cmLength!=null">(${cm.cmLength}<if test="cm.cmSxLength!=null">,${cm.cmSxLength}</if>)
+            </if>
+            <if test="cm.cmPk==true">NOT NULL</if>
+            <if test="cm.cmPk==false">
+                <if test="cm.cmMust==true">NOT NULL</if>
+                <if test="cm.cmMust==false">NULL</if>
+            </if>
+        </foreach>
+        ,
+        <if test="pk!=null">
+            CONSTRAINT PK_${tbName} PRIMARY KEY (${pk})
+        </if>
+        );
+    </insert>
+
+    <insert id="createTable" databaseId="postgre">
+        CREATE TABLE ${tbName}(
+        <foreach collection="columns" item="cm" separator=",">
+            ${cm.cmCode} ${cm.cmType}
+            <if test="cm.cmLength!=null">(${cm.cmLength}<if test="cm.cmSxLength!=null">,${cm.cmSxLength}</if>)
+            </if>
+            <if test="cm.cmPk==true">PRIMARY KEY</if>
+            <if test="cm.cmPk==false">
+                <if test="cm.cmMust==true">NOT NULL</if>
+                <if test="cm.cmMust==false">NULL</if>
+            </if>
+        </foreach>
+        );
+    </insert>
+</mapper>

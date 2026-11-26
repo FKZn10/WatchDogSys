@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.xz.ProjectApprovalMapper">
+
+    <select id="queryPage" resultType="com.jpmsoft.common.model.response.xz.ProjectApprovalVO">
+        SELECT mn.*,
+        c1.d_Name as applicationCompanyName
+        FROM project_approval mn
+        left join SYS_Department c1 on c1.d_Id=mn.application_company_id
+        where not exists (SELECT p_id from pre_project where p_parent_id = mn.id)
+            <if test="projectName!=null and projectName!='' ">
+                and mn.project_name like concat('%',#{projectName},'%')
+            </if>
+            <if test="applicationCompanyId!=null and applicationCompanyId!='' ">
+                and mn.application_company_id=#{applicationCompanyId}
+            </if>
+            <if test="planYear!=null and planYear!='' ">
+                and mn.plan_year=#{planYear}
+            </if>
+            <if test="projectType!=null and projectType!='' ">
+                and mn.project_type=#{projectType}
+            </if>
+            <if test="projectManager!=null and projectManager!='' ">
+                and mn.project_manager like concat('%',#{projectManager},'%')
+            </if>
+            <if test="applicationNum!=null and applicationNum!='' ">
+                and mn.application_num like concat('%',#{applicationNum},'%')
+            </if>
+            <if test="projectAmountType!=null and projectAmountType!='' ">
+                and mn.project_amount_type=#{projectAmountType}
+            </if>
+            <if test="applicationCompanyName!=null and applicationCompanyName!='' ">
+                and c1.C_Name like concat('%',#{applicationCompanyName},'%')
+            </if>
+        <choose>
+            <when test="sortFiled!=null and sortFiled!='' and sortType!=null and sortType!=''">
+                order by CASE WHEN mn.${sortFiled} IS NULL THEN 0 ELSE mn.${sortFiled} END ${sortType}
+            </when>
+            <otherwise>
+                order by mn.final_approve_score desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

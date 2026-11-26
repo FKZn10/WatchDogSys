@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ContractMeasurementValuationMapper">
+    <select id="getContractMeasurementValuationById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ContractMeasurementValuationModel">
+        select
+        mn.*,
+        pp.P_Name as pName,
+        con.Con_Name as conName
+        from contract_measurement_valuation mn
+        left join Pre_Project pp on mn.p_id = pp.p_id
+        left join Con_Contract con on mn.con_id = con.Con_Id
+        where mn.id = #{id}
+    </select>
+
+    <sql id="contractMeasurementValuationListFilter">
+        <if test="params.teId != null and params.teId != ''">
+            and con.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and mn.p_id = #{params.pId}
+        </if>
+        <if test="params.conId != null and params.conId != ''">
+            and mn.con_id = #{params.conId}
+        </if>
+        <if test="params.state != null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            and INSTR(pp.P_Name, #{params.pName}) &gt; 0
+        </if>
+        <if test="params.conName != null and params.conName != ''">
+            and INSTR(con.Con_Name, #{params.conName}) &gt; 0
+        </if>
+        <if test="params.createUname != null and params.createUname != ''">
+            and INSTR(mn.Create_Uname, #{params.createUname}) &gt; 0
+        </if>
+        <if test="params.pNameList != null and params.pNameList.size() > 0">
+            and pp.P_Name in
+            <foreach collection="params.pNameList" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.conNameList != null and params.conNameList.size() > 0">
+            and con.Con_Name in
+            <foreach collection="params.conNameList" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.stateList != null and params.stateList.size() > 0">
+            and mn.State in
+            <foreach collection="params.stateList" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.createUnameList != null and params.createUnameList.size() > 0">
+            and mn.Create_Uname in
+            <foreach collection="params.createUnameList" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="getContractMeasurementValuationList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Contract.ContractMeasurementValuationModel">
+        select
+        mn.*,
+        pp.P_Name as pName,
+        con.Con_Name as conName
+        from contract_measurement_valuation mn
+        left join Pre_Project pp on mn.p_id = pp.P_Id
+        left join Con_Contract con on mn.con_id = con.Con_Id
+        ${params.authSql}
+        <include refid="contractMeasurementValuationListFilter"/>
+        order by mn.Create_Time desc, mn.id
+    </select>
+
+    <select id="getContractMeasurementValuationAllValues" resultType="java.util.Map">
+        select distinct ${selectClause}
+        from contract_measurement_valuation mn
+        left join Pre_Project pp on mn.p_id = pp.P_Id
+        left join Con_Contract con on mn.con_id = con.Con_Id
+        ${params.authSql}
+        <include refid="contractMeasurementValuationListFilter"/>
+    </select>
+
+    <select id="getFinishedConsultAndInternalAgencyContractListByPId"
+            resultType="com.jpmsoft.common.model.response.Contract.ContractMeasurementContractResponse">
+        select
+        mn.Con_Id as conId,
+        mn.Con_Name as conName,
+        mn.Con_Code as conCode,
+        mn.Con_Type as conType,
+        mn.Con_Sup as conSup,
+        mn.Con_Money_Total as conMoneyTotal,
+        mn.Con_Create_User_Name as conCreateUserName,
+        mn.Con_Create_Time as conCreateTime
+        from Con_Contract mn
+        ${authSql}
+        and mn.Con_Project_Id = #{pId}
+        and mn.Con_Approval_State = 7
+        and (
+            mn.Con_Type in ('0701', '全过程咨询', '全过程咨询合同', '内部代建', '内部代建合同')
+            or exists (
+                select 1
+                from Sys_Dictionary type_dic
+                where type_dic.D_Code = mn.Con_Type
+                  and type_dic.D_Name in ('全过程咨询', '全过程咨询合同', '内部代建', '内部代建合同')
+            )
+        )
+        <if test="teId != null and teId != ''">
+            and mn.Te_Id = #{teId}
+        </if>
+        order by mn.Con_Approval_Time desc, mn.Con_Create_Time desc, mn.Con_Id
+    </select>
+
+    <select id="countAccessibleContract" resultType="int">
+        select count(1)
+        from Con_Contract mn
+        ${authSql}
+        and mn.Con_Id = #{conId}
+        and mn.Con_Project_Id = #{pId}
+        <if test="teId != null and teId != ''">
+            and mn.te_id = #{teId}
+        </if>
+    </select>
+</mapper>

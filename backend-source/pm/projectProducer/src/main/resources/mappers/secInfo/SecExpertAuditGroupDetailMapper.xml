@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecExpertAuditGroupDetailMapper">
+
+    <select id="getDetailList"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.secInfo.SecExpertAuditGroupDetailDTO">
+        select mn.*,
+               se.*,
+               c1.C_Name                             as cName,
+               c1.C_Abbreviation                     as cAbbName,
+               c1.C_Name_History                     as cNameHistory,
+               ifnull(sc.selectionCount, 0)          as selectionCount,
+               secChange.Ex_State                    as changeState,
+               secChange.id                          as changeId,
+               secDelete.Ex_State                    as deleteState,
+               secDelete.id                          as deleteId,
+               ifnull(mn.key_expert, sad.key_expert) as keyExpert
+        from Sec_Expert_Audit_Group_Detail mn
+                 left join Sec_Expert se on se.Ex_Id = mn.Ex_Id
+                 left join Sec_Expert_Audit_Detail sad on sad.Ex_Id = mn.Ex_Id
+                 left join Sys_Company c1 on c1.C_Id = se.C_Id
+                 left join (select t.Ex_Id, t.year, t.Ex_State, t.id
+                            from Sec_Expert_Change t
+                                     join (select Ex_Id, year, max(Ex_Create_Time) as max_time
+                                           from Sec_Expert_Change
+                                           group by Ex_Id, year) m on m.Ex_Id = t.Ex_Id
+                                and m.year = t.year
+                                and m.max_time = t.Ex_Create_Time) secChange on secChange.Ex_Id = se.Ex_Id
+            and secChange.year = se.year
+                 left join (select t.*
+                            from Sec_Expert_Delete t
+                                     join (select Ex_Id, year, max(Ex_Create_Time) as max_time
+                                           from Sec_Expert_Delete
+                                           group by Ex_Id, year) m on m.Ex_Id = t.Ex_Id
+                                and m.year = t.year
+                                and m.max_time = t.Ex_Create_Time) secDelete on secDelete.Ex_Id = se.Ex_Id
+            and secDelete.year = se.year
+                 left join (select ssrd.Ex_Id, count(*) as selectionCount
+                            from Sec_Selection_Record_Dtl ssrd
+                                     join Sec_Selection_Record ssr
+                                          on ssr.Sr_Id = ssrd.Sr_Id
+                                              and ssr.State = 7
+                            where ssrd.Srd_Attend = 1
+                            group by ssrd.Ex_Id) sc on sc.Ex_Id = se.Ex_Id
+        where mn.Sea_id = #{id}
+    </select>
+</mapper>

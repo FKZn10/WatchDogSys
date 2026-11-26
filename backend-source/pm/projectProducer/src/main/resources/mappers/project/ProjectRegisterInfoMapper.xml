@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProjectRegisterInfoMapper">
+    <!-- 单位范围由后端登录上下文产生，使用exists避免影响分页条数。 -->
+    <sql id="companyPermission">
+        <if test="params.permissionCompanyId != null">
+            and exists (select 1 from SYS_User permission_user
+            where permission_user.U_ID = mn.create_uid
+            and permission_user.C_ID = #{params.permissionCompanyId})
+        </if>
+    </sql>
+    <select id="getPreProjectRegisterInfoList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProjectRegisterInfoModel">
+        select mn.*
+        from project_register_info mn
+        <where>
+             mn.lastest = 1
+            <include refid="companyPermission"/>
+            <if test="params.proProjectRegisterId != null and params.proProjectRegisterId != ''">
+                and mn.pro_project_register_id = #{params.proProjectRegisterId}
+            </if>
+            <if test="params.registerType != null and params.registerType != ''">
+                and mn.register_type = #{params.registerType}
+            </if>
+            <if test="params.name != null and params.name !='' ">
+                and mn.name like concat('%',#{params.name},'%')
+            </if>
+            <if test="params.address != null and params.address !=''">
+                and mn.address like concat('%',#{params.address},'%')
+            </if>
+            <if test="params.projectCode != null and params.projectCode !=''">
+                and mn.project_code like concat('%',#{params.projectCode},'%')
+            </if>
+            <if test="params.platformUrl != null and params.platformUrl !=''">
+                and mn.platform_url like concat('%',#{params.platformUrl},'%')
+            </if>
+            <if test="params.buildingType != null and params.buildingType !=''">
+                and mn.building_type like concat('%',#{params.buildingType},'%')
+            </if>
+            <if test="params.declareUnit != null and params.declareUnit !=''">
+                and mn.declare_unit like concat('%',#{params.declareUnit},'%')
+            </if>
+            <if test="params.jointDeclareUnit != null and params.jointDeclareUnit !=''">
+                and mn.joint_declare_unit like concat('%',#{params.jointDeclareUnit},'%')
+            </if>
+            <if test="params.designUnit != null and params.designUnit !=''">
+                and mn.design_unit like concat('%',#{params.designUnit},'%')
+            </if>
+            <if test="params.constructionUnit != null and params.constructionUnit !=''">
+                and mn.construction_unit like concat('%',#{params.constructionUnit},'%')
+            </if>
+            <if test="params.supervisionUnit != null and params.supervisionUnit !=''">
+                and mn.supervision_unit like concat('%',#{params.supervisionUnit},'%')
+            </if>
+            <if test="params.serviceUnit != null and params.serviceUnit !=''">
+                and mn.service_unit like concat('%',#{params.serviceUnit},'%')
+            </if>
+            <if test="params.contact != null and params.contact !=''">
+                and mn.contact like concat('%',#{params.contact},'%')
+            </if>
+            <if test="params.contactPhone != null and params.contactPhone !=''">
+                and mn.contact_phone like concat('%',#{params.contactPhone},'%')
+            </if>
+            <if test="params.description != null and params.description !=''">
+                and mn.description like concat('%',#{params.description},'%')
+            </if>
+            <if test="params.technicalInfo != null and params.technicalInfo !=''">
+                and mn.technical_info like concat('%',#{params.technicalInfo},'%')
+            </if>
+            <if test="params.isIntegratedPlatform != null ">
+                and mn.is_integrated_platform = #{params.isIntegratedPlatform}
+            </if>
+            <if test="params.createUid != null and params.createUid !=''">
+                and mn.create_uid = #{params.createUid}
+            </if>
+            <if test="params.declareYear != null and params.declareYear != ''">
+                and mn.declare_Year = #{params.declareYear}
+            </if>
+            <if test="params.declareType != null and params.declareType != ''">
+                and mn.declare_Type = #{params.declareType}
+            </if>
+            <if test="params.declarePurpose != null and params.declarePurpose != ''">
+                and mn.declare_Purpose like concat('%',#{params.declarePurpose},'%')
+            </if>
+            <if test="params.scoreState != null and params.scoreState != ''">
+                and mn.score_State = #{params.scoreState}
+            </if>
+            <if test="params.state != null and params.state != ''">
+                and mn.state = #{params.state}
+            </if>
+        </where>
+        order by mn.create_time desc
+    </select>
+    <select id="getPreProjectRegisterInfoById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProjectRegisterInfoModel">
+        select mn.*
+        from project_register_info mn
+        where mn.id = #{id}
+    </select>
+
+    <select id="selectByProjectId" resultType="com.jpmsoft.projectProducer.pojo.entity.project.ProjectRegisterInfo">
+        select *
+        from project_register_info
+        where project_id = #{projectId}
+        limit 1
+    </select>
+    <select id="getPreProjectRegisterInfoModifyInfo"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.ProjectRegisterInfoModel">
+        select mn.*
+        from project_register_info mn
+        <where>
+            <include refid="companyPermission"/>
+            <if test="params.proProjectRegisterId != null and params.proProjectRegisterId != ''">
+                and mn.pro_project_register_id = #{params.proProjectRegisterId}
+            </if>
+            <if test="params.registerType != null and params.registerType != ''">
+                and mn.register_type = #{params.registerType}
+            </if>
+            <if test="params.versionId != null and params.versionId !='' ">
+                and mn.version_id = #{params.versionId}
+            </if>
+            <if test="params.name != null and params.name !='' ">
+                and mn.name like concat('%',#{params.name},'%')
+            </if>
+            <if test="params.address != null and params.address !=''">
+                and mn.address like concat('%',#{params.address},'%')
+            </if>
+            <if test="params.projectCode != null and params.projectCode !=''">
+                and mn.project_code like concat('%',#{params.projectCode},'%')
+            </if>
+            <if test="params.platformUrl != null and params.platformUrl !=''">
+                and mn.platform_url like concat('%',#{params.platformUrl},'%')
+            </if>
+            <if test="params.buildingType != null and params.buildingType !=''">
+                and mn.building_type like concat('%',#{params.buildingType},'%')
+            </if>
+            <if test="params.declareUnit != null and params.declareUnit !=''">
+                and mn.declare_unit like concat('%',#{params.declareUnit},'%')
+            </if>
+            <if test="params.jointDeclareUnit != null and params.jointDeclareUnit !=''">
+                and mn.joint_declare_unit like concat('%',#{params.jointDeclareUnit},'%')
+            </if>
+            <if test="params.designUnit != null and params.designUnit !=''">
+                and mn.design_unit like concat('%',#{params.designUnit},'%')
+            </if>
+            <if test="params.constructionUnit != null and params.constructionUnit !=''">
+                and mn.construction_unit like concat('%',#{params.constructionUnit},'%')
+            </if>
+            <if test="params.supervisionUnit != null and params.supervisionUnit !=''">
+                and mn.supervision_unit like concat('%',#{params.supervisionUnit},'%')
+            </if>
+            <if test="params.serviceUnit != null and params.serviceUnit !=''">
+                and mn.service_unit like concat('%',#{params.serviceUnit},'%')
+            </if>
+            <if test="params.contact != null and params.contact !=''">
+                and mn.contact like concat('%',#{params.contact},'%')
+            </if>
+            <if test="params.contactPhone != null and params.contactPhone !=''">
+                and mn.contact_phone like concat('%',#{params.contactPhone},'%')
+            </if>
+            <if test="params.description != null and params.description !=''">
+                and mn.description like concat('%',#{params.description},'%')
+            </if>
+            <if test="params.technicalInfo != null and params.technicalInfo !=''">
+                and mn.technical_info like concat('%',#{params.technicalInfo},'%')
+            </if>
+            <if test="params.isIntegratedPlatform != null ">
+                and mn.is_integrated_platform = #{params.isIntegratedPlatform}
+            </if>
+            <if test="params.createUid != null and params.createUid !=''">
+                and mn.create_uid = #{params.createUid}
+            </if>
+        </where>
+        order by mn.create_time desc
+    </select>
+    <select id="selectUnSyncPreProjectRegisterInfoList"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.project.ProjectRegisterInfo">
+        select *
+        from project_register_info
+        where state = #{state}
+          and lastest = 1
+          and (project_id is null or project_id = '')
+    </select>
+    <resultMap id="statisticsResult" type="com.jpmsoft.projectProducer.pojo.vo.project.ProjectRegisterStatisticsVO">
+        <result property="total" column="total"/>
+        <result property="approving" column="approving"/>
+        <result property="approved" column="approved"/>
+    </resultMap>
+    <!-- 只统计最新版本，同一登记已有申报时排除论证，历史空类型兼容申报。 -->
+    <select id="countDeclarationStatistics" resultMap="statisticsResult">
+        select count(*) as total,
+        coalesce(sum(case when mn.state is not null and mn.state not in (0, 3, 7)
+        then 1 else 0 end), 0) as approving,
+        coalesce(sum(case when mn.state = 7 then 1 else 0 end), 0) as approved
+        from project_register_info mn
+        where mn.lastest = 1
+        <include refid="companyPermission"/>
+        and coalesce(nullif(trim(mn.register_type), ''), '01') = #{params.registerType}
+        and (#{params.registerType} != '02' or not exists (
+        select 1 from project_register_info declaration
+        where declaration.lastest = 1
+        and coalesce(nullif(trim(declaration.register_type), ''), '01') = '01'
+        and nullif(trim(mn.pro_project_register_id), '') is not null
+        and declaration.pro_project_register_id = mn.pro_project_register_id
+        ))
+    </select>
+</mapper>

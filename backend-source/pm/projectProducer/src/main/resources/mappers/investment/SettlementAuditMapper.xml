@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.SettlementAuditMapper">
+
+    <select id="getprojectValueByCode"
+            resultType="java.lang.Object">
+        select distinct p.${value} as dbValue
+        from Settlement_Audit mn
+                 left join Pre_Project p on p.P_Id=mn.project_id
+        where mn.status=1 and mn.del_flag=1
+    </select>
+
+
+    <select id="getStateByCode"
+            resultType="java.lang.Object">
+        select distinct mn.${value} as dbValue
+        from Settlement_Audit mn
+        where mn.status=1 and mn.del_flag=1
+    </select>
+
+    <select id="getAuditContractNumByCode"
+            resultType="java.lang.Object">
+        select distinct mn.${value} as dbValue
+        from Settlement_Audit mn
+        where mn.status=1 and mn.del_flag=1
+    </select>
+
+    <select id="getAuditContractMoneyByCode"
+            resultType="java.lang.Object">
+        select distinct mn.${value} as dbValue
+        from Settlement_Audit mn
+        where mn.status=1 and mn.del_flag=1
+    </select>
+
+    <select id="getCreateUnameByCode"
+            resultType="java.lang.Object">
+        select distinct mn.${value} as dbValue
+        from Settlement_Audit mn
+        where mn.status=1 and mn.del_flag=1
+    </select>
+
+    <select id="getValueByCode" resultType="java.lang.Object">
+        select distinct mn.${value} as dbValue
+        from Settlement_Audit mn
+        where mn.status=1 and mn.del_flag=1
+    </select>
+
+
+
+    <select id="querySettAuditList" resultType="com.jpmsoft.projectProducer.pojo.vo.investment.SettlementAuditVo">
+        select mn.*,pre.p_name as projectName
+        from Settlement_Audit mn
+       left join pre_project pre on pre.p_id = mn.project_id
+        <where>
+            mn.status=1 and mn.del_flag=1
+            <if test="request.projectNameList != null and request.projectNameList.size() > 0">
+                and pre.p_name in
+                <foreach collection="request.projectNameList" item="pName" separator="," open="(" close=")">
+                    #{pName}
+                </foreach>
+            </if>
+            <if test="request.stateList != null and request.stateList.size() > 0">
+                and mn.state in
+                <foreach collection="request.stateList" item="state" separator="," open="(" close=")">
+                    #{state}
+                </foreach>
+            </if>
+            <if test="request.auditContractNumList != null and auditContractNumList.stateList.size() > 0">
+                and mn.audit_Contract_Num in
+                <foreach collection="request.auditContractNumList" item="auditContractNum" separator="," open="(" close=")">
+                    #{auditContractNum}
+                </foreach>
+            </if>
+            <if test="request.auditContractMoneyList != null and auditContractMoneyList.stateList.size() > 0">
+                and mn.audit_Contract_Money in
+                <foreach collection="request.auditContractMoneyList" item="auditContractMoney" separator="," open="(" close=")">
+                    #{auditContractMoney}
+                </foreach>
+            </if>
+            <if test="request.createUnameList != null and createUnameList.stateList.size() > 0">
+                and mn.create_Uname in
+                <foreach collection="request.createUnameList" item="createUname" separator="," open="(" close=")">
+                    #{createUname}
+                </foreach>
+            </if>
+        </where>
+        order by mn.Create_Time desc
+    </select>
+
+
+
+</mapper>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.zdyxy.AnnualPlanMapper">
+
+    <select id="getList" resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.AnnualPlanModel">
+        select mn.* ,u.U_Name as dispatchUname,c.C_Name as constructionContractorName,c2.C_Name as auditUnitName
+        from annual_plan mn
+        left join sys_user u on mn.Dispatch_Uid = u.U_ID
+        left join sys_company c on mn.Construction_Contractor = c.C_ID
+        left join sys_company c2 on mn.Audit_Unit = c2.C_ID
+        <where>
+            <if test="params.year != null">
+                and mn.year = #{params.year}
+            </if>
+            <if test="params.conName != null and params.conName != ''">
+                and mn.con_name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.startTime != null">
+                and mn.Create_Time &gt;= #{params.startTime}
+            </if>
+            <if test="params.endTime != null">
+                and mn.Create_Time &lt;= #{params.endTime}
+            </if>
+            <if test="params.effectiveDate != null">
+                and mn.start_Time &lt;= #{params.effectiveDate}
+                and mn.end_Time &gt;= #{params.effectiveDate}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getDetail" resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.AnnualPlanModel">
+        select mn.* ,u.U_Name as dispatchUname,c.C_Name as constructionContractorName,c2.C_Name as auditUnitName
+        from annual_plan mn
+        left join sys_user u on mn.Dispatch_Uid = u.U_ID
+        left join sys_company c on mn.Construction_Contractor = c.C_ID
+        left join sys_company c2 on mn.Audit_Unit = c2.C_ID
+        where mn.id = #{id}
+    </select>
+
+    <select id="getInfo" resultType="com.jpmsoft.common.model.requestAndResponse.zdyxy.AnnualPlanModel">
+        select mn.* ,u.U_Name as dispatchUname,c.C_Name as constructionContractorName,c2.C_Name as auditUnitName
+        from annual_plan mn
+                 left join sys_user u on mn.Dispatch_Uid = u.U_ID
+                 left join sys_company c on mn.Construction_Contractor = c.C_ID
+                 left join sys_company c2 on mn.Audit_Unit = c2.C_ID
+        where mn.start_Time &lt;= #{yearEnd}
+          and mn.end_Time &gt;= #{yearStart}
+        and mn.state = 7
+        order by mn.create_time desc
+        limit 1
+    </select>
+</mapper>

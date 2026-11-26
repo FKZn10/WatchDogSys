@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.constructionProcedure.ProjectCplTemplateDtlMapper">
+
+    <select id="getProCplTemplateDtlByCpltId" resultType="com.jpmsoft.projectProducer.pojo.entity.constructionProcedure.ProjectCplTemplateDtl">
+        select
+        cpl.Cpl_Sort as cpltdSort,
+        cpl.Cpl_Parent_Id as cpltdParentId,
+        cpl.Cpl_Administration_Url as cpltdAdministrationUrl,
+        cpl.Cpl_Administration_Url_H as cpltdAdministrationUrlH,
+        wn.*
+        from  Project_Cpl_Template_Dtl wn
+        left join  Project_Cp_Library cpl on cpl.Cpl_Id=wn.Cpltd_Cpl_Id
+        where wn.Cplt_Id=#{cpltId}
+        order by cpl.Cpl_Sort asc
+    </select>
+
+    <select id="updateLibraryFileTypeBath" resultType="Integer">
+        update
+            Project_Cpl_Template_Dtl
+        set Cpltd_File_Type=#{type} where  Cpltd_Cpl_Id in
+        <foreach collection="cplIds" open="(" close=")" item="id" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+</mapper>

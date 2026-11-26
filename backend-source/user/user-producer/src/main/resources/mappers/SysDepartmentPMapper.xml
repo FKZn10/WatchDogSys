@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysDepartmentPMapper">
+    <select id="getMaxSort" resultType="java.lang.Integer">
+        select max(sort) from sys_department_p where p_id=#{projectId}
+    </select>
+    
+    <select id="getPdCodeByCIds" resultType="java.lang.String">
+        select d.PD_Code
+        from SYS_User u
+        left join SYS_Position_User_P pu on u.U_ID=pu.U_ID
+        left join SYS_Position_P p on pu.PP_ID=p.PP_ID
+        left join SYS_Department_P d on d.PD_ID=p.PD_ID
+        where d.P_ID = #{pId}
+        and u.C_ID in
+        <foreach collection="cIdList" item="cId" open="(" separator="," close=")">
+            #{cId}
+        </foreach>
+    </select>
+</mapper>

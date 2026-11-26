@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.MeasurementMapper">
+
+    <select id="getCalculationTenderPriceBySecId" resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.CalculationTender">
+        select
+        mn.provisional_estimate as gsj,
+        mn.	provisional_sum as zlje,
+        mn.estimated_amounts as zbysj,
+        mn.p_id as pId,
+        mn.sec_id as secId
+        from Calculation_tender_price mn
+        where State=7
+        <if test="params.pId!=null">
+            and mn.p_id = #{params.pId}
+        </if>
+        <if test="params.secId!=null">
+            and mn.sec_id = #{params.secId}
+        </if>
+    </select>
+
+</mapper>

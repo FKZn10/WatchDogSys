@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.projectKanban.projectFundMapper">
+
+    <select id="getInvesToral" resultType="java.lang.Double">
+        select sum(Ipv_Budget_Total)
+        from Inv_Plan_Year
+        where P_Id=#{pId};
+    </select>
+
+    <select id="getContractTotal" resultType="java.lang.Double">
+        select sum(Con_Money_Total)
+        from Con_Contract
+        where Con_Project_Id= #{pId};
+    </select>
+
+    <select id="getPayTotal" resultType="java.lang.Double">
+        select sum(Pay_Payable)
+        from Con_Pay
+        where P_Id=#{pId};
+    </select>
+
+    <select id="getRealPatTotal" resultType="java.lang.Double">
+        select sum(Cpaf_Application)
+        from Con_Pay_Apply_Flow
+        where P_Id=#{pId};
+    </select>
+</mapper>

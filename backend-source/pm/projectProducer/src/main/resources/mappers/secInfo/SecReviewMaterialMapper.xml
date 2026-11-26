@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecReviewMaterialMapper">
+
+
+    <delete id="deleteByBusinessId">
+        delete from sec_review_material where business_id = #{businessId} and source_type = #{sourceType}
+    </delete>
+
+    <select id="getReviewMaterialList"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecReviewMaterialResponse">
+        select rm.rm_id,
+               rm.source_type,
+               rm.business_id,
+               rm.rm_name,
+               rm.rm_num,
+               rm.rm_original,
+               rm.rm_copy,
+               rm.rm_electronic,
+               rm.rm_original_relation_id,
+               rm.rm_copy_relation_id,
+               rm.rm_electronic_relation_id,
+               rm.rm_remark
+        from sec_review_material rm
+        <where>
+            <if test="sourceType != null and sourceType!='' ">
+                rm.source_type = #{sourceType}
+            </if>
+            <if test="businessId != null and businessId!='' ">
+                and rm.business_id = #{businessId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

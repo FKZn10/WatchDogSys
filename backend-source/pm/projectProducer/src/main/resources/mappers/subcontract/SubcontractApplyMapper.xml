@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.subcontract.SubcontractApplyMapper">
+
+    <select id="getSubcontractApplyBySaId"
+            resultType="com.jpmsoft.common.model.response.Subcontract.SubcontractApplyResponse">
+        select
+        c1.C_Name as saGcUnitName,
+        c2.C_Name as saUnitName,
+        c1.C_Abbreviation as saGcUnitAbbName,
+        c2.C_Abbreviation as saUnitAbbName,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Subcontract_Apply mn
+        left join  SYS_Company c1 on mn.Sa_Gc_Unit=c1.C_Id
+        left join  SYS_Company c2 on mn.Sa_Unit=c2.C_Id
+        left join  Pre_Project pro on mn.P_Id=pro.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_File f on f.FileID=mn.Sa_Id
+        where mn.Sa_Id = #{saId}
+    </select>
+
+    <select id="getSubcontractApplyList"
+            resultType="com.jpmsoft.common.model.response.Subcontract.SubcontractApplyResponse">
+        select
+        c1.C_Name as saGcUnitName,
+        c2.C_Name as saUnitName,
+        c1.C_Abbreviation as saGcUnitAbbName,
+        c2.C_Abbreviation as saUnitAbbName,
+        c1.C_Name_History as saGcUnitNameHistory,
+        c2.C_Name_History as saUnitNameHistory,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from  Subcontract_Apply mn
+        left join  SYS_Company c1 on mn.Sa_Gc_Unit=c1.C_Id
+        left join  SYS_Company c2 on mn.Sa_Unit=c2.C_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.saGcUnit!=null">
+            and mn.Sa_Gc_Unit = #{params.saGcUnit}
+        </if>
+        <if test="params.saUnit!=null">
+            and mn.Sa_Unit = #{params.saUnit}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.saTitle!=null">
+            and mn.Sa_Title like concat('%',#{params.saTitle},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sa_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

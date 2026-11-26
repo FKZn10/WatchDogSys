@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectApprovalMapper">
+    <select id="getPreProjectApprovalModelList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectApprovalModel">
+        select mn.*,com.C_NAME as approvalCompanyName,us.U_NAME as approvalUserName,lead.U_NAME as approvalLeaderName
+        from Pre_Project_Approval mn
+        left join SYS_Company com on mn.approval_company_id = com.C_ID
+        left join SYS_User us on mn.approval_user_id = us.U_ID
+        left join SYS_User lead on mn.approval_leader= us.U_ID
+        where 1=1
+        <if test="params.approvalCompanyName != null and params.approvalCompanyName != ''">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.approvalCompanyName},com.C_Id)=true
+                </when>
+                <otherwise>
+                    and com.C_NAME like concat('%',#{params.approvalCompanyName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.approvalPlanYear != null ">
+            and mn.approval_plan_year = #{params.approvalPlanYear}
+        </if>
+        <if test="params.approvalProjectName != null and params.approvalProjectName != ''">
+            and mn.approval_project_name like concat('%',#{params.approvalProjectName},'%')
+        </if>
+        <if test="params.approvalProjectType != null ">
+            and mn.approval_project_type = #{params.approvalProjectType}
+        </if>
+        <if test="params.approvalProjectLeaderName != null and params.approvalProjectLeaderName != ''">
+            and leadv.U_NAME like concat('%',#{params.approvalProjectLeaderName},'%')
+        </if>
+        <if test="params.approvalProjectState != null ">
+            and mn.approval_project_state = #{params.approvalProjectState}
+        </if>
+        order by mn.approval_project_score desc
+    </select>
+    <select id="getPreProjectApprovalById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectApprovalModel"
+            parameterType="java.lang.String">
+        select mn.*,com.C_NAME as approvalCompanyName,us.U_NAME as approvalUserName,lead.U_NAME as approvalLeaderName
+        from Pre_Project_Approval mn
+        left join SYS_Company com on mn.approval_company_id = com.C_ID
+        left join SYS_User us on mn.approval_user_id = us.U_ID
+        left join SYS_User lead on mn.approval_leader= us.U_ID
+        where mn.id = #{id}
+    </select>
+</mapper>

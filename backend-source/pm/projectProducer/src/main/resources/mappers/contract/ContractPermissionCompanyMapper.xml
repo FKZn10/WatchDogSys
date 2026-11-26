@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ContractPermissionCompanyMapper">
+
+    <select id="getPermissionCompanyList" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ContractPermissionCompanyDTO">
+        select
+        c1.c_name as cName,
+        c1.c_Type as cType,
+        c1.c_Creditcode as cCreditcode,
+        c1.c_Contactperson as cContactperson,
+        c1.c_Contactpersontel as cContactpersontel,
+        c1.c_Unitlegalperson as cUnitlegalperson,
+            mn.*
+        from Contract_Permission_Company mn
+        left join  Sys_Company c1 on c1.c_id=mn.c_id
+        <where>
+            <if test="params.conId!=null">
+                and mn.con_id=#{params.conId}
+            </if>
+            <if test="params.cType!=null">
+                and c1.c_Type=#{params.cType}
+            </if>
+            <if test="params.cCreditcode!=null">
+                and INSTR(c1.c_Creditcode,#{params.cCreditcode})
+            </if>
+            <if test="params.cContactperson!=null">
+                and INSTR(c1.c_Contactperson,#{params.cContactperson})
+            </if>
+            <if test="params.cContactpersontel!=null">
+                and INSTR(c1.c_Contactpersontel,#{params.cContactpersontel})
+            </if>
+            <if test="params.cUnitlegalperson!=null">
+                and INSTR(c1.c_Unitlegalperson,#{params.cUnitlegalperson})
+            </if>
+            <if test="params.cName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.cName},c1.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c1.c_name,#{params.cName})
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.cpc_sort asc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConPayMeasureMapper">
+
+    <select id="getApplyAndAmtByPayId" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConMeasureApplyAmtVO">
+        select tmp.*,
+               cm.Mea_Code as meaCode,
+               cm.Mea_Start_Time as meaStartTime,
+               cm.Mea_End_Time as meaEndTime
+        from ( select
+            mn.mea_id as meaId,
+            sum(Mear_Declared_Total) as declaredAmt,
+            sum(Mear_Final_Total) as examineAmt,
+            (select count(*) from Con_Measure_Record where Mea_Id=mn.mea_id and State=7) as declaredNum,
+            (select count(distinct rc.Mear_Id)  from Con_Measure_Record_Check rc left join Con_Measure_Record mr on mr.id=rc.Mear_Id where mr.Mea_Id=mn.mea_id and mr.State=7) as examineNum
+        from Con_Measure_Record mn
+        left join Con_Measure mea on mn.mea_id=mea.id
+        where mn.State=7 and mea.State=7
+          and mn.mea_id in (select  cpm.mea_id from Con_Pay_Measure cpm where cpm.pay_id=#{payId})
+        group by  mn.mea_id) tmp
+        left join Con_Measure cm on cm.id=tmp.meaId
+    </select>
+
+    <select id="getUnMeasureApplyAndAmtByConId" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConMeasureApplyAmtVO">
+       select tmp.*,
+        cm.Mea_Code as meaCode,
+        cm.Mea_Start_Time as meaStartTime,
+        cm.Mea_End_Time as meaEndTime
+       from (
+        select
+            mn.mea_id as meaId,
+            sum(Mear_Declared_Total) as declaredAmt,
+            sum(Mear_Final_Total) as examineAmt,
+            (select count(*) from Con_Measure_Record where Mea_Id=mn.mea_id and State=7) as declaredNum,
+            (select count(distinct rc.Mear_Id)  from Con_Measure_Record_Check rc left join Con_Measure_Record mr on mr.id=rc.Mear_Id where mr.Mea_Id=mn.mea_id and mr.State=7) as examineNum
+        from Con_Measure_Record mn
+        left join Con_Measure mea on mn.mea_id=mea.id
+        where mea.con_id=#{conId} and mn.State=7 and mea.State=7
+        <include refid="endTimeFilter" />
+        and mn.mea_id not in (select  cpm.mea_id from Con_Pay_Measure cpm left join con_pay cp on cp.pay_id=cpm.pay_id where cp.Pay_State!=3 and cpm.Con_id=#{conId})
+        group by  mn.mea_id ) tmp
+        left join Con_Measure cm on cm.id=tmp.meaId
+    </select>
+
+    <sql id="endTimeFilter" databaseId="dm">
+        and to_char(mea.Mea_End_Time,'yyyy-MM-dd') &lt;= to_char(now(),'yyyy-MM-dd')
+    </sql>
+
+    <sql id="endTimeFilter" databaseId="mysql">
+        and date_format(mea.Mea_End_Time,'%Y-%m-%d') &lt;= date_format(now(),'%Y-%m-%d')
+    </sql>
+
+    <sql id="endTimeFilter" databaseId="postgre">
+       and to_char(mea.Mea_End_Time,'yyyy-MM-dd') &lt;= to_char(now(),'yyyy-MM-dd')
+    </sql>
+
+</mapper>

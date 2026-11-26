@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.qualitySafety.QsPTSpotCheckMapper">
+
+    <sql id="QsPTSpotCheckColumn">
+        mn.id as id,
+        mn.id as qsscId,
+        mn.pt_id as ptId,
+        mn.p_id as pId,
+        mn.con_id as conId,
+        mn.te_id as teId,
+        mn.qsc_remark as qscRemark,
+        mn.create_time as createTime,
+        mn.create_uid as createUid,
+        mn.create_uname as createUname,
+        mn.state as state,
+        mn.state_time as stateTime
+    </sql>
+
+    <select id="getQsPTSpotCheckList"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.qualitySafety.QsPTSpotCheckDto">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name as ptContractorName,
+        c1.C_Abbreviation as ptContractorAbbName,
+        c2.C_Name as ptSupervisorName,
+        c2.C_Abbreviation as ptSupervisorAbbName,
+        c3.C_Name as ptEvaluationUnitName,
+        c3.C_Abbreviation as ptEvaluationUnitAbbName,
+        c4.C_Name as ptRectifyName,
+        c4.C_Abbreviation as ptRectifyAbbName,
+        u1.U_Name as ptPmName,
+        u2.U_Name as ptCseName,
+        qp.Qsp_Code as qspCode,
+        qp.Qsp_Name as qspName,
+        <include refid="com.jpmsoft.projectProducer.mapper.qualitySafety.QsPlanTaskMapper.QsPTSpotCheckColumn" />,
+        <include refid="QsPTSpotCheckColumn" />
+        from Qs_PT_Spot_Check mn
+        left join Qs_Plan_Task qpt on mn.pt_id=qpt.id
+        left join Qs_Plan qp on qp.Qsp_Id=qpt.Qsp_Id
+        left join Pre_Project pro on pro.P_Id=qpt.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Company pAgentc on pAgentc.C_Id=pro.P_Agent_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join Con_Contract con on con.Con_Id = qpt.Con_Id
+        left join SYS_Company c1 on c1.C_Id = qpt.Pt_Contractor_Id
+        left join SYS_Company c2 on c2.C_Id = qpt.Pt_Supervisor_Id
+        left join SYS_Company c3 on c3.C_Id = qpt.Pt_Evaluation_Unit_Id
+        left join SYS_Company c4 on c4.C_Id = qpt.Pt_Rectify_Cid
+        left join Sys_User u1 on u1.U_Id = qpt.Pt_Pm
+        left join Sys_User u2 on u2.U_Id = qpt.Pt_Cse
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ptType!=null">
+            and qpt.Pt_Type=#{params.ptType}
+        </if>
+        <if test="params.ptCategory!=null">
+            and qpt.Pt_Category=#{params.ptCategory}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and qpt.P_Id=#{params.pId}
+        </if>
+        <if test="params.ptMeasure!=null">
+            and qpt.Pt_Measure=#{params.ptMeasure}
+        </if>
+        <if test="params.ptIsConstruction!=null">
+            and qpt.Pt_Is_Construction=#{params.ptIsConstruction}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.ptCode!=null">
+            and INSTR(qpt.Pt_Code,#{params.ptCode})
+        </if>
+        <if test="params.ptGroupLeaderName!=null">
+            and INSTR(qpt.Pt_Group_Leader_Name,#{params.ptGroupLeaderName})
+        </if>
+        <if test="params.ptTeamLeaderName!=null">
+            and INSTR(qpt.Pt_Team_Leader_Name,#{params.ptTeamLeaderName})
+        </if>
+        <if test="params.ptGroupMemberName!=null">
+            and INSTR(qpt.Pt_Group_Member_Name,#{params.ptGroupMemberName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.ptPmName!=null">
+            and INSTR(u1.U_Name,#{params.ptPmName})
+        </if>
+        <if test="params.ptCseName!=null">
+            and INSTR(u2.U_Name,#{params.ptCseName})
+        </if>
+        <if test="params.ptContractorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptContractorName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c1.C_Name,#{params.ptContractorName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptSupervisorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptSupervisorName},c2.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c2.C_Name,#{params.ptSupervisorName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptRectifyName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptRectifyName},c4.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c4.C_Name,#{params.ptRectifyName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptEvaluationTimeStart!=null">
+            and to_char(qpt.Pt_Evaluation_Time,'yyyy-MM-dd') &gt;= #{params.ptEvaluationTimeStart}
+        </if>
+        <if test="params.ptEvaluationTimeEnd!=null">
+            and to_char(qpt.Pt_Evaluation_Time,'yyyy-MM-dd') &lt;= #{params.ptEvaluationTimeEnd}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPTSpotCheckVo" id="getQsPTSpotCheck">
+        <id column="id" property="id"/>
+        <collection property="qsPTSpotCheckRecordList" ofType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPTSpotCheckRecordVo"
+                    column="id" select="getQsPTSpotCheckRecordList">
+        </collection>
+    </resultMap>
+
+    <select id="getQsPTSpotCheckRecordList" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPTSpotCheckRecordVo">
+        select con.Con_Name        as conName,
+               pro.P_Name          as pName,
+               con.Con_Code        as conCode,
+               con.Con_Money_Total as conMoneyTotal,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               f.file_relation_id  as fileRelationId,
+               qt.Qst_Name         as qstName,
+               qt.Qst_Code         as qstCode,
+               qt.Qst_Item         as qstItem,
+               qt.Qst_Is_Important          as qstIsImportant,
+               c1.C_Name           as qsrDutyCpyName,
+               u1.U_Name           as rectifyUname,
+               qr.*,
+               qsscr.*
+        from Qs_PT_Spot_Check_Record qsscr
+        left join Qs_Record qr  on qsscr.qsr_id=qr.Qsr_Id
+        left join Qs_Type qt on qt.Qst_Id = qr.Qst_Id
+        left join Con_Contract con on con.Con_Id = qr.Con_Id
+        left join Pre_Project pro on pro.P_Id = qr.P_Id
+        left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        left join SYS_Company c1 on c1.C_Id = qr.Qsr_Duty_Cpy
+        left join Sys_User u1 on u1.U_Id = qr.Qsr_Rectify_Uid
+        left join Sys_File f on f.FileID = qr.Qsr_Id
+        where qsscr.qssc_id = #{id}
+        order by qsscr.Create_Time ASC
+    </select>
+
+    <select id="getQsPTSpotCheckById" resultMap="getQsPTSpotCheck">
+        select
+            pro.P_Name         as pName,
+            pro.P_Code         as pCode,
+            con.Con_Name       as conName,
+            con.Con_Code       as conCode,
+            c1.C_Name          as ptContractorName,
+            c1.C_Abbreviation  as ptContractorAbbName,
+            c2.C_Name          as ptSupervisorName,
+            c2.C_Abbreviation  as ptSupervisorAbbName,
+            c3.C_Name          as ptEvaluationUnitName,
+            c3.C_Abbreviation  as ptEvaluationUnitAbbName,
+            c4.C_Name          as ptRectifyName,
+            c4.C_Abbreviation  as ptRectifyAbbName,
+            u1.U_Name          as ptPmName,
+            u2.U_Name          as ptCseName,
+            qp.Qsp_Code        as qspCode,
+            qp.Qsp_Name        as qspName,
+            f.File_Relation_Id as fileRelationId,
+            <include refid="com.jpmsoft.projectProducer.mapper.qualitySafety.QsPlanTaskMapper.QsPTSpotCheckColumn" />,
+            <include refid="QsPTSpotCheckColumn" />
+        from Qs_PT_Spot_Check  mn
+        left join Qs_Plan_Task qpt  on mn.pt_id=qpt.id
+        left join Qs_Plan qp on qp.Qsp_Id = qpt.Qsp_Id
+        left join Pre_Project pro on pro.P_Id = qpt.P_Id
+        left join Con_Contract con on con.Con_Id = qpt.Con_Id
+        left join SYS_Company c1 on c1.C_Id = qpt.Pt_Contractor_Id
+        left join SYS_Company c2 on c2.C_Id = qpt.Pt_Supervisor_Id
+        left join SYS_Company c3 on c3.C_Id = qpt.Pt_Evaluation_Unit_Id
+        left join SYS_Company c4 on c4.C_Id = qpt.Pt_Rectify_Cid
+        left join Sys_User u1 on u1.U_Id = qpt.Pt_Pm
+        left join Sys_User u2 on u2.U_Id = qpt.Pt_Cse
+        left join Sys_File f on f.FileId = mn.id
+        where mn.id = #{id}
+        order by mn.create_time desc
+    </select>
+
+</mapper>

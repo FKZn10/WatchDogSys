@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.PreProjectMapper">
+    <select id="getPreProjectByIds" resultType="Map">
+        ${sql}
+        <foreach collection="ids" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="getPidByProjectCodes"
+            resultType="com.jpmsoft.fileUpload.pojo.dto.ProProjectCodeDto">
+        select
+        P_ID as pId,
+        p_Code as pCode,
+        P_Project_Code as pProjectCode
+        from Pre_Project
+        <where>
+            <if test="pProjectCodes!=null">
+                and P_Project_Code in
+                <foreach collection="pProjectCodes" item="item" open="(" close=")" separator=",">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="pProjectCodes!=null and pCodes!=null">
+                or P_Code in
+            </if>
+            <if test="pProjectCodes==null and pCodes!=null">
+                and P_Code in
+            </if>
+            <if test="pCodes!=null">
+                <foreach collection="pCodes" item="pCode" open="(" close=")" separator=",">
+                    #{pCode}
+                </foreach>
+            </if>
+        </where>
+
+    </select>
+
+    <select id="getProjectByProjectNameIgnoreSpace" resultType="com.jpmsoft.fileUpload.pojo.entity.PreProject">
+        select *
+        from Pre_Project
+        where replace(replace(P_Name, ' ', ''), '　', '') = #{projectName}
+        order by State_Time desc
+        limit 1
+    </select>
+
+    <select id="getProjectsByNamesIgnoreSpace" resultType="com.jpmsoft.fileUpload.pojo.entity.PreProject">
+        select *
+        from Pre_Project
+        where replace(replace(P_Name, ' ', ''), '　', '') in
+        <foreach collection="projectNames" item="projectName" open="(" close=")" separator=",">
+            #{projectName}
+        </foreach>
+        order by State_Time desc
+    </select>
+
+    <select id="selectProjectCandidatesByName" resultType="com.jpmsoft.fileUpload.pojo.entity.PreProject">
+        select *
+        from Pre_Project
+        where
+            (
+                replace(replace(replace(replace(P_Name, ' ', ''), '　', ''), '(', '（'), ')', '）') = #{projectName}
+                or replace(replace(replace(replace(P_Name, ' ', ''), '　', ''), '(', '（'), ')', '）') like concat('%', #{projectName}, '%')
+                or replace(replace(replace(replace(P_Project_Abbreviation, ' ', ''), '　', ''), '(', '（'), ')', '）') = #{projectName}
+                or replace(replace(replace(replace(P_Project_Abbreviation, ' ', ''), '　', ''), '(', '（'), ')', '）') like concat('%', #{projectName}, '%')
+                or replace(replace(replace(replace(P_Original_Name, ' ', ''), '　', ''), '(', '（'), ')', '）') = #{projectName}
+                or replace(replace(replace(replace(P_Original_Name, ' ', ''), '　', ''), '(', '（'), ')', '）') like concat('%', #{projectName}, '%')
+            )
+        order by State_Time desc
+    </select>
+
+    <select id="getCompanyIdByCompanyName" resultType="java.lang.String">
+        select c_id
+        from sys_company
+        where c_name = #{unitName}
+        limit 1
+    </select>
+    <select id="getCompanyIdByCompanyNameIgnoreSpace" resultType="java.lang.String">
+        select c_id
+        from sys_company
+        where replace(replace(c_name, ' ', ''), '　', '') = #{unitName}
+        limit 1
+    </select>
+    <select id="getCompanyIdsByNamesIgnoreSpace" resultType="Map">
+        select
+            replace(replace(c_name, ' ', ''), '　', '') as nameKey,
+            c_id as cId
+        from sys_company
+        where replace(replace(c_name, ' ', ''), '　', '') in
+        <foreach collection="unitNames" item="unitName" open="(" close=")" separator=",">
+            #{unitName}
+        </foreach>
+    </select>
+    <select id="selectCompanyCandidatesByName" resultType="Map">
+        select
+            c_id as cId,
+            c_name as cName
+        from sys_company
+        where
+            replace(replace(replace(replace(c_name, ' ', ''), '　', ''), '(', '（'), ')', '）') = #{unitName}
+            or replace(replace(replace(replace(c_name, ' ', ''), '　', ''), '(', '（'), ')', '）') like concat('%', #{unitName}, '%')
+    </select>
+    <select id="selectContractsByProjectId" resultType="Map">
+        select
+            Con_Id as conId,
+            Con_Project_Id as projectId
+        from Con_Contract
+        where Con_Project_Id = #{projectId}
+        order by Con_Approval_Time desc
+    </select>
+    <select id="selectContractsByPartyBId" resultType="Map">
+        select
+            Con_Id as conId,
+            Con_Project_Id as projectId
+        from Con_Contract
+        where Con_Party_B_Id = #{unitId}
+        order by Con_Approval_Time desc
+    </select>
+    <select id="selectContractsByName" resultType="Map">
+        select
+            Con_Id as conId,
+            Con_Project_Id as projectId
+        from Con_Contract
+        where
+            replace(replace(replace(replace(Con_Name, ' ', ''), '　', ''), '(', '（'), ')', '）') = #{contractName}
+            or replace(replace(replace(replace(Con_Name, ' ', ''), '　', ''), '(', '（'), ')', '）') like concat('%', #{contractName}, '%')
+        order by Con_Approval_Time desc
+    </select>
+    <select id="getContractIdByContractName" resultType="java.lang.String">
+        select con_id
+        from con_contract
+        where con_name = #{contractName}
+        order by con_approval_time desc
+        limit 1
+    </select>
+
+    <insert id="insertCompany">
+        insert into sys_company(c_id,c_name) values(#{companyId},#{unitName})
+    </insert>
+
+</mapper>

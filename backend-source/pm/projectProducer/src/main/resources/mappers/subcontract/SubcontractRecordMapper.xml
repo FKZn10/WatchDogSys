@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.subcontract.SubcontractRecordMapper">
+
+    <select id="getSubcontractRecordByScId"
+            resultType="com.jpmsoft.common.model.response.Subcontract.SubcontractRecordResponse">
+        select con.Con_Code        as conCode,
+               con.Con_Name        as conName,
+               sr.Sc_Name          as masterConName,
+               sr.Sc_Code          as masterConCode,
+               pro.P_Name          as pName,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               c1.C_Name           as scFpName,
+               c2.C_Name           as scSpName,
+               c1.C_Abbreviation   as scFpAbbName,
+               c2.C_Abbreviation   as scSpAbbName,
+               f.file_relation_id  as fileRelationId,
+               mn.*
+        from Subcontract_Record mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join Con_Contract con on mn.Con_Id = con.Con_Id
+                 left join Subcontract_Record sr on mn.Sc_Master_Con_Id = sr.Sc_Id
+                 left join SYS_Company c1 on mn.Sc_Fp = c1.C_Id
+                 left join SYS_Company c2 on mn.Sc_Sp = c2.C_Id
+                 left join Sys_File f on f.FileID = mn.Sc_Id
+        where mn.Sc_Id = #{scId}
+    </select>
+
+    <select id="getSubcontractRecordList"
+            resultType="com.jpmsoft.common.model.response.Subcontract.SubcontractRecordResponse">
+        select
+        con.Con_Code as conCode,
+        con.Con_Name as conName,
+        sr.Sc_Name as masterConName,
+        sr.Sc_Code as masterConCode,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        c1.C_Name_History as scFpNameHistory,
+        c2.C_Name_History as scSpNameHistory,
+        c1.C_Name as scFpName,
+        c2.C_Name as scSpName,
+        c1.C_Abbreviation as scFpAbbName,
+        c2.C_Abbreviation as scSpAbbName,
+        mn.*
+        from Subcontract_Record mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on mn.Con_Id=con.Con_Id
+        left join Subcontract_Record sr on mn.Sc_Master_Con_Id=sr.Sc_Id
+        left join SYS_Company c1 on mn.Sc_Fp=c1.C_Id
+        left join SYS_Company c2 on mn.Sc_Sp=c2.C_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.scFp!=null">
+            and mn.Sc_Fp = #{params.scFp}
+        </if>
+        <if test="params.scSp!=null">
+            and mn.Sc_Sp = #{params.scSp}
+        </if>
+        <if test="params.scMode!=null">
+            and mn.Sc_Mode = #{params.scMode}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.scState!=null">
+            and mn.Sc_State = #{params.scState}
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.scTitle!=null">
+            and mn.Sc_Title like concat('%',#{params.scTitle},'%')
+        </if>
+        <if test="params.scName!=null">
+            and mn.Sc_Name like concat('%',#{params.scName},'%')
+        </if>
+        <if test="params.scCode!=null">
+            and mn.Sc_Code like concat('%',#{params.scCode},'%')
+        </if>
+        <if test="params.scResident!=null">
+            and mn.Sc_Resident like concat('%',#{params.scResident},'%')
+        </if>
+        <if test="params.scResidentTel!=null">
+            and mn.Sc_Resident_Tel like concat('%',#{params.scResidentTel},'%')
+        </if>
+        <if test="params.scResidentSsn!=null">
+            and mn.Sc_Resident_Ssn like concat('%',#{params.scResidentSsn},'%')
+        </if>
+        <if test="params.notScConId!=null">
+            and mn.Sc_Id not in
+            <foreach collection="params.notScConId" open="(" close=")" separator="," item="notScConId">
+                #{conType}
+            </foreach>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sc_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

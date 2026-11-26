@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.ganttPlan.GanttTasksChangeMapper">
+
+    <select id="getGanttTasksChangeByPlanId" resultType="com.jpmsoft.common.model.response.Plan.GanttTasksChangeVO">
+        select
+        (select ft.T_Name from SYS_FileTemplate ft where ft.T_Code=mn.Task_Start_T_Code limit 1) as taskStartTName,
+        (select ft.T_Name from SYS_FileTemplate ft where ft.T_Code=mn.Task_End_T_Code limit 1) as taskEndTName,
+        mn.*
+        from Gantt_Tasks_Change mn
+        where Plan_Id=#{planId}
+        order by Task_Sort asc
+    </select>
+
+    <select id="can2SubmitProcess" resultType="Integer">
+        select count(*)
+        from Gantt_Plan_Change mn
+        left join Gantt_Tasks_Change gtc on gtc.Plan_Id = mn.Plan_Id
+        where gtc.Task_Source = #{id}
+          and gtc.Task_Change_Type = '删除'
+          and mn.Plan_State != 3
+    </select>
+
+    <select id="canNot2Delete" resultType="String">
+        select a.name from(
+        select
+        (select count(*) from Gantt_Tasks_Process tp where tp.Task_Id=mn.Task_Id) as taskFilling,
+        mn.Task_Text as name
+        from Gantt_Tasks mn
+        where mn.Task_Id in
+        <foreach collection="ids" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+        ) a where a.taskFilling>0
+    </select>
+</mapper>

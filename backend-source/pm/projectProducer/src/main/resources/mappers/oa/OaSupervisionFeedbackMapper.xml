@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaSupervisionFeedbackMapper">
+
+    <select id="getOaSupervisionFeedbackBySfId"
+            resultType="com.jpmsoft.common.model.response.Oa.OaSupervisionFeedbackResponse">
+        select
+        st.St_Code as  stCode,
+        st.St_Title as  stTitle,
+        st.St_Type as  stType,
+        st.St_Handle_Type as  stHandleType,
+        pro.P_Name as pName,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        sd.D_Name as sfDName,
+        mn.*
+        from  OA_Supervision_Feedback mn
+        left join  SYS_Department sd on sd.D_ID=mn.Sf_D_Id
+        left join  OA_Supervision_Task st on st.St_Id=mn.St_Id
+        left join  Pre_Project pro on pro.P_Id=st.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_File f on f.FileID=mn.Sf_Id
+        where mn.Sf_Id=#{sfId}
+    </select>
+
+    <select id="getOaSupervisionFeedbackList"
+            resultType="com.jpmsoft.common.model.response.Oa.OaSupervisionFeedbackResponse">
+        select
+        st.St_Code as stCode,
+        st.St_Title as stTitle,
+        st.St_Type as stType,
+        st.St_Handle_Type as stHandleType,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sd.D_Name as sfDName,
+        mn.*
+        from OA_Supervision_Feedback mn
+        left join SYS_Department sd on sd.D_ID=mn.Sf_D_Id
+        left join OA_Supervision_Task st on st.St_Id=mn.St_Id
+        left join Pre_Project pro on pro.P_Id=st.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and st.P_Id=#{params.pId}
+        </if>
+        <if test="params.stId!=null">
+            and mn.St_Id = #{params.stId}
+        </if>
+        <if test="params.sfDId!=null">
+            and mn.Sf_D_Id = #{params.sfDId}
+        </if>
+        <if test="params.sfDPerson!=null">
+            and mn.Sf_D_Person like concat('%',#{params.sfDPerson},'%')
+        </if>
+        <if test="params.sfDPhone!=null">
+            and mn.Sf_D_Phone like concat('%',#{params.sfDPhone},'%')
+        </if>
+        <if test="params.stCode!=null">
+            and st.St_Code like concat('%',#{params.stCode},'%')
+        </if>
+        <if test="params.stTitle!=null">
+            and st.St_Title like concat('%',#{params.stTitle},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sf_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.enghonorpunish.EngHonorMapper">
+
+    <select id="getEngHonorList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.enghonorpunish.EngHonorDto" databaseId="dm">
+        SELECT pro.p_name as pName,eh.*, COALESCE(cn.cName, '') AS winningUnitName
+        from Eng_Honor eh left join (select ehu.eh_id,LISTAGG(sc.c_name, ', ') WITHIN GROUP (ORDER BY sc.c_name) AS cName  from Eng_Honor_Unit ehu
+        left join SYS_Company sc ON sc.C_ID = ehu.unit_id  GROUP BY  ehu.eh_id) cn ON eh.id = cn.eh_id
+        left join pre_project pro on eh.award_Winning_Project=pro.p_id
+        <where>
+            <if test="params.awardName != null and params.awardName != ''">
+                and eh.award_name like concat('%',#{params.awardName},'%')
+            </if>
+            <if test="params.awardType != null and params.awardType != ''">
+                and eh.award_type = #{params.awardType}
+            </if>
+            <if test="params.awardLevel != null and params.awardLevel != ''">
+                and eh.award_level = #{params.awardLevel}
+            </if>
+            <if test="params.awardWinningProject != null and params.awardWinningProject != ''">
+                and eh.award_winning_project=#{params.awardWinningProject}
+            </if>
+            <if test="params.pName != null and params.pName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.p_name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.awardDepartment != null and params.awardDepartment != ''">
+                and eh.award_department like concat('%',#{params.awardDepartment},'%')
+            </if>
+            <if test="params.winningUnitName != null and params.winningUnitName != ''">
+                and cn.cName like concat('%',#{params.winningUnitName},'%')
+            </if>
+        </where>
+    </select>
+
+
+    <select id="getEngHonorList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.enghonorpunish.EngHonorDto" databaseId="mysql">
+        select pro.p_name as pName,eh.*,COALESCE(cn.cName, '') AS winningUnitName  FROM Eng_Honor eh
+        LEFT JOIN(SELECT ehu.eh_id,GROUP_CONCAT(sc.c_name ORDER BY sc.c_name SEPARATOR ', ') AS cName FROM Eng_Honor_Unit ehu
+        LEFT JOIN SYS_Company sc ON sc.C_ID = ehu.unit_id
+        GROUP BY  ehu.eh_id) cn ON eh.id = cn.eh_id
+        left join pre_project pro on eh.award_Winning_Project=pro.p_id
+        <where>
+            <if test="params.awardName != null and params.awardName != ''">
+                and eh.award_name like concat('%',#{params.awardName},'%')
+            </if>
+            <if test="params.awardType != null and params.awardType != ''">
+                and eh.award_type = #{params.awardType}
+            </if>
+            <if test="params.awardLevel != null and params.awardLevel != ''">
+                and eh.award_level = #{params.awardLevel}
+            </if>
+            <if test="params.awardWinningProject != null and params.awardWinningProject != ''">
+                and eh.award_winning_project=#{params.awardWinningProject}
+            </if>
+            <if test="params.pName != null and params.pName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.p_name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.awardDepartment != null and params.awardDepartment != ''">
+                and eh.award_department like concat('%',#{params.awardDepartment},'%')
+            </if>
+            <if test="params.winningUnitName != null and params.winningUnitName != ''">
+                and cn.cName like concat('%',#{params.winningUnitName},'%')
+            </if>
+        </where>
+    </select>
+
+</mapper>

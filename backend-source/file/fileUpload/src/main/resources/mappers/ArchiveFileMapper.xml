@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.fileUpload.mapper.ArchiveFileMapper">
+
+
+    <select id="getByAdIds" resultType="com.jpmsoft.common.model.response.Archive.ArchiveFileResponse">
+        select
+        sf.File_MD5_Code as fileMd5Code,
+        ar.ad_id as adId,
+        af.*
+        from Archive_File af
+        left join Sys_FileAnnex sf on sf.file_id=af.Af_Annex_Id
+        left join Archive ar on ar.Ap_Id=af.Ap_Id
+        where
+
+            sf.File_MD5_Code is not null and  ar.Ad_Id in
+        <foreach collection="ids" open="(" close=")" item="id" separator=",">
+            #{id}
+        </foreach>
+        <if test="pid!=null">
+            and ar.P_Id=#{pid}
+        </if>
+    </select>
+
+    <select id="getProjectArchiveUpFile" resultType="com.jpmsoft.fileUpload.pojo.entity.ArchiveFile">
+        select mn.*
+        from Archive_File mn
+                 left join Archive ar on ar.Ap_Id = mn.Ap_Id
+        where mn.Af_State = 0
+          and ar.P_Id = #{pId}
+    </select>
+
+    <select id="getUnIndexArchiveFile" resultType="com.jpmsoft.fileUpload.pojo.dto.LuceneFileDTO">
+        select mn.Af_Id        as afId,
+               f.file_name     as fileName,
+               f.file_path     as filePath,
+               f.File_Location as fileLocation
+        from Archive_File mn
+                 left join Sys_FileAnnex f on f.File_Id = mn.Af_Annex_Id
+        where mn.Af_State = 1
+          and f.file_path is not null
+          and (mn.Af_Index = false or mn.Af_Index is null)
+          and lower(f.File_Suffix) in
+            <foreach collection="sfx" open="(" close=")" separator="," item="suffix">
+                lower(#{suffix})
+            </foreach>
+        limit 100
+    </select>
+
+    <update id="updateArchiveFileIndex">
+        update Archive_File set Af_Index=#{afIndex}
+        where Af_Id in
+        <foreach collection="afIds" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </update>
+
+
+    <select id="getArchiveFileStatistics"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Archive.ArchiveStatisticsModel">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        pro.P_Code as pCode,
+        pro.P_Agent_Construction_Unit as pAgentConstructionUnit,
+        pro.P_Type as pType,
+        pro.P_Use_Unit as pUseUnit,
+        pro.P_Imp_Company as pImpCompany,
+        pro.P_Competent_Department as pCompetentDepartment,
+        pro.P_Construction_Unit as pConstructionUnit,
+        pro.P_Approval_Unit as pApprovalUnit,
+        pro.P_Build_Model as pBuildModel,
+        pro.P_Each_District as pEachDistrict,
+        pro.P_Inv_Total as pInvTotal,
+        pro.P_Region as pRegion,
+        pro.P_Project_Stage as pProjectStage,
+        pro.P_Overview as pOverview,
+        pro.P_Project_Code as pProjectCode,
+        pro.P_Calculate_Roughly_Amount as pCalculateRoughlyAmount,
+        pro.P_Advance_Fund as pAdvanceFund,
+        pro.P_Corporate_Risk as pCorporateRisk,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Name as pConsName,
+        proc.C_Abbreviation as pConsAbbName,
+        pAgentc.C_Name as pAgentUnitName,
+        prod.D_Name as pCompetentDepartmentName,
+        prod.D_Name as pCompDepName,
+        pro.P_Construction_Start as pConstructionStart,
+        pro.P_Construction_End as pConstructionEnd,
+        pro.P_Id as pId,
+        ad.Ad_Id as adId,
+        ad.Ad_Code as adCode,
+        ad.Ad_Name as adName,
+        ad.Ad_Link as adLink,
+        ap.Ap_Title as apTitle,
+        ap.Ap_Author as apAuthor,
+        ap.Ap_Keyword as apKeyword,
+        ap.Ap_Position as apPosition,
+        ap.Ap_Document_No as apDocumentNo,
+        ap.Ap_Written_Date as apWrittenDate,
+        ap.Ap_Issue_Company as apIssueCompany,
+        ap.Ap_Approval_Date as apApprovalDate,
+        ap.Ap_Receipt_Time as apReceiptTime,
+        sfa.File_Input_Version as fileInputVersion,
+        sfa.file_create_u_id as fileCreateUid,
+        sfa.file_create_u_name as fileCreateUname,
+        mn.*
+        from Archive_File mn
+        left join Archive ap on mn.Ap_Id=ap.Ap_Id
+        left join Archive_Directory ad on ap.Ad_Id=ad.Ad_Id
+        left join Pre_Project pro on pro.P_Id=ap.P_Id
+        left join SYS_FileAnnex sfa on sfa.file_id=mn.Af_Annex_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Company pAgentc on pAgentc.C_Id=pro.P_Agent_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        where mn.Af_Id in
+        <foreach collection="afIds" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

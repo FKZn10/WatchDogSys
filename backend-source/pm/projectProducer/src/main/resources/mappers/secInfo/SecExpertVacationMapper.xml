@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecExpertVacationMapper">
+
+    <select id="getVacationDays" resultType="Integer">
+        select sum(Sev_Days)
+        from Sec_Expert_Vacation mn
+        where mn.Ex_Id=#{exId} and mn.State=7
+        <include refid="sepTimeFormatYear"/>
+    </select>
+
+    <sql id="sepTimeFormatYear" databaseId="dm">
+        and to_date(mn.Sev_Time,'yyyy')=
+        #{year}
+    </sql>
+
+    <sql id="sepTimeFormatYear" databaseId="postgre">
+        and to_char(mn.Sev_Time,'yyyy')=
+        #{year}
+    </sql>
+
+    <sql id="sepTimeFormatYear" databaseId="mysql">
+        and date_format(mn.Sev_Time,'%Y') =
+        #{year}
+    </sql>
+
+    <select id="getSecExpertVacationById" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertVacationVO">
+        select ex.Ex_Name      as exName,
+               ex.Ex_Id_Type   as exIdType,
+               ex.Ex_Id_Number as exIdNumber,
+               pro.P_Name as pName,
+               pro.P_Code as pCode,
+               sec.Sec_Name as secName,
+               sec.Sec_Code as secCode,
+               mn.*
+        from Sec_Expert_Vacation mn
+                 left join Sec_Expert ex on mn.Ex_Id = ex.Ex_Id
+                 left join Pre_Project pro on pro.P_Id=mn.P_Id
+                 left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where mn.id = #{id}
+    </select>
+
+    <select id="getSecExpertVacationList" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertVacationVO">
+        select
+        ex.Ex_Name as exName,
+        ex.Ex_Id_Type as exIdType,
+        ex.Ex_Id_Number as exIdNumber,
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        mn.*
+        from Sec_Expert_Vacation mn
+        left join Sec_Expert ex on mn.Ex_Id=ex.Ex_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and INSTR(pro.P_Code,#{params.pCode})
+        </if>
+        <if test="params.secName!=null">
+            and INSTR(sec.Sec_Name,#{params.secName})
+        </if>
+        <if test="params.secCode!=null">
+            and INSTR(sec.Sec_Code,#{params.secCode})
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.exName!=null">
+            and INSTR(ex.Ex_Name,#{params.exName})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

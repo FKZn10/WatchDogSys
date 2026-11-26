@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.integrity.FunctionalIntegrityWarningMapper">
+    <select id="getIntegrityWarningLedger"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.integrity.IntegrityWarningChildVo">
+        select
+        count(1) as count,
+        mn.business_Code as businessCode,
+        wri.Wri_indicator,
+        wri.Wri_level,
+        wsp.model_Code as modelCode
+        from Functional_Integrity_Warning mn
+        left join Warning_Setting_Progress wsp on mn.business_Code = wsp.T_Code
+        left join Warning_Reminder_Indicators wri on mn.Wri_Id = wri.id
+        where 1=1
+        <include refid="listFilter"/>
+        group by mn.business_Code, wri.Wri_indicator, wri.Wri_level, wsp.model_Code
+        <choose>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by MAX(mn.Create_Time) desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getIntegrityWarningPositionLedger"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.integrity.IntegrityWarningPositionVo">
+        select
+        mn.business_Code as businessCode,
+        wri.Wri_indicator,
+        wri.Wri_level,
+        p.P_Name as positionName,
+        p.P_Code as positionCode,
+        wsp.model_Code as modelCode
+        from Functional_Integrity_Warning mn
+        left join Warning_Setting_Progress wsp on mn.business_Code = wsp.T_Code
+        left join Warning_Reminder_Indicators wri on mn.Wri_Id = wri.id
+        left join SYS_Position_User pu on pu.U_ID = mn.Create_Uid
+        left join SYS_Position p on pu.P_ID = p.P_ID
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.id != null and params.id != ''">
+            and mn.id = #{params.id}
+        </if>
+        <if test="params.createUid != null and params.createUid != ''">
+            and mn.Create_Uid = #{params.createUid}
+        </if>
+        <if test="params.createUname != null and params.createUname != ''">
+            and mn.Create_Uname = #{params.createUname}
+        </if>
+        <if test="params.createTime != null and params.createTime != ''">
+            and mn.Create_Time = #{params.createTime}
+        </if>
+        <if test="params.state != null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.stateTime != null and params.stateTime != ''">
+            and mn.State_Time = #{params.stateTime}
+        </if>
+        <if test="params.triggerField != null and params.triggerField != ''">
+            and mn.Trigger_Field = #{params.triggerField}
+        </if>
+        <if test="params.triggerFieldValue != null and params.triggerFieldValue != ''">
+            and mn.Trigger_Field_Value = #{params.triggerFieldValue}
+        </if>
+        <if test="params.businessCode != null and params.businessCode != ''">
+            and mn.business_Code = #{params.businessCode}
+        </if>
+        <if test="params.warningForm != null and params.warningForm != ''">
+            and mn.Warning_Form = #{params.warningForm}
+        </if>
+        <if test="params.situationDescription != null and params.situationDescription != ''">
+            and mn.Situation_Description = #{params.situationDescription}
+        </if>
+        <if test="params.relatedDocuments != null and params.relatedDocuments != ''">
+            and mn.Related_Documents = #{params.relatedDocuments}
+        </if>
+        <if test="params.auditResults != null and params.auditResults != ''">
+            and mn.Audit_Results = #{params.auditResults}
+        </if>
+        <if test="params.wriId != null and params.wriId != ''">
+            and mn.Wri_Id = #{params.wriId}
+        </if>
+    </sql>
+</mapper>

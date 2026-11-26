@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fundPlan.FundPlanMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundPlanVo" id="selectFundPlan">
+        <id column="id" property="id"/>
+        <collection property="fundPlanDtls" ofType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundPlanDtlVo"
+                    column="id" select="selectFundPlanDtl">
+        </collection>
+        <collection property="fundPlanDtls2" ofType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundPlanDtlVo"
+                    column="id" select="selectFundPlanDtl2">
+        </collection>
+        <collection property="fundPlanDtls3" ofType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundPlanDtlVo"
+                    column="id" select="selectFundPlanDtl3">
+        </collection>
+    </resultMap>
+    <select id="selectFundPlanDtl" resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundPlanDtlVo">
+        select pro.P_Name          as pName,
+               con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               con.Con_Type        as conType,
+               con.Con_Money_Total as conMoneyTotal,
+               con.Con_Pay_Clause  as conPayClause,
+               c1.C_Name           as fpdPayeeName,
+               mn.*
+        from Fund_Plan_Dtl mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_Id
+                 left join Con_Contract con on mn.Con_Id = con.Con_Id
+                 left join Sys_Company c1 on c1.C_Id = mn.Fpd_Payee_Id
+                left join Fund_Plan fp on mn.Fp_Id = fp.id
+        where mn.Fp_Id = #{id} and ((fp.Fp_Type='01' and (mn.Fpd_Type is not null and mn.Fpd_Type!='02')) or (fp.Fp_Type='01' and  mn.Fpd_Type='01') or (fp.Fp_Type='01' and  mn.Fpd_Type is null) or ((fp.Fp_Type is null or fp.Fp_Type='') and  mn.Fpd_Type is null) or ((fp.Fp_Type is null or fp.Fp_Type='') and  mn.Fpd_Type='01'))
+        order by mn.Fpd_Sort ASC
+    </select>
+    <select id="selectFundPlanDtl2" resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundPlanDtlVo">
+        select pro.P_Name          as pName,
+               con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               con.Con_Type        as conType,
+               con.Con_Money_Total as conMoneyTotal,
+               con.Con_Pay_Clause  as conPayClause,
+               c1.C_Name           as fpdPayeeName,
+               mn.*
+        from Fund_Plan_Dtl mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_Id
+                 left join Con_Contract con on mn.Con_Id = con.Con_Id
+                 left join Sys_Company c1 on c1.C_Id = mn.Fpd_Payee_Id
+                 left join Fund_Plan fp on mn.Fp_Id = fp.id
+        where mn.Fp_Id = #{id} and  (mn.Fpd_Type='02' or fp.Fp_Type='02')
+        order by mn.Fpd_Sort ASC
+    </select>
+
+    <select id="selectFundPlanDtl3" resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundPlanDtlVo">
+        select pro.P_Name          as pName,
+               con.Con_Name        as conName,
+               con.Con_Code        as conCode,
+               con.Con_Type        as conType,
+               con.Con_Money_Total as conMoneyTotal,
+               con.Con_Pay_Clause  as conPayClause,
+               c1.C_Name           as fpdPayeeName,
+               mn.*
+        from Fund_Plan_Dtl mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_Id
+                 left join Con_Contract con on mn.Con_Id = con.Con_Id
+                 left join Sys_Company c1 on c1.C_Id = mn.Fpd_Payee_Id
+                 left join Fund_Plan fp on mn.Fp_Id = fp.id
+        where mn.Fp_Id = #{id} and  (mn.Fpd_Type='03' or fp.Fp_Type='03')
+        order by mn.Fpd_Sort ASC
+    </select>
+
+    <select id="getFundPlanById" resultMap="selectFundPlan">
+        select pro.P_Name           as pName,
+               pro.P_Approve_Budget as pApproveBudget,
+               c1.C_Name            as cName,
+               c1.C_Abbreviation    as cAbbName,
+               dep.D_Name           as dName,
+               f.File_Relation_Id   as fileRelationId,
+               mn.*
+        from Fund_Plan mn
+                 left join Pre_Project pro on mn.P_Id = pro.P_Id
+                 left join SYS_Company c1 on mn.C_Id = c1.C_Id
+                 left join SYS_Department dep on mn.D_Id = dep.D_Id
+                 left join SYS_File f on f.Fileid = mn.id
+        where mn.id = #{id}
+    </select>
+
+    <select id="getFundPlanList" resultType="com.jpmsoft.projectProducer.pojo.vo.fundPlan.FundPlanVo">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Approve_Budget as pApproveBudget,
+        c1.C_Name as cName,
+        c1.C_Abbreviation as cAbbName,
+        dep.D_Name as dName,
+        mn.*
+        from Fund_Plan mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Company c1 on mn.C_Id=c1.C_Id
+        left join SYS_Department dep on mn.D_Id=dep.D_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.fpYear!=null">
+            and mn.Fp_Year=#{params.fpYear}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.fpMonth!=null">
+            and mn.Fp_Month=#{params.fpMonth}
+        </if>
+        <if test="params.fpType!=null">
+            and mn.Fp_Type=#{params.fpType}
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+                <if test="params.cName!=null">
+                    and likeCname(#{params.cName},c1.C_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.pName!=null">
+                    and INSTR(pro.P_Name,#{params.pName})
+                </if>
+                <if test="params.cName!=null">
+                    and INSTR(c1.C_Name,#{params.cName})
+                </if>
+            </otherwise>
+        </choose>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+    <update id="updateFinalInfo">
+        update Fund_Plan fp
+        set fp.Fp_Demand_Final=(select sum(Fpd_Demand_Final) from Fund_Plan_Dtl where Fp_Id = fp.id),
+            fp.Fp_Demand_Total_Final=(select sum(Fpd_Demand_Total_Final) from Fund_Plan_Dtl where Fp_Id = fp.id),
+            fp.Fp_Demand_Ratio_Total_Final=
+                (select sum(d1.Fpd_Demand_Total_Final) / (select sum(con.Con_Money_Total)
+                                                          from Con_Contract con
+                                                                   left join Fund_Plan_Dtl)
+                 from Fund_Plan_Dtl d1
+                 where Fp_Id = fp.id)
+        where fp.Id = #{id}
+    </update>
+
+    <select id="getDemand" resultType="BigDecimal">
+        select mn.Fpd_Demand_Final
+        from Fund_Plan_Dtl mn
+                 left join Fund_Plan fp on fp.id = mn.Fp_Id
+        where mn.Fp_Id = #{id}
+          and mn.Con_Id = #{conId}
+        limit 1
+    </select>
+</mapper>

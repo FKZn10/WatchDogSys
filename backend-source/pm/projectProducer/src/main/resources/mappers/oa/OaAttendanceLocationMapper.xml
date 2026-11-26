@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaAttendanceLocationMapper">
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.agId!=null">
+            and mn.Ag_Id = #{params.agId}
+        </if>
+        <if test="params.agName!=null">
+            and ag.Ag_Name like concat('%',#{params.agName},'%')
+        </if>
+        <if test="params.alName!=null">
+            and mn.Al_Name like concat('%',#{params.alName},'%')
+        </if>
+        <if test="params.alCreateUname!=null">
+            and mn.Al_Create_Uname like concat('%',#{params.alCreateUname},'%')
+        </if>
+    </sql>
+
+    <select id="getOaAttendanceLocationList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceLocationModel">
+        select
+        ag.Ag_Name as agName,
+        mn.*
+        from OA_Attendance_Location mn
+        left join OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Al_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getOaAttendanceLocationListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from OA_Attendance_Location mn
+        left join OA_Attendance_Group ag on ag.Ag_Id=mn.Ag_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+</mapper>

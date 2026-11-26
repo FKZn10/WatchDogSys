@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.materialsEquipment.MeDetectionGuideMapper">
+
+    <select id="getMeDetectionGuideModelByDgId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.MeEnter.MeDetectionGuideModel">
+        select f.file_relation_id as fileRelationId,
+               mn.*
+        from Me_Detection_Guide mn
+                 left join Sys_File f on f.FileID = mn.Dg_Id
+        where mn.Dg_Id = #{dgId}
+    </select>
+
+
+    <select id="getMeDetectionGuideList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.MeEnter.MeDetectionGuideModel">
+        select
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from Me_Detection_Guide mn
+        left join Sys_File f on f.FileID=mn.Dg_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.dgType!=null">
+            and mn.Dg_Type = #{params.dgType}
+        </if>
+        <if test="params.dgProductCategory!=null">
+            and mn.Dg_Product_Category = #{params.dgProductCategory}
+        </if>
+        <if test="params.dgProduct!=null">
+            and mn.Dg_Product like concat('%',#{params.dgProduct},'%')
+        </if>
+        <if test="params.dgItem!=null">
+            and mn.Dg_Item like concat('%',#{params.dgItem},'%')
+        </if>
+        <if test="params.haveReport!=null">
+            and mn.Have_Report = #{params.haveReport}
+        </if>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getMeDetectionGuideListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Me_Detection_Guide mn
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.dgType!=null">
+            and mn.Dg_Type = #{params.dgType}
+        </if>
+        <if test="params.dgProductCategory!=null">
+            and mn.Dg_Product_Category = #{params.dgProductCategory}
+        </if>
+        <if test="params.dgProduct!=null">
+            and mn.Dg_Product like concat('%',#{params.dgProduct},'%')
+        </if>
+        <if test="params.dgItem!=null">
+            and mn.Dg_Item like concat('%',#{params.dgItem},'%')
+        </if>
+    </select>
+
+</mapper>

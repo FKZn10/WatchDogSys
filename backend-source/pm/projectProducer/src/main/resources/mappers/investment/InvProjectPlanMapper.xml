@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvProjectPlanMapper">
+
+    <select id="getInvProjectPlanByPIdAndYear"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvProjectPlanResponse">
+        select
+        pro.P_Name_History as pNameHistory,
+        pro.P_Name as pName,
+        pro.P_Code as pCode,
+        proc.C_Name as pConsName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompDepName,
+        mn.*
+        from Inv_Project_Plan mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        where mn.P_Id=#{pId} and mn.Ipp_Year=#{year}
+        order by mn.Ipp_Create_Time asc
+    </select>
+
+    <select id="getInvProjectPlanById"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvProjectPlanResponse">
+        select pro.P_Name_History  as pNameHistory,
+               pro.P_Name          as pName,
+               pro.P_Code          as pCode,
+               proc.C_Name         as pConsName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompDepName,
+               mn.*
+        from Inv_Project_Plan mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        where mn.Ipp_Id = #{ippId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.ippPType!=null">
+            and mn.Ipp_P_Type = #{params.ippPType}
+        </if>
+        <if test="params.ippLiableCompany!=null">
+            and mn.Ipp_Liable_Company = #{params.ippLiableCompany}
+        </if>
+        <if test="params.ippLiableMan!=null">
+            and mn.Ipp_Liable_Man = #{params.ippLiableMan}
+        </if>
+        <if test="params.ippInvestor!=null">
+            and mn.Ipp_Investor = #{params.ippInvestor}
+        </if>
+        <if test="params.ippProgressLastYear!=null">
+            and mn.Ipp_Progress_Last_Year like concat('%',#{params.ippProgressLastYear},'%')
+        </if>
+        <if test="params.ippNowYearProgress!=null">
+            and mn.Ipp_Now_Year_Progress like concat('%',#{params.ippNowYearProgress},'%')
+        </if>
+        <if test="params.ippBuildContent!=null">
+            and mn.Ipp_Build_Content like concat('%',#{params.ippBuildContent},'%')
+        </if>
+        <if test="params.ippBuildNature!=null">
+            and mn.Ipp_Build_Nature like concat('%',#{params.ippBuildNature},'%')
+        </if>
+        <if test="params.ifrReplyCode!=null">
+            and ifr.Ifr_Reply_Code like concat('%',#{params.ifrReplyCode},'%')
+        </if>
+        <if test="params.ippDocNumber!=null">
+            and mn.Ipp_Doc_Number like concat('%',#{params.ippDocNumber},'%')
+        </if>
+        <if test="params.pName!=null">
+            and (pro.P_Name like concat('%',#{params.pName},'%') or INSTR(mn.P_Name,#{params.pName}))
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and (likePname(#{params.pName},pro.P_Id)=true or likePname(#{params.pName},mn.P_Id)=true)
+                </when>
+                <otherwise>
+                    and (pro.P_Name like concat('%',#{params.pName},'%') or INSTR(mn.P_Name,#{params.pName}))
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and (pro.P_Code like concat('%',#{params.pCode},'%') or INSTR(mn.P_Code,#{params.pCode}))
+        </if>
+        <if test="params.haveIfrId!=null">
+            <if test="params.haveIfrId==true">
+                and mn.Ifr_Id is not null
+            </if>
+            <if test="params.haveIfrId==false">
+                and mn.Ifr_Id is null
+            </if>
+        </if>
+        <if test="params.ippBuildPeriodStart!=null">
+            and mn.Ipp_Build_Period > #{params.ippBuildPeriodStart}
+        </if>
+        <if test="params.ippBuildPeriodEnd!=null">
+            and mn.Ipp_Build_Period &lt; #{params.ippBuildPeriodEnd}
+        </if>
+        <if test="params.ippPlanInvStart!=null">
+            and mn.Ipp_Plan_Inv > #{params.ippPlanInvStart}
+        </if>
+        <if test="params.ippPlanInvEnd!=null">
+            and mn.Ipp_Plan_Inv &lt; #{params.ippPlanInvEnd}
+        </if>
+        <if test="params.ippAccumulatedFundsStart!=null">
+            and mn.Ipp_Accumulated_Funds > #{params.ippAccumulatedFundsStart}
+        </if>
+        <if test="params.ippAccumulatedFundsEnd!=null">
+            and mn.Ipp_Accumulated_Funds &lt; #{params.ippAccumulatedFundsEnd}
+        </if>
+        <if test="params.ippAnnualReleaseFundsStart!=null">
+            and mn.Ipp_Annual_Release_Funds > #{params.ippAnnualReleaseFundsStart}
+        </if>
+        <if test="params.ippAnnualReleaseFundsEnd!=null">
+            and mn.Ipp_Annual_Release_Funds &lt; #{params.ippAnnualReleaseFundsEnd}
+        </if>
+    </sql>
+
+
+    <select id="getInvProjectPlanList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvProjectPlanResponse">
+        select
+        ifr.Ifr_Reply_Code as ifrReplyCode,
+        ifr.Ifr_Reply_Time as ifrReplyTime,
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Inv_Project_Plan mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Inv_Fund_Release ifr on ifr.Ifr_Id=mn.Ifr_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by ifr.Ifr_Reply_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getInvProjectPlanListByPids"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvProjectPlan">
+        select ipp.*,ifr.State_Time as ippCreateTime from Inv_Project_Plan ipp left join Inv_Fund_Release ifr on ipp.Ifr_Id=ifr.Ifr_Id where ifr.State=7
+        and ipp.P_Id in
+        <foreach collection="pIds" open="(" close=")" item="pId" separator=",">
+            #{pId}
+        </foreach>
+    </select>
+
+</mapper>

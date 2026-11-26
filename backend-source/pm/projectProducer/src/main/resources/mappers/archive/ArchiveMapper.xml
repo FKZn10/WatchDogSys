@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.archive.ArchiveMapper">
+
+    <select id="getArchiveList" resultType="com.jpmsoft.common.model.response.Archive.ArchiveResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        ad.Ad_Name as adName,
+        mn.*
+        from  Archive mn
+        left join Archive_Directory ad on ad.Ad_Id=mn.Ad_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id =#{params.pId}
+        </if>
+        <if test="params.adId!=null">
+            and mn.Ad_Id =#{params.adId}
+        </if>
+        <if test="params.apState!=null">
+            and mn.Ap_State=#{params.apState}
+        </if>
+        <if test="params.pName!=null">
+            and pro.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.apKeyword!=null">
+            and mn.Ap_Keyword like concat('%',#{params.apKeyword},'%')
+        </if>
+        <if test="params.apTitle!=null">
+            and mn.Ap_Title like concat('%',#{params.apTitle},'%')
+        </if>
+        <if test="params.apAuthor!=null">
+            and mn.Ap_Author like concat('%',#{params.apAuthor},'%')
+        </if>
+        <if test="params.apDocumentNo!=null">
+            and mn.Ap_Document_No like concat('%',#{params.apDocumentNo},'%')
+        </if>
+        <if test="params.apReceiptNo!=null">
+            and mn.Ap_Receipt_No like concat('%',#{params.apReceiptNo},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ap_Desc_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

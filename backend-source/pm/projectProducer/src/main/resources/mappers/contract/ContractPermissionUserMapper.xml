@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ContractPermissionUserMapper">
+
+    <select id="selectUserPage" resultType="com.jpmsoft.projectProducer.pojo.dto.contract.ContractPermissionUserDTO">
+        select
+            u1.u_name as uName,
+            c.c_name as cName,
+            mn.*
+        from Contract_Permission_User mn
+        left join Sys_User u1 on u1.u_id=mn.u_id
+        left join SYS_Company c on u1.c_Id=c.C_Id
+        <where>
+            <if test="params.conId!=null">
+                and mn.con_id=#{params.conId}
+            </if>
+            <if test="params.uName!=null">
+                and INSTR(u1.u_name,#{params.uName})
+            </if>
+            <if test="params.cName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.cName},c.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(c.c_name,#{params.cName})
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.cpu_sort asc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectContractPage"  resultType="com.jpmsoft.common.model.response.Contract.ConContractResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        pro.P_Name as conProjectName,
+        c.C_Name as conPartyBName,
+        sdep.D_Name as conDepName,
+        mn.*
+        from Con_Contract mn
+        left join Pre_Project pro on mn.con_Project_Id=pro.P_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department sdep on sdep.D_Id=mn.Con_Department
+        left join SYS_Company c on mn.con_Party_B_Id=c.C_Id
+        <where>
+            <if test="params.uId!=null">
+               and mn.con_id in (select cpu.con_id  from Contract_Permission_User cpu where cpu.u_id=#{params.uId})
+            </if>
+            <if test="params.conName!=null">
+                and INSTR(mn.con_name,#{params.conName})
+            </if>
+            <if test="params.pName!=null">
+                and INSTR(pro.P_Name,#{params.pName})
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Con_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

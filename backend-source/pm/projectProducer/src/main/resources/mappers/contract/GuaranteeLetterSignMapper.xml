@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.GuaranteeLetterSignMapper">
+
+    <!-- *********************************** 公用 *********************************** -->
+
+    <select id="getGuaranteeLetterSignByContract"
+            resultType="com.jpmsoft.common.model.response.Contract.GuaranteeLetterSignResponse">
+        select
+            pro.P_Name as pName,
+            con.Con_Name as conName,
+            con.Con_Code as conCode,
+            sec.Sec_Name as secName,
+            sec.Sec_Features as secFeatures,
+            sec.Sec_Place as secPlace,
+            c1.C_Name as glsWarranteeName,
+            c2.C_Name as pConstructionUnitName,
+            c3.C_Name as glsBeneficiaryName,
+            c1.C_Abbreviation as glsWarranteeAbbName,
+            c2.C_Abbreviation as pConsAbbName,
+            c3.C_Abbreviation as glbCompanyAbbName,
+            d.D_name as pCompetentDepartmentName,
+            f.file_relation_id as fileRelationId,
+            mn.*
+        from  Guarantee_Letter_Sign mn
+                  left join  Pre_Project pro on pro.P_Id=mn.P_Id
+                  left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+                  left join  Con_Contract con on con.Con_Id=mn.Con_Id
+                  left join  SYS_Company c1 on mn.Gls_Warrantee=c1.C_Id
+                  left join  SYS_Company c2 on pro.P_Construction_Unit=c2.C_Id
+                  left join  SYS_Department d on pro.P_Competent_Department=d.D_Id
+                  left join  Sys_File f on f.FileID=mn.Gls_Id
+                  left join  SYS_Company c3 on mn.Gls_Beneficiary=c3.C_Id
+        where mn.Con_Id=#{conId} and mn.Gls_State=7
+        order by mn.Gls_State_Time desc
+        limit 1
+    </select>
+
+    <select id="geteGuaranteeLetterSignByglsId"
+            resultType="com.jpmsoft.common.model.response.Contract.GuaranteeLetterSignResponse">
+        select
+        pro.P_Name as pName,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        sec.Sec_Name as secName,
+        sec.Sec_Features as secFeatures,
+        sec.Sec_Place as secPlace,
+        c1.C_Name as glsWarranteeName,
+        c2.C_Name as pConstructionUnitName,
+        c3.C_Name as glsBeneficiaryName,
+        c1.C_Abbreviation as glsWarranteeAbbName,
+        c2.C_Abbreviation as pConsAbbName,
+        c3.C_Abbreviation as glbCompanyAbbName,
+        d.D_name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        panya.c_name as  companyPartyAName,
+        panyb.c_name as companyPartybName,
+        con.Con_Money_Total as conMoneyTotal,
+        mn.*
+        from  Guarantee_Letter_Sign mn
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  SYS_Company c1 on mn.Gls_Warrantee=c1.C_Id
+        left join  SYS_Company c2 on pro.P_Construction_Unit=c2.C_Id
+        left join  SYS_Department d on pro.P_Competent_Department=d.D_Id
+        left join  Sys_File f on f.FileID=mn.Gls_Id
+        left join  SYS_Company c3 on mn.Gls_Beneficiary=c3.C_Id
+        left join sys_company panya ON con.Con_Party_A_Id = panya.c_id
+        left join sys_company panyb ON con.Con_Party_B_Id = panyb.c_id
+        where mn.Gls_Id=#{glsId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.conId!=null">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.glsType!=null">
+            and mn.Gls_Type = #{params.glsType}
+        </if>
+        <if test="params.glsIsrenewal!=null">
+            and mn.Gls_IsRenewal = #{params.glsIsrenewal}
+        </if>
+        <if test="params.glsState!=null">
+            and mn.Gls_State = #{params.glsState}
+        </if>
+        <if test="params.glbState!=null">
+            and glb.Glb_State = #{params.glbState}
+        </if>
+        <if test="params.glsIssuanceStart!=null">
+            and mn.Gls_Issuance_Date > #{params.glsIssuanceStart}
+        </if>
+        <if test="params.glsIssuanceEnd!=null">
+            and mn.Gls_Issuance_Date &lt; #{params.glsIssuanceEnd}
+        </if>
+        <if test="params.glsDueStart!=null">
+            and mn.Gls_Due_Date > #{params.glsDueStart}
+        </if>
+        <if test="params.glsDueEnd!=null">
+            and mn.Gls_Due_Date &lt; #{params.glsDueEnd}
+        </if>
+        <if test="params.glsCreateStart!=null">
+            and mn.Gls_Create_Time > #{params.glsCreateStart}
+        </if>
+        <if test="params.glsCreateEnd!=null">
+            and mn.Gls_Create_Time &lt; #{params.glsCreateEnd}
+        </if>
+        <if test="params.glsMoneyStart!=null">
+            and mn.Gls_Money > #{params.glsMoneyStart}
+        </if>
+        <if test="params.glsMoneyEnd!=null">
+            and mn.Gls_Money &lt; #{params.glsMoneyEnd}
+        </if>
+        <if test="params.glsGuarantor!=null">
+            and mn.Gls_Guarantor like concat('%',#{params.glsGuarantor},'%')
+        </if>
+        <if test="params.glsCreateUname!=null">
+            and mn.Gls_Create_Uname like concat('%',#{params.glsCreateUname},'%')
+        </if>
+        <if test="params.glsCode!=null">
+            and mn.Gls_Code like concat('%',#{params.glsCode},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conCode!=null">
+            and con.Con_Code like concat('%',#{params.conCode},'%')
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.glsJlxs!=null">
+            and mn.Gls_Jlxs  = #{glsJlxs}
+        </if>
+        <if test="params.glsWarranteeName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and  likeCname(#{params.glsWarranteeName},c1.c_id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.glsWarranteeName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.glsBeneficiaryName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and  likeCname(#{params.glsBeneficiaryName},c3.c_id)=true
+                </when>
+                <otherwise>
+                    and c3.C_Name like concat('%',#{params.glsBeneficiaryName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.companyPartyAName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and  likeCname(#{params.companyPartyAName},panya.c_id)=true
+                </when>
+                <otherwise>
+                    and panya.C_Name like concat('%',#{params.companyPartyAName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.companyPartybName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and  likeCname(#{params.companyPartybName},panyb.c_id)=true
+                </when>
+                <otherwise>
+                    and panyb.C_Name like concat('%',#{params.companyPartybName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.glbCompanyName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and  likeCname(#{params.glbCompanyName},c2.c_id)=true
+                </when>
+                <otherwise>
+                    and c2.C_Name like concat('%',#{params.glbCompanyName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.haveBack!=null">
+            <if test="params.haveBack==true">
+                and mn.Gls_Id in
+            </if>
+            <if test="params.haveBack==false">
+                and mn.Gls_Id not in
+            </if>
+            (select back.Gls_Id from Guarantee_Letter_Back back where back.Glb_State!=3 and back.Gls_Id is not null)
+        </if>
+        <include refid="dueDateFilter"/>
+    </sql>
+
+    <select id="getGuaranteeLetterSignList"
+            resultType="com.jpmsoft.common.model.response.Contract.GuaranteeLetterSignResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        sec.Sec_Name as secName,
+        c1.C_Name_History as glsWarranteeNameHistory,
+        c3.C_Name_History as glsBeneficiaryNameHistory,
+        c1.C_Name as glsWarranteeName,
+        c3.C_Name as glsBeneficiaryName,
+        c1.C_Abbreviation as glsWarranteeAbbName,
+        c3.C_Abbreviation as glbCompanyAbbName,
+        f.file_relation_id as fileRelationId,
+        glb.Glb_Id as glbId,
+        glb.Glb_State as glbState,
+        glb.Glb_Create_Uid as glbCreateUid,
+        glb.Glb_Date as glbDate,
+        glb.Glb_Company_Id as  glbCompanyId,
+        con.Con_Plan_Start_Date as conPlanStartDate,
+        con.Con_Plan_End_Date as conPlanEndDate,
+        c2.C_Name as glbCompanyName,
+        panya.c_name as  companyPartyAName,
+        panyb.c_name as companyPartybName,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Ac_Money as conAcMoney,
+        mn.*
+        from Guarantee_Letter_Sign mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join SYS_Company c1 on mn.Gls_Warrantee=c1.C_Id
+        left join Sys_File f on f.FileID=mn.Gls_Id
+        left join SYS_Company c3 on mn.Gls_Beneficiary=c3.C_Id
+        left join Guarantee_Letter_Back glb on glb.Gls_Id=mn.Gls_Id and glb.Glb_State!=3
+        left join SYS_Company c2 on glb.Glb_Company_Id=c2.C_Id
+        left join sys_company panya ON con.Con_Party_A_Id = panya.c_id
+        left join sys_company panyb ON con.Con_Party_B_Id = panyb.c_id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Gls_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- *********************************** dm *********************************** -->
+
+    <sql id="dueDateFilter" databaseId="dm">
+        <if test="params.overDue!=null">
+            <if test="params.overDue==true">
+                and cast(mn.Gls_Due_Date as date) &lt;= cast(now() as date)
+            </if>
+            <if test="params.overDue==false">
+                and cast(mn.Gls_Due_Date as date) > cast(now() as date)
+            </if>
+        </if>
+        <if test="params.duwSoon!=null">
+            and cast(mn.Gls_Due_Date as date) &lt;= cast(now() as date)
+            <if test="params.duwSoon==1">
+                and TO_NUMBER(cast(now() as date) - cast(mn.Gls_Due_Date as date)) &lt;= 60
+            </if>
+            <if test="params.duwSoon==2">
+                and TO_NUMBER(cast(now() as date) - cast(mn.Gls_Due_Date as date)) &lt;= 30
+            </if>
+            <if test="params.duwSoon==3">
+                and TO_NUMBER(cast(now() as date) - cast(mn.Gls_Due_Date as date)) &lt;= 7
+            </if>
+        </if>
+    </sql>
+
+
+    <sql id="dueDateFilter" databaseId="postgre">
+        <if test="params.overDue!=null">
+            <if test="params.overDue==true">
+                and to_char(mn.Gls_Due_Date,'yyyy-MM-dd') &lt;= to_char(now(),'yyyy-MM-dd')
+            </if>
+            <if test="params.overDue==false">
+                and to_char(mn.Gls_Due_Date,'yyyy-MM-dd') > to_char(now(),'yyyy-MM-dd')
+            </if>
+        </if>
+        <if test="params.duwSoon!=null">
+            and to_char(mn.Gls_Due_Date,'yyyy-MM-dd') &lt;= to_char(now(),'yyyy-MM-dd')
+            <if test="params.duwSoon==1">
+                and TO_NUMBER(to_date(to_char(now(),'yyyy-MM-dd'),'yyyy-MM-dd') - to_date(to_char(mn.Gls_Due_Date,'yyyy-MM-dd'),'yyyy-MM-dd')) &lt;= 60
+            </if>
+            <if test="params.duwSoon==2">
+                and TO_NUMBER(to_date(to_char(now(),'yyyy-MM-dd'),'yyyy-MM-dd') - to_date(to_char(mn.Gls_Due_Date,'yyyy-MM-dd'),'yyyy-MM-dd')) &lt;= 30
+            </if>
+            <if test="params.duwSoon==3">
+                and TO_NUMBER(to_date(to_char(now(),'yyyy-MM-dd'),'yyyy-MM-dd') - to_date(to_char(mn.Gls_Due_Date,'yyyy-MM-dd'),'yyyy-MM-dd')) &lt;= 7
+            </if>
+        </if>
+    </sql>
+    <!-- *********************************** mysql *********************************** -->
+
+    <sql id="dueDateFilter" databaseId="mysql">
+        <if test="params.overDue!=null">
+            <if test="params.overDue==true">
+                and date_format(mn.Gls_Due_Date,'%Y-%m-%d') &lt;= date_format(now(),'%Y-%m-%d')
+            </if>
+            <if test="params.overDue==false">
+                and date_format(mn.Gls_Due_Date,'%Y-%m-%d') > date_format(now(),'%Y-%m-%d')
+            </if>
+        </if>
+        <if test="params.duwSoon!=null">
+            and date_format(mn.Gls_Due_Date,'%Y-%m-%d') &lt;= date_format(now(),'%Y-%m-%d')
+            <if test="params.duwSoon==1">
+                and TO_DAYS(date_format(now(),'%Y-%m-%d') - TO_DAYS(date_format(mn.Gls_Due_Date,'%Y-%m-%d'))) &lt;= 60
+            </if>
+            <if test="params.duwSoon==2">
+                and TO_DAYS(date_format(now(),'%Y-%m-%d') - TO_DAYS(date_format(mn.Gls_Due_Date,'%Y-%m-%d'))) &lt;= 30
+            </if>
+            <if test="params.duwSoon==3">
+                and TO_DAYS(date_format(now(),'%Y-%m-%d') - TO_DAYS(date_format(mn.Gls_Due_Date,'%Y-%m-%d'))) &lt;= 7
+            </if>
+        </if>
+    </sql>
+</mapper>

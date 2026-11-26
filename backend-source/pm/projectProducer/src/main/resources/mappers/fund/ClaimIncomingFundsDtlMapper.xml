@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.fund.ClaimIncomingFundsDtlMapper">
+    <select id="getGroupFundsCumulative" resultType="java.math.BigDecimal">
+        select ifnull(mn.cifd_Group_Funds, 0) + ifnull(mn.cifd_Account, 0) as cumulativeFunds
+        from Claim_Incoming_Funds_Dtl mn
+        left join Claim_Incoming_Funds cif on cif.id = mn.cif_Id
+        where mn.p_Id = #{pId}
+        order by cif.Create_Time desc
+        limit 1
+    </select>
+
+    <select id="getClaimIncomingFundsDtlsLedgerByPId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.fund.ClaimIncomingFundsDtlDTO">
+        select mn.*,
+        cif.cif_Date as cifDate,
+        cif.cif_Ca as cifCa
+        from Claim_Incoming_Funds_Dtl mn
+        left join Claim_incoming_Funds cif on cif.id = mn.cif_Id
+        <where>
+            and mn.cifd_Is_Receipt = '1'
+            <if test="pId != null and pId != ''">
+                and mn.p_Id = #{pId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getClaimIncomingFundsDtlsLedgerByPIds"
+            resultType="com.jpmsoft.common.model.requestAndResponse.fund.ClaimIncomingFundsDtlDTO">
+        select mn.*,
+        cif.cif_Date as cifDate,
+        cif.cif_Ca as cifCa
+        from Claim_Incoming_Funds_Dtl mn
+        left join Claim_incoming_Funds cif on cif.id = mn.cif_Id
+        <where>
+            and mn.cifd_Is_Receipt = '1'
+            <if test="pIds != null and pIds.size() > 0">
+                and mn.p_Id in
+                <foreach collection="pIds" item="pId" open="(" separator="," close=")">
+                    #{pId}
+                </foreach>
+            </if>
+        </where>
+    </select>
+</mapper>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.SysPositionPRoleMapper">
+    <select id="getUidByRuleIdAndPid" resultType="com.jpmsoft.jpbpm.pojo.vo.SysPositionPRoleAndUidVo">
+        select Role_Id as roleId,U_Id as uId,pp.PP_ID as  ppId,pp.PD_ID as dId  from SYS_PositionP_Role pr
+        left join SYS_Position_P pp on pp.PP_ID=pr.PP_ID
+        left join SYS_Department_P dp on pp.PD_ID=dp.PD_ID
+        left join SYS_Position_User_P pup on pup.PP_ID=pp.PP_ID
+        <where>
+            1=1
+            <if test="params.pId!=null">
+                and dp.P_ID=#{params.pId}
+            </if>
+            ${params.whereSql}
+        </where>
+    </select>
+</mapper>

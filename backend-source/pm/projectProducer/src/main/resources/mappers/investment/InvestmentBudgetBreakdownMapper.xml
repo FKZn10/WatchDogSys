@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvestmentBudgetBreakdownMapper">
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.investment.InvestmentBudgetBreakdownVo"
+               id="selectInvestmentBudgetBreakdown">
+        <id column="id" property="id"/>
+        <collection property="details" ofType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.InvestmentBudgetBreakdownDetailsModel"
+                    column="id" select="getInvestmentBudgetBreakdownDetailsVoList">
+        </collection>
+    </resultMap>
+    <select id="selectByProjectId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvestmentBudgetBreakdown">
+        select * from Investment_Budget_Breakdown
+        where Project_ID = #{projectId} and state!=3
+    </select>
+    <select id="getInvestmentBudgetBreakdownList"
+            resultMap="selectInvestmentBudgetBreakdown">
+        select ibb.*,pro.P_Name as projectName,
+        pro.P_Competent_Department as pCompetentDepartment,sd.D_Name as pCompetentDepartmentName,
+        case
+            when pro.p_project_form_type='01' then pro.P_Committee_Approva_Document
+            when pro.p_project_form_type='02' then pro.p_Record_File
+            when pro.p_project_form_type='03' then pro.p_Apply_File end as projectApplyFile,
+        pro.P_Approve_budget as pApproveBudget,
+        pro.p_record_amount as pRecordAmount,
+        pro.p_approval_amount as pApprovalAmount,
+        pro.p_project_form_type as pProjectFormType,
+        pro.p_inv_total as pInvTotal
+        from Investment_Budget_Breakdown ibb
+        left join Pre_Project pro on ibb.Project_ID = pro.P_ID
+        left join SYS_Department sd on pro.P_Competent_Department = sd.D_ID
+        <if test="authSql != null and authSql != ''">
+            ${authSql}
+        </if>
+        <if test="authSql == null">
+            where 1=1
+        </if>
+            <if test="params.projectName!= null and params.projectName!= ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.projectName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.state != null">
+                and ibb.state = #{params.state}
+            </if>
+            <if test="params.projectId!= null and params.projectId!= ''">
+                and ibb.Project_ID = #{params.projectId}
+            </if>
+        order by ibb.Create_Time desc
+    </select>
+    <select id="getInvestmentBudgetBreakdownById"
+            resultMap="selectInvestmentBudgetBreakdown">
+        select ibb.*,pro.P_Name as projectName,
+               sf.file_relation_id as fileRelationId,
+               pro.P_Competent_Department as pCompetentDepartment,sd.D_Name as pCompetentDepartmentName,
+               pro.P_Apply_File as projectApplyFile,
+               pro.P_Approve_budget as pApproveBudget,
+               pro.p_record_amount as pRecordAmount,
+               pro.p_approval_amount as pApprovalAmount,
+               pro.p_project_form_type as pProjectFormType,
+               pro.p_inv_total as pInvTotal
+        from Investment_Budget_Breakdown ibb
+        left join Pre_Project pro on ibb.Project_ID = pro.P_ID
+        left join SYS_Department sd on pro.P_Competent_Department = sd.D_ID
+        left join sys_file sf on ibb.id=sf.FileId
+        where ibb.id = #{id}
+    </select>
+    <select id="getInvestmentBudgetBreakdownDetailsVoList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.InvestmentControl.InvestmentBudgetBreakdownDetailsModel">
+        select details.*
+        from Investment_Budget_Breakdown_Details details
+        where details.Isb_ID = #{id}
+    </select>
+
+    <select id="getInvestmentBudgetBreakdownByPid" resultMap="selectInvestmentBudgetBreakdown">
+        select
+        ibb.*,
+        pro.P_Name as projectName,
+        sf.file_relation_id as fileRelationId,
+        pro.P_Competent_Department as pCompetentDepartment,
+        sd.D_Name as pCompetentDepartmentName,
+        pro.P_Apply_File as projectApplyFile,
+        pro.P_Approve_budget as pApproveBudget,
+        pro.p_record_amount as pRecordAmount,
+        pro.p_approval_amount as pApprovalAmount,
+        pro.p_project_form_type as pProjectFormType,
+        pro.p_inv_total as pInvTotal
+        from Investment_Budget_Breakdown ibb
+        left join Pre_Project pro on ibb.Project_ID = pro.P_ID
+        left join SYS_Department sd on pro.P_Competent_Department = sd.D_ID
+        left join sys_file sf on ibb.id=sf.FileId
+        where ibb.Project_ID = #{pId}
+    </select>
+
+    <select id="getInvestmentBudgetBreakdownByPId"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvestmentBudgetBreakdown">
+        select * from Investment_Budget_Breakdown
+        where Project_ID = #{projectId} and state=7 order by Create_Time desc
+    </select>
+
+    <select id="getInvestmentControlList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvestmentControlResponse">
+        SELECT
+        mn.p_id AS pId,
+        mn.p_name AS pName,
+        mn.P_Construction_Unit AS cId,
+        sc.c_name AS cName,
+        sd.d_id AS dId,
+        sd.d_name AS dName,
+        mn.P_Approve_budget AS pApproveBudget,
+        ibb.project_Budget_Investment_Amount AS pBudgetInvestmentAmount,
+        COALESCE(fp.allInvestment, 0) AS allInvestment,
+        COALESCE(bb.pBudgetInvestmentCount, 0) AS pBudgetInvestmentCount,
+        COALESCE(cp.payApplySum, 0) + COALESCE(te.travelExpensesSum, 0) AS actualPaymentAmt
+        FROM
+        pre_project mn
+        LEFT JOIN
+        sys_company sc ON sc.c_id = mn.P_Construction_Unit
+        LEFT JOIN
+        SYS_Department sd ON mn.P_Competent_Department = sd.D_ID
+        LEFT JOIN
+        Investment_Budget_Breakdown ibb ON ibb.Project_ID = mn.P_ID AND ibb.state = 7
+        LEFT JOIN
+        (SELECT p_id, SUM(fp_Received) AS allInvestment FROM Fund_Plan WHERE state = 7 GROUP BY p_id) fp ON fp.p_id = mn.p_id
+        LEFT JOIN
+        (SELECT brea.Project_ID, COUNT(*) AS pBudgetInvestmentCount
+        FROM Investment_Budget_Breakdown_Details details
+        LEFT JOIN Investment_Budget_Breakdown brea ON details.Isb_ID = brea.id
+        WHERE brea.state = 7
+        GROUP BY brea.Project_ID) bb ON bb.Project_ID = mn.p_id
+        LEFT JOIN
+        (SELECT p_id, SUM(Pay_Apply) AS payApplySum
+        FROM con_pay
+        WHERE Pay_State = 7 AND pay_Category IN ('01', '02', '03')
+        GROUP BY p_id) cp ON cp.p_id = mn.p_id
+        LEFT JOIN
+        (SELECT project_id, SUM(apply_Amount) AS travelExpensesSum
+        FROM travel_expenses_apply
+        WHERE approve_status = 7
+        GROUP BY project_id) te ON te.project_id = mn.p_id
+        <where>
+             1=1
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    <if test="params.pName!= null and params.pName!= ''">
+                        and likePname(#{params.pName},mn.P_Id)=true
+                    </if>
+                    <if test="params.cName!= null and params.cName!= ''">
+                        and likeCname(#{params.cName},sc.C_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.pName!= null and params.pName!= ''">
+                        and mn.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                    <if test="params.cName!= null and params.cName!= ''">
+                        and sc.c_name like concat('%',#{params.cName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.pNameList != null and params.pNameList.size() > 0">
+                and mn.P_Name in
+                <foreach collection="params.pNameList" item="pName" separator="," open="(" close=")">
+                    #{pName}
+                </foreach>
+            </if>
+            <if test="params.cNameList != null and params.cNameList.size() > 0">
+                and sc.c_name in
+                <foreach collection="params.cNameList" item="cName" separator="," open="(" close=")">
+                    #{cName}
+                </foreach>
+            </if>
+            <if test="params.pApproveBudgetList != null and params.pApproveBudgetList.size() > 0">
+                and mn.P_Approve_budget in
+                <foreach collection="params.pApproveBudgetList" item="pApproveBudget" separator="," open="(" close=")">
+                    #{pApproveBudget}
+                </foreach>
+            </if>
+            <if test="params.pBudgetInvestmentAmountList != null and params.pBudgetInvestmentAmountList.size() > 0">
+                and ibb.project_Budget_Investment_Amount in
+                <foreach collection="params.pBudgetInvestmentAmountList" item="pBudgetInvestmentAmount" separator="," open="(" close=")">
+                    #{pBudgetInvestmentAmount}
+                </foreach>
+            </if>
+            <if test="params.allInvestmentList != null and params.allInvestmentList.size() > 0">
+                and fp.allInvestment in
+                <foreach collection="params.allInvestmentList" item="allInvestment" separator="," open="(" close=")">
+                    #{allInvestment}
+                </foreach>
+            </if>
+            <if test="params.actualPaymentAmtList != null and params.actualPaymentAmtList.size() > 0">
+                and COALESCE(cp.payApplySum, 0) + COALESCE(te.travelExpensesSum, 0) in
+                <foreach collection="params.actualPaymentAmtList" item="actualPaymentAmt" separator="," open="(" close=")">
+                    #{actualPaymentAmt}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getValueByCode" resultType="java.lang.Object">
+        SELECT
+            distinct ${value} as dbValue
+        FROM
+            pre_project mn
+                LEFT JOIN
+            sys_company sc ON sc.c_id = mn.P_Construction_Unit
+                LEFT JOIN
+            SYS_Department sd ON mn.P_Competent_Department = sd.D_ID
+                LEFT JOIN
+            Investment_Budget_Breakdown ibb ON ibb.Project_ID = mn.P_ID AND ibb.state = 7
+                LEFT JOIN
+            (SELECT p_id, SUM(fp_Received) AS allInvestment FROM Fund_Plan WHERE state = 7 GROUP BY p_id) fp ON fp.p_id = mn.p_id
+                LEFT JOIN
+            (SELECT brea.Project_ID, COUNT(*) AS pBudgetInvestmentCount
+             FROM Investment_Budget_Breakdown_Details details
+                      LEFT JOIN Investment_Budget_Breakdown brea ON details.Isb_ID = brea.id
+             WHERE brea.state = 7
+             GROUP BY brea.Project_ID) bb ON bb.Project_ID = mn.p_id
+                LEFT JOIN
+            (SELECT p_id, SUM(Pay_Apply) AS payApplySum
+             FROM con_pay
+             WHERE Pay_State = 7 AND pay_Category IN ('01', '02', '03')
+             GROUP BY p_id) cp ON cp.p_id = mn.p_id
+                LEFT JOIN
+            (SELECT project_id, SUM(apply_Amount) AS travelExpensesSum
+             FROM travel_expenses_apply
+             WHERE approve_status = 7
+             GROUP BY project_id) te ON te.project_id = mn.p_id
+    </select>
+</mapper>

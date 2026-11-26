@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecInfoBudgetDeclareDtlMapper">
+
+
+    <delete id="delSecInfoBudgetDeclareDtlByBpId">
+        delete from Sec_Info_Budget_Declare_Dtl where Sec_Id in (Select Sec_Id from Sec_Info where Bp_Id=#{bpId})
+    </delete>
+
+
+    <select id="getDataList"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.secInfo.SecInfoBudgetDeclareDtl">
+          select * from  Sec_Info_Budget_Declare_Dtl bdd left join Sec_Info si on si.sec_id = bdd.sec_id
+          <where>
+              si.Sec_Flow_State!=3
+              <if test="pId != null and pId != ''">
+                 and p_id = #{pId}
+              </if>
+              <if test="ppId != null and ppId != ''">
+                  and pp_id = #{ppId}
+              </if>
+          </where>
+    </select>
+
+    <select id="getSecInfoBudgetDeclareDtlBySecIds"
+            resultType="com.jpmsoft.common.model.request.SecInfo.SecInfoBudgetDeclareDtlDto">
+        select bdd.*,pp.P_Name pName,spp.plan_name ppName
+        from  Sec_Info_Budget_Declare_Dtl bdd left join Sec_Info si on si.sec_id = bdd.sec_id
+        left join Pre_Project pp on pp.P_ID = bdd.p_id
+        left join Sec_Procurement_Plan spp on spp.PP_ID = bdd.pp_id
+        <where>
+            <if test="secIdList != null and secIdList.size() > 0">
+                and bdd.sec_id in
+                <foreach collection="secIdList" item="secId" open="(" separator="," close=")">
+                    #{secId}
+                </foreach>
+           </if>
+        </where>
+    </select>
+
+    <select id="getSecInfoBudgetDeclareDtlByIds"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.secInfo.SecInfoBudgetDeclareDtl">
+        select * from  Sec_Info_Budget_Declare_Dtl bdd left join Sec_Info si on si.sec_id = bdd.sec_id
+        <where>
+            <if test="sibdIdList != null and sibdIdList.size() > 0">
+                and bdd.sibd_id in
+                <foreach collection="sibdIdList" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+</mapper>

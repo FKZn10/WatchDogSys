@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.ganttPlan.GanttTasksCancelMapper">
+
+    <resultMap id="BaseResultMap" type="com.jpmsoft.common.model.request.Plan.GanttTasksCancelDTO">
+            <id property="id" column="id" />
+            <result property="createUid" column="create_uid" />
+            <result property="createUname" column="create_uname" />
+            <result property="createTime" column="create_time" />
+            <result property="state" column="state" />
+            <result property="stateTime" column="state_time" />
+            <result property="taskId" column="task_id" />
+            <result property="gtcExplanation" column="gtc_explanation" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,create_uid,create_uname,create_time,state,state_time,
+        task_id,gtc_explanation
+    </sql>
+
+
+    <select id="getGanttTasksCancelResponseByTaskId" resultType="com.jpmsoft.common.model.response.Plan.GanttTasksCancelResponse">
+        SELECT
+            pp.P_Name,
+            gt.Task_Text,
+            gs.Gs_Section,
+            gt.Task_Type,
+            gp.Plan_Start,
+            gp.Plan_End,
+            gto.*
+        FROM
+            Gantt_Tasks_Cancel gto
+                LEFT JOIN gantt_tasks gt ON gto.Task_ID = gt.Task_Id
+                LEFT JOIN gant_section gs ON gt.gs_id = gs.id
+                LEFT JOIN gantt_plan gp ON gt.Plan_Id = gp.Plan_Id
+                LEFT JOIN pre_project pp ON gp.P_Id = pp.P_ID
+        WHERE
+            gto.Task_Id = #{taskId}
+    </select>
+
+    <select id="getGanttCannelById"
+            resultType="com.jpmsoft.common.model.response.Plan.GanttTasksCancelResponse">
+        SELECT
+            pp.P_Name,
+            gt.Task_Text,
+            gs.Gs_Section,
+            gt.Task_Type,
+            gp.Plan_Start,
+            gp.Plan_End,
+            gto.create_uname,
+            gto.Create_Time,
+            gto.gto_explanation
+        FROM
+            Gantt_Tasks_Cancel gto
+                LEFT JOIN gantt_tasks gt ON gto.Task_ID = gt.Task_Id
+                LEFT JOIN gant_section gs ON gt.gs_id = gs.id
+                LEFT JOIN gantt_plan gp ON gt.Plan_Id = gp.Plan_Id
+                LEFT JOIN pre_project pp ON gp.P_Id = pp.P_ID
+        WHERE
+            gto.id = #{id}
+
+    </select>
+
+
+</mapper>

@@ -1,0 +1,1119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConEcMapper">
+
+    <!--************************************* 公用 *************************************-->
+    <select id="getConEcStatisticsByRanking" resultType="Map">
+        select
+        b.pName as pName,
+        SUM(b.changeAmt) as changeAmt
+        from (
+        select
+        pro.P_Id as pId,
+        pro.P_Name as pName,
+        a.changeAmt
+        from
+        (
+        select
+        Con_Id,
+        (case when sum(Ec_Final_Money) is Null then 0 else sum(Ec_Final_Money) end) as changeAmt
+        from  Con_EC
+        where Ec_State=7
+        group by Con_Id
+        ) a
+        left join  Con_Contract con on a.Con_Id=con.Con_Id
+        left join  Pre_Project pro on con.Con_Project_Id=pro.P_Id
+        <if test="teId!=null"> where con.Te_Id = #{teId} and  pro.Te_Id = #{teId}  </if>
+        ) b
+        group by b.pId, b.pName
+        order by changeAmt desc
+        limit #{size}
+    </select>
+
+
+    <select id="getConEcStatisticsChangeSituation" resultType="Map">
+        select
+            Ec_Grade as ecGrade,
+            sum(Ec_Final_Money) as changeAmt,
+            count(1) as changeCount
+        from  Con_EC
+        where Ec_State=7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+        group by Ec_Grade
+    </select>
+
+    <select id="getConEcStatisticsGroupByGrade" resultType="Map">
+        select
+            Ec_Grade as ecGrade,
+            count(1) as changeCount
+        from  Con_EC
+        where Ec_State=7 <if test="teId!=null"> and Te_Id = #{teId} </if>
+        group by Ec_Grade
+    </select>
+
+
+    <select id="getConEcByEcId" resultType="com.jpmsoft.common.model.response.Contract.ConEcResponse">
+        select
+            con.Con_Name as conName,
+            con.Con_Code as conCode,
+            con.Con_Money_Total as conMoneyTotal,
+            con.Con_Party_B_Id as conPartyBId,
+            con.con_Money_Tentative as conMoneyTentative,
+            con.con_Provisional_Pe as conProvisionalPe,
+            pro.P_Name as pName,
+            pro.P_Name_History as pNameHistory,
+            pro.P_Id as pId,
+            c1.C_Name as ecSupervisorName,
+            c2.C_Name as ecConsultingUnitName,
+            c3.C_Name as pConstructionUnitName,
+            c1.C_Name_History as ecSupervisorNameHistory,
+            c2.C_Name_History as ecConsultingUnitNameHistory,
+            c3.C_Name_History as pConstructionUnitNameHistory,
+            d.D_Name as pCompetentDepartmentName,
+            d1.D_Name as ecDepName,
+            c5.C_Name as ecCreateCName,
+            c6.C_Name as conPartyBName,
+            c7.C_Name as ecDesignName,
+            c8.C_Name as ecPutForwardName,
+            c9.C_Name as ecConstName,
+            c10.C_Name as ecCostConsulName,
+            c1.C_Abbreviation as ecSupervisorAbbName,
+            c2.C_Abbreviation as ecConsultingUnitAbbName,
+            c3.C_Abbreviation as pConsAbbName,
+            c5.C_Abbreviation as ecCreateCAbbName,
+            c6.C_Abbreviation as conPartyBAbbName,
+            c7.C_Abbreviation as ecDesignAbbName,
+            cl.Cl_Title as clTitle,
+            sec.Sec_Name as secName,
+            dco.Dco_Code as dcoCode,
+            dco.Dco_Project_Name as dcoProjectName,
+            dco.Dco_Major as dcoMajor,
+            enis.Enis_Code as enisCode,
+            ces.Enis_Project_Name as enisName,
+            ces.Enis_Code as enisCodeSelf,
+            pro1.P_Id as projectId,
+            pro1.P_Name as projectName,
+            pro1.P_Code as projectCode,
+            pec.Ec_Name as preEcName,
+            pec.Ec_Code as preEcCode,
+            mn.*,
+            cmn.*
+        from  Con_EC mn
+                  left join Pre_Project pro1 on mn.P_ID=pro1.P_ID
+                  left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+                  left join  SYS_Company c1 on mn.Ec_Supervisor_Id=c1.C_Id
+                  left join  SYS_Company c2 on mn.Ec_Consulting_Unit_Id=c2.C_Id
+                  left join  Con_Contact_List cl on cl.Cl_Id=mn.Cl_Id
+                  left join  Con_Contract con on con.Con_Id=mn.Con_Id
+                  left join  Pre_Project pro on con.Con_Project_Id=pro.P_ID
+                  left join  SYS_Company c3 on pro.P_Construction_Unit=c3.C_Id
+                  left join  SYS_Department d on pro.P_Competent_Department=d.D_Id
+                  left join  SYS_Department d1 on mn.Ec_Dep=d1.D_Id
+                  left join  SYS_Company c5 on mn.Ec_Create_C_Id=c5.C_Id
+                  left join  SYS_Company c6 on con.Con_Party_B_Id=c6.C_Id
+                  left join  SYS_Company c7 on mn.Ec_Design_Id=c7.C_Id
+                  left join  SYS_Company c8 on mn.Ec_Put_Forward=c8.C_Id
+                  left join  SYS_Company c9 on mn.Ec_Construction=c9.C_Id
+                  left join  SYS_Company c10 on mn.Ec_Cost_Consulting=c10.C_Id
+                  left join  Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+                  left join  Con_Enis enis on dco.Enis_Id=enis.Enis_Id
+                  left join  Con_Enis ces on ces.Enis_Id=mn.Enis_Id
+                  left join  Con_EC pec on pec.Ec_Id=mn.Pre_Ec_Id
+                  left join Change_Meeting_Notification cmn on cmn.id = mn.cmn_id
+        where mn.Ec_Id=#{ecId}
+    </select>
+
+    <select id="getConEcByConId" resultType="com.jpmsoft.common.model.response.Contract.ConEcResponse">
+        select
+            con.Con_Name as conName,
+            con.Con_Code as conCode,
+            con.Con_Money_Total as conMoneyTotal,
+            con.Con_Party_B_Id as conPartyBId,
+            pro.P_Name as pName,
+            pro.P_Name_History as pNameHistory,
+            pro.P_Id as pId,
+            c1.C_Name as ecSupervisorName,
+            c2.C_Name as ecConsultingUnitName,
+            c3.C_Name as pConstructionUnitName,
+            c1.C_Name_History as ecSupervisorNameHistory,
+            c2.C_Name_History as ecConsultingUnitNameHistory,
+            c3.C_Name_History as pConstructionUnitNameHistory,
+            d.D_Name as pCompetentDepartmentName,
+            d1.D_Name as ecDepName,
+            c5.C_Name as ecCreateCName,
+            c6.C_Name as conPartyBName,
+            c7.C_Name as ecDesignName,
+            c8.C_Name as ecPutForwardName,
+            c9.C_Name as ecConstName,
+            c10.C_Name as ecCostConsulName,
+            c1.C_Abbreviation as ecSupervisorAbbName,
+            c2.C_Abbreviation as ecConsultingUnitAbbName,
+            c3.C_Abbreviation as pConsAbbName,
+            c5.C_Abbreviation as ecCreateCAbbName,
+            c6.C_Abbreviation as conPartyBAbbName,
+            c7.C_Abbreviation as ecDesignAbbName,
+            cl.Cl_Title as clTitle,
+            sec.Sec_Name as secName,
+            dco.Dco_Code as dcoCode,
+            dco.Dco_Project_Name as dcoProjectName,
+            dco.Dco_Major as dcoMajor,
+            enis.Enis_Code as enisCode,
+            ces.Enis_Project_Name as enisName,
+            ces.Enis_Code as enisCodeSelf,
+            pro1.P_Id as projectId,
+            pro1.P_Name as projectName,
+            pro1.P_Code as projectCode,
+            pec.Ec_Name as preEcName,
+            pec.Ec_Code as preEcCode,
+            mn.*
+        from  Con_EC mn
+                  left join Pre_Project pro1 on mn.P_ID=pro1.P_ID
+                  left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+                  left join  SYS_Company c1 on mn.Ec_Supervisor_Id=c1.C_Id
+                  left join  SYS_Company c2 on mn.Ec_Consulting_Unit_Id=c2.C_Id
+                  left join  Con_Contact_List cl on cl.Cl_Id=mn.Cl_Id
+                  left join  Con_Contract con on con.Con_Id=mn.Con_Id
+                  left join  Pre_Project pro on con.Con_Project_Id=pro.P_ID
+                  left join  SYS_Company c3 on pro.P_Construction_Unit=c3.C_Id
+                  left join  SYS_Department d on pro.P_Competent_Department=d.D_Id
+                  left join  SYS_Department d1 on mn.Ec_Dep=d1.D_Id
+                  left join  SYS_Company c5 on mn.Ec_Create_C_Id=c5.C_Id
+                  left join  SYS_Company c6 on con.Con_Party_B_Id=c6.C_Id
+                  left join  SYS_Company c7 on mn.Ec_Design_Id=c7.C_Id
+                  left join  SYS_Company c8 on mn.Ec_Put_Forward=c8.C_Id
+                  left join  SYS_Company c9 on mn.Ec_Construction=c9.C_Id
+                  left join  SYS_Company c10 on mn.Ec_Cost_Consulting=c10.C_Id
+                  left join  Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+                  left join  Con_Enis enis on dco.Enis_Id=enis.Enis_Id
+                  left join  Con_Enis ces on ces.Enis_Id=mn.Enis_Id
+                  left join  Con_EC pec on pec.Ec_Id=mn.Pre_Ec_Id
+        where mn.Con_Id=#{conId} and mn.Ec_State=7
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ecChangeType!=null">
+            and mn.Ec_Change_Type=#{params.ecChangeType}
+        </if>
+        <if test="params.ecApplyMoneyType!=null">
+            and mn.Ec_Apply_Money_Type=#{params.ecApplyMoneyType}
+        </if>
+        <if test="params.ecDurationType!=null">
+            and mn.Ec_Duration_Type=#{params.ecDurationType}
+        </if>
+        <if test="params.ecDesignOrder!=null">
+            and mn.Ec_Design_Order=#{params.ecDesignOrder}
+        </if>
+        <if test="params.ecAuditType!=null">
+            and mn.Ec_Audit_Type=#{params.ecAuditType}
+        </if>
+        <if test="params.pId!=null">
+            and pro.P_ID=#{params.pId}
+        </if>
+        <if test="params.ecState!=null">
+            and mn.Ec_State=#{params.ecState}
+        </if>
+        <if test="params.ecType!=null">
+            and mn.Ec_Type=#{params.ecType}
+        </if>
+        <if test="params.ecDep!=null">
+            and mn.Ec_Dep=#{params.ecDep}
+        </if>
+        <if test="params.ecMainCause!=null">
+            and mn.Ec_Main_Cause=#{params.ecMainCause}
+        </if>
+        <if test="params.ecDrawingLibrary!=null">
+            and mn.Ec_Drawing_Library=#{params.ecDrawingLibrary}
+        </if>
+        <if test="params.ecConstructionName!=null">
+            and mn.Ec_Construction_Name like concat('%',#{params.ecConstructionName},'%')
+        </if>
+        <if test="params.ecName!=null">
+            and mn.Ec_Name like concat('%',#{params.ecName},'%')
+        </if>
+        <if test="params.ecPartName!=null">
+            and mn.Ec_Part_Name like concat('%',#{params.ecPartName},'%')
+        </if>
+        <if test="params.ecCode!=null">
+            and mn.Ec_Code like concat('%',#{params.ecCode},'%')
+        </if>
+        <if test="params.ecResponsibleParty!=null">
+            and mn.Ec_Responsible_Party like concat('%',#{params.ecResponsibleParty},'%')
+        </if>
+        <if test="params.ecGrade!=null">
+            and mn.Ec_Grade like concat('%',#{params.ecGrade},'%')
+        </if>
+        <if test="params.ecWarn!=null">
+            and mn.Ec_Warn like concat('%',#{params.ecWarn},'%')
+        </if>
+        <if test="params.ecDesignOrderCode!=null">
+            and mn.Ec_Design_Order_Code like concat('%',#{params.ecDesignOrderCode},'%')
+        </if>
+        <if test="params.ecCreateUname!=null">
+            and mn.Ec_Create_Uname like concat('%',#{params.ecCreateUname},'%')
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.ecConstName!=null">
+                    and likeCname(#{params.ecConstName},c9.C_Id)=true
+                </if>
+                <if test="params.ecCostConsulName!=null">
+                    and likeCname(#{params.ecCostConsulName},c10.C_Id)=true
+                </if>
+                <if test="params.ecSupervisorName!=null">
+                    and likeCname(#{params.ecSupervisorName},c1.C_Id)=true
+                </if>
+                <if test="params.pName!=null">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+                <if test="params.pConstructionUnitName!=null">
+                    and likeCname(#{params.pConstructionUnitName},proc.C_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.ecConstName!=null">
+                    and c9.C_Name like concat('%',#{params.ecConstName},'%')
+                </if>
+                <if test="params.ecCostConsulName!=null">
+                    and c10.C_Name like concat('%',#{params.ecCostConsulName},'%')
+                </if>
+                <if test="params.ecSupervisorName!=null">
+                    and c1.C_Name like concat('%',#{params.ecSupervisorName},'%')
+                </if>
+                <if test="params.pName!=null">
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </if>
+                <if test="params.pConstructionUnitName!=null">
+                    and proc.C_Name like concat('%',#{params.pConstructionUnitName},'%')
+                </if>
+            </otherwise>
+        </choose>
+        <if test="params.ecReason!=null">
+            and mn.Ec_Reason like concat('%',#{params.ecReason},'%')
+        </if>
+        <if test="params.ecContent!=null">
+            and mn.Ec_Content like concat('%',#{params.ecContent},'%')
+        </if>
+        <if test="params.enisCode!=null">
+            and enis.Enis_Code like concat('%',#{params.enisCode},'%')
+        </if>
+        <if test="params.conId != null">
+            and mn.Con_Id= #{params.conId}
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.ecDepName!=null">
+            and d1.D_Name like concat('%',#{params.ecDepName},'%')
+        </if>
+        <if test="params.enisName!=null">
+            and ces.Enis_Project_Name like concat('%',#{params.enisName},'%')
+        </if>
+        <!--区间筛选-->
+        <if test="params.ecCreateTimeStart!=null">
+            and mn.Ec_Create_Time > #{params.ecCreateTimeStart}
+        </if>
+        <if test="params.ecCreateTimeEnd!=null">
+            and mn.Ec_Create_Time &lt; #{params.ecCreateTimeEnd}
+        </if>
+        <if test="params.ecApplyMoneyStart!=null">
+            and mn.Ec_Apply_Money > #{params.ecApplyMoneyStart}
+        </if>
+        <if test="params.ecApplyMoneyEnd!=null">
+            and mn.Ec_Apply_Money &lt; #{params.ecApplyMoneyEnd}
+        </if>
+        <if test="params.ecDurationStart!=null">
+            and mn.Ec_Duration > #{params.ecDurationStart}
+        </if>
+        <if test="params.ecDurationEnd!=null">
+            and mn.Ec_Duration &lt; #{params.ecDurationEnd}
+        </if>
+        <if test="params.ecTotalMoneyStart!=null">
+            and mn.Ec_Total_Money > #{params.ecTotalMoneyStart}
+        </if>
+        <if test="params.ecTotalMoneyEnd!=null">
+            and mn.Ec_Total_Money &lt; #{params.ecTotalMoneyEnd}
+        </if>
+        <if test="params.ecTotalMoneyPlusStart!=null">
+            and mn.Ec_Total_Money_Plus > #{params.ecTotalMoneyPlusStart}
+        </if>
+        <if test="params.ecTotalMoneyPlusEnd!=null">
+            and mn.Ec_Total_Money_Plus &lt; #{params.ecTotalMoneyPlusEnd}
+        </if>
+        <if test="params.ecTotalMoneyMinusStart!=null">
+            and mn.Ec_Total_Money_Minus > #{params.ecTotalMoneyMinusStart}
+        </if>
+        <if test="params.ecTotalMoneyMinusEnd!=null">
+            and mn.Ec_Total_Money_Minus &lt; #{params.ecTotalMoneyMinusEnd}
+        </if>
+        <if test="params.ecFinalMoneyAfterStart!=null">
+            and mn.Ec_Final_Money_After > #{params.ecFinalMoneyAfterStart}
+        </if>
+        <if test="params.ecFinalMoneyAfterEnd!=null">
+            and mn.Ec_Final_Money_After &lt; #{params.ecFinalMoneyAfterEnd}
+        </if>
+        <if test="params.ecFinalMoneyStart!=null">
+            and mn.Ec_Final_Money > #{params.ecFinalMoneyStart}
+        </if>
+        <if test="params.ecFinalMoneyEnd!=null">
+            and mn.Ec_Final_Money &lt; #{params.ecFinalMoneyEnd}
+        </if>
+        <if test="params.ecTotalMoneyCStart!=null">
+            and mn.Ec_Total_Money_C > #{params.ecTotalMoneyCStart}
+        </if>
+        <if test="params.ecTotalMoneyCEnd!=null">
+            and mn.Ec_Total_Money_C &lt; #{params.ecTotalMoneyCEnd}
+        </if>
+        <if test="params.ecTotalMoneyCRateStart!=null">
+            and mn.Ec_Total_Money_C_Rate > #{params.ecTotalMoneyCRateStart}
+        </if>
+        <if test="params.ecTotalMoneyCRateEnd!=null">
+            and mn.Ec_Total_Money_C_Rate &lt; #{params.ecTotalMoneyCRateEnd}
+        </if>
+        <if test="params.conEcFeeFilter!=null">
+            <if test="params.conEcFeeFilter==1">
+                and mn.Ec_Id in (select Ec_Id from Con_EC_Fee where Ecf_State!=3)
+            </if>
+            <if test="params.conEcFeeFilter==2">
+                and mn.Ec_Id not in (select Ec_Id from Con_EC_Fee where Ecf_State!=3 and Ec_Id is not null)
+            </if>
+        </if>
+        <if test="params.authUser!=null and params.authCpy!=null">
+            and (
+            mn.con_id in (select conpu.con_id from Contract_Permission_User conpu where  conpu.u_id=#{params.authUser} )
+            or
+            mn.con_id in (select cpc.con_id from Contract_Permission_Company cpc where  cpc.c_id=#{params.authCpy} )
+            )
+        </if>
+        <if test="params.authUser!=null  and params.authCpy==null">
+            and mn.con_id in (select conpu.con_id from Contract_Permission_User conpu where  conpu.u_id=#{params.authUser} )
+        </if>
+        <if test="params.authCpy!=null  and params.authUser==null">
+            and  mn.con_id in (select cpc.con_id from Contract_Permission_Company cpc where  cpc.c_id=#{params.authCpy} )
+        </if>
+        <if test="params.ecDataSeparate!=null">
+            and mn.ec_Data_Separate = #{params.ecDataSeparate}
+        </if>
+    </sql>
+
+    <select id="getConEcList" resultType="com.jpmsoft.common.model.response.Contract.ConEcResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Party_B_Id as conPartyBId,
+        con.Con_Project_Id as pId,
+        c1.C_Name as ecSupervisorName,
+        c2.C_Name as ecConsultingUnitName,
+        d1.D_Name as ecDepName,
+        c5.C_Name as ecCreateCName,
+        c6.C_Name as conPartyBName,
+        c7.C_Name as ecDesignName,
+        c8.C_Name as ecPutForwardName,
+        c9.C_Name as ecConstName,
+        c10.C_Name as ecCostConsulName,
+        c1.C_Abbreviation as ecSupervisorAbbName,
+        c2.C_Abbreviation as ecConsultingUnitAbbName,
+        c5.C_Abbreviation as ecCreateCAbbName,
+        c6.C_Abbreviation as conPartyBAbbName,
+        c7.C_Abbreviation as ecDesignAbbName,
+        cl.Cl_Title as clTitle,
+        sec.Sec_Name as secName,
+        dco.Dco_Code as dcoCode,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Major as dcoMajor,
+        enis.Enis_Code as enisCode,
+        ces.Enis_Project_Name as enisName,
+        ces.Enis_Code as enisCodeSelf,
+        pro1.P_Id as projectId,
+        pro1.P_Name as projectName,
+        pro1.P_Code as projectCode,
+        pec.Ec_Name as preEcName,
+        pec.Ec_Code as preEcCode,
+        mn.*
+        from Con_EC mn
+        left join Pre_Project pro1 on mn.P_ID=pro1.P_ID
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Ec_Supervisor_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Ec_Consulting_Unit_Id=c2.C_Id
+        left join Con_Contact_List cl on cl.Cl_Id=mn.Cl_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department d1 on mn.Ec_Dep=d1.D_Id
+        left join SYS_Company c5 on mn.Ec_Create_C_Id=c5.C_Id
+        left join SYS_Company c6 on con.Con_Party_B_Id=c6.C_Id
+        left join SYS_Company c7 on mn.Ec_Design_Id=c7.C_Id
+        left join  SYS_Company c8 on mn.Ec_Put_Forward=c8.C_Id
+        left join  SYS_Company c9 on mn.Ec_Construction=c9.C_Id
+        left join  SYS_Company c10 on mn.Ec_Cost_Consulting=c10.C_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        left join Con_Enis enis on dco.Enis_Id=enis.Enis_Id
+        left join Con_Enis ces on ces.Enis_Id=mn.Enis_Id
+        left join  Con_EC pec on pec.Ec_Id=mn.Pre_Ec_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <include refid="listConECfilterClassInfo"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ec_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getConEcStandingBook" resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ConEcStandingBookVo">
+        select
+        sum(mn.Ec_Apply_Money) as ecApplyMoneySum,
+        sum(mn.Ec_Total_Money_C) as ecTotalMoneyCSum,
+        sum(mn.Ec_Duration) as ecDurationSum
+        from Con_EC mn
+        left join Pre_Project pro1 on mn.P_ID=pro1.P_ID
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Ec_Supervisor_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Ec_Consulting_Unit_Id=c2.C_Id
+        left join Con_Contact_List cl on cl.Cl_Id=mn.Cl_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department d1 on mn.Ec_Dep=d1.D_Id
+        left join SYS_Company c5 on mn.Ec_Create_C_Id=c5.C_Id
+        left join SYS_Company c6 on con.Con_Party_B_Id=c6.C_Id
+        left join SYS_Company c7 on mn.Ec_Design_Id=c7.C_Id
+        left join  SYS_Company c8 on mn.Ec_Put_Forward=c8.C_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        left join  Con_Enis ces on ces.Enis_Id=mn.Enis_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+    </select>
+
+    <!--************************************* DM *************************************-->
+    <select id="getConEcStatisticsOverview" resultType="Map" databaseId="dm">
+        select
+            sum(case when Ec_State=7 then Ec_Final_Money else 0 end) as changeAmtCount,
+            sum(case when Ec_State=7 and to_char(Ec_State_Time,'mm')=to_char(now(),'mm') then Ec_Final_Money else 0 end) as changeAmtNew,
+            count(1) as changeCount,
+            sum(case when  to_char(Ec_State_Time,'mm')=to_char(now(),'mm') then 1 else 0 end) as changeNewCount,
+            sum(case when Ec_State=7 then 1 else 0 end) as closeCount,
+            sum(case when Ec_State=7 and to_char(Ec_State_Time,'mm')=to_char(now(),'mm') then 1 else 0 end) as closeNewCount
+        from  Con_EC
+        where Ec_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if>
+    </select>
+    <!--************************************* postgre *************************************-->
+    <select id="getConEcStatisticsOverview" resultType="Map" databaseId="postgre">
+        select
+            sum(case when Ec_State=7 then Ec_Final_Money else 0 end) as changeAmtCount,
+            sum(case when Ec_State=7 and to_char(Ec_State_Time,'mm')=to_char(now(),'mm') then Ec_Final_Money else 0 end) as changeAmtNew,
+            count(1) as changeCount,
+            sum(case when  to_char(Ec_State_Time,'mm')=to_char(now(),'mm') then 1 else 0 end) as changeNewCount,
+            sum(case when Ec_State=7 then 1 else 0 end) as closeCount,
+            sum(case when Ec_State=7 and to_char(Ec_State_Time,'mm')=to_char(now(),'mm') then 1 else 0 end) as closeNewCount
+        from  Con_EC
+        where Ec_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if>
+    </select>
+    <!--************************************* Mysql *************************************-->
+    <select id="getConEcStatisticsOverview" resultType="Map" databaseId="mysql">
+        select
+            sum(case when Ec_State=7 then Ec_Final_Money else 0 end) as changeAmtCount,
+            sum(case when Ec_State=7 and date_format(Ec_State_Time,'%c')=date_format(now(),'%c') then Ec_Final_Money else 0 end) as changeAmtNew,
+            count(1) as changeCount,
+            sum(case when  date_format(Ec_State_Time,'%c')=date_format(now(),'%c') then 1 else 0 end) as changeNewCount,
+            sum(case when Ec_State=7 then 1 else 0 end) as closeCount,
+            sum(case when Ec_State=7 and date_format(Ec_State_Time,'%c')=date_format(now(),'%c') then 1 else 0 end) as closeNewCount
+        from Con_EC
+        where Ec_State!=3 <if test="teId!=null"> and Te_Id = #{teId} </if>
+    </select>
+
+    <select id="countMpcChangeVisaSituation" resultType="com.jpmsoft.projectProducer.pojo.entity.multiproject.MpcChangeVisaSituation">
+    SELECT
+        a.EcGrade typeName,
+        sum( a.ecApplyMoney ) changeAmount,
+        count( a.pId ) changeNum ,
+        '1' type
+    FROM
+        (
+        SELECT
+            ce.Ec_grade EcGrade,
+            pro.p_id pId,
+            ce.ec_apply_money ecApplyMoney
+        FROM
+            Con_EC ce
+            LEFT JOIN Con_Contract con ON con.Con_Id = ce.Con_Id
+            LEFT JOIN Pre_Project pro ON con.Con_Project_Id = pro.P_ID
+        ) a
+    GROUP BY
+        a.EcGrade;
+    </select>
+    <select id="listConEc" resultType="com.jpmsoft.common.model.response.Contract.ConEcResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Party_B_Id as conPartyBId,
+        con.Con_Project_Id as pId,
+        c1.C_Name as ecSupervisorName,
+        c2.C_Name as ecConsultingUnitName,
+        d1.D_Name as ecDepName,
+        c5.C_Name as ecCreateCName,
+        c6.C_Name as conPartyBName,
+        c7.C_Name as ecDesignName,
+        c8.C_Name as ecPutForwardName,
+        c9.C_Name as ecConstName,
+        c10.C_Name as ecCostConsulName,
+        c1.C_Abbreviation as ecSupervisorAbbName,
+        c2.C_Abbreviation as ecConsultingUnitAbbName,
+        c5.C_Abbreviation as ecCreateCAbbName,
+        c6.C_Abbreviation as conPartyBAbbName,
+        c7.C_Abbreviation as ecDesignAbbName,
+        cl.Cl_Title as clTitle,
+        sec.Sec_Name as secName,
+        dco.Dco_Code as dcoCode,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Major as dcoMajor,
+        enis.Enis_Code as enisCode,
+        ces.Enis_Project_Name as enisName,
+        ces.Enis_Code as enisCodeSelf,
+        pro1.P_Id as projectId,
+        pro1.P_Name as projectName,
+        pro1.P_Code as projectCode,
+        pec.Ec_Name as preEcName,
+        pec.Ec_Code as preEcCode,
+        con.con_declare_money conDeclareMoney,
+        mn.*
+        from Con_EC mn
+        left join Pre_Project pro1 on mn.P_ID=pro1.P_ID
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Ec_Supervisor_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Ec_Consulting_Unit_Id=c2.C_Id
+        left join Con_Contact_List cl on cl.Cl_Id=mn.Cl_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department d1 on mn.Ec_Dep=d1.D_Id
+        left join SYS_Company c5 on mn.Ec_Create_C_Id=c5.C_Id
+        left join SYS_Company c6 on con.Con_Party_B_Id=c6.C_Id
+        left join SYS_Company c7 on mn.Ec_Design_Id=c7.C_Id
+        left join  SYS_Company c8 on mn.Ec_Put_Forward=c8.C_Id
+        left join  SYS_Company c9 on mn.Ec_Construction=c9.C_Id
+        left join  SYS_Company c10 on mn.Ec_Cost_Consulting=c10.C_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        left join Con_Enis enis on dco.Enis_Id=enis.Enis_Id
+        left join Con_Enis ces on ces.Enis_Id=mn.Enis_Id
+        left join  Con_EC pec on pec.Ec_Id=mn.Pre_Ec_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <if test="params.multiContractConEcId != null">
+            and mn.multi_contract_con_ec_id = #{params.multiContractConEcId}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ec_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+    <!-- 以主流程状态、审批时间为准，不依赖子表是否已同步状态。 -->
+    <select id="getContractChangeHistory"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.contract.ContractConEcHistoryVO">
+        select history.*
+        from (
+        select ce.Ec_Id as ecId,
+        ce.Con_Id as conId,
+        mcce.uuid as flowId,
+        mcce.change_code as changeCode,
+        '01' as ecChangeType,
+        ce.Ec_Apply_Money as ecApplyMoney,
+        ce.Ec_Apply_Money_Type as ecApplyMoneyType,
+        mcce.state as ecState,
+        mcce.state_time as ecStateTime,
+        ce.Ec_Total_Money_C as ecTotalMoneyC,
+        ce.contract_available_money as contractAvailableMoney,
+        ce.estimate_available_money as estimateAvailableMoney
+        from Con_EC ce
+        inner join multi_contract_con_ec mcce on mcce.uuid = ce.multi_contract_con_ec_id
+        where ce.Ec_Change_Type = '01'
+        and mcce.state = #{finishedState}
+        and mcce.project_id = #{projectId}
+        and ce.Con_Id = #{contractId}
+        union all
+        select ce.Ec_Id as ecId,
+        ce.Con_Id as conId,
+        sv.Svis_Id as flowId,
+        null as changeCode,
+        '02' as ecChangeType,
+        ce.Ec_Apply_Money as ecApplyMoney,
+        ce.Ec_Apply_Money_Type as ecApplyMoneyType,
+        sv.Svis_State as ecState,
+        sv.Svis_State_Time as ecStateTime,
+        ce.Ec_Total_Money_C as ecTotalMoneyC,
+        ce.contract_available_money as contractAvailableMoney,
+        ce.estimate_available_money as estimateAvailableMoney
+        from Con_EC ce
+        inner join Con_Svis sv on sv.Svis_Id = ce.Con_Svis_Id
+        where ce.Ec_Change_Type = '02'
+        and sv.Svis_State = #{finishedState}
+        and sv.P_Id = #{projectId}
+        and ce.Con_Id = #{contractId}
+        ) history
+        inner join Con_Contract cc on cc.Con_Id = history.conId
+        inner join Pre_Project mn on mn.P_Id = cc.Con_Project_Id
+        ${authSql}
+        and mn.P_Id = #{projectId}
+        <if test="excludeEcId != null and excludeEcId != ''">
+            and history.ecId &lt;&gt; #{excludeEcId}
+        </if>
+        order by case when history.ecStateTime is null then 1 else 0 end,
+        history.ecStateTime desc, history.ecId desc
+    </select>
+
+    <select id="getProjectTotalConEcMoney" resultType="java.math.BigDecimal">
+        select
+        sum(case when ce.ec_apply_money_type = 0 then -ce.ec_apply_money else ce.ec_apply_money end)
+        from con_ec ce
+        left join con_contract cc on cc.con_id = ce.con_id
+        where 1 = 1
+        and cc.con_project_id = #{projectId}
+        and ce.ec_state = 7
+        <if test="contractId != null and contractId != ''">
+            and ce.con_id = #{contractId}
+        </if>
+        <if test="ecChangeType != null and ecChangeType != ''">
+            and ce.ec_change_type = #{ecChangeType}
+        </if>
+    </select>
+    <select id="getConEcCountPlusByConId" resultType="java.lang.Double">
+        select
+            sum(mn.Ec_Final_Money)
+        from  Con_EC mn
+        where
+            mn.Con_Id=#{conId}
+          and
+            mn.Ec_State=7
+          and
+            mn.Ec_Final_Money > 0
+    </select>
+    <select id="getConEcCountMinusByConId" resultType="java.lang.Double">
+        select
+            sum(mn.Ec_Final_Money)
+        from  Con_EC mn
+        where
+            mn.Con_Id=#{conId}
+          and
+            mn.Ec_State=7
+          and
+            mn.Ec_Final_Money <![CDATA[<=]]> 0
+    </select>
+
+    <select id="getReportingChangesByPidHB"
+            resultType="com.jpmsoft.common.model.response.Contract.ConEcResponse">
+        select
+        mn.Con_Id,
+        ifnull(sum(mn.Ec_Apply_Money), 0) as ecApplyMoney
+        from Con_EC mn
+        left join engineering_reporting er on er.er_id = mn.er_id
+        where er.er_state = 7
+        and mn.Ec_Id not in
+        (select ekr.Ec_Id
+        from engineering_keep_record ekr
+        where ekr.State = 7
+        <if test="conIds != null and conIds.size() != 0">
+            and ekr.Con_Id in
+            <foreach collection="conIds" item="conId" open="(" separator="," close=")">
+                #{conId}
+            </foreach>
+        </if>
+        )
+        <if test="conIds != null and conIds.size() != 0">
+            and mn.Con_Id in
+            <foreach collection="conIds" item="conId" open="(" separator="," close=")">
+                #{conId}
+            </foreach>
+        </if>
+        group by mn.Con_Id
+    </select>
+
+    <select id="getDetermineChangesByPidHB"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.other.EngineeringKeepRecord">
+        select mn.Con_Id,
+        ifnull(sum(mn.Ekr_Sdje), 0) as ekrSdje
+        from engineering_keep_record mn
+        where mn.state = 7
+        <if test="conIds != null and conIds.size() != 0">
+            and mn.Con_Id in
+            <foreach collection="conIds" item="conId" open="(" separator="," close=")">
+                #{conId}
+            </foreach>
+        </if>
+        group by mn.Con_Id
+    </select>
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select distinct ${selectClause}
+        from Con_EC mn
+        left join Pre_Project pro1 on mn.P_ID=pro1.P_ID
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Ec_Supervisor_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Ec_Consulting_Unit_Id=c2.C_Id
+        left join Con_Contact_List cl on cl.Cl_Id=mn.Cl_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department d1 on mn.Ec_Dep=d1.D_Id
+        left join SYS_Company c5 on mn.Ec_Create_C_Id=c5.C_Id
+        left join SYS_Company c6 on con.Con_Party_B_Id=c6.C_Id
+        left join SYS_Company c7 on mn.Ec_Design_Id=c7.C_Id
+        left join  SYS_Company c8 on mn.Ec_Put_Forward=c8.C_Id
+        left join  SYS_Company c9 on mn.Ec_Construction=c9.C_Id
+        left join  SYS_Company c10 on mn.Ec_Cost_Consulting=c10.C_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        left join Con_Enis enis on dco.Enis_Id=enis.Enis_Id
+        left join Con_Enis ces on ces.Enis_Id=mn.Enis_Id
+        left join  Con_EC pec on pec.Ec_Id=mn.Pre_Ec_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <include refid="listConECfilterClassInfo"/>
+    </select>
+
+    <sql id="listConECfilterClassInfo">
+        <if test="params.pNameList != null and params.pNameList.size() > 0">
+            <choose>
+                <when test="params.pNameList.contains('空白数据')">
+                    and (pro.P_Name is null or pro.P_Name = '')
+                </when>
+                <otherwise>
+                    and pro.P_Name in
+                    <foreach collection="params.pNameList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conNameList != null and params.conNameList.size() > 0">
+            <choose>
+                <when test="params.conNameList.contains('空白数据')">
+                    and (con.con_Name is null or con.con_Name = '')
+                </when>
+                <otherwise>
+                    and con.con_Name in
+                    <foreach collection="params.conNameList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ecChangeTypeList != null and params.ecChangeTypeList.size() > 0">
+            <choose>
+                <when test="params.ecChangeTypeList.contains('空白数据')">
+                    and (mn.Ec_Change_Type is null or mn.Ec_Change_Type = '')
+                </when>
+                <otherwise>
+                    and mn.Ec_Change_Type in
+                    <foreach collection="params.ecChangeTypeList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ecStateList != null and params.ecStateList.size() > 0">
+            and mn.Ec_State in
+            <foreach collection="params.ecStateList" open="(" close=")" separator="," item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.ecConstructionNameList != null and params.ecConstructionNameList.size() > 0">
+            <choose>
+                <when test="params.ecConstructionNameList.contains('空白数据')">
+                    and (mn.Ec_Construction_Name is null or mn.Ec_Construction_Name = '')
+                </when>
+                <otherwise>
+                    and mn.Ec_Construction_Name in
+                    <foreach collection="params.ecConstructionNameList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="getConEcStatisticsOverviewList"
+            resultType="com.jpmsoft.common.model.response.Contract.ConEcResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Party_B_Id as conPartyBId,
+        con.Con_Project_Id as pId,
+        c1.C_Name as ecSupervisorName,
+        c2.C_Name as ecConsultingUnitName,
+        d1.D_Name as ecDepName,
+        c5.C_Name as ecCreateCName,
+        c6.C_Name as conPartyBName,
+        c7.C_Name as ecDesignName,
+        c8.C_Name as ecPutForwardName,
+        c9.C_Name as ecConstName,
+        c10.C_Name as ecCostConsulName,
+        c1.C_Abbreviation as ecSupervisorAbbName,
+        c2.C_Abbreviation as ecConsultingUnitAbbName,
+        c5.C_Abbreviation as ecCreateCAbbName,
+        c6.C_Abbreviation as conPartyBAbbName,
+        c7.C_Abbreviation as ecDesignAbbName,
+        cl.Cl_Title as clTitle,
+        sec.Sec_Name as secName,
+        dco.Dco_Code as dcoCode,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Major as dcoMajor,
+        enis.Enis_Code as enisCode,
+        ces.Enis_Project_Name as enisName,
+        ces.Enis_Code as enisCodeSelf,
+        pro1.P_Id as projectId,
+        pro1.P_Name as projectName,
+        pro1.P_Code as projectCode,
+        pec.Ec_Name as preEcName,
+        pec.Ec_Code as preEcCode,
+        con.con_declare_money conDeclareMoney,
+        mn.*
+        from Con_EC mn
+        left join Pre_Project pro1 on mn.P_ID=pro1.P_ID
+        left join Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join SYS_Company c1 on mn.Ec_Supervisor_Id=c1.C_Id
+        left join SYS_Company c2 on mn.Ec_Consulting_Unit_Id=c2.C_Id
+        left join Con_Contact_List cl on cl.Cl_Id=mn.Cl_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Department d1 on mn.Ec_Dep=d1.D_Id
+        left join SYS_Company c5 on mn.Ec_Create_C_Id=c5.C_Id
+        left join SYS_Company c6 on con.Con_Party_B_Id=c6.C_Id
+        left join SYS_Company c7 on mn.Ec_Design_Id=c7.C_Id
+        left join SYS_Company c8 on mn.Ec_Put_Forward=c8.C_Id
+        left join SYS_Company c9 on mn.Ec_Construction=c9.C_Id
+        left join SYS_Company c10 on mn.Ec_Cost_Consulting=c10.C_Id
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        left join Con_Enis enis on dco.Enis_Id=enis.Enis_Id
+        left join Con_Enis ces on ces.Enis_Id=mn.Enis_Id
+        left join Con_EC pec on pec.Ec_Id=mn.Pre_Ec_Id
+        <where>
+            mn.Ec_State!=3
+            <if test="teId != null and teId != ''">
+                and mn.Te_Id = #{teId}
+            </if>
+            <if test="params.type != null and params.type != ''">
+                <include refid="conEcStatisticsOverviewListFilter"/>
+            </if>
+            <if test="params.ecChangeType!=null">
+                and mn.Ec_Change_Type=#{params.ecChangeType}
+            </if>
+            <if test="params.ecApplyMoneyType!=null">
+                and mn.Ec_Apply_Money_Type=#{params.ecApplyMoneyType}
+            </if>
+            <if test="params.ecDurationType!=null">
+                and mn.Ec_Duration_Type=#{params.ecDurationType}
+            </if>
+            <if test="params.ecDesignOrder!=null">
+                and mn.Ec_Design_Order=#{params.ecDesignOrder}
+            </if>
+            <if test="params.ecAuditType!=null">
+                and mn.Ec_Audit_Type=#{params.ecAuditType}
+            </if>
+            <if test="params.pId!=null">
+                and pro.P_ID=#{params.pId}
+            </if>
+            <if test="params.ecState!=null">
+                and mn.Ec_State=#{params.ecState}
+            </if>
+            <if test="params.ecType!=null">
+                and mn.Ec_Type=#{params.ecType}
+            </if>
+            <if test="params.ecDep!=null">
+                and mn.Ec_Dep=#{params.ecDep}
+            </if>
+            <if test="params.ecMainCause!=null">
+                and mn.Ec_Main_Cause=#{params.ecMainCause}
+            </if>
+            <if test="params.ecDrawingLibrary!=null">
+                and mn.Ec_Drawing_Library=#{params.ecDrawingLibrary}
+            </if>
+            <if test="params.ecConstructionName!=null">
+                and mn.Ec_Construction_Name like concat('%',#{params.ecConstructionName},'%')
+            </if>
+            <if test="params.ecName!=null">
+                and mn.Ec_Name like concat('%',#{params.ecName},'%')
+            </if>
+            <if test="params.ecPartName!=null">
+                and mn.Ec_Part_Name like concat('%',#{params.ecPartName},'%')
+            </if>
+            <if test="params.ecCode!=null">
+                and mn.Ec_Code like concat('%',#{params.ecCode},'%')
+            </if>
+            <if test="params.ecResponsibleParty!=null">
+                and mn.Ec_Responsible_Party like concat('%',#{params.ecResponsibleParty},'%')
+            </if>
+            <if test="params.ecGrade!=null">
+                and mn.Ec_Grade like concat('%',#{params.ecGrade},'%')
+            </if>
+            <if test="params.ecWarn!=null">
+                and mn.Ec_Warn like concat('%',#{params.ecWarn},'%')
+            </if>
+            <if test="params.ecDesignOrderCode!=null">
+                and mn.Ec_Design_Order_Code like concat('%',#{params.ecDesignOrderCode},'%')
+            </if>
+            <if test="params.ecCreateUname!=null">
+                and mn.Ec_Create_Uname like concat('%',#{params.ecCreateUname},'%')
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    <if test="params.ecConstName!=null">
+                        and likeCname(#{params.ecConstName},c9.C_Id)=true
+                    </if>
+                    <if test="params.ecCostConsulName!=null">
+                        and likeCname(#{params.ecCostConsulName},c10.C_Id)=true
+                    </if>
+                    <if test="params.ecSupervisorName!=null">
+                        and likeCname(#{params.ecSupervisorName},c1.C_Id)=true
+                    </if>
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </if>
+                    <if test="params.pConstructionUnitName!=null">
+                        and likeCname(#{params.pConstructionUnitName},proc.C_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.ecConstName!=null">
+                        and c9.C_Name like concat('%',#{params.ecConstName},'%')
+                    </if>
+                    <if test="params.ecCostConsulName!=null">
+                        and c10.C_Name like concat('%',#{params.ecCostConsulName},'%')
+                    </if>
+                    <if test="params.ecSupervisorName!=null">
+                        and c1.C_Name like concat('%',#{params.ecSupervisorName},'%')
+                    </if>
+                    <if test="params.pName!=null">
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                    <if test="params.pConstructionUnitName!=null">
+                        and proc.C_Name like concat('%',#{params.pConstructionUnitName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.ecReason!=null">
+                and mn.Ec_Reason like concat('%',#{params.ecReason},'%')
+            </if>
+            <if test="params.ecContent!=null">
+                and mn.Ec_Content like concat('%',#{params.ecContent},'%')
+            </if>
+            <if test="params.enisCode!=null">
+                and enis.Enis_Code like concat('%',#{params.enisCode},'%')
+            </if>
+            <if test="params.conId != null">
+                and mn.Con_Id= #{params.conId}
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.ecDepName!=null">
+                and d1.D_Name like concat('%',#{params.ecDepName},'%')
+            </if>
+            <if test="params.enisName!=null">
+                and ces.Enis_Project_Name like concat('%',#{params.enisName},'%')
+            </if>
+            <if test="params.conEcFeeFilter!=null">
+                <if test="params.conEcFeeFilter==1">
+                    and mn.Ec_Id in (select Ec_Id from Con_EC_Fee where Ecf_State!=3)
+                </if>
+                <if test="params.conEcFeeFilter==2">
+                    and mn.Ec_Id not in (select Ec_Id from Con_EC_Fee where Ecf_State!=3 and Ec_Id is not null)
+                </if>
+            </if>
+            <if test="params.ecDataSeparate!=null">
+                and mn.ec_Data_Separate = #{params.ecDataSeparate}
+            </if>
+        </where>
+        <if test="params.multiContractConEcId != null">
+            and mn.multi_contract_con_ec_id = #{params.multiContractConEcId}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ec_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="conEcStatisticsOverviewListFilter" databaseId="dm">
+        <choose>
+            <when test="params.type == 'changeAmtCount' or params.type == 'closeCount'">
+                and mn.Ec_State = 7
+            </when>
+            <when test="params.type == 'changeAmtNew' or params.type == 'closeNewCount'">
+                and mn.Ec_State = 7
+                and to_char(mn.Ec_State_Time,'mm') = to_char(now(),'mm')
+            </when>
+            <when test="params.type == 'changeNewCount'">
+                and to_char(mn.Ec_State_Time,'mm') = to_char(now(),'mm')
+            </when>
+            <when test="params.type == 'processCount'">
+                and mn.Ec_State != 3
+                and mn.Ec_State != 7
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="conEcStatisticsOverviewListFilter" databaseId="mysql">
+        <choose>
+            <when test="params.type == 'changeAmtCount' or params.type == 'closeCount'">
+                and mn.Ec_State = 7
+            </when>
+            <when test="params.type == 'changeAmtNew' or params.type == 'closeNewCount'">
+                and mn.Ec_State = 7
+                and date_format(mn.Ec_State_Time,'%c') = date_format(now(),'%c')
+            </when>
+            <when test="params.type == 'changeNewCount'">
+                and date_format(mn.Ec_State_Time,'%c') = date_format(now(),'%c')
+            </when>
+            <when test="params.type == 'processCount'">
+                and mn.Ec_State != 3
+                and mn.Ec_State != 7
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+    </sql>
+</mapper>

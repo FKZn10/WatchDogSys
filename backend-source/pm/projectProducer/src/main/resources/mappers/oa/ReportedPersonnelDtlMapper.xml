@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.ReportedPersonnelDtlMapper">
+
+    <select id="getProjPositionPName" resultType="String">
+        select distinct mn.PP_Name
+        from SYS_Position_User_P pup
+                 left join SYS_Position_P mn on mn.PP_ID=pup.PP_Id
+                 left join SYS_Department_P dp on dp.PD_ID = mn.PD_ID
+        where dp.P_Id = #{pId}
+        <if test="uIds!=null and uIds.size()>0">
+            and pup.U_Id not in
+            <foreach collection="uIds" open="(" close=")" separator="," item="uId">
+                #{uId}
+            </foreach>
+        </if>
+    </select>
+</mapper>

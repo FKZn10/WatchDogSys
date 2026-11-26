@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.xz.ProjectApplicationMapper">
+
+    <select id="queryPage" resultType="com.jpmsoft.common.model.response.xz.ProjectApplicationVO">
+        SELECT mn.*,
+        c1.d_Name as applicationCompanyName
+        FROM project_application mn
+        left join SYS_Department c1 on c1.d_Id=mn.application_company_id
+        <where>
+            <if test="projectName!=null and projectName!='' ">
+                and mn.project_name like concat('%',#{projectName},'%')
+            </if>
+            <if test="applicationCompanyId!=null and applicationCompanyId!='' ">
+                and mn.application_company_id=#{applicationCompanyId}
+            </if>
+            <if test="planYear!=null and planYear!='' ">
+                and mn.plan_year=#{planYear}
+            </if>
+            <if test="projectType!=null and projectType!='' ">
+                and mn.project_type=#{projectType}
+            </if>
+            <if test="projectManager!=null and projectManager!='' ">
+                and mn.project_manager like concat('%',#{projectManager},'%')
+            </if>
+            <if test="applicationNum!=null and applicationNum!='' ">
+                and mn.application_num like concat('%',#{applicationNum},'%')
+            </if>
+            <if test="taskStatus!=null and taskStatus!='' ">
+                and mn.task_status=#{taskStatus}
+            </if>
+            <if test="approveStatus!=null and approveStatus!='' ">
+                and mn.approve_status=#{approveStatus}
+            </if>
+            <if test="applicationCompanyName!=null and applicationCompanyName!='' ">
+                and c1.D_Name like concat('%',#{applicationCompanyName},'%')
+            </if>
+            <if test="taskStatusList!=null and taskStatusList.size()>0">
+                and mn.task_status in
+                <foreach collection="taskStatusList" open="(" close=")" separator="," item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="pageType!=null and pageType == 01">
+                <if test="!financeFlag">
+                    and (
+                    mn.create_id=#{createId}
+                    <if test="createDepartIdList!=null and createDepartIdList.size()>0">
+                    or
+                        <foreach collection="createDepartIdList" index="index" item="createDepartId" separator="or" open="("
+                                 close=")">
+                            mn.relevant_depart_id like concat('%',#{createDepartId},'%')
+                        </foreach>
+                    </if>
+                    )
+                </if>
+            </if>
+        </where>
+        <choose>
+            <when test="sortFiled!=null and sortFiled!='' and sortType!=null and sortType!=''">
+                order by CASE WHEN mn.${sortFiled} IS NULL THEN 0 ELSE mn.${sortFiled} END ${sortType}
+            </when>
+            <otherwise>
+                <if test="pageType!=null and pageType == 01">
+                order by CASE WHEN mn.pre_approve_score IS NULL THEN 0 ELSE mn.pre_approve_score END desc
+                </if>
+                <if test="pageType!=null and pageType == 02">
+                    order by CASE WHEN mn.pre_approve_score IS NULL THEN 0 ELSE mn.pre_approve_score END desc
+                </if>
+                <if test="pageType!=null and pageType == 03">
+                    order by CASE WHEN mn.final_approve_score IS NULL THEN 0 ELSE mn.final_approve_score END desc
+                </if>
+                <if test="pageType!=null and pageType == 04">
+                    order by CASE WHEN mn.final_approve_score IS NULL THEN 0 ELSE mn.final_approve_score END desc
+                </if>
+            </otherwise>
+        </choose>
+
+    </select>
+    <select id="queryDetailById" resultType="com.jpmsoft.common.model.response.xz.ProjectApplicationVO">
+        SELECT mn.*,
+        c1.d_Name as applicationCompanyName
+        FROM project_application mn
+        left join SYS_Department c1 on c1.d_Id=mn.application_company_id
+        WHERE mn.id = #{id}
+    </select>
+    <select id="queryListDetailByIds" resultType="com.jpmsoft.common.model.response.xz.ProjectApplicationVO">
+        SELECT mn.*,
+        c1.d_Name as applicationCompanyName
+        FROM project_application mn
+        left join SYS_Department c1 on c1.d_Id=mn.application_company_id
+        WHERE mn.id in
+        <foreach collection="ids" open="(" close=")" separator="," item="item">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

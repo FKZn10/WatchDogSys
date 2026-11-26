@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.OperationRecordMapper">
+    <resultMap id="OperationRecordRes" type="com.jpmsoft.projectProducer.pojo.dto.investment.OperationRecordDTO">
+        <id column="id" property="id"/>
+        <result column="record_id" property="recordId"/>
+        <result column="or_Time" property="orTime"/>
+        <result column="or_operator" property="orOperator"/>
+        <result column="or_operator_name" property="orOperatorName"/>
+        <result column="or_Type" property="orType"/>
+        <result column="or_Status_old" property="orStatusOld"/>
+        <result column="or_Status_now" property="orStatusNow"/>
+        <result column="or_remarks" property="orRemarks"/>
+        <association property="roles" javaType="java.util.List" select="getUserRoleName" column="or_operator"/>
+    </resultMap>
+
+    <select id="getOperationRecordList" resultMap="OperationRecordRes">
+        select
+        mn.*
+        from operation_Record mn
+        where mn.record_id = #{entityId}
+        order by mn.or_Time asc
+    </select>
+
+    <select id="getUserRoleName" resultType="String">
+        select distinct
+        mn.Role_Name
+        from SYS_Role mn
+        left join SYS_PositionP_Role ppr on ppr.Role_ID=mn.Role_ID
+        left join SYS_Position_Role pr on pr.Role_ID=mn.Role_ID
+        left join SYS_Position_User_P pup on pup.PP_ID=ppr.PP_ID
+        left join SYS_Position_User pu on pu.P_ID=pr.P_ID
+        where pup.U_ID=#{uId} or pu.U_ID=#{uId}
+    </select>
+</mapper>

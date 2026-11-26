@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.investment.InvMonthlyScheduleMapper">
+
+    <select id="getInvMonthlyScheduleByPidsAndYearMon"
+            resultType="com.jpmsoft.common.model.export.response.InvMonthlyScheduleModel">
+        select
+        ipv.P_Id as pId,
+        mn.Ims_Cumulative_Inv as imsCumulativeInv,
+        mn.Ims_Img_Progress as imsImgProgress,
+        mn.Ims_Month as imsMonth
+        from  Inv_Monthly_Schedule mn
+        left join  Inv_Plan_Year ipv on ipv.Ipv_Id=mn.Ipv_Id
+        where ipv.Ipv_Declare_Year=#{year} and mn.Ims_Month &lt;= #{month}
+        and ipv.P_Id in
+        <foreach collection="pIds" separator="," open="(" close=")" item="pId">
+            #{pId}
+        </foreach>
+    </select>
+
+    <select id="getInvMonthlyScheduleByIpvIds"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvMonthlyScheduleResponse">
+        select
+        ipv.Ipv_Declare_Year as ipvDeclareYear,
+        mn.*
+        from  Inv_Monthly_Schedule mn
+        left join  Inv_Plan_Year ipv on ipv.Ipv_Id=mn.Ipv_Id
+        where mn.ipv_Id in
+        <foreach collection="ipvIds" separator="," open="(" close=")" item="ipvId">
+            #{ipvId}
+        </foreach>
+    </select>
+    <select id="getInvMonthlySchedule"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvMonthlySchedule">
+        select mn.*
+        from Inv_Monthly_Schedule mn
+        left join  Inv_Plan_Year ipv on ipv.Ipv_Id=mn.Ipv_Id
+        where ipv.P_Id = #{pId} and mn.Ims_Month = #{gfpMonth} and ipv.Ipv_Declare_Year = #{gfpYear} and ipv.Ipv_State = 7
+    </select>
+    <select id="selectInvMonthlySchedule"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvMonthlySchedule">
+        select ims.* from Inv_Monthly_Schedule ims
+        left join Inv_Plan_Year ipv on ims.ipv_id = ipv.ipv_id
+        <where>
+            ipv.Ipv_State=7
+            <if test="projectId != null and projectId != ''">
+                and ipv.P_Id = #{projectId}
+            </if>
+            <if test="contractID != null and contractID != ''">
+                and ipv.Con_Id = #{contractID}
+            </if>
+            <if test="year != null">
+                and ipv.Ipv_Declare_Year = #{year}
+            </if>
+            <if test="month != null">
+                and ims.Ims_Month = #{month}
+            </if>
+        </where>
+    </select>
+    <select id="selectInvMonthlyScheduleByInvPlanYear"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.investment.InvMonthlySchedule">
+        select ims.* from Inv_Monthly_Schedule ims where ims.ipv_id=#{ipvId}
+    </select>
+
+    <select id="getInvMonthlyScheduleStatisticsOverviewList"
+            resultType="com.jpmsoft.common.model.response.InvestmentControl.InvPlanYearResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        sd.D_Name as ipvDName, con.Con_Name as conName, cany.c_name as ipvCName,
+        depAgg.dep_names as pCompetentDepartmentNames,
+        mn.*,
+        ims.Ims_Month as imsMonth,
+        ims.Ims_Planned_Inv as imsPlannedInv
+        from Inv_Plan_Year mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join SYS_Department sd on mn.Ipv_D_Id=sd.D_ID
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company cany on mn.Ipv_C_id = cany.c_Id
+        left join Inv_Monthly_Schedule ims on ims.Ipv_Id = mn.Ipv_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.investment.InvPlanYearMapper.joinPCompetentDepartmentNames"/>
+        <where>
+            ims.Ims_Id is not null
+            <if test="params.type != null and params.type != ''">
+                <include refid="invMonthlyScheduleStatisticsOverviewListFilter"/>
+            </if>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.ipvDId!=null">
+                and mn.Ipv_D_Id = #{params.ipvDId}
+            </if>
+            <if test="params.ipvDeclareYear!=null">
+                and mn.Ipv_Declare_Year = #{params.ipvDeclareYear}
+            </if>
+            <if test="params.ipvConstStatus!=null">
+                and mn.Ipv_Const_Status = #{params.ipvConstStatus}
+            </if>
+            <if test="params.ipvLibrary!=null">
+                and mn.Ipv_Library = #{params.ipvLibrary}
+            </if>
+            <if test="params.pId!=null">
+                and mn.P_Id = #{params.pId}
+            </if>
+            <if test="params.ipvState!=null">
+                and mn.Ipv_State = #{params.ipvState}
+            </if>
+            <if test="params.ipvCName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likeCname(#{params.ipvCName},cany.C_Id)=true
+                    </when>
+                    <otherwise>
+                        and cany.c_name like concat('%',#{params.ipvCName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.ipvNewly!=null">
+                and mn.Ipv_Newly = #{params.ipvNewly}
+            </if>
+            <if test="params.ipvPType!=null">
+                and mn.Ipv_P_Type = #{params.ipvPType}
+            </if>
+            <if test="params.ipvCompleted!=null">
+                and mn.Ipv_Completed = #{params.ipvCompleted}
+            </if>
+            <if test="params.pCompetentDepartment!=null">
+                and pro.P_Competent_Department = #{params.pCompetentDepartment}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conName!=null">
+                and con.con_name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.projectName != null">
+                and pro.P_Name like concat('%', #{params.projectName}, '%')
+            </if>
+            <if test="params.contractName != null">
+                and con.con_name like concat('%', #{params.contractName}, '%')
+            </if>
+            <if test="params.isLeaderBoard==1">
+                and mn.Ipv_State!=3 and mn.Ipv_State!=0
+            </if>
+            <if test="params.ipvConstructionStatus!=null">
+                and mn.ipv_construction_status = #{params.ipvConstructionStatus}
+            </if>
+        </where>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Ipv_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="invMonthlyScheduleStatisticsOverviewListFilter" databaseId="dm">
+        <choose>
+            <when test="params.type == 'currentMonInv'">
+                and mn.Ipv_State = 7
+                and mn.Ipv_Declare_Year = to_char(now(), 'yyyy')
+                and cast(to_char(now(), 'mm') as int) >= ims.Ims_Month
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="invMonthlyScheduleStatisticsOverviewListFilter" databaseId="mysql">
+        <choose>
+            <when test="params.type == 'currentMonInv'">
+                and mn.Ipv_State = 7
+                and mn.Ipv_Declare_Year = DATE_FORMAT(NOW(), '%Y')
+                and cast(date_format(now(), '%c') as unsigned) &gt;= ims.Ims_Month
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+    </sql>
+</mapper>

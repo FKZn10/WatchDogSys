@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecSelectionRecordDtlMapper">
+
+    <select id="getSelectionRecordDtlList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecSelectionRecordDtlModel">
+        select * from  Sec_Selection_Record_Dtl  ssrd
+        left join  Sec_Selection_Record ssr on ssr.Sr_Id=ssrd.Sr_Id
+        left join Sec_Expert se on ssrd.Ex_Id = se.Ex_Id
+        <where>
+            ssr.State!=3
+            <if test="params.exId!=null and params.exId!=''">
+                and ssrd.Ex_Id=#{params.exId}
+            </if>
+            <if test="params.srId!=null and params.srId!=''">
+                and ssrd.Sr_Id=#{params.srId}
+            </if>
+            <if test="params.secId!=null and params.secId!=''">
+                and ssr.Sec_Id=#{params.secId}
+            </if>
+            <if test="params.srdAttend!=null  ">
+                and ssrd.Srd_Attend = #{params.srdAttend}
+            </if>
+            <include refid="sameBidTimeFilter" />
+            <if test="params.notSecIdList!=null and params.notSecIdList.size()>0 ">
+                and ssr.Sec_Id not in
+                <foreach collection="params.notSecIdList"  item="item" index="index"  open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+
+    <sql id="sameBidTimeFilter" databaseId="dm">
+        <if test="params.sameBidTime!=null and params.sameBidTime!='' ">
+            and to_char(ssr.Sr_Bid_Time,'yyyy-MM-dd') = to_char(#{params.sameBidTime},'yyyy-MM-dd')
+        </if>
+    </sql>
+
+    <sql id="sameBidTimeFilter" databaseId="mysql">
+        <if test="params.sameBidTime!=null and params.sameBidTime!='' ">
+            and DATE_FORMAT(ssr.Sr_Create_Time,'%Y-%m-%d') = DATE_FORMAT(#{params.sameBidTime},'%Y-%m-%d')
+        </if>
+    </sql>
+
+    <select id="getSelectionRecordDtlListByExId"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecSelectionRecordDtlModel">
+        select
+        mn.*,
+        se.*,
+        ssr.*,
+        c1.C_Name as cName,
+        c1.C_Abbreviation as cAbbName,
+        c1.C_Name_History as cNameHistory,
+        c2.C_Name as exApplicantCName,
+        u1.U_Name as exApplicantName,
+        pp.P_Name as pName,
+        si.Sec_Name as secName,
+        pp.P_Category as pCategory,
+        secd.total_Deduction as totalDeduction,
+        sec.Create_Time as ecCreateTime,
+        sec.State as ecState,
+        sec.id as ecId
+        from Sec_Selection_Record_Dtl mn
+        left join Sec_Selection_Record ssr on ssr.Sr_Id = mn.Sr_Id
+        left join Sec_Expert_Check sec on sec.Sr_Id = ssr.Sr_Id
+        left join Sec_Expert_Check_Detail secd on secd.ec_Id = sec.id and secd.Ex_Id = mn.Ex_Id
+        left join Sec_Expert se on mn.Ex_Id = se.Ex_Id
+        left join Sys_Company c1 on c1.C_Id=se.C_Id
+        left join Sys_User u1 on u1.U_Id = se.Ex_Applicant_Id
+        left join Sys_Company c2 on c2.C_Id = u1.C_Id
+        left join Pre_project pp on pp.P_Id = ssr.P_Id
+        left join Sec_Info si on si.Sec_Id = ssr.Sec_Id
+        where ssr.State = 7
+        and mn.Srd_Attend = 1
+        <if test="params.exId!=null and params.exId!=''">
+            and mn.Ex_Id=#{params.exId}
+        </if>
+        <if test="params.srId!=null and params.srId!=''">
+            and mn.Sr_Id=#{params.srId}
+        </if>
+        <if test="params.secId!=null and params.secId!=''">
+            and ssr.Sec_Id=#{params.secId}
+        </if>
+    </select>
+
+    <select id="getListByExIds"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.secInfo.SecSelectionRecordDtl">
+        select mn.*
+        from Sec_Selection_Record_Dtl mn
+        left join Sec_Selection_Record ssr on ssr.Sr_Id = mn.Sr_Id
+        where ssr.State = 7
+        and mn.Srd_Attend = 1
+        and mn.Ex_Id in
+        <foreach collection="exIds" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

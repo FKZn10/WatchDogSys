@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.peInfo.PeMeetingConfirmBackMapper">
+
+    <select id="getMeetingConfirmBackList" resultType="com.jpmsoft.common.model.response.PeMeetingConfirmBackResponse">
+        select
+        b.Back_Id as backId,
+        b.Back_Uid as backUid,
+        b.Back_Uname as backUname,
+        b.Back_Create_Time as backCreateTime,
+        b.Back_Type as backType,
+        b.Back_Reason as backReason,
+        c.C_Name as peCompanyName,
+        c.C_Name_History as peCompanyNameHistory,
+        unit.C_Name as peUnitName,
+        pc.C_Name as pBuildUnitName,
+        c.C_Abbreviation as peCompanyAbbName,
+        unit.C_Abbreviation as peUnitAbbName,
+        pc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompDepName,
+        case when p.Pe_Contract_Category='02' then sr.Sc_Name else con.con_Name end as conName,
+        case when p.Pe_Contract_Category='02' then sr.Sc_Money else con.con_Money_Total end as conMoneyTotal,
+        case when p.Pe_Contract_Category='02' then sr.Sc_Type else con.con_Type end as conType,
+        case when p.Pe_Contract_Category='02' then sr.Sc_Code else con.con_Code end as conCode,
+        pro.P_Name_History as pNameHistory,
+        pro.P_Name as pName,
+        <include refid="PeInfoFileds"/>
+        from Pe_MeetingConfirm_Back b
+        left join Pe_Info p on p.pe_Id=b.pe_Id
+        left join Con_Contract con on p.Pe_Con_Id=con.Con_Id
+        left join Pre_Project pro on pro.P_Id=p.Pe_Project_Id
+        left join SYS_Company c on c.C_Id=p.Pe_Company_Id
+        left join SYS_Company unit on unit.C_Id=p.Pe_Unit_Id
+        left join SYS_Company pc on pc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join Subcontract_Record sr on p.Pe_Sub_Contract=sr.Sc_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and p.Te_Id = #{params.teId}
+        </if>
+        <if test="params.backType!=null">
+            and b.Back_Type =#{params.backType}
+        </if>
+        <if test="params.pId!=null">
+           and p.Pe_Project_Id =#{params.pId}
+        </if>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by b.${params.sortFiled} ${params.sortType}
+        </if>
+        <if test="params.sortType==null or params.sortFiled==null">
+            order by b.Back_Create_Time desc
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getMeetingConfirmBackListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Pe_MeetingConfirm_Back b
+        left join Pe_Info p on p.pe_Id=b.pe_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and p.Te_Id = #{params.teId}
+        </if>
+        <if test="params.backType!=null">
+            and b.Back_Type =#{params.backType}
+        </if>
+        <if test="params.pId!=null">
+            and p.Pe_Project_Id =#{params.pId}
+        </if>
+    </select>
+
+    <sql id="PeInfoFileds">
+        p.Pe_Id as peId,
+        p.Pe_Con_Id as peConId,
+        p.Pe_Project_Id as peProjectId,
+        p.Pe_Pm as pePm,
+        p.Pe_Pm_Id as pePmId,
+        p.Pe_Pm_Tel as pePmTel,
+        p.Pe_Com_Principal as peComPrincipal,
+        p.Pe_Com_Principal_Tel as peComPrincipalTel,
+        p.Pe_Date as peDate,
+        p.Pe_Year as peYear,
+        p.Pe_Quarter as peQuarter,
+        p.Pe_Type as peType,
+        p.Pe_Company_Id as peCompanyId,
+        p.Pe_Team_Score as peTeamScore,
+        p.Pe_Team_Meeting_Time as peTeamMeetingTime,
+        p.Pe_Con_Type as peConType,
+        p.Pe_Stage as peStage,
+        p.Pe_Unit_Id as peUnitId,
+        p.Pe_Names as peNames,
+        p.Pe_Team_Opinion as peTeamOpinion,
+        p.Pe_Drus_Score as peDrusScore,
+        p.Pe_Drus_Opinion as peDrusOpinion,
+        p.Pe_Quality_Score as peQualityScore,
+        p.Pe_Safety_Score as peSafetyScore,
+        p.Pe_Material_Score as peMaterialScore,
+        p.Pe_Material_Inspect as peMaterialInspect,
+        p.Pe_Final_Score as peFinalScore,
+        p.Pe_Final_Grade as peFinalGrade,
+        p.Pe_Grade_Rule as peGradeRule,
+        p.Pe_Create_Uid as peCreateUid,
+        p.Pe_Create_Uname as peCreateUname,
+        p.Pe_Create_Time as peCreateTime,
+        p.Pe_Flow_State as peFlowState,
+        p.Pe_Flow_State_Time as peFlowStateTime,
+        p.Pe_State as peState,
+        p.Pe_Con_Start_Date as peConStartDate,
+        p.Pe_Con_End_Date as peConEndDate,
+        p.Pe_Administrative_Sanction  as peAdministrativeSanction,
+        p.Pe_Petition_Record  as pePetitionRecord,
+        p.Pe_F_Id  as peFId,
+        p.Pe_Remark  as peRemark,
+        p.Pe_Extra_Points  as  peExtraPoints,
+        p.Pe_Deduct_Points  as  peDeductPoints,
+        p.Pe_Extra_Points_Remark  as  peExtraPointsRemark,
+        p.Pe_Deduct_Points_Remark  as  peDeductPointsRemark,
+        p.Pe_Join  as  peJoin
+    </sql>
+</mapper>

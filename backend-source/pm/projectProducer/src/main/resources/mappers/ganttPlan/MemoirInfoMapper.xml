@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.ganttPlan.MemoirInfoMapper">
+
+    <select id="getMemoirInfoById" resultType="com.jpmsoft.projectProducer.pojo.dto.ganttPlan.MemoirInfoDTO">
+        select c1.c_name    as miCpyName,
+               pro.p_name   as pName,
+               sec.sec_name as secName,
+               con.con_name as conName,
+               gt.Task_Text as taskText,
+               mn.*
+        from memoir_info mn
+                 left join pre_project pro on pro.p_id = mn.p_id
+                 left join sec_info sec on sec.sec_id = mn.sec_id
+                 left join con_contract con on con.con_id = mn.con_id
+                 left join Gantt_Tasks gt on gt.task_id = mn.task_id
+                 left join Sys_Company c1 on c1.c_id = mn.mi_cpy
+        where mn.id = #{id}
+    </select>
+
+
+    <select id="getMemoirInfoList" resultType="com.jpmsoft.projectProducer.pojo.dto.ganttPlan.MemoirInfoDTO">
+        select
+        c1.c_name as miCpyName,
+        pro.p_name as pName,
+        sec.sec_name as secName,
+        con.con_name as conName,
+        gt.Task_Text as taskText,
+        mn.*
+        from memoir_info mn
+        left join pre_project pro on pro.p_id=mn.p_id
+        left join sec_info sec on sec.sec_id=mn.sec_id
+        left join con_contract con on con.con_id=mn.con_id
+        left join Gantt_Tasks gt on gt.task_id=mn.task_id
+        left join Sys_Company c1 on c1.c_id=mn.mi_cpy
+        ${authSql}
+        <if test="params.pId!=null and params.pId!=''">
+            and mn.p_id=#{params.pId}
+        </if>
+        <if test="params.secId!=null and params.secId!=''">
+            and mn.sec_id=#{params.secId}
+        </if>
+        <if test="params.conId!=null and params.conId!=''">
+            and mn.con_id=#{params.conId}
+        </if>
+        <if test="params.miCpy!=null and params.miCpy!=''">
+            and mn.mi_cpy=#{params.miCpy}
+        </if>
+        <if test="params.state!=null">
+            and mn.state=#{params.state}
+        </if>
+        <if test="params.createUid!=null and params.createUid!=''">
+            and mn.create_uid=#{params.createUid}
+        </if>
+        <if test="params.createUname!=null and params.createUname!=''">
+            and INSTR(mn.create_uname,#{params.createUname})
+        </if>
+        <if test="params.miTitle!=null and params.miTitle!=''">
+            and INSTR(mn.mi_title,#{params.miTitle})
+        </if>
+        <if test="params.pName!=null and params.pName!=''">
+            and INSTR(pro.p_name,#{params.pName})
+        </if>
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                <if test="params.pName!=null and params.pName!=''">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </if>
+                <if test="params.miCpyName!=null and params.miCpyName!=''">
+                    and likeCname(#{params.miCpyName},c1.C_Id)=true
+                </if>
+            </when>
+            <otherwise>
+                <if test="params.pName!=null and params.pName!=''">
+                    and INSTR(pro.p_name,#{params.pName})
+                </if>
+                <if test="params.miCpyName!=null and params.miCpyName!=''">
+                    and INSTR(c1.c_name,#{params.miCpyName})
+                </if>
+            </otherwise>
+        </choose>
+        <if test="params.secName!=null and params.secName!=''">
+            and INSTR(sec.sec_name,#{params.secName})
+        </if>
+        <if test="params.conName!=null and params.conName!=''">
+            and INSTR(con.con_name,#{params.conName})
+        </if>
+        <if test="params.miType !=null and params.miType!=''">
+            and mn.mi_type=#{params.miType}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.mi_time asc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

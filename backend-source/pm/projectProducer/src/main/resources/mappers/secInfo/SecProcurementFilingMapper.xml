@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecProcurementFilingMapper">
+
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecProcurementFilingModel"
+               id="SecProcurementFilingModel">
+        <id column="Pf_Id" property="pfId"/>
+        <collection property="secFundingSources"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecFundingSourceModel"
+                    column="Pf_Id" select="getSecFundingSources">
+        </collection>
+    </resultMap>
+    <select id="getSecFundingSources"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecFundingSourceModel">
+        select mn.*
+        from Sec_Funding_Source mn
+        where mn.Sfs_Foreign_Id = #{pfId}
+    </select>
+
+    <select id="getSecProcurementFilingById" resultMap="SecProcurementFilingModel">
+        select pro.P_Name         as pName,
+               pro.P_Name_History as pNameHisotry,
+               pro.P_Inv_Total    as pInvTotal,
+               f.file_relation_id as fileRelationId,
+               mn.*
+        from Sec_Procurement_Filing mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Sys_File f on f.FileID = mn.Pf_Id
+        where mn.Pf_Id = #{pfId}
+    </select>
+
+    <select id="getSecProcurementFilingLastByPid" resultMap="SecProcurementFilingModel">
+        select pro.P_Name         as pName,
+               pro.P_Name_History as pNameHisotry,
+               pro.P_Inv_Total    as pInvTotal,
+               f.file_relation_id as fileRelationId,
+               mn.*
+        from Sec_Procurement_Filing mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Sys_File f on f.FileID = mn.Pf_Id
+        where mn.P_Id = #{pId}  and mn.Pf_State=7
+        order by mn.Pf_State_Time desc limit 1
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pfAgreeChange!=null">
+            and mn.Pf_Agree_Change=#{params.pfAgreeChange}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.pfState!=null">
+            and mn.Pf_State=#{params.pfState}
+        </if>
+        <if test="params.pType!=null">
+            and mn.P_Type=#{params.pType}
+        </if>
+        <if test="params.pfPermit!=null">
+            and mn.Pf_Permit=#{params.pfPermit}
+        </if>
+        <if test="params.pfBidding!=null">
+            and mn.Pf_Bidding=#{params.pfBidding}
+        </if>
+        <if test="params.pfCalibration!=null">
+            and mn.Pf_Calibration=#{params.pfCalibration}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pfSecName!=null">
+            and mn.Pf_Sec_Name like concat('%',#{params.pfSecName},'%')
+        </if>
+        <if test="params.pfPmName!=null">
+            and mn.Pf_Pm_Name like concat('%',#{params.pfPmName},'%')
+        </if>
+        <if test="params.pfTelephone!=null">
+            and mn.Pf_Telephone like concat('%',#{params.pfTelephone},'%')
+        </if>
+    </sql>
+
+    <select id="getSecProcurementFilingList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecProcurementFilingModel">
+        select
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHisotry,
+        pro.P_Inv_Total as pInvTotal,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from Sec_Procurement_Filing mn
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join Sys_File f on f.FileID=mn.Pf_Id
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Pf_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+</mapper>

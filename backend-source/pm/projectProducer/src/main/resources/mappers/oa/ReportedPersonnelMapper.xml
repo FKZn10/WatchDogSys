@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.ReportedPersonnelMapper">
+
+    <resultMap type="com.jpmsoft.common.model.requestAndResponse.Oa.ReportedPersonnelModel"
+               id="selectReportedPersonnel">
+        <id column="Rp_Id" property="rpId"/>
+        <collection property="repPersonnelDtls"
+                    ofType="com.jpmsoft.common.model.requestAndResponse.Oa.ReportedPersonnelDtlModel"
+                    column="Rp_Id" select="selectReportedPersonnelDtls">
+        </collection>
+    </resultMap>
+
+    <select id="selectReportedPersonnelDtls"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.ReportedPersonnelDtlModel">
+        select dp.PD_Name        as pdName,
+               pp.PP_Name        as ppName,
+               pp.PP_Code        as ppCode,
+               rpd.Rpd_Name      as uName,
+               rpd.Rpd_Tel       as uMtel,
+               rpd.Rpd_Number    as uIdcard,
+               c1.C_Name         as cName,
+               c1.C_Abbreviation as cAbbName,
+               rpd.*,
+               c2.C_Name as ownerUnitName
+        from Reported_Personnel_Dtl rpd
+                 left join SYS_Department_P dp on dp.PD_ID = rpd.Rpd_Pdid
+                 left join SYS_Position_P pp on pp.PP_ID = rpd.Rpd_PpId
+                 left join SYS_Company c1 on c1.C_Id = rpd.Rpd_Cpy
+                 left join SYS_Company c2 on c2.C_ID = rpd.owner_unit
+        where rpd.Rp_Id = #{rpId}
+        order by rpd.Rpd_Sort Asc
+    </select>
+
+
+    <select id="getReportedPersonnelById" resultMap="selectReportedPersonnel">
+        select f.file_relation_id as fileRelationId,
+        pro.P_Name as pName,
+        pro.P_Name_History as pNameHistory,
+        pro.P_Code as pCode,
+        pro.P_Project_Stage as pProjectStage,
+        pro.P_Build_Model as pBuildModel,
+        pro.p_Competent_Department as pCompetentDepartment,
+        dp.d_name as pCompetentDepartmentName,
+        mn.*,
+        case when (pro.State !=3 and pro.State != 7 and pro.ppr_id is not null) or gms.P_Project_Stage is null then '00'
+        else gms.P_Project_Stage end as pProjectStageOrganization
+        from Reported_Personnel mn
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join gantt_milestone_statistics gms on gms.P_Id=mn.P_Id
+        left join Sys_File f on f.FileID = mn.Rp_Id
+        left join Sys_Department dp on dp.d_id=pro.p_Competent_Department
+        where mn.Rp_Id = #{rpId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.rpState!=null">
+            and mn.Rp_State = #{params.rpState}
+        </if>
+        <if test="params.rpType!=null">
+            and mn.Rp_Type = #{params.rpType}
+        </if>
+        <if test="params.rpChangeType!=null">
+            and mn.Rp_Change_Type = #{params.rpChangeType}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and (pro.P_Name_History like concat('%',#{params.pName},'%')
+                    or likePname(#{params.pName},pro.P_Id)=true)
+                </when>
+                <otherwise>
+                    and (pro.P_Name_History like concat('%',#{params.pName},'%')
+                    or pro.P_Name like concat('%',#{params.pName},'%'))
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and pro.P_Code like concat('%',#{params.pCode},'%')
+        </if>
+        <if test="params.rpCreateUname!=null">
+            and mn.Rp_Create_Uname like concat('%',#{params.rpCreateUname},'%')
+        </if>
+    </sql>
+
+    <select id="getReportedPersonnelList" resultMap="selectReportedPersonnel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from Reported_Personnel mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Rp_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

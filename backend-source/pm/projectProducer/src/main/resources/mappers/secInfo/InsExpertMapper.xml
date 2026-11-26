@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.InsExpertMapper">
+
+
+<!--    <select id="selectExpertsWithChangeType" resultMap="">-->
+<!--        SELECT-->
+<!--            ie.*,-->
+<!--            scd.change_type-->
+<!--        FROM-->
+<!--            ins_expert ie-->
+<!--                LEFT JOIN-->
+<!--            storage_change_detail scd-->
+<!--            ON-->
+<!--                ie.ex_id = scd.ex_id-->
+<!--    </select>-->
+
+
+    <resultMap id="BaseResultMap" type="com.jpmsoft.projectProducer.pojo.entity.secInfo.InsExpert">
+            <id property="exId" column="Ex_Id" />
+            <result property="cId" column="C_Id" />
+            <result property="exName" column="Ex_Name" />
+            <result property="exSex" column="Ex_Sex" />
+            <result property="exBirthday" column="Ex_Birthday" />
+            <result property="exFamily" column="Ex_Family" />
+            <result property="exIdType" column="Ex_Id_Type" />
+            <result property="exIdNumber" column="Ex_Id_Number" />
+            <result property="exLocation" column="Ex_Location" />
+            <result property="exPolitics" column="Ex_Politics" />
+            <result property="exEducation" column="Ex_Education" />
+            <result property="exMajor" column="Ex_Major" />
+            <result property="exSchool" column="Ex_School" />
+            <result property="exWorkState" column="Ex_Work_State" />
+            <result property="exProfessionalYears" column="Ex_Professional_Years" />
+            <result property="exWorkUnit" column="Ex_Work_Unit" />
+            <result property="exPost" column="Ex_Post" />
+            <result property="exTitle" column="Ex_Title" />
+            <result property="exTitleNumber" column="Ex_Title_Number" />
+            <result property="exProfessionalCategory" column="Ex_Professional_Category" />
+            <result property="exIndustry" column="Ex_Industry" />
+            <result property="exWorkAddress" column="Ex_Work_Address" />
+            <result property="exCellphoneNumber" column="Ex_Cellphone_Number" />
+            <result property="exPostcode" column="Ex_Postcode" />
+            <result property="exFax" column="Ex_Fax" />
+            <result property="exHomePhone" column="Ex_Home_Phone" />
+            <result property="exEmail" column="Ex_Email" />
+            <result property="exMailAddress" column="Ex_Mail_Address" />
+            <result property="exBidMajor" column="Ex_Bid_Major" />
+            <result property="exPracticeQualification" column="Ex_Practice_Qualification" />
+            <result property="exBidArea" column="Ex_Bid_Area" />
+            <result property="exPersonalResearch" column="Ex_Personal_Research" />
+            <result property="exProjects" column="Ex_Projects" />
+            <result property="exAvoidanceUnit" column="Ex_Avoidance_Unit" />
+            <result property="exCreateUid" column="Ex_Create_Uid" />
+            <result property="exCreateUname" column="Ex_Create_Uname" />
+            <result property="exCreateTime" column="Ex_Create_Time" />
+            <result property="exState" column="Ex_State" />
+            <result property="exStateTime" column="Ex_State_Time" />
+            <result property="exCategory" column="Ex_Category" />
+            <result property="exStartDate" column="Ex_Start_Date" />
+            <result property="exTilteDate" column="Ex_Tilte_Date" />
+            <result property="exPracticeDate" column="Ex_Practice_Date" />
+            <result property="exPracticeCode" column="Ex_Practice_Code" />
+            <result property="exMainWork" column="Ex_Main_Work" />
+            <result property="exPersonalResult" column="Ex_Personal_Result" />
+            <result property="exStatus" column="Ex_Status" />
+            <result property="exType" column="Ex_Type" />
+            <result property="exQualification" column="Ex_Qualification" />
+            <result property="exDiplomaMajor" column="Ex_Diploma_Major" />
+            <result property="exWorkTime" column="Ex_Work_Time" />
+            <result property="exWorkYear" column="Ex_Work_Year" />
+            <result property="exWorkMon" column="Ex_Work_Mon" />
+            <result property="exCpy" column="Ex_Cpy" />
+            <result property="exCpyPost" column="Ex_Cpy_Post" />
+            <result property="exFinishDate" column="ex_finish_date" />
+            <result property="exPostNum" column="ex_post_num" />
+            <result property="exMajorNum" column="ex_major_num" />
+            <result property="exBankAccount" column="ex_bank_account" />
+            <result property="exBank" column="ex_bank" />
+            <result property="exCardFile" column="ex_card_file" />
+            <result property="exDegree" column="ex_degree" />
+            <result property="exPerformFile" column="ex_perform_file" />
+            <result property="exTitleFile" column="ex_title_file" />
+            <result property="exPromiseFile" column="ex_promise_file" />
+            <result property="exAvoidFile" column="ex_avoid_file" />
+            <result property="exOtherFile" column="ex_other_file" />
+            <result property="exPlaintextNum" column="ex_plaintext_num" />
+            <result property="teId" column="te_id" />
+            <result property="exIsAvoidance" column="Ex_Is_Avoidance" />
+            <result property="exSysWorkYear" column="Ex_Sys_Work_Year" />
+            <result property="exDeclareMajorOne" column="Ex_Declare_Major_One" />
+            <result property="exDeclareMajorTwo" column="Ex_Declare_Major_Two" />
+            <result property="exAvoid" column="Ex_Avoid" />
+            <result property="exApplicantId" column="Ex_Applicant_Id" />
+            <result property="personnelState" column="personnel_State" />
+            <result property="personnelTimeStr" column="personnel_Time_Str" />
+            <result property="personnelTimeEnd" column="personnel_Time_End" />
+            <result property="inLibrary" column="in_Library" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        Ex_Id,C_Id,Ex_Name,Ex_Sex,Ex_Birthday,Ex_Family,
+        Ex_Id_Type,Ex_Id_Number,Ex_Location,Ex_Politics,Ex_Education,
+        Ex_Major,Ex_School,Ex_Work_State,Ex_Professional_Years,Ex_Work_Unit,
+        Ex_Post,Ex_Title,Ex_Title_Number,Ex_Professional_Category,Ex_Industry,
+        Ex_Work_Address,Ex_Cellphone_Number1,Ex_Cellphone_Number2,Ex_Postcode,Ex_Fax,
+        Ex_Home_Phone,Ex_Email,Ex_Mail_Address,Ex_Bid_Major,Ex_Practice_Qualification,
+        Ex_Bid_Area,Ex_Personal_Research,Ex_Projects,Ex_Avoidance_Unit,Ex_Create_Uid,
+        Ex_Create_Uname,Ex_Create_Time,Ex_State,Ex_State_Time,Ex_Category,
+        Ex_Start_Date,Ex_Tilte_Date,Ex_Practice_Date,Ex_Practice_Code,Ex_Main_Work,
+        Ex_Personal_Result,Ex_Status,Ex_Type,Ex_Qualification,Ex_Diploma_Major,
+        Ex_Work_Time,Ex_Work_Year,Ex_Work_Mon,Ex_Cpy,Ex_Cpy_Post,
+        ex_finish_date,ex_post_num,ex_major_num,ex_bank_account,ex_bank,
+        ex_card_file,ex_degree,ex_perform_file,ex_title_file,ex_promise_file,
+        ex_avoid_file,ex_other_file,ex_plaintext_num,te_id,Ex_Is_Avoidance,
+        Ex_Sys_Work_Year,Ex_Declare_Major_One,Ex_Declare_Major_Two,Ex_Avoid,Ex_Applicant_Id,
+        personnel_State,personnel_Time_Str,personnel_Time_End,in_Library
+    </sql>
+</mapper>

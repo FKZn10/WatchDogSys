@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.HolidayVacationsMapper">
+
+    <!-- ********************************** dm **********************************-->
+    <select id="getWorkDayBetween" databaseId="dm"
+            resultType="Integer">
+        select count(*)
+        from HolidayVacations
+        where Hv_Weekday=1
+        and to_char(Hv_Day,'yyyy-MM-dd')>=#{a}
+        and to_char(Hv_Day,'yyyy-MM-dd')&lt;=#{b}
+    </select>
+
+    <select id="getWorkDayBetween" databaseId="postgre"
+            resultType="Integer">
+        select count(*)
+        from HolidayVacations
+        where Hv_Weekday=1
+          and to_char(Hv_Day,'yyyy-MM-dd')>=#{a}
+          and to_char(Hv_Day,'yyyy-MM-dd')&lt;=#{b}
+    </select>
+
+
+    <!-- ********************************** mysql **********************************-->
+
+    <select id="getWorkDayBetween" databaseId="mysql"
+            resultType="Integer">
+        select count(*)
+        from HolidayVacations
+        where Hv_Weekday=1
+        and  date_format(Hv_Day,'%Y-%m-%d')>=date_format(#{a},'%Y-%m-%d')
+        and  date_format(Hv_Day,'%Y-%m-%d')&lt;=date_format(#{b},'%Y-%m-%d')
+    </select>
+</mapper>

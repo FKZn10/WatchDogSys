@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProSourcesFundsMapper">
+
+    <select id="getSourcesFundsSumByPids" resultType="Map">
+        select
+        p_Id as "pId",
+        sum(Fs_Money) as "fsMoney"
+        from  Pro_Sources_Funds
+        where P_Id in
+        <foreach collection="pIds" open="(" close=")" separator="," item="item">
+            #{item}
+        </foreach>
+        group by P_Id
+    </select>
+</mapper>

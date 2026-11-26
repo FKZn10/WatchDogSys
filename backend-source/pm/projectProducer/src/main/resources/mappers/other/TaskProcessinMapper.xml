@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.other.TaskProcessinMapper">
+    <select id="getCurrentNode" resultType="com.jpmsoft.projectProducer.pojo.entity.other.FlowActivity">
+        select *
+        from SYS_FlowActivity
+        where ActFlowID = #{flowId}
+          and ActType = 'startEvent'
+        limit 1
+    </select>
+
+    <select id="getTaskProcessListByEntityId" resultType="com.jpmsoft.projectProducer.pojo.entity.other.TaskProcessin">
+        select tp.*,
+               us.U_Name as uName
+        from Sys_Task_Processin tp
+                 left join SYS_User us on tp.tp_user = us.U_ID
+                 left join SYS_FlowActivity act on act.ActID = tp.tp_actid
+        where tp.tp_entityid = #{entityId}
+          and act.ActType not like '%Gateway'
+        order by tp.tp_dotime asc
+    </select>
+</mapper>

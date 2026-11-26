@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProImageProgressMapper">
+
+    <resultMap id="proImageProgressModel"
+               type="com.jpmsoft.common.model.requestAndResponse.Project.ProImageProgressModel" >
+        <id column="id" property="id"/>
+        <result column="img" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <collection property="imgList" ofType="java.lang.String"
+                    column="img" select="getImg">
+        </collection>
+        <collection property="commentCount" ofType="java.lang.Integer"
+                    column="id" select="getCommentCount">
+        </collection>
+        <collection property="likeCount" ofType="java.lang.Integer"
+                    column="id" select="getLikeCount">
+        </collection>
+        <collection property="isLike" ofType="java.lang.Boolean"
+                    column="{id = id,userId = userId}" select="getIsLike">
+        </collection>
+    </resultMap>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.title != '' and params.title != null">
+            and mn.title like concat('%',#{params.title},'%')
+        </if>
+        <if test="params.pName != '' and params.pName != null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and mn.pName like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="getProImageProgressList" resultMap="proImageProgressModel">
+        select
+        pro.P_Name as pName,
+        mn.*,
+        #{params.userId} as userId
+        from Pro_Image_Progress mn
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by ISNULL(mn.${params.sortFiled}),mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ISNULL(${params.sortSideFiled}),${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getProImageProgressListCount" resultType="java.lang.Integer">
+        select count(1)
+        from Pro_Image_Progress mn
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+
+    <select id="getProImageProgressById" resultMap="proImageProgressModel">
+        select pro.P_Name as pName,
+               mn.*,
+               #{userId} as userId
+        from Pro_Image_Progress mn
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+        where mn.id = #{id}
+    </select>
+
+    <select id="getImg" resultType="java.lang.String">
+        select file_id
+        from sys_fileannex
+        where file_relation_id = #{img}
+    </select>
+
+    <select id="getCommentCount" resultType="java.lang.Integer">
+        select count(1)
+        from Pro_Image_Progress_Comment
+        where Ip_Id = #{id}
+    </select>
+
+    <select id="getLikeCount" resultType="java.lang.Integer">
+        select count(1)
+        from Pro_Image_Progress_Like
+        where Ip_Id = #{id}
+    </select>
+
+    <select id="getIsLike" resultType="java.lang.Boolean">
+        select CAST(count(1) as bit)
+        from Pro_Image_Progress_Like
+        where Ip_Id = #{id}
+        and create_uid = #{userId}
+    </select>
+</mapper>

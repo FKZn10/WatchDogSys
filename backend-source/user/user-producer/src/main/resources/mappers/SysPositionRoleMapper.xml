@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysPositionRoleMapper">
+
+    <select id="loginToGetUserRoleName" resultType="com.jpmsoft.userProducer.pojo.entity.SysRole">
+        select distinct mn.* from  SYS_Role mn
+        left join SYS_PositionP_Role ppr on ppr.Role_ID=mn.Role_ID
+        left join SYS_Position_Role pr on pr.Role_ID=mn.Role_ID
+        left join SYS_Position_User_P pup on pup.PP_ID=ppr.PP_ID
+        left join SYS_Position_User pu on pu.P_ID=pr.P_ID
+        where pup.U_ID=#{uId} or pu.U_ID=#{uId}
+    </select>
+
+    <select id="getAllBtnPowerRole" resultType="com.jpmsoft.userProducer.pojo.dto.BtnPowerRoleDto">
+        select
+        distinct
+        r.Role_Name as roleName,
+        p.Power_Code as powerCode
+        from SYS_Role_Power srp
+        left join SYS_Power p on p.Power_ID=srp.Power_ID
+        left join SYS_Role r on r.Role_ID=srp.Role_ID
+        where p.Power_Type='1' and p.Power_Status='1'
+        and r.Role_Name in
+        <foreach collection="userRoles" open="(" close=")" separator="," item="role">
+            #{role}
+        </foreach>
+    </select>
+
+    <select id="getUserRoleSource" resultType="com.jpmsoft.userProducer.pojo.vo.SysRoleSourceVo">
+        select distinct
+        mn.*,
+        null as P_Id,
+        null as P_Name,
+        p.P_Name as ppName,
+        d.D_Name as pdName,
+        '岗位' as sourceType
+        from SYS_Role mn
+        left join SYS_Position_Role pr on pr.Role_ID = mn.Role_ID
+        left join SYS_Position_User pu on pu.P_ID = pr.P_ID
+        left join SYS_Position p on pu.P_ID = p.P_ID
+        left join SYS_Department d on d.D_ID=p.D_ID
+        <where>
+            and pu.U_ID = #{params.uId}
+            <if test="params.pName != null and params.pName != ''">
+                and 1 = 0
+            </if>
+            <if test="params.ppName != null and params.ppName != ''">
+                and p.P_Name like concat('%', #{params.ppName}, '%')
+            </if>
+            <if test="params.roleName != null and params.roleName != ''">
+                and mn.Role_Name like concat('%', #{params.roleName}, '%')
+            </if>
+        </where>
+        union all
+        select distinct
+        mn.*,
+        pro.P_Id,
+        pro.P_Name,
+        p.PP_Name as ppName,
+        d.PD_Name as pdName,
+        '项目岗位' as sourceType
+        from SYS_Role mn
+        left join SYS_PositionP_Role ppr on ppr.Role_ID = mn.Role_ID
+        left join SYS_Position_User_P pup on pup.PP_ID = ppr.PP_ID
+        left join SYS_Position_P p on pup.PP_ID = p.PP_ID
+        left join SYS_Department_P d on d.PD_ID = p.PD_ID
+        left join Pre_Project pro on pro.P_Id = d.P_Id
+        <where>
+            and pup.U_ID = #{params.uId}
+            <if test="params.pName != null and params.pName != ''">
+                and pro.P_Name like concat('%', #{params.pName}, '%')
+            </if>
+            <if test="params.ppName != null and params.ppName != ''">
+                and p.PP_Name like concat('%', #{params.ppName}, '%')
+            </if>
+            <if test="params.roleName != null and params.roleName != ''">
+                and mn.Role_Name like concat('%', #{params.roleName}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="getUserPositionNamesByUid" resultType="java.lang.String">
+        select distinct p.P_Name
+        from SYS_Role mn
+        left join SYS_Position_Role pr on pr.Role_ID = mn.Role_ID
+        left join SYS_Position_User pu on pu.P_ID = pr.P_ID
+        left join SYS_Position p on pu.P_ID = p.P_ID
+        left join SYS_Department d on d.D_ID=p.D_ID
+        where pu.U_ID = #{params.uId}
+        and p.P_Name is not null
+    </select>
+</mapper>

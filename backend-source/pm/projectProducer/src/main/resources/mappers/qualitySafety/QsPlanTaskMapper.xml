@@ -1,0 +1,1902 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.qualitySafety.QsPlanTaskMapper">
+
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskVo" id="getQsPlanTask">
+        <id column="id" property="id"/>
+        <collection property="qsRecords" ofType="com.jpmsoft.common.model.response.Qs.QsRecordResponse"
+                    column="id" select="getQsRecord">
+        </collection>
+    </resultMap>
+    <resultMap type="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskVo" id="getQsPlanTask2">
+        <id column="id" property="id"/>
+        <collection property="qsRecords" ofType="com.jpmsoft.common.model.response.Qs.QsRecordResponse"
+                    column="id" select="getQsRecord2">
+        </collection>
+    </resultMap>
+
+    <sql id="QsPTSpotCheckColumn">
+       qpt.Qsp_Id Qsp_Id,
+       qpt.P_ID pId,
+       qpt.Con_Id conId,
+       qpt.Pt_Contractor_Id ptContractorId,
+       qpt.Pt_Supervisor_Id ptSupervisorId,
+       qpt.Pt_Pm ptPm,
+       qpt.Pt_Cse ptCse,
+       qpt.Pt_Group_Leader ptGroupLeader,
+       qpt.Pt_Team_Leader ptTeamLeader,
+       qpt.Pt_Group_Member ptGroupMember,
+       qpt.Pt_Evaluation_Time ptEvaluationTime,
+       qpt.Pt_Evaluation_Unit_Id ptEvaluationUnitId,
+       qpt.Pt_Last_Construction ptLastConstruction,
+       qpt.Pt_Construction ptConstruction,
+       qpt.Pt_Description ptDescription,
+       qpt.Pt_Mrq ptMrq,
+       qpt.Pt_Evaluation_Result ptEvaluationResult,
+       qpt.Pt_Group_leader_Name ptGroupLeaderName,
+       qpt.Pt_Team_Leader_Name ptTeamLeaderName,
+       qpt.Pt_Group_Member_Name ptGroupMemberName,
+       qpt.Pt_Problem_Count ptProblemCount,
+       qpt.Pt_Rectify_Require_Time ptRectifyRequireTime,
+       qpt.Pt_Rectify_Cid ptRectifyCid,
+       qpt.Pt_Finish_Count ptFinishCount,
+       qpt.Pt_Problem_Report ptProblemReport,
+       qpt.Pt_Rectify_Report ptRectifyReport,
+       qpt.Pt_Type ptType,
+       qpt.Pt_Rectify_Time ptRectifyTime,
+       qpt.Pt_Rectify_Remark ptRectifyRemark,
+       qpt.Pt_Code ptCode,
+       qpt.Pt_Pitfall ptPitfall,
+       qpt.Pt_Reply ptReply,
+       qpt.Pt_Category ptCategory,
+       qpt.Pt_Measure Pt_Measure,
+       qpt.Pt_Is_Construction ptIsConstruction,
+       qpt.Pt_Concrete ptConcrete,
+       qpt.Pt_Rectify_Reply ptRectifyReply,
+       qpt.Pt_Notice_Type ptNoticeType,
+       qpt.Pt_Problem ptProblem,
+       qpt.Pt_Rectify_Suggest ptRectifySuggest,
+       qpt.Pt_Rectify_Limit_Time ptRectifyLimitTime,
+       qpt.Pt_Rectify_Person ptRectifyPerson
+    </sql>
+
+    <select id="getQsRecord"
+            resultType="com.jpmsoft.common.model.response.Qs.QsRecordResponse">
+        select con.Con_Name        as conName,
+               pro.P_Name          as pName,
+               con.Con_Code        as conCode,
+               con.Con_Money_Total as conMoneyTotal,
+               proc.C_Name         as pConstructionUnitName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               f.file_relation_id  as fileRelationId,
+               qt.Qst_Name         as qstName,
+               qt.Qst_Code         as qstCode,
+               qt.Qst_Item         as qstItem,
+               qt.Qst_Is_Important          as qstIsImportant,
+               c1.C_Name           as qsrDutyCpyName,
+               u1.U_Name           as rectifyUname,
+               mn.*
+        from Qs_Record mn
+                 left join Qs_Type qt on qt.Qst_Id = mn.Qst_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+                 left join SYS_Company c1 on c1.C_Id = mn.Qsr_Duty_Cpy
+                 left join Sys_User u1 on u1.U_Id = mn.Qsr_Rectify_Uid
+                 left join Sys_File f on f.FileID = mn.Qsr_Id
+        where mn.Pt_Id = #{id}
+        order by mn.Qsr_Create_Time ASC
+    </select>
+
+
+    <select id="getQsPlanTaskById" resultMap="getQsPlanTask">
+        select pro.P_Name         as pName,
+               pro.P_Code         as pCode,
+               con.Con_Name       as conName,
+               con.Con_Code       as conCode,
+               c1.C_Name          as ptContractorName,
+               c1.C_Abbreviation  as ptContractorAbbName,
+               c2.C_Name          as ptSupervisorName,
+               c2.C_Abbreviation  as ptSupervisorAbbName,
+               c3.C_Name          as ptEvaluationUnitName,
+               c3.C_Abbreviation  as ptEvaluationUnitAbbName,
+               c4.C_Name          as ptRectifyName,
+               c4.C_Abbreviation  as ptRectifyAbbName,
+               u1.U_Name          as ptPmName,
+               u2.U_Name          as ptCseName,
+               qp.Qsp_Code        as qspCode,
+               qp.Qsp_Name        as qspName,
+               f.File_Relation_Id as fileRelationId,
+               mn.*
+        from Qs_Plan_Task mn
+                 left join Qs_Plan qp on qp.Qsp_Id = mn.Qsp_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join Con_Contract con on con.Con_Id = mn.Con_Id
+                 left join SYS_Company c1 on c1.C_Id = mn.Pt_Contractor_Id
+                 left join SYS_Company c2 on c2.C_Id = mn.Pt_Supervisor_Id
+                 left join SYS_Company c3 on c3.C_Id = mn.Pt_Evaluation_Unit_Id
+                 left join SYS_Company c4 on c4.C_Id = mn.Pt_Rectify_Cid
+                 left join Sys_User u1 on u1.U_Id = mn.Pt_Pm
+                 left join Sys_User u2 on u2.U_Id = mn.Pt_Cse
+                 left join Sys_File f on f.FileId = mn.id
+        where mn.Id = #{id}
+    </select>
+
+    <select id="getQsPlanTaskListExport" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskVo" databaseId="dm">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name as ptContractorName,
+        c1.C_Abbreviation as ptContractorAbbName,
+        c2.C_Name as ptSupervisorName,
+        c2.C_Abbreviation as ptSupervisorAbbName,
+        c3.C_Name as ptEvaluationUnitName,
+        c3.C_Abbreviation as ptEvaluationUnitAbbName,
+        c4.C_Name as ptRectifyName,
+        c4.C_Abbreviation as ptRectifyAbbName,
+        u1.U_Name as ptPmName,
+        u2.U_Name as ptCseName,
+        qp.Qsp_Code as qspCode,
+        qp.Qsp_Name as qspName,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3) as qsRecordCount,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3 and rec.Qsr_Rectify_Status='03')
+        as qsFinishCount,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3 and rec.Qsr_Rectify_Reply is not
+        null) as qsReplyCount,
+        mn.*
+        from Qs_Plan_Task mn
+        left join Qs_Plan qp on qp.Qsp_Id=mn.Qsp_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id = mn.Pt_Contractor_Id
+        left join SYS_Company c2 on c2.C_Id = mn.Pt_Supervisor_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Pt_Evaluation_Unit_Id
+        left join SYS_Company c4 on c4.C_Id = mn.Pt_Rectify_Cid
+        left join Sys_User u1 on u1.U_Id = mn.Pt_Pm
+        left join Sys_User u2 on u2.U_Id = mn.Pt_Cse
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ptType!=null">
+            and mn.Pt_Type=#{params.ptType}
+        </if>
+        <if test="params.ptCategory!=null">
+            and mn.Pt_Category=#{params.ptCategory}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.ptMeasure!=null">
+            and mn.Pt_Measure=#{params.ptMeasure}
+        </if>
+        <if test="params.ptIsConstruction!=null">
+            and mn.Pt_Is_Construction=#{params.ptIsConstruction}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.ptCode!=null">
+            and INSTR(mn.Pt_Code,#{params.ptCode})
+        </if>
+        <if test="params.ptGroupLeaderName!=null">
+            and INSTR(mn.Pt_Group_Leader_Name,#{params.ptGroupLeaderName})
+        </if>
+        <if test="params.ptTeamLeaderName!=null">
+            and INSTR(mn.Pt_Team_Leader_Name,#{params.ptTeamLeaderName})
+        </if>
+        <if test="params.ptGroupMemberName!=null">
+            and INSTR(mn.Pt_Group_Member_Name,#{params.ptGroupMemberName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.ptPmName!=null">
+            and INSTR(u1.U_Name,#{params.ptPmName})
+        </if>
+        <if test="params.ptCseName!=null">
+            and INSTR(u2.U_Name,#{params.ptCseName})
+        </if>
+        <if test="params.ptContractorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptContractorName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c1.C_Name,#{params.ptContractorName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptSupervisorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptSupervisorName},c2.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c2.C_Name,#{params.ptSupervisorName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptRectifyName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptRectifyName},c4.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c4.C_Name,#{params.ptRectifyName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptEvaluationTimeStart!=null">
+            and to_char(mn.Pt_Evaluation_Time,'yyyy-MM-dd') &gt;= #{params.ptEvaluationTimeStart}
+        </if>
+        <if test="params.ptEvaluationTimeEnd!=null">
+            and to_char(mn.Pt_Evaluation_Time,'yyyy-MM-dd') &lt;= #{params.ptEvaluationTimeEnd}
+        </if>
+        <if test="params.overdueTask!=null">
+            <if test="params.overdueTask==0">
+                and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  TO_CHAR(rec.Qsr_Rectify_Require_Time,'yyyy-mm-dd') &gt; TO_CHAR(now(),'yyyy-mm-dd') and rec.Qsr_Rectify_Status!='03' ) = (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id )
+            </if>
+            <if test="params.overdueTask==1">
+                and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  TO_CHAR(rec.Qsr_Rectify_Require_Time,'yyyy-mm-dd') &lt; TO_CHAR(now(),'yyyy-mm-dd') and rec.Qsr_Rectify_Status!='03' ) >0
+            </if>
+        </if>
+        <if test="params.ptCid!=null">
+            and mn.Pt_Cid=#{params.ptCid}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getQsPlanTaskList" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskVo"
+            databaseId="dm">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name as ptContractorName,
+        c1.C_Abbreviation as ptContractorAbbName,
+        c2.C_Name as ptSupervisorName,
+        c2.C_Abbreviation as ptSupervisorAbbName,
+        c3.C_Name as ptEvaluationUnitName,
+        c3.C_Abbreviation as ptEvaluationUnitAbbName,
+        c4.C_Name as ptRectifyName,
+        c4.C_Abbreviation as ptRectifyAbbName,
+        u1.U_Name as ptPmName,
+        u2.U_Name as ptCseName,
+        qp.Qsp_Code as qspCode,
+        qp.Qsp_Name as qspName,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3) as qsRecordCount,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3 and rec.Qsr_Rectify_Status='03')
+        as qsFinishCount,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3 and rec.Qsr_Rectify_Reply is not
+        null) as qsReplyCount,
+        mn.*
+        from Qs_Plan_Task mn
+        left join Qs_Plan qp on qp.Qsp_Id=mn.Qsp_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id = mn.Pt_Contractor_Id
+        left join SYS_Company c2 on c2.C_Id = mn.Pt_Supervisor_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Pt_Evaluation_Unit_Id
+        left join SYS_Company c4 on c4.C_Id = mn.Pt_Rectify_Cid
+        left join Sys_User u1 on u1.U_Id = mn.Pt_Pm
+        left join Sys_User u2 on u2.U_Id = mn.Pt_Cse
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ptType!=null">
+            and mn.Pt_Type=#{params.ptType}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type=#{params.pType}
+        </if>
+        <if test="params.ptCategory!=null">
+            and mn.Pt_Category=#{params.ptCategory}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.ptMeasure!=null">
+            and mn.Pt_Measure=#{params.ptMeasure}
+        </if>
+        <if test="params.outTimeStatus!=null">
+            and mn.out_Time_Status=#{params.outTimeStatus}
+        </if>
+        <if test="params.ptIsConstruction!=null">
+            and mn.Pt_Is_Construction=#{params.ptIsConstruction}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.ptCode!=null">
+            and INSTR(mn.Pt_Code,#{params.ptCode})
+        </if>
+        <if test="params.ptGroupLeaderName!=null">
+            and INSTR(mn.Pt_Group_Leader_Name,#{params.ptGroupLeaderName})
+        </if>
+        <if test="params.ptTeamLeaderName!=null">
+            and INSTR(mn.Pt_Team_Leader_Name,#{params.ptTeamLeaderName})
+        </if>
+        <if test="params.ptGroupMemberName!=null">
+            and INSTR(mn.Pt_Group_Member_Name,#{params.ptGroupMemberName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.ptPmName!=null">
+            and INSTR(u1.U_Name,#{params.ptPmName})
+        </if>
+        <if test="params.ptCseName!=null">
+            and INSTR(u2.U_Name,#{params.ptCseName})
+        </if>
+        <if test="params.ptContractorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptContractorName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c1.C_Name,#{params.ptContractorName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptSupervisorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptSupervisorName},c2.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c2.C_Name,#{params.ptSupervisorName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptRectifyName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptRectifyName},c4.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c4.C_Name,#{params.ptRectifyName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptEvaluationTimeStart!=null">
+            and to_char(mn.Pt_Evaluation_Time,'yyyy-MM-dd') &gt; #{params.ptEvaluationTimeStart}
+        </if>
+        <if test="params.ptEvaluationTimeEnd!=null">
+            and to_char(mn.Pt_Evaluation_Time,'yyyy-MM-dd') &lt; #{params.ptEvaluationTimeEnd}
+        </if>
+        <if test="params.ptRectifyTimeStart!=null">
+            and to_char(mn.pt_Rectify_Time,'yyyy-MM-dd') &gt; #{params.ptRectifyTimeStart}
+        </if>
+        <if test="params.ptRectifyTimeEnd!=null">
+            and to_char(mn.pt_Rectify_Time,'yyyy-MM-dd') &lt; #{params.ptRectifyTimeEnd}
+        </if>
+        <if test="params.overdueTask!=null">
+            <if test="params.overdueTask==0">
+              and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  TO_CHAR(rec.Qsr_Rectify_Require_Time,'yyyy-mm-dd') &gt; TO_CHAR(now(),'yyyy-mm-dd') and rec.Qsr_Rectify_Status!='03' ) = (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id )
+            </if>
+            <if test="params.overdueTask==1">
+              and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  TO_CHAR(rec.Qsr_Rectify_Require_Time,'yyyy-mm-dd') &lt; TO_CHAR(now(),'yyyy-mm-dd') and rec.Qsr_Rectify_Status!='03' ) >0
+            </if>
+        </if>
+        <if test="params.rectifyStatus!=null">
+            and mn.id in (select qr.pt_id from Qs_Record qr where qr.qsr_state!=3 and qr.qsr_Rectify_Status!= #{params.rectifyStatus})
+        </if>
+        <if test="params.ptCid!=null">
+            and mn.Pt_Cid=#{params.ptCid}
+        </if>
+        <if test="params.ptNoticeType!=null">
+            and mn.Pt_Notice_Type= #{params.ptNoticeType}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getQsPlanTaskListStatistics" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskVo" databaseId="dm">
+        SELECT
+        SUM((SELECT COUNT(*) FROM Qs_Record rec WHERE rec.Pt_Id = mn.id AND rec.Qsr_State != 3)) AS totalQsRecordCount,
+        SUM((SELECT COUNT(*) FROM Qs_Record rec WHERE rec.Pt_Id = mn.id AND rec.Qsr_State != 3 AND rec.Qsr_Rectify_Status = '03')) AS totalQsFinishCount,
+        SUM((SELECT COUNT(*) FROM Qs_Record rec WHERE rec.Pt_Id = mn.id AND rec.Qsr_State != 3 AND rec.Qsr_Rectify_Reply IS NOT NULL)) AS totalQsReplyCount
+        from Qs_Plan_Task mn
+        left join Qs_Plan qp on qp.Qsp_Id=mn.Qsp_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id = mn.Pt_Contractor_Id
+        left join SYS_Company c2 on c2.C_Id = mn.Pt_Supervisor_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Pt_Evaluation_Unit_Id
+        left join SYS_Company c4 on c4.C_Id = mn.Pt_Rectify_Cid
+        left join Sys_User u1 on u1.U_Id = mn.Pt_Pm
+        left join Sys_User u2 on u2.U_Id = mn.Pt_Cse
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ptType!=null">
+            and mn.Pt_Type=#{params.ptType}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type=#{params.pType}
+        </if>
+        <if test="params.ptCategory!=null">
+            and mn.Pt_Category=#{params.ptCategory}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.ptMeasure!=null">
+            and mn.Pt_Measure=#{params.ptMeasure}
+        </if>
+        <if test="params.ptIsConstruction!=null">
+            and mn.Pt_Is_Construction=#{params.ptIsConstruction}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.ptCode!=null">
+            and INSTR(mn.Pt_Code,#{params.ptCode})
+        </if>
+        <if test="params.ptGroupLeaderName!=null">
+            and INSTR(mn.Pt_Group_Leader_Name,#{params.ptGroupLeaderName})
+        </if>
+        <if test="params.ptTeamLeaderName!=null">
+            and INSTR(mn.Pt_Team_Leader_Name,#{params.ptTeamLeaderName})
+        </if>
+        <if test="params.ptGroupMemberName!=null">
+            and INSTR(mn.Pt_Group_Member_Name,#{params.ptGroupMemberName})
+        </if>
+        <if test="params.pName!=null">
+            and INSTR(pro.P_Name,#{params.pName})
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.ptPmName!=null">
+            and INSTR(u1.U_Name,#{params.ptPmName})
+        </if>
+        <if test="params.ptCseName!=null">
+            and INSTR(u2.U_Name,#{params.ptCseName})
+        </if>
+        <if test="params.ptContractorName!=null">
+            and INSTR(c1.C_Name,#{params.ptContractorName})
+        </if>
+        <if test="params.ptSupervisorName!=null">
+            and INSTR(c2.C_Name,#{params.ptSupervisorName})
+        </if>
+        <if test="params.ptRectifyName!=null">
+            and INSTR(c4.C_Name,#{params.ptRectifyName})
+        </if>
+        <if test="params.ptEvaluationTimeStart!=null">
+            and to_char(mn.Pt_Evaluation_Time,'yyyy-MM-dd') &gt;= #{params.ptEvaluationTimeStart}
+        </if>
+        <if test="params.ptEvaluationTimeEnd!=null">
+            and to_char(mn.Pt_Evaluation_Time,'yyyy-MM-dd') &lt;= #{params.ptEvaluationTimeEnd}
+        </if>
+        <if test="params.overdueTask!=null">
+            <if test="params.overdueTask==0">
+                and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  TO_CHAR(rec.Qsr_Rectify_Require_Time,'yyyy-mm-dd') &gt; TO_CHAR(now(),'yyyy-mm-dd') and rec.Qsr_Rectify_Status!='03' ) = (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id )
+            </if>
+            <if test="params.overdueTask==1">
+                and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  TO_CHAR(rec.Qsr_Rectify_Require_Time,'yyyy-mm-dd') &lt; TO_CHAR(now(),'yyyy-mm-dd') and rec.Qsr_Rectify_Status!='03' ) >0
+            </if>
+        </if>
+        <if test="params.ptCid!=null">
+            and mn.Pt_Cid=#{params.ptCid}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getQsPlanTaskList" resultMap="getQsPlanTask" databaseId="mysql">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name as ptContractorName,
+        c1.C_Abbreviation as ptContractorAbbName,
+        c2.C_Name as ptSupervisorName,
+        c2.C_Abbreviation as ptSupervisorAbbName,
+        c3.C_Name as ptEvaluationUnitName,
+        c3.C_Abbreviation as ptEvaluationUnitAbbName,
+        c4.C_Name as ptRectifyName,
+        c4.C_Abbreviation as ptRectifyAbbName,
+        u1.U_Name as ptPmName,
+        u2.U_Name as ptCseName,
+        qp.Qsp_Code as qspCode,
+        qp.Qsp_Name as qspName,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3) as qsRecordCount,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3 and rec.Qsr_Rectify_Status='03')
+        as qsFinishCount,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3 and rec.Qsr_Rectify_Reply is not
+        null) as qsReplyCount,
+        mn.*
+        from Qs_Plan_Task mn
+        left join Qs_Plan qp on qp.Qsp_Id=mn.Qsp_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id = mn.Pt_Contractor_Id
+        left join SYS_Company c2 on c2.C_Id = mn.Pt_Supervisor_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Pt_Evaluation_Unit_Id
+        left join SYS_Company c4 on c4.C_Id = mn.Pt_Rectify_Cid
+        left join Sys_User u1 on u1.U_Id = mn.Pt_Pm
+        left join Sys_User u2 on u2.U_Id = mn.Pt_Cse
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ptType!=null">
+            and mn.Pt_Type=#{params.ptType}
+        </if>
+        <if test="params.ptCategory!=null">
+            and mn.Pt_Category=#{params.ptCategory}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.pType!=null">
+            and pro.p_type=#{params.pType}
+        </if>
+        <if test="params.ptMeasure!=null">
+            and mn.Pt_Measure=#{params.ptMeasure}
+        </if>
+        <if test="params.ptIsConstruction!=null">
+            and mn.Pt_Is_Construction=#{params.ptIsConstruction}
+        </if>
+        <if test="params.outTimeStatus!=null">
+            and mn.out_Time_Status=#{params.outTimeStatus}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.ptCode!=null">
+            and INSTR(mn.Pt_Code,#{params.ptCode})
+        </if>
+        <if test="params.ptGroupLeaderName!=null">
+            and INSTR(mn.Pt_Group_Leader_Name,#{params.ptGroupLeaderName})
+        </if>
+        <if test="params.ptTeamLeaderName!=null">
+            and INSTR(mn.Pt_Team_Leader_Name,#{params.ptTeamLeaderName})
+        </if>
+        <if test="params.ptGroupMemberName!=null">
+            and INSTR(mn.Pt_Group_Member_Name,#{params.ptGroupMemberName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.ptPmName!=null">
+            and INSTR(u1.U_Name,#{params.ptPmName})
+        </if>
+        <if test="params.ptCseName!=null">
+            and INSTR(u2.U_Name,#{params.ptCseName})
+        </if>
+        <if test="params.ptContractorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptContractorName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c1.C_Name,#{params.ptContractorName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptSupervisorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptSupervisorName},c2.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c2.C_Name,#{params.ptSupervisorName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptRectifyName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptRectifyName},c4.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c4.C_Name,#{params.ptRectifyName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptEvaluationTimeStart!=null">
+            and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y-%m-%d') &gt; #{params.ptEvaluationTimeStart}
+        </if>
+        <if test="params.ptEvaluationTimeEnd!=null">
+            and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y-%m-%d') &lt; #{params.ptEvaluationTimeEnd}
+        </if>
+        <if test="params.ptRectifyTimeStart!=null">
+            and DATE_FORMAT(mn.pt_Rectify_Time,'yyyy-MM-dd') &gt; #{params.ptRectifyTimeStart}
+        </if>
+        <if test="params.ptRectifyTimeEnd!=null">
+            and DATE_FORMAT(mn.pt_Rectify_Time,'yyyy-MM-dd') &lt; #{params.ptRectifyTimeEnd}
+        </if>
+        <if test="params.overdueTask!=null">
+            <if test="params.overdueTask==0">
+                and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  DATE_FORMAT(rec.Qsr_Rectify_Require_Time,'%Y-%m-%d') &gt; DATE_FORMAT(now(),'%Y-%m-%d') and rec.Qsr_Rectify_Status!='03' ) = (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id )
+            </if>
+            <if test="params.overdueTask==1">
+                and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  DATE_FORMAT(rec.Qsr_Rectify_Require_Time,'%Y-%m-%d') &lt; DATE_FORMAT(now(),'%Y-%m-%d') and rec.Qsr_Rectify_Status!='03' ) >0
+            </if>
+        </if>
+        <if test="params.rectifyStatus!=null">
+            and mn.id in (select qr.pt_id from Qs_Record qr where qr.qsr_state!=3 and qr.qsr_Rectify_Status!= #{params.rectifyStatus})
+        </if>
+        <if test="params.ptNoticeType!=null">
+            and mn.Pt_Notice_Type= #{params.ptNoticeType}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getQsPlanTaskListStatistics" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskVo" databaseId="mysql">
+        SELECT
+        SUM((SELECT COUNT(*) FROM Qs_Record rec WHERE rec.Pt_Id = mn.id AND rec.Qsr_State != 3)) AS totalQsRecordCount,
+        SUM((SELECT COUNT(*) FROM Qs_Record rec WHERE rec.Pt_Id = mn.id AND rec.Qsr_State != 3 AND rec.Qsr_Rectify_Status = '03')) AS totalQsFinishCount,
+        SUM((SELECT COUNT(*) FROM Qs_Record rec WHERE rec.Pt_Id = mn.id AND rec.Qsr_State != 3 AND rec.Qsr_Rectify_Reply IS NOT NULL)) AS totalQsReplyCount
+        from Qs_Plan_Task mn
+        left join Qs_Plan qp on qp.Qsp_Id=mn.Qsp_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id = mn.Pt_Contractor_Id
+        left join SYS_Company c2 on c2.C_Id = mn.Pt_Supervisor_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Pt_Evaluation_Unit_Id
+        left join SYS_Company c4 on c4.C_Id = mn.Pt_Rectify_Cid
+        left join Sys_User u1 on u1.U_Id = mn.Pt_Pm
+        left join Sys_User u2 on u2.U_Id = mn.Pt_Cse
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ptType!=null">
+            and mn.Pt_Type=#{params.ptType}
+        </if>
+        <if test="params.ptCategory!=null">
+            and mn.Pt_Category=#{params.ptCategory}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.pType!=null">
+            and pro.p_type=#{params.pType}
+        </if>
+        <if test="params.ptMeasure!=null">
+            and mn.Pt_Measure=#{params.ptMeasure}
+        </if>
+        <if test="params.ptIsConstruction!=null">
+            and mn.Pt_Is_Construction=#{params.ptIsConstruction}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.ptCode!=null">
+            and INSTR(mn.Pt_Code,#{params.ptCode})
+        </if>
+        <if test="params.ptGroupLeaderName!=null">
+            and INSTR(mn.Pt_Group_Leader_Name,#{params.ptGroupLeaderName})
+        </if>
+        <if test="params.ptTeamLeaderName!=null">
+            and INSTR(mn.Pt_Team_Leader_Name,#{params.ptTeamLeaderName})
+        </if>
+        <if test="params.ptGroupMemberName!=null">
+            and INSTR(mn.Pt_Group_Member_Name,#{params.ptGroupMemberName})
+        </if>
+        <if test="params.pName!=null">
+            and INSTR(pro.P_Name,#{params.pName})
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.ptPmName!=null">
+            and INSTR(u1.U_Name,#{params.ptPmName})
+        </if>
+        <if test="params.ptCseName!=null">
+            and INSTR(u2.U_Name,#{params.ptCseName})
+        </if>
+        <if test="params.ptContractorName!=null">
+            and INSTR(c1.C_Name,#{params.ptContractorName})
+        </if>
+        <if test="params.ptSupervisorName!=null">
+            and INSTR(c2.C_Name,#{params.ptSupervisorName})
+        </if>
+        <if test="params.ptRectifyName!=null">
+            and INSTR(c4.C_Name,#{params.ptRectifyName})
+        </if>
+        <if test="params.ptEvaluationTimeStart!=null">
+            and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y-%m-%d') &gt;= #{params.ptEvaluationTimeStart}
+        </if>
+        <if test="params.ptEvaluationTimeEnd!=null">
+            and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y-%m-%d') &lt;= #{params.ptEvaluationTimeEnd}
+        </if>
+        <if test="params.overdueTask!=null">
+            <if test="params.overdueTask==0">
+                and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  DATE_FORMAT(rec.Qsr_Rectify_Require_Time,'%Y-%m-%d') &gt; DATE_FORMAT(now(),'%Y-%m-%d') and rec.Qsr_Rectify_Status!='03' ) = (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id )
+            </if>
+            <if test="params.overdueTask==1">
+                and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  DATE_FORMAT(rec.Qsr_Rectify_Require_Time,'%Y-%m-%d') &lt; DATE_FORMAT(now(),'%Y-%m-%d') and rec.Qsr_Rectify_Status!='03' ) >0
+            </if>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getQsPlanTaskListExport"  resultMap="getQsPlanTask" databaseId="mysql">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name as ptContractorName,
+        c1.C_Abbreviation as ptContractorAbbName,
+        c2.C_Name as ptSupervisorName,
+        c2.C_Abbreviation as ptSupervisorAbbName,
+        c3.C_Name as ptEvaluationUnitName,
+        c3.C_Abbreviation as ptEvaluationUnitAbbName,
+        c4.C_Name as ptRectifyName,
+        c4.C_Abbreviation as ptRectifyAbbName,
+        u1.U_Name as ptPmName,
+        u2.U_Name as ptCseName,
+        qp.Qsp_Code as qspCode,
+        qp.Qsp_Name as qspName,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3) as qsRecordCount,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3 and rec.Qsr_Rectify_Status='03')
+        as qsFinishCount,
+        (select count(*) from Qs_Record rec where rec.Pt_Id=mn.id and rec.Qsr_State!=3 and rec.Qsr_Rectify_Reply is not
+        null) as qsReplyCount,
+        mn.*
+        from Qs_Plan_Task mn
+        left join Qs_Plan qp on qp.Qsp_Id=mn.Qsp_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id = mn.Pt_Contractor_Id
+        left join SYS_Company c2 on c2.C_Id = mn.Pt_Supervisor_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Pt_Evaluation_Unit_Id
+        left join SYS_Company c4 on c4.C_Id = mn.Pt_Rectify_Cid
+        left join Sys_User u1 on u1.U_Id = mn.Pt_Pm
+        left join Sys_User u2 on u2.U_Id = mn.Pt_Cse
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ptType!=null">
+            and mn.Pt_Type=#{params.ptType}
+        </if>
+        <if test="params.ptCategory!=null">
+            and mn.Pt_Category=#{params.ptCategory}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.ptMeasure!=null">
+            and mn.Pt_Measure=#{params.ptMeasure}
+        </if>
+        <if test="params.ptIsConstruction!=null">
+            and mn.Pt_Is_Construction=#{params.ptIsConstruction}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.ptCode!=null">
+            and INSTR(mn.Pt_Code,#{params.ptCode})
+        </if>
+        <if test="params.ptGroupLeaderName!=null">
+            and INSTR(mn.Pt_Group_Leader_Name,#{params.ptGroupLeaderName})
+        </if>
+        <if test="params.ptTeamLeaderName!=null">
+            and INSTR(mn.Pt_Team_Leader_Name,#{params.ptTeamLeaderName})
+        </if>
+        <if test="params.ptGroupMemberName!=null">
+            and INSTR(mn.Pt_Group_Member_Name,#{params.ptGroupMemberName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.ptPmName!=null">
+            and INSTR(u1.U_Name,#{params.ptPmName})
+        </if>
+        <if test="params.ptCseName!=null">
+            and INSTR(u2.U_Name,#{params.ptCseName})
+        </if>
+        <if test="params.ptContractorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptContractorName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c1.C_Name,#{params.ptContractorName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptSupervisorName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptSupervisorName},c2.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c2.C_Name,#{params.ptSupervisorName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptRectifyName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.ptRectifyName},c4.C_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(c4.C_Name,#{params.ptRectifyName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.ptEvaluationTimeStart!=null">
+            and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y-%m-%d') &gt;= #{params.ptEvaluationTimeStart}
+        </if>
+        <if test="params.ptEvaluationTimeEnd!=null">
+            and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y-%m-%d') &lt;= #{params.ptEvaluationTimeEnd}
+        </if>
+        <if test="params.overdueTask!=null">
+            <if test="params.overdueTask==0">
+                and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  DATE_FORMAT(rec.Qsr_Rectify_Require_Time,'%Y-%m-%d') &gt; DATE_FORMAT(now(),'%Y-%m-%d') and rec.Qsr_Rectify_Status!='03' ) = (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id )
+            </if>
+            <if test="params.overdueTask==1">
+                and  (select count(*)  from Qs_Record rec where rec.Pt_Id=mn.id and  DATE_FORMAT(rec.Qsr_Rectify_Require_Time,'%Y-%m-%d') &lt; DATE_FORMAT(now(),'%Y-%m-%d') and rec.Qsr_Rectify_Status!='03' ) >0
+            </if>
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getQsPlanTaskPage" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskNewVo">
+        SELECT
+        pro.P_Name AS projectName,
+        ifnull( sum( mn.Pt_Problem_Count ), 0 ) ptProblemCount,
+        ifnull( sum( mn.Pt_Finish_Count ), 0 ) ptFinishCount,
+        (ifnull( sum( mn.Pt_Problem_Count ), 0 ) - ifnull( sum( mn.Pt_Finish_Count ), 0 )) ptNoFinishCount
+        FROM
+        Qs_Plan_Task mn
+        LEFT JOIN Pre_Project pro ON pro.P_Id = mn.P_Id
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        GROUP BY
+        pro.P_Name
+    </select>
+
+    <select id="getProSafetyLedgerPage"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.qualitySafety.ProSafetyLedgerDtlDTO">
+        select distinct
+<!--        (select sum(Con_Money_Total) from Con_Contract con where con.Con_Project_Id=mn.P_Id and con.Con_Approval_State not in('0','3')-->
+<!--        and Con_Category='1') as constructionConMoney,-->
+<!--        (select count(*) from Qs_Plan_Task qpt where qpt.P_Id=mn.P_Id and qpt.State not in('0','3') <if test="params.ptCategory!=null">and qpt.Pt_Category=#{params.ptCategory}</if>-->
+<!--        <include refid="proSafetyLedgerXcTime"/>) as qsPlanTaskCount,-->
+<!--        (select count(*) from Qs_Record rec left join Qs_Plan_Task qpt on qpt.id=rec.Pt_Id where qpt.P_Id=mn.P_Id and-->
+<!--        qpt.State!='0' and qpt.State!='3' <include refid="proSafetyLedgerXcTime"/>) as qsRecordCount,-->
+<!--        (select count(*) from Qs_Record rec left join Qs_Plan_Task qpt on qpt.id=rec.Pt_Id where qpt.P_Id=mn.P_Id and-->
+<!--        qpt.State!='0' and qpt.State!='3' and rec.Qsr_Rectify_Status='03'<include refid="proSafetyLedgerXcTime"/>)-->
+<!--        as qsFinishCount,-->
+        mn.*
+        from Pre_Project mn
+        left join SYS_Company proc on proc.C_Id=mn.P_Construction_Unit
+        left join SYS_Company pAgentc on pAgentc.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=mn.P_Competent_Department
+        LEFT JOIN Qs_Plan_Task qpt ON mn.p_id = qpt.p_id
+        LEFT JOIN qs_record qr ON qpt.id = qr.pt_id
+        ${params.authSql}
+        <include refid="proSafetyLedgerFilter"></include>
+        <if test="params.ptType!=null">
+            and qpt.Pt_Type=#{params.ptType}
+        </if>
+        <if test="params.qstIds != null and params.qstIds.size() > 0">
+            and qr.qst_id in
+                <foreach collection="params.qstIds" item="ids" separator="," open="(" close=")">
+                    #{ids}
+                </foreach>
+        </if>
+<!--        <choose>-->
+<!--            <when test="params.sortType!=null and params.sortFiled!=null">-->
+<!--                order by mn.${params.sortFiled} ${params.sortType}-->
+<!--            </when>-->
+<!--            <when test="params.sortType!=null and params.sortSideFiled!=null">-->
+<!--                order by ${params.sortSideFiled} ${params.sortType}-->
+<!--            </when>-->
+<!--            <otherwise>-->
+<!--                order by mn.P_Create_Time desc-->
+<!--            </otherwise>-->
+<!--        </choose>-->
+    </select>
+
+
+    <select id="getProSafetyLedgerPageSumTotal"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.qualitySafety.ProSafetyLedgerDtlDTO">
+        select distinct
+<!--        (select sum(Con_Money_Total) from Con_Contract con where con.Con_Project_Id=mn.P_Id and con.Con_Approval_State not in('0','3')-->
+<!--        and Con_Category='1') as constructionConMoney,-->
+<!--        (select count(*) from Qs_Plan_Task qpt where qpt.P_Id=mn.P_Id and qpt.State not in('0','3')  <if test="params.ptCategory!=null">and qpt.Pt_Category=#{params.ptCategory}</if>-->
+<!--        <include refid="proSafetyLedgerXcTime"/>) as qsPlanTaskCount,-->
+<!--        (select count(*) from Qs_Record rec left join Qs_Plan_Task qpt on qpt.id=rec.Pt_Id where qpt.P_Id=mn.P_Id and-->
+<!--        qpt.State!='0' and qpt.State!='3' <include refid="proSafetyLedgerXcTime"/>) as qsRecordCount,-->
+<!--        (select count(*) from Qs_Record rec left join Qs_Plan_Task qpt on qpt.id=rec.Pt_Id where qpt.P_Id=mn.P_Id and-->
+<!--        qpt.State!='0' and qpt.State!='3' and rec.Qsr_Rectify_Status='03'<include refid="proSafetyLedgerXcTime"/>)-->
+<!--        as qsFinishCount,-->
+        mn.*
+        from Pre_Project mn
+        LEFT JOIN Qs_Plan_Task qpt ON mn.p_id = qpt.p_id
+        <if test="params.ptType!=null">
+            and qpt.Pt_Type=#{params.ptType}
+        </if>
+        LEFT JOIN qs_record qr ON qpt.id = qr.pt_id
+        <if test="params.qstIds != null and params.qstIds.size() > 0">
+            and  qr.qst_id in
+            <foreach collection="params.qstIds" item="ids" separator="," open="(" close=")">
+                #{ids}
+            </foreach>
+        </if>
+        ${params.authSql}
+        <include refid="proSafetyLedgerFilter"></include>
+    </select>
+
+    <select id="getProSafetyLedgerPageExport"
+            resultType="com.jpmsoft.projectProducer.pojo.dto.qualitySafety.ProSafetyLedgerDtlDTO">
+        select distinct
+<!--        (select sum(Con_Money_Total) from Con_Contract con where con.Con_Project_Id=mn.P_Id and con.Con_Approval_State=7-->
+<!--        and Con_Category='1') as constructionConMoney,-->
+<!--        (select count(*) from Qs_Plan_Task qpt where qpt.P_Id=mn.P_Id
+            and qpt.State!=3 <if test="params.ptCategory!=null">and qpt.Pt_Category=#{params.ptCategory}</if>-->
+<!--        <include refid="proSafetyLedgerXcTime"/>) as qsPlanTaskCount,-->
+<!--        (select count(*) from Qs_Record rec left join Qs_Plan_Task qpt on qpt.id=rec.Pt_Id
+            where qpt.P_Id=mn.P_Id and-->
+<!--        rec.Qsr_State!=3<include refid="proSafetyLedgerXcTime"/>) as qsRecordCount,-->
+<!--        (select count(*) from Qs_Record rec left join Qs_Plan_Task qpt on qpt.id=rec.Pt_Id where qpt.P_Id=mn.P_Id and-->
+<!--        rec.Qsr_State!=3 and rec.Qsr_Rectify_Status='03'<include refid="proSafetyLedgerXcTime"/>)-->
+<!--        as qsFinishCount,-->
+        mn.*,qpt.Pt_Type as ptType
+        from Pre_Project mn
+        left join SYS_Company proc on proc.C_Id=mn.P_Construction_Unit
+        left join SYS_Company pAgentc on pAgentc.C_Id=mn.P_Agent_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=mn.P_Competent_Department
+        LEFT JOIN Qs_Plan_Task qpt ON mn.p_id = qpt.p_id
+        LEFT JOIN qs_record qr ON qpt.id = qr.pt_id
+        ${params.authSql}
+        <include refid="proSafetyLedgerFilter"></include>
+        <if test="params.ptType!=null">
+            and qpt.Pt_Type=#{params.ptType}
+        </if>
+        <if test="params.qstId != null and params.qstId!=''">
+            and qr.qst_id =#{params.qstId}
+        </if>
+        <if test="params.qstIds != null and params.qstIds.size() > 0">
+            and  qr.qst_id in
+            <foreach collection="params.qstIds" item="ids" separator="," open="(" close=")">
+                #{ids}
+            </foreach>
+        </if>
+<!--        <choose>-->
+<!--            <when test="params.sortType!=null and params.sortFiled!=null">-->
+<!--                order by mn.${params.sortFiled} ${params.sortType}-->
+<!--            </when>-->
+<!--            <when test="params.sortType!=null and params.sortSideFiled!=null">-->
+<!--                order by ${params.sortSideFiled} ${params.sortType}-->
+<!--            </when>-->
+<!--            <otherwise>-->
+<!--                order by mn.P_Create_Time desc-->
+<!--            </otherwise>-->
+<!--        </choose>-->
+    </select>
+
+
+
+    <select id="getProSafetyLedger" resultType="com.jpmsoft.projectProducer.pojo.dto.qualitySafety.ProSafetyLedgerDTO">
+        select
+        sum(t.a) as qsPlanTaskCount,
+        sum(t.b) as qsRecordCount,
+        sum(t.c) as qsFinishCount
+        from(
+        select
+        (select count(*) from Qs_Plan_Task qpt where qpt.P_Id=mn.P_Id and qpt.State!=3
+        <include refid="proSafetyLedgerXcTime"/>) as a,
+        (select count(*) from Qs_Record rec left join Qs_Plan_Task qpt on qpt.id=rec.Pt_Id where qpt.P_Id=mn.P_Id and
+        rec.Qsr_State!=3<include refid="proSafetyLedgerXcTime"/>) as b,
+        (select count(*) from Qs_Record rec left join Qs_Plan_Task qpt on qpt.id=rec.Pt_Id where qpt.P_Id=mn.P_Id and
+        rec.Qsr_State!=3 and rec.Qsr_Rectify_Status='03'<include refid="proSafetyLedgerXcTime"/>) as c
+        from Pre_Project mn
+        ${params.authSql}
+        <include refid="proSafetyLedgerFilter"></include>
+        ) t
+    </select>
+
+    <sql id="QualitySafetyFilter">
+        <if test="params.qstIdList!=null and params.qstIdList.size()>0 ">
+            and qr.Qst_Id in
+            <foreach collection="params.qstIdList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.ptType!=null">
+            and mn.Pt_Type=#{params.ptType}
+        </if>
+        <if test="params.ptCategory!=null">
+            and mn.Pt_Category=#{params.ptCategory}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.pType!=null">
+            and pro.p_type=#{params.pType}
+        </if>
+        <if test="params.ptMeasure!=null">
+            and mn.Pt_Measure=#{params.ptMeasure}
+        </if>
+        <if test="params.ptIsConstruction!=null">
+            and mn.Pt_Is_Construction=#{params.ptIsConstruction}
+        </if>
+        <if test="params.pName!=null">
+        <choose>
+            <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                and likePname(#{params.pName},pp.P_Id)=true
+            </when>
+            <otherwise>
+                and pp.P_Name like concat('%',#{params.pName},'%')
+            </otherwise>
+        </choose>
+    </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <include refid="EvaluationTimeFilter" />
+    </sql>
+
+    <sql id="EvaluationTimeFilter" databaseId="dm">
+        <if test="params.ptEvaluationTimeStart!=null">
+            and to_char(mn.Pt_Evaluation_Time,'yyyy-MM-dd') &gt;= #{params.ptEvaluationTimeStart}
+        </if>
+        <if test="params.ptEvaluationTimeEnd!=null">
+            and to_char(mn.Pt_Evaluation_Time,'yyyy-MM-dd') &lt;= #{params.ptEvaluationTimeEnd}
+        </if>
+    </sql>
+    <sql id="EvaluationTimeFilter" databaseId="mysql">
+        <if test="params.ptEvaluationTimeStart!=null">
+            and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y-%m-%d') &gt;= #{params.ptEvaluationTimeStart}
+        </if>
+        <if test="params.ptEvaluationTimeEnd!=null">
+            and DATE_FORMAT(mn.Pt_Evaluation_Time,'%Y-%m-%d') &lt;= #{params.ptEvaluationTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getQualitySafetyRecordList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsRecordVo" databaseId="dm">
+        select * from (
+        select qr.Qsr_Id qsrId,qr.Qst_Id qstId,qt.Qst_Name qstName,qt.Qst_Code qstCode,mn.P_Id pId,pro.P_Name  projectName,
+        qr.Qsr_Des qsrDes,mn.Pt_Type ptType,mn.Pt_Evaluation_Time ptEvaluationTime,mn.Pt_Group_Member ptGroupMember,
+        mn.Pt_Group_Member_Name,
+        ROW_NUMBER() over(partition by qr.Qst_Id order by qr.Qst_Id desc) as  rn,
+        COUNT(*) OVER (PARTITION BY mn.P_Id, qr.Qst_Id) AS recordCount,
+        pro.*
+        from Qs_Record qr left join  Qs_Plan_Task mn on mn.id=qr.pt_id
+        left join QS_Type qt  on qt.Qst_Id=qr.Qst_Id
+        left join Pre_Project pro ON pro.P_Id = mn.P_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        and mn.State!=3 and qr.Qst_Id is not null
+        <include refid="QualitySafetyFilter" />
+       )t where rn=1 order by recordCount desc
+    </select>
+
+    <select id="getQualitySafetyRecordList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsRecordVo" databaseId="mysql">
+        SELECT
+            MIN(qr.Qsr_Id) AS qsrId,
+            COUNT(qr.Qst_Id) AS recordCount,
+            qr.Qst_Id AS qstId,
+            MIN(qt.Qst_Name) AS qstName,
+            MIN(qt.Qst_Code) AS qstCode,
+            MIN(mn.pt_Code) AS ptCode,
+            MIN(mn.P_Id) AS pId,
+            MIN(pro.P_Name) AS pName,
+            MIN(qr.Qsr_Des) AS qsrDes,
+            MIN(mn.Pt_Type) AS ptType,
+            MIN(mn.Pt_Evaluation_Time) AS ptEvaluationTime,
+            MIN(mn.Pt_Group_Member) AS ptGroupMember,
+            MIN(mn.Pt_Group_Member_Name) AS ptGroupMemberName
+        FROM Qs_Record qr
+        LEFT JOIN  Qs_Plan_Task mn ON mn.id = qr.pt_id
+        LEFT JOIN  QS_Type qt ON qt.Qst_Id = qr.Qst_Id
+        LEFT JOIN  Pre_Project pro ON pro.P_Id = mn.P_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        and mn.State != 3 and mn.State != 0 AND qr.Qst_Id IS NOT NULL
+        <include refid="QualitySafetyFilter" />
+        GROUP BY  mn.P_Id,qr.Qst_Id order by count(qr.Qst_Id) desc ;
+    </select>
+    <select id="getQsRecord2"
+            resultType="com.jpmsoft.common.model.response.Qs.QsRecordResponse">
+        select con.Con_Name        as conName,
+        pro.P_Name          as pName,
+        con.Con_Code        as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        proc.C_Name         as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name         as pCompetentDepartmentName,
+        qt.Qst_Name         as qstName,
+        qt.Qst_Code         as qstCode,
+        qt.Qst_Item         as qstItem,
+        qt.Qst_Is_Important          as qstIsImportant,
+        c1.C_Name           as qsrDutyCpyName,
+        u1.U_Name           as rectifyUname,
+        mn.*
+        from Qs_Record mn
+        left join Qs_Type qt on qt.Qst_Id = mn.Qst_Id
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        left join SYS_Company c1 on c1.C_Id = mn.Qsr_Duty_Cpy
+        left join Sys_User u1 on u1.U_Id = mn.Qsr_Rectify_Uid
+        where mn.Pt_Id = #{id}
+        <if test="qsTypeId!=null and qsTypeId != '' ">
+            and qt.qst_path like concat(#{qsTypeId},'%')
+        </if>
+        order by mn.Qsr_Create_Time ASC
+    </select>
+    <select id="getQsPlanTaskLists" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskVo">
+        select pro.P_Name as pName,
+        pro.P_Code as pCode,
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        c1.C_Name as ptContractorName,
+        c1.C_Abbreviation as ptContractorAbbName,
+        c2.C_Name as ptSupervisorName,
+        c2.C_Abbreviation as ptSupervisorAbbName,
+        c3.C_Name as ptEvaluationUnitName,
+        c3.C_Abbreviation as ptEvaluationUnitAbbName,
+        c4.C_Name as ptRectifyName,
+        c4.C_Abbreviation as ptRectifyAbbName,
+        u1.U_Name as ptPmName,
+        u2.U_Name as ptCseName,
+        qp.Qsp_Code as qspCode,
+        qp.Qsp_Name as qspName,
+        mn.*
+        from Qs_Plan_Task mn
+        left join Qs_Plan qp on qp.Qsp_Id = mn.Qsp_Id
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id = mn.Pt_Contractor_Id
+        left join SYS_Company c2 on c2.C_Id = mn.Pt_Supervisor_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Pt_Evaluation_Unit_Id
+        left join SYS_Company c4 on c4.C_Id = mn.Pt_Rectify_Cid
+        left join Sys_User u1 on u1.U_Id = mn.Pt_Pm
+        left join Sys_User u2 on u2.U_Id = mn.Pt_Cse
+        <where>
+            mn.State != 3
+            <if test="projectId != null and projectId != ''">
+                and mn.P_Id = #{projectId}
+            </if>
+            <if test="companyId != null and companyId != ''">
+                and (mn.Pt_Contractor_Id = #{companyId} or mn.Pt_Supervisor_Id = #{companyId})
+            </if>
+            <if test="startTime != null and endTime != null">
+                and mn.Pt_Evaluation_Time between #{startTime} and #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <select id="getHighQsRecordTzList" resultType="com.jpmsoft.common.model.response.Qs.QsRecordResponse">
+        select
+        qt.Qst_Is_Important as qstIsImportant,
+        qt.qst_path         as qstPath,
+        qt.qst_id           as qstId,
+        qr.Qsr_Rectify_Status as qsrRectifyStatus,
+        qr.pt_id as ptId
+        from  Qs_Record qr
+        left join  Qs_Plan_Task mn on mn.id=qr.pt_id
+        left join QS_Type qt  on qt.Qst_Id=qr.Qst_Id
+        <if test="params.qstIdPathList!=null and params.qstIdPathList.size()>0">
+            and
+            <foreach collection="params.qstIdPathList" item="item" separator="or" open="(" close=")">
+                qt.qst_path like  concat('%',#{item},'%')
+            </foreach>
+        </if>
+        left join Pre_Project pro ON pro.P_Id = mn.P_Id
+        left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        left join SYS_Company c1 on c1.C_Id = qr.Qsr_Duty_Cpy
+        left join Sys_User u1 on u1.U_Id = qr.Qsr_Rectify_Uid
+        left join Sys_File f on f.FileID = qr.Qsr_Id
+        left join con_contract cc on cc.con_id = mn.con_id
+        <where>
+            and mn.State !=0 and mn.State !=3
+            <if test="params.pId!=null">
+                and mn.P_Id=#{params.pId}
+            </if>
+            <if test="params.pType!=null">
+                and pro.P_Type=#{params.pType}
+            </if>
+            <if test="params.pStatus!=null">
+                and pro.P_Status=#{params.pStatus}
+            </if>
+            <if test="params.pProjectStatus!=null">
+                and pro.P_Status=#{params.pProjectStatus}
+            </if>
+            <if test="params.qstId!=null">
+                and qr.Qst_Id=#{params.qstId}
+            </if>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.ptType!=null">
+                and mn.Pt_Type=#{params.ptType}
+            </if>
+            <if test="params.ptCategory!=null">
+                and mn.Pt_Category=#{params.ptCategory}
+            </if>
+            <if test="params.state!=null">
+                and mn.State=#{params.state}
+            </if>
+            <if test="params.ptMeasure!=null">
+                and mn.Pt_Measure=#{params.ptMeasure}
+            </if>
+            <if test="params.ptIsConstruction!=null">
+                and mn.Pt_Is_Construction=#{params.ptIsConstruction}
+            </if>
+            <if test="params.conName!=null">
+                and INSTR(cc.Con_Name,#{params.conName})
+            </if>
+            <if test="params.pName!=null">
+                and INSTR(pro.P_Name,#{params.pName})
+            </if>
+            <if test="params.pCode!=null">
+                and INSTR(pro.P_Code,#{params.pCode})
+            </if>
+            <if test="params.xcStart!=null">
+                and mn.Pt_Evaluation_Time>#{params.xcStart}
+            </if>
+            <if test="params.xcEnd!=null">
+                and mn.Pt_Evaluation_Time&lt;#{params.xcEnd}
+            </if>
+            <if test="params.projectName != null and params.projectName != ''">
+                and pro.p_name like concat('%',#{params.projectName},'%')
+            </if>
+            <if test="params.ptEvaluationTimeFilterStart != null">
+                and mn.pt_evaluation_time &gt;= #{params.ptEvaluationTimeFilterStart}
+            </if>
+            <if test="params.ptEvaluationTimeFilterEnd != null">
+                and mn.pt_evaluation_time &lt;= #{params.ptEvaluationTimeFilterEnd}
+            </if>
+            <if test="params.qstIds != null and params.qstIds.size() > 0">
+                and qr.qst_id in
+                <foreach collection="params.qstIds" item="ids" separator="," open="(" close=")">
+                    #{ids}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getHighQsRecordList" resultType="com.jpmsoft.common.model.response.Qs.QsRecordResponse">
+        select
+        pro.P_Name          as pName,
+        pro.P_id          as pId,
+        cc.con_id         as conId,
+        cc.con_name         as conName,
+        proc.C_Name         as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name         as pCompetentDepartmentName,
+        f.file_relation_id  as fileRelationId,
+        qt.Qst_Name         as qstName,
+        qt.Qst_Code         as qstCode,
+        qt.Qst_Item         as qstItem,
+        qt.Qst_Is_Important          as qstIsImportant,
+        c1.C_Name           as qsrDutyCpyName,
+        u1.U_Name           as rectifyUname,
+        qt.Qst_Is_Important as qstIsImportant,
+        qt.qst_path         as qstPath,
+        mn.pt_code as ptCode,
+        qr.*,mn.Create_Time as createTime
+        from  Qs_Record qr
+        left join  Qs_Plan_Task mn on mn.id=qr.pt_id
+        left join QS_Type qt  on qt.Qst_Id=qr.Qst_Id
+        left join Pre_Project pro ON pro.P_Id = mn.P_Id
+        left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        left join SYS_Company c1 on c1.C_Id = qr.Qsr_Duty_Cpy
+        left join Sys_User u1 on u1.U_Id = qr.Qsr_Rectify_Uid
+        left join Sys_File f on f.FileID = qr.Qsr_Id
+        left join con_contract cc on cc.con_id = mn.con_id
+        <where>
+            mn.State!=3
+            <if test="params.pId!=null">
+                and mn.P_Id=#{params.pId}
+            </if>
+            <if test="params.pType!=null">
+                and pro.P_Type=#{params.pType}
+            </if>
+            <if test="params.pStatus!=null">
+                and pro.P_Status=#{params.pStatus}
+            </if>
+            <if test="params.qstId!=null">
+                and qr.Qst_Id=#{params.qstId}
+            </if>
+            <if test="params.teId!=null">
+                and mn.Te_Id = #{params.teId}
+            </if>
+            <if test="params.ptType!=null">
+                and mn.Pt_Type=#{params.ptType}
+            </if>
+            <if test="params.ptCategory!=null">
+                and mn.Pt_Category=#{params.ptCategory}
+            </if>
+            <if test="params.state!=null">
+                and mn.State=#{params.state}
+            </if>
+            <if test="params.ptMeasure!=null">
+                and mn.Pt_Measure=#{params.ptMeasure}
+            </if>
+            <if test="params.ptIsConstruction!=null">
+                and mn.Pt_Is_Construction=#{params.ptIsConstruction}
+            </if>
+            <if test="params.conName!=null">
+                and INSTR(con.Con_Name,#{params.conName})
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(pro.P_Name,#{params.pName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.pCode!=null">
+                and INSTR(pro.P_Code,#{params.pCode})
+            </if>
+            <if test="params.pProjectStatus!=null">
+                and pro.p_Project_Status=#{params.pProjectStatus}
+            </if>
+            <if test="params.xcStart!=null">
+                and mn.Pt_Evaluation_Time>#{params.xcStart}
+            </if>
+            <if test="params.xcEnd!=null">
+                and mn.Pt_Evaluation_Time&lt;#{params.xcEnd}
+            </if>
+            <if test="params.projectName != null and params.projectName != ''">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.projectName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.p_name like concat('%',#{params.projectName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.ptEvaluationTimeFilterStart != null">
+                and mn.pt_evaluation_time &gt;= #{params.ptEvaluationTimeFilterStart}
+            </if>
+            <if test="params.ptEvaluationTimeFilterEnd != null">
+                and mn.pt_evaluation_time &lt;= #{params.ptEvaluationTimeFilterEnd}
+            </if>
+            <if test="params.qstIds != null and params.qstIds.size() > 0">
+                and qr.qst_id in
+                <foreach collection="params.qstIds" item="ids" separator="," open="(" close=")">
+                    #{ids}
+                </foreach>
+            </if>
+            <if test="params.qstIdPathList!=null and params.qstIdPathList.size()>0">
+                and
+                <foreach collection="params.qstIdPathList" item="item" separator="or" open="(" close=")">
+                    qt.qst_path like  concat('%',#{item},'%')
+                </foreach>
+            </if>
+        </where>
+        order by mn.Create_Time desc
+    </select>
+
+    <select id="getQsPlanTaskQsRecordById"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.qualitySafety.QsRecord">
+        select  qr.*
+        from  Qs_Record qr
+        where qr.pt_id=#{id}
+    </select>
+
+
+    <select id="selectQsPlanTaskList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskVo" databaseId="mysql">
+        select  qp.*,sys.c_id as cId
+        from  Qs_Plan_Task qp
+        left join sys_user sys on qp.create_uId = sys.u_id
+        <where>
+            qp.state != 3
+            <if test="pId!=null">
+                and qp.p_id=#{pId}
+            </if>
+            <if test="ptType!=null">
+                and qp.pt_type=#{ptType}
+            </if>
+            <if test="format!=null">
+                and DATE(qp.create_Time)=#{format}
+            </if>
+        </where>
+    </select>
+    <select id="selectQsPlanTaskList"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskVo" databaseId="dm">
+        select  qp.*,sys.c_id as cId
+        from  Qs_Plan_Task qp
+        left join sys_user sys on qp.create_uId = sys.u_id
+        <where>
+            qp.state != 3
+            <if test="pId!=null">
+                and qp.p_id=#{pId}
+            </if>
+            <if test="ptType!=null">
+                and qp.pt_type=#{ptType}
+            </if>
+            <if test="format!=null">
+                and TO_CHAR(qp.create_Time, 'YYYY-MM-DD')=#{format}
+            </if>
+        </where>
+    </select>
+    <select id="getConContractList" resultType="com.jpmsoft.projectProducer.pojo.entity.contract.ConContract">
+        select con.*
+        from con_contract con
+        <where>
+            con.Con_Approval_State=7 and con.Con_Category='1' and  con.Con_Project_Id in
+            <foreach collection="projectIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+        </where>
+    </select>
+    <select id="selectLists" resultType="com.jpmsoft.projectProducer.pojo.entity.qualitySafety.QsPlanTask">
+        select qp.*
+        from Qs_Plan_Task qp
+        <where>
+            qp.State!=3
+            <if test="projectIds!=null and projectIds.size()>0">
+                and qp.P_Id in
+                <foreach collection="projectIds" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="xcStart!=null">
+                and qp.Pt_Evaluation_Time>#{xcStart}
+            </if>
+            <if test="xcEnd!=null">
+                and qp.Pt_Evaluation_Time&lt;#{xcEnd}
+            </if>
+            <if test="ptCategory!=null">
+                and qp.Pt_Category=#{ptCategory}
+            </if>
+        </where>
+    </select>
+    <select id="selectQsRecordLists"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.qualitySafety.QsRecord">
+        select qr.*
+        from Qs_Record qr
+        left join Qs_Plan_Task qpt on qpt.id=qr.Pt_Id
+        <where>
+            qr.Qsr_State!=3
+            <if test="projectIds!=null and projectIds.size()>0">
+                and qr.P_Id in
+                <foreach collection="projectIds" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="xcStart!=null">
+                and qr.Pt_Evaluation_Time>#{xcStart}
+            </if>
+            <if test="xcEnd!=null">
+                and qr.Pt_Evaluation_Time&lt;#{xcEnd}
+            </if>
+            <if test="ptCategory!=null">
+                and qpt.Pt_Category=#{ptCategory}
+            </if>
+        </where>
+    </select>
+    <select id="selectListWithoutRectify"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskSmsVo">
+        select
+            qpt.*,
+            U_ID as uId,
+            U_Name as uName,
+            U_MTel as uPhone, pp.P_Name as pName
+        from  Qs_Plan_Task qpt
+        left join Qs_Record  qr on qr.Pt_Id=qpt.id
+        left join Pre_Project pp on pp.P_ID=qpt.P_ID
+        left join Qs_Record_Duty qrd on qrd.Qsr_Id=qr.Qsr_Id
+        left join SYS_User u on  u.U_ID=qrd.Qrd_User_Id
+        where qpt.State!=7 and  qpt.State!=3  and qr.Qsr_Rectify_Status!='03'
+    </select>
+    <select id="getConContractListAll"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.contract.ConContract">
+        select con.*
+        from con_contract con
+        <where>
+            con.Con_Approval_State not in('0','3') and con.Con_Category='1'
+            <if test="projectIds != null and projectIds.size() > 0">
+                and con.Con_Project_Id in
+                <foreach collection="projectIds" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+    <select id="selectListsAll" resultType="com.jpmsoft.projectProducer.pojo.entity.qualitySafety.QsPlanTask">
+        select qpt.*
+        from Qs_Plan_Task qpt
+        left join Qs_Record qr on qpt.id=qr.Pt_Id
+        <where>
+            qpt.State not in('0','3')
+            <if test="projectIds!=null and projectIds.size()>0">
+                and qpt.P_ID in
+                <foreach collection="projectIds" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="xcStart!=null">
+                and qpt.Pt_Evaluation_Time>#{xcStart}
+            </if>
+            <if test="xcEnd!=null">
+                and qpt.Pt_Evaluation_Time&lt;#{xcEnd}
+            </if>
+            <if test="ptCategory!=null">
+                and qpt.Pt_Category=#{ptCategory}
+            </if>
+            <if test="qstIds != null and qstIds.size() > 0">
+                and qr.qst_id in
+                <foreach collection="qstIds" item="ids" separator="," open="(" close=")">
+                    #{ids}
+                </foreach>
+            </if>
+            <if test="ptType!=null">
+                and qpt.Pt_Type=#{ptType}
+            </if>
+        </where>
+    </select>
+    <select id="selectQsRecordListsAll"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.qualitySafety.QsRecord">
+        select qr.*
+        from Qs_Record qr
+        left join Qs_Plan_Task qpt on qpt.id=qr.Pt_Id
+        <where>
+            qr.Qsr_State!=3 and qpt.State!='0' and qpt.State!='3'
+            <if test="projectIds!=null and projectIds.size()>0">
+                and qpt.P_ID in
+                <foreach collection="projectIds" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="xcStart!=null">
+                and qpt.Pt_Evaluation_Time>#{xcStart}
+            </if>
+            <if test="xcEnd!=null">
+                and qpt.Pt_Evaluation_Time&lt;#{xcEnd}
+            </if>
+            <if test="ptCategory!=null">
+                and qpt.Pt_Category=#{ptCategory}
+            </if>
+            <if test="qstIds != null and qstIds.size() > 0">
+                and qr.qst_id in
+                <foreach collection="qstIds" item="ids" separator="," open="(" close=")">
+                    #{ids}
+                </foreach>
+            </if>
+            <if test="ptType!=null">
+                and qpt.Pt_Type=#{ptType}
+            </if>
+        </where>
+    </select>
+
+    <sql id="proSafetyLedgerFilter">
+        <if test="params.teId!=null">
+            and mn.teId=#{params.teId}
+        </if>
+        <if test="params.pType!=null">
+            and mn.P_Type=#{params.pType}
+        </if>
+        <if test="params.pProjectStatus!=null">
+            and mn.p_Project_Status=#{params.pProjectStatus}
+        </if>
+        <if test="params.pStatus!=null">
+            and mn.P_Status=#{params.pStatus}
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(mn.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCode!=null">
+            and INSTR(mn.P_Code,#{params.pCode})
+        </if>
+    </sql>
+    <sql id="proSafetyLedgerXcTime">
+        <if test="params.xcStart!=null">
+            and qpt.Pt_Evaluation_Time>#{params.xcStart}
+        </if>
+        <if test="params.xcEnd!=null">
+            and qpt.Pt_Evaluation_Time&lt;#{params.xcEnd}
+        </if>
+    </sql>
+
+    <select id="getProSafetyLedgerPageNew" resultType="com.jpmsoft.projectProducer.pojo.vo.qualitySafety.QsPlanTaskVo">
+        select mn.*,
+        CASE WHEN (SELECT COUNT(*) FROM qs_pt_spot_check qsPtCheck WHERE qsPtCheck.pt_id=mn.id AND qsPtCheck.State NOT IN (0,3))>0 THEN 1
+        WHEN (SELECT COUNT(*) FROM sys_task_processin tp WHERE tp.tp_entityid=mn.id AND tp.tp_type='退回')>0 THEN 1
+        ELSE 0 END as qptIsCheck
+        from Qs_Plan_Task mn
+        left join Qs_Plan qp on qp.Qsp_Id = mn.Qsp_Id
+        left join Pre_Project pro on pro.P_Id = mn.P_Id
+        left join Con_Contract con on con.Con_Id = mn.Con_Id
+        left join SYS_Company c1 on c1.C_Id = mn.Pt_Contractor_Id
+        left join SYS_Company c2 on c2.C_Id = mn.Pt_Supervisor_Id
+        left join SYS_Company c3 on c3.C_Id = mn.Pt_Evaluation_Unit_Id
+        left join SYS_Company c4 on c4.C_Id = mn.Pt_Rectify_Cid
+        left join Sys_User u1 on u1.U_Id = mn.Pt_Pm
+        left join Sys_User u2 on u2.U_Id = mn.Pt_Cse
+        <where>
+            mn.State not in (0,3)
+            <if test="params.pType!=null">
+                and pro.P_Type=#{params.pType}
+            </if>
+            <if test="params.pProjectStatus!=null">
+                and pro.p_Project_Status=#{params.pProjectStatus}
+            </if>
+            <if test="params.pStatus!=null">
+                and pro.P_Status=#{params.pStatus}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and INSTR(pro.P_Name,#{params.pName})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.pCode!=null">
+                and INSTR(pro.P_Code,#{params.pCode})
+            </if>
+            <if test="params.ptType!=null">
+                and mn.Pt_Type=#{params.ptType}
+            </if>
+            <if test="params.xcStart!=null">
+                and mn.Pt_Evaluation_Time>#{params.xcStart}
+            </if>
+            <if test="params.xcEnd!=null">
+                and mn.Pt_Evaluation_Time&lt;#{params.xcEnd}
+            </if>
+            <if test="params.ptTypes != null and params.ptTypes.size() > 0">
+                and mn.Pt_Type in
+                <foreach collection="params.ptTypes" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getQsRecordList" resultType="com.jpmsoft.common.model.response.Qs.QsRecordResponse">
+        select  qr.*,        qt.Qst_Is_Important as qstIsImportant,
+        qt.qst_path         as qstPath,
+        qt.qst_id           as qstId
+        from Qs_Record qr
+        left join QS_Type qt  on qt.Qst_Id=qr.Qst_Id
+        <where>
+            and qr.Qsr_State!=3
+            <if test="qstIds!=null and qstIds.size() > 0">
+                and qr.Pt_Id in
+                <foreach collection="qstIds" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getQsPlanTaskListSH" resultMap="getQsPlanTask">
+        select mn.*
+        from Qs_Plan_Task mn
+        ${params.authSql}
+        <if test="params.ptIds != null and params.ptIds.size() > 0">
+            or (mn.id in
+            <foreach collection="params.ptIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>))
+        </if>
+        <if test="params.pId != null and params.pId != ''">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.conId != null and params.conId != ''">
+            and mn.Con_Id = #{params.conId}
+        </if>
+        <if test="params.ptEvaluationTime != null">
+            and mn.Pt_Evaluation_Time = #{params.ptEvaluationTime}
+        </if>
+        <if test="params.pName != null and params.pName != ''">
+            and INSTR(mn.P_Name,#{params.pName})
+        </if>
+        <if test="params.conName != null and params.conName != ''">
+            and INSTR(mn.Con_Name,#{params.conName})
+        </if>
+        <if test="params.ptTeamLeaderName != null and params.ptTeamLeaderName != ''">
+            and INSTR(mn.Pt_Team_Leader_Name,#{params.ptTeamLeaderName})
+        </if>
+        <if test="params.createUname != null and params.createUname != ''">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.state != null">
+            and mn.State = #{params.state}
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

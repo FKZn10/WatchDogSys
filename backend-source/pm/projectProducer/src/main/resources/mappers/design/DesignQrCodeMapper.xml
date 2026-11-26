@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.design.DesignQrCodeMapper">
+
+    <select id="getDesignQrCodeById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignQrCodeModel">
+        select
+        mn.Id,
+        mn.Create_Time as createTime,
+        mn.Create_Uid as createUid,
+        mn.Create_Uname as createUname,
+        mn.State,
+        mn.State_Time as stateTime,
+        mn.Create_Time as dqcApplyTime,
+        mn.Dqc_Used as dqcUsed,
+        mn.Dqc_Status as dqcStatus,
+        mn.Dq_Code as dqCode,
+        mn.Dq_Purpose as dqPurpose,
+        dri.p_id as pId,
+        pre.P_Name as pName,
+        dri.dri_Name as driName,
+        dri.dri_Type as driType,
+        dri.dri_Paper_Num as driPaperNum,
+        dri.dri_Category as driCategory,
+        dri.dri_Term as driTerm,
+        dri.dri_Issued_Describe as driIssuedDescribe,
+        dri.dri_Remark as driRemark,
+        dri.dri_Form_Type as driFormType,
+        dri.design_Is_Issued as designIsIssued
+        from design_qr_code mn
+        left join design_results_Issued dri on dri.Dqc_Id=mn.Id
+        left join pre_project pre on pre.P_Id=dri.P_Id
+        where 1=1
+        <if test="id != null and id != ''">
+            and mn.Id=#{id}
+        </if>
+    </select>
+
+    <select id="getDesignQrCodeList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignQrCodeModel">
+        select
+        mn.Id,
+        mn.Create_Time as createTime,
+        mn.Create_Uid as createUid,
+        mn.Create_Uname as createUname,
+        mn.State,
+        mn.State_Time as stateTime,
+        mn.Create_Time as dqcApplyTime,
+        mn.Dqc_Used as dqcUsed,
+        mn.Dqc_Status as dqcStatus,
+        mn.Dq_Code as dqCode,
+        mn.Dq_Purpose as dqPurpose,
+        dri.p_id as pId,
+        pre.p_Name as pName,
+        dri.Dri_Bussnis_Type as driBussnisType,
+        dri.dri_Name as driName,
+        dri.dri_Type as driType,
+        dri.dri_Paper_Num as driPaperNum,
+        dri.dri_Category as driCategory,
+        dri.dri_Term as driTerm,
+        dri.dri_Issued_Describe as driIssuedDescribe,
+        dri.dri_Remark as driRemark,
+        dri.dri_Form_Type as driFormType,
+        dri.design_Is_Issued as designIsIssued
+        from design_qr_code mn
+        left join design_results_Issued dri on dri.Dqc_Id=mn.Id
+        left join pre_project pre on pre.P_Id=dri.P_Id
+        where 1=1
+        <include refid="listQueryDesignCode"/>
+    </select>
+
+    <select id="getAllValues"
+            resultType="java.util.Map">
+        select distinct ${selectClause}
+        from  design_qr_code mn
+        left join pre_project pre on pre.P_Id=mn.P_Id
+        where 1=1
+        <include refid="listQueryDesignCode"/>
+    </select>
+
+    <select id="getDesignQrCodeDateById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignQrCodeModel">
+        SELECT
+            q.id AS qr_code_id,
+            q.some_field,
+            d.id AS design_id,
+            d.Id as driId
+        FROM
+            design_qr_code q
+                LEFT JOIN
+            design_results_Issued d ON q.id = d.Dqc_Id
+                LEFT JOIN
+            sys_file s ON d.Id = s.FileID
+        WHERE
+            q.id = #{id};
+    </select>
+    <select id="findLatestByDate" resultType="com.jpmsoft.projectProducer.pojo.entity.design.DesignQrCode" databaseId="mysql">
+        SELECT *
+        FROM design_qr_code
+        WHERE DATE_FORMAT(create_time, '%Y%m%d') = #{datePrefix}
+        ORDER BY create_time DESC
+            LIMIT 1
+    </select>
+
+    <select id="findLatestByDate" resultType="com.jpmsoft.projectProducer.pojo.entity.design.DesignQrCode" databaseId="dm">
+        SELECT *
+        FROM design_qr_code
+        WHERE TO_CHAR(create_time, 'YYYYMMDD') = #{datePrefix}
+        ORDER BY create_time DESC
+            LIMIT 1
+    </select>
+
+
+    <sql id="listQueryDesignCode">
+        <if test="authSql != null and authSql !=''">
+            and ${authSql}
+        </if>
+        <if test="params.pName != null and params.pName.size() > 0">
+            <choose>
+                <when test="params.pName.contains('空白数据')">
+                    and (pre.P_Name is null or pre.P_Name = '')
+                </when>
+                <otherwise>
+                    and pre.P_Name in
+                    <foreach collection="params.pName" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.dqcUsed != null and params.dqcUsed.size() > 0">
+            <choose>
+                <when test="params.dqcUsed.contains('空白数据')">
+                    and (mn.Dqc_Used is null or mn.Dqc_Used = '')
+                </when>
+                <otherwise>
+                    and mn.Dqc_Used in
+                    <foreach collection="params.dqcUsed" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+</mapper>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.qualitySafety.SafeResponsibilityPostPersonMapper">
+    <select id="getPostPersonList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SafeResponsibility.SafeResponsibilityPostPersonDTO">
+        SELECT mn.*,
+        sc.c_name AS unitName,
+        pp.p_name AS pName,
+        cc.con_name AS conName,
+        sp.post_name AS postName,
+        rl.level_name AS levelName
+        FROM safe_responsibility_post_person mn
+        LEFT JOIN pre_project pp ON mn.p_id = pp.p_id
+        LEFT JOIN Con_Contract cc ON mn.con_id = cc.con_id
+        LEFT JOIN Sys_company sc ON mn.unit_id = sc.c_id
+        LEFT JOIN safe_responsibility_post sp ON mn.post_id = sp.id
+        LEFT JOIN safe_responsibility_level rl ON sp.level_id = rl.id
+        <where>
+            <if test="request.id != null and request.id != ''">
+                AND mn.id = #{request.id}
+            </if>
+            <if test="request.pId != null and request.pId != ''">
+                AND mn.p_id = #{request.pId}
+            </if>
+            <if test="request.state != null">
+                AND mn.state = #{request.state}
+            </if>
+            <if test="request.createUid != null and request.createUid != ''">
+                AND mn.create_uid = #{request.createUid}
+            </if>
+            <if test="request.conId != null and request.conId != ''">
+                AND mn.con_id = #{request.conId}
+            </if>
+            <if test="request.unitId != null and request.unitId != ''">
+                AND mn.unit_id = #{request.unitId}
+            </if>
+            <if test="request.postId != null and request.postId != ''">
+                AND mn.post_id = #{request.postId}
+            </if>
+            <if test="request.pName != null and request.pName != ''">
+                AND pp.p_name LIKE CONCAT('%', #{request.pName}, '%')
+            </if>
+            <if test="request.conName != null and request.conName != ''">
+                AND cc.con_name LIKE CONCAT('%', #{request.conName}, '%')
+            </if>
+            <if test="request.name != null and request.name != ''">
+                AND mn.name LIKE CONCAT('%', #{request.name}, '%')
+            </if>
+            <if test="request.unitName != null and request.unitName != ''">
+                AND sc.c_name LIKE CONCAT('%', #{request.unitName}, '%')
+            </if>
+            <if test="request.postName != null and request.postName != ''">
+                AND sp.post_name LIKE CONCAT('%', #{request.postName}, '%')
+            </if>
+            <if test="request.levelName != null and request.levelName != ''">
+                AND rl.level_name LIKE CONCAT('%', #{request.levelName}, '%')
+            </if>
+            <if test="request.jobCategory != null and request.jobCategory != ''">
+                AND mn.job_category LIKE CONCAT('%', #{request.jobCategory}, '%')
+            </if>
+            <if test="request.phone != null and request.phone != ''">
+                AND mn.phone LIKE CONCAT('%', #{request.phone}, '%')
+            </if>
+            <if test="request.certificateNumber != null and request.certificateNumber != ''">
+                AND mn.certificate_number LIKE CONCAT('%', #{request.certificateNumber}, '%')
+            </if>
+            <if test="request.createUname != null and request.createUname != ''">
+                AND mn.create_uname LIKE CONCAT('%', #{request.createUname}, '%')
+            </if>
+        </where>
+        ORDER BY mn.sort_no ASC, mn.create_time DESC
+    </select>
+
+    <select id="getPostPersonById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SafeResponsibility.SafeResponsibilityPostPersonDTO">
+        select mn.*,
+        sc.c_name AS unitName,
+        pp.p_name AS pName,
+        cc.con_name AS conName,
+        sp.post_name AS postName,
+        rl.level_name AS levelName
+        FROM safe_responsibility_post_person mn
+        LEFT JOIN pre_project pp ON mn.p_id = pp.p_id
+        LEFT JOIN Con_Contract cc ON mn.con_id = cc.con_id
+        LEFT JOIN Sys_company sc ON mn.unit_id = sc.c_id
+        LEFT JOIN safe_responsibility_post sp ON mn.post_id = sp.id
+        LEFT JOIN safe_responsibility_level rl ON sp.level_id = rl.id
+        where mn.id = #{id}
+    </select>
+</mapper>

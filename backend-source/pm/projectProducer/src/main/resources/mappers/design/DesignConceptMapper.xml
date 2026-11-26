@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.design.DesignConceptMapper">
+
+    <select id="getDesignConceptById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignConceptModel">
+        select
+        pro.P_Name as pName,
+        pro.P_Type pType,
+        pro.P_Name_History as pNameHistory,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        f.file_relation_id as fileRelationId,
+        c.C_Name as dcUnitName,
+        c.C_Abbreviation as dcUnitAbbName,
+        c.C_Name_History as dcUnitNameHistory,
+        con.Con_Code as conCode,
+        con.Con_Name as conName,
+        mn.*
+        from  Design_Concept mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join  Sys_Company c on c.C_Id=mn.Dc_Unit_Id
+        left join  Sys_File f on f.FileID=mn.Dc_Id
+        where mn.Dc_Id=#{dcId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.dcFsr!=null">
+            and mn.Dc_Fsr = #{params.dcFsr}
+        </if>
+        <if test="params.dcAssignment!=null">
+            and mn.Dc_Assignment = #{params.dcAssignment}
+        </if>
+        <if test="params.dcGovernment!=null">
+            and mn.Dc_Government = #{params.dcGovernment}
+        </if>
+        <if test="params.dcUser!=null">
+            and mn.Dc_User = #{params.dcUser}
+        </if>
+        <if test="params.dcExamine!=null">
+            and mn.Dc_Examine = #{params.dcExamine}
+        </if>
+        <if test="params.dcState!=null">
+            and mn.Dc_State = #{params.dcState}
+        </if>
+        <if test="params.dcDrawingVersion!=null">
+            and mn.Dc_Drawing_Version like concat('%',#{params.dcDrawingVersion},'%')
+        </if>
+        <if test="params.dcDrawingSpecialty!=null">
+            and mn.Dc_Drawing_Specialty like concat('%',#{params.dcDrawingSpecialty},'%')
+        </if>
+        <if test="params.dcCreateUname!=null">
+            and mn.Dc_Create_Uname like concat('%',#{params.dcCreateUname},'%')
+        </if>
+        <if test="params.dcName!=null">
+            and mn.Dc_Name like concat('%',#{params.dcName},'%')
+        </if>
+        <if test="params.conCode!=null">
+            and INSTR(con.Con_Code,#{params.conCode})
+        </if>
+        <if test="params.conName!=null">
+            and INSTR(con.Con_Name,#{params.conName})
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and INSTR(pro.P_Name,#{params.pName})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pNameHistory!=null">
+            and INSTR(pro.P_Name_History,#{params.pNameHistory})
+        </if>
+        <if test="params.dcUnitName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.dcUnitName},c.C_Id)=true
+                </when>
+                <otherwise>
+                    and c.C_Name like concat('%',#{params.dcUnitName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.dcUnitNameHistory!=null">
+            and c.C_Name_History like concat('%',#{params.dcUnitNameHistory},'%')
+        </if>
+    </sql>
+
+    <select id="getDesignConceptList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Design.DesignConceptModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        f.file_relation_id as fileRelationId,
+        c.C_Name as dcUnitName,
+        c.C_Abbreviation as dcUnitAbbName,
+        c.C_Name_History as dcUnitNameHistory,
+        con.Con_Code as conCode,
+        con.Con_Name as conName,
+        mn.*
+        from Design_Concept mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join Sys_Company c on c.C_Id=mn.Dc_Unit_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Sys_File f on f.FileID=mn.Dc_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Dc_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

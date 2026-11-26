@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysTableMapper">
+
+
+    <select id="createTable" resultType="int">
+        create table ${table.tableCode}
+        (
+         <foreach collection="columns" item="column" open="" close="" separator=",">
+             ${column.columnCode}
+             ${column.columnType}<if test="column.columnType=='VARCHAR'">(${column.columnLength})</if><if test="column.columnType=='DECIMAL'">(${column.columnLength},2)</if>
+             <choose>
+                 <when test="column.columnNull=='1'">
+                     NOT NULL
+                 </when>
+                 <otherwise>
+                     null
+                 </otherwise>
+             </choose>
+         </foreach>,
+         constraint PK_${table.tableCode} primary key (${pk})
+        );
+    </select>
+    
+    <select id="createUniqueIndex"  resultType="int">
+        create unique index ${table.tableCode}_PK on ${table.tableDb}.${table.tableCode} (
+            ${pk} ASC
+        );
+    </select>
+
+
+    <select id="createTableSimple"  >
+        CREATE TABLE ${tableCode} (${tablePk} VARCHAR(36) NOT NULL);
+    </select>
+
+    <select id="createTableMin"  >
+        CREATE TABLE ${tableCode} (${tablePk} VARCHAR(36) NOT NULL,Create_Uid VARCHAR(36) NULL,Create_Uname VARCHAR(100) NULL, Create_Time TIMESTAMP  NULL, State INTEGER  NULL, State_Time TIMESTAMP NULL);
+    </select>
+
+    <select id="updateTableName" >
+        ALTER TABLE ${oldTableName} RENAME TO ${newTableName};
+    </select>
+
+
+
+    <select id="createTableColumn" >
+       alter table ${tableCode} add ${columnCode} ${columnType}<if test="columnType=='VARCHAR'">(${columnLength})</if><if test="columnType=='DECIMAL'">(${columnLength},2)</if>;
+    </select>
+
+
+    <select id="updateTableColumnName" >
+        ALTER TABLE ${tableCode} RENAME COLUMN ${oldColumnName} TO ${newColumnName};
+    </select>
+    <select id="updateTableColumnType" >
+        ALTER TABLE ${tableCode} modify  ${columnCode}  ${columnType}<if test="columnType=='VARCHAR'">(${columnLength})</if><if test="columnType=='DECIMAL'">(${columnLength},2)</if>;
+    </select>
+
+ <delete id="deleteTableData" >
+   ${sqlStr}
+ </delete>
+
+
+
+
+</mapper>

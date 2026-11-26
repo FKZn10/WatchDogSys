@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecNoticeMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecNoticeResponse" id="getSecNotice">
+        <id column="N_Id" property="nId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="N_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Notice sn on sn.Sec_Id=sec.Sec_Id
+        where sn.N_Id=#{nId}
+    </select>
+
+
+    <select id="getSecNoticeByNid" resultMap="getSecNotice">
+        select
+        c3.C_Name as nBiddingAgencyName,
+        c3.C_Abbreviation as nBidAgeAbbName,
+        sec.Sec_Name as secName,
+        sec.Sec_Type as secType,
+        sec.Sec_Other_Valuation as secOtherValuation,
+        sec.Sec_Pricing_Method as secPricingMethod,
+        sec.Sec_Money as secMoney,
+        n.*
+        from  Sec_Notice n
+        left join  Sec_Info sec on sec.Sec_Id=n.Sec_Id
+        left join  SYS_Company c3 on n.N_Bidding_Agency=c3.C_Id
+        where n.N_Id=#{nId}
+    </select>
+
+    <select id="getSecNoticeLastApprovedBySecId" resultMap="getSecNotice">
+        select
+            c3.C_Name as nBiddingAgencyName,
+            c3.C_Abbreviation as nBidAgeAbbName,
+            sec.Sec_Name as secName,
+            sec.Sec_Type as secType,
+            sec.Sec_Other_Valuation as secOtherValuation,
+            sec.Sec_Pricing_Method as secPricingMethod,
+            sec.Sec_Money as secMoney,
+            n.*
+        from  Sec_Notice n
+                  left join  Sec_Info sec on sec.Sec_Id=n.Sec_Id
+                  left join  SYS_Company c3 on n.N_Bidding_Agency=c3.C_Id
+        where n.Sec_Id=#{secId} and n.n_state=7
+        order by n.n_create_time desc limit 1
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and n.Te_Id = #{params.teId}
+        </if>
+        <if test="params.nBiddingType!=null">
+            and n.N_Bidding_Type=#{params.nBiddingType}
+        </if>
+        <if test="params.nQeType!=null">
+            and n.N_QE_Type=#{params.nQeType}
+        </if>
+        <if test="params.nState!=null">
+            and n.N_State=#{params.nState}
+        </if>
+        <if test="params.nReceiveJointBidd!=null">
+            and n.N_Receive_Joint_Bidd=#{params.nReceiveJointBidd}
+        </if>
+        <if test="params.nDeterminType!=null">
+            and n.N_Determin_Type=#{params.nDeterminType}
+        </if>
+        <if test="params.nFunction!=null">
+            and n.N_Function=#{params.nFunction}
+        </if>
+        <if test="params.nScope!=null">
+            and n.N_Scope like concat('%',#{params.nScope},'%')
+        </if>
+        <if test="params.nContactTel!=null">
+            and n.N_ContactTel like concat('%',#{params.nContactTel},'%')
+        </if>
+        <if test="params.nCreateUname!=null">
+            and n.N_Create_Uname like concat('%',#{params.nCreateUname},'%')
+        </if>
+        <if test="params.nContact!=null">
+            and n.N_Contact like concat('%',#{params.nContact},'%')
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.nBiddingAgencyName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.nBiddingAgencyName},c3.C_Id)=true
+                </when>
+                <otherwise>
+                    and c3.C_Name like concat('%',#{params.nBiddingAgencyName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.nAmountStart!=null">
+            and n.N_Amount>#{params.nAmountStart}
+        </if>
+        <if test="params.nAmountEnd!=null">
+            and n.N_Amount &lt; #{params.nAmountEnd}
+        </if>
+        <if test="params.nPlandateStart!=null">
+            and n.N_PlanDate>#{params.nPlandateStart}
+        </if>
+        <if test="params.nPlandateEnd!=null">
+            and n.N_PlanDate &lt; #{params.nPlandateEnd}
+        </if>
+        <if test="params.nPlanenddateStart!=null">
+            and n.N_PlanEndDate>#{params.nPlanenddateStart}
+        </if>
+        <if test="params.nPlanenddateEnd!=null">
+            and n.N_PlanEndDate &lt; #{params.nPlanenddateEnd}
+        </if>
+        <if test="params.nCreateTimeStart!=null">
+            and n.N_Create_Time>#{params.nCreateTimeStart}
+        </if>
+        <if test="params.nCreateTimeEnd!=null">
+            and n.N_Create_Time &lt; #{params.nCreateTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getSecNoticeList" resultMap="getSecNotice">
+        select
+        c3.C_Name_History as nBiddingAgencyNameHistory,
+        c3.C_Name as nBiddingAgencyName,
+        c3.C_Abbreviation as nBidAgeAbbName,
+        sec.Sec_Name as secName,
+        n.*
+        from  Sec_Notice n
+        left join  Sec_Info sec on sec.Sec_Id=n.Sec_Id
+        left join  SYS_Company c3 on n.N_Bidding_Agency=c3.C_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by n.${params.sortFiled} ${params.sortType}
+        </if>
+    </select>
+
+</mapper>

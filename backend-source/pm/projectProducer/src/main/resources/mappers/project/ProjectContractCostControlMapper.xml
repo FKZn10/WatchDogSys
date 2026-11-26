@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProjectContractCostControlMapper">
+    <select id="selectContractRows"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectContractCostControlVO$ContractRow">
+        SELECT c.Con_Id, c.Con_Name,
+        COALESCE(c.Con_Money_Total, 0) AS conMoneyTotal,
+        COALESCE(c.Con_Money_Tentative, 0) AS conMoneyTentative,
+        COALESCE(e.approvedChangeAmount, 0) AS approvedChangeAmount,
+        COALESCE(e.pendingChangeAmount, 0) AS pendingChangeAmount
+        FROM Con_Contract c
+        LEFT JOIN (
+        SELECT ec.Con_Id,
+        SUM(CASE WHEN ec.Ec_State = 7 THEN COALESCE(ec.party_a_amount, 0) ELSE 0 END) AS approvedChangeAmount,
+        SUM(CASE WHEN ec.Ec_State NOT IN (7, 3, 0) THEN COALESCE(ec.party_a_amount, 0) ELSE 0 END) AS
+        pendingChangeAmount
+        FROM Con_EC ec
+        INNER JOIN Con_Contract scope_con ON scope_con.Con_Id = ec.Con_Id
+        WHERE scope_con.Con_Project_Id = #{pId} AND scope_con.Con_Approval_State = 7
+        GROUP BY ec.Con_Id
+        ) e ON e.Con_Id = c.Con_Id
+        WHERE c.Con_Project_Id = #{pId} AND c.Con_Approval_State = 7
+        ORDER BY c.Con_Code, c.Con_Id
+    </select>
+    <select id="selectChangeRows"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ContractChangeSummaryVO$ChangeRow">
+        SELECT Ec_Id, change_name AS changeName, party_b_amount AS partyBAmount,
+        party_a_amount AS partyAAmount, Ec_State_Time, Ec_Remark, Ec_State
+        FROM Con_EC
+        WHERE Con_Id = #{conId}
+        <choose>
+            <when test="approved">
+                AND Ec_State = 7
+            </when>
+            <otherwise>
+                AND Ec_State NOT IN (7, 3, 0)
+            </otherwise>
+        </choose>
+        ORDER BY CASE WHEN Ec_State_Time IS NULL THEN 1 ELSE 0 END, Ec_State_Time DESC,
+        CASE WHEN Ec_Create_Time IS NULL THEN 1 ELSE 0 END, Ec_Create_Time DESC, Ec_Id DESC
+    </select>
+</mapper>

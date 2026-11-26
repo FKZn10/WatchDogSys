@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.ProProjectRegisterMapper">
+
+    <select id="selectByIdForUpdate"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.project.ProProjectRegister">
+        select * from Pro_Project_Register where id = #{id} for update
+    </select>
+
+    <select id="getProProjectRegisterList"
+            resultType="com.jpmsoft.projectProducer.pojo.entity.project.ProProjectRegister">
+        select mn.*
+        from Pro_Project_Register mn
+        <where>
+            <if test="params.permissionCompanyId != null">
+                and exists (select 1 from SYS_User permission_user
+                where permission_user.U_ID = mn.create_uid
+                and permission_user.C_ID = #{params.permissionCompanyId})
+            </if>
+            <if test="params.id != null and params.id != ''">
+                and mn.id = #{params.id}
+            </if>
+            <if test="params.projectName != null and params.projectName != ''">
+                and mn.project_name like concat('%', #{params.projectName}, '%')
+            </if>
+            <if test="params.projectCode != null and params.projectCode != ''">
+                and mn.project_code like concat('%', #{params.projectCode}, '%')
+            </if>
+            <if test="params.projectType != null and params.projectType != ''">
+                and mn.project_type = #{params.projectType}
+            </if>
+            <if test="params.investorName != null and params.investorName != ''">
+                and mn.investor_name like concat('%', #{params.investorName}, '%')
+            </if>
+            <if test="params.isGovernmentInvestment != null">
+                and mn.is_government_investment = #{params.isGovernmentInvestment}
+            </if>
+            <if test="params.state != null">
+                and mn.state = #{params.state}
+            </if>
+        </where>
+        order by mn.create_time desc, mn.id desc
+    </select>
+
+    <select id="getProProjectRegisterById"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProProjectRegisterVO">
+        select mn.*, sf.file_relation_id
+        from Pro_Project_Register mn
+        left join SYS_File sf on sf.fileid = mn.id
+        where mn.id = #{id}
+    </select>
+    <resultMap id="statisticsResult" type="com.jpmsoft.projectProducer.pojo.vo.project.ProjectRegisterStatisticsVO">
+        <result property="total" column="total"/>
+        <result property="approving" column="approving"/>
+        <result property="approved" column="approved"/>
+    </resultMap>
+    <!-- 与登记列表使用相同的后端单位权限。 -->
+    <select id="countRegistrationStatistics" resultMap="statisticsResult">
+        select count(*) as total,
+        coalesce(sum(case when mn.state is not null and mn.state not in (0, 3, 7)
+        then 1 else 0 end), 0) as approving,
+        coalesce(sum(case when mn.state = 7 then 1 else 0 end), 0) as approved
+        from Pro_Project_Register mn
+        <where>
+            <if test="params.permissionCompanyId != null">
+                and exists (select 1 from SYS_User permission_user
+                where permission_user.U_ID = mn.create_uid
+                and permission_user.C_ID = #{params.permissionCompanyId})
+            </if>
+        </where>
+    </select>
+</mapper>

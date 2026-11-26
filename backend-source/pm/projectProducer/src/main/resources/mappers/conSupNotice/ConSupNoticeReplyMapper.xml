@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.conSupNotice.ConSupNoticeReplyMapper">
+
+    <select id="getConSupNoticeReplyList" resultType="com.jpmsoft.common.model.request.ConBop.ConSupNoticeRequest">
+        select *
+        from (select sn.sn_id             as snId,
+                     sn.P_Id              as pId,
+                     mn.P_Name            as pName,
+                     con.Con_Name          as conName,
+                     sn.Sn_No             as snNo,
+                     csnr.snr_id           as snrId,
+                     sn.Sn_Code           as snCode,
+                     sn.Sn_State          as snState,
+                     csnr.Snr_State        as snrState,
+                     sn.sn_reply_deadline as snReplyDeadline,
+                     sn.Sn_Create_Time    as snCreateTime,
+                     sn.sn_create_Uname   as snCreateUname,
+                     sn.Sn_Reply_State    as snReplyState,
+                     sn.Sn_Need_Reply     as snNeedReply,
+                     sn.Te_Id             as teId
+              from Con_Sup_Notice sn
+              left join Con_Sup_Notice_Reply csnr on sn.sn_id = csnr.sn_id
+              left join Pre_Project mn on sn.P_Id=mn.P_Id
+              left join Con_Contract con on con.Con_Id=sn.Con_Id
+               ${authSql}
+              ) c ${ew.customSqlSegment}
+    </select>
+</mapper>

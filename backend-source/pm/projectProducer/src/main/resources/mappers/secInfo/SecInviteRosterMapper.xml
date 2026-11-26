@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecInviteRosterMapper">
+    <select id="getSecInviteRosterBydIds" resultType="com.jpmsoft.common.model.response.SecInfo.SecInviteRosterVo">
+        select
+        c1.C_Name as cName,
+        c1.C_Abbreviation as cAbbName,
+        mn.*
+        from Sec_Invite_Roster mn
+        left join SYS_Company c1 on c1.C_Id=mn.C_Id
+        where mn.D_Id in
+        <foreach collection="dIds" open="(" close=")" separator="," item="dId">
+            #{dId}
+        </foreach>
+        order by mn.Sir_Sort ASC
+    </select>
+</mapper>

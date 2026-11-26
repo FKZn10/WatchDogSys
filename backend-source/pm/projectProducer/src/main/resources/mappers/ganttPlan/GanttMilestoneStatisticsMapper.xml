@@ -1,0 +1,1118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.ganttPlan.GanttMilestoneStatisticsMapper">
+    <select id="getGanttMilestoneList"
+            resultType="com.jpmsoft.common.model.response.ganttPlan.GanttMilestoneStatisticsResponse">
+        select
+        mn.*,
+        mn.P_Inv_Total / 10000 as pInvTotal,
+        d1.D_Name as pCompetentDepartmentName,
+        d2.D_Name as pDepartmentName,
+        r.Remark as remark,
+        p.P_Create_User_ID,
+        p.P_Create_Time as pCreateTime
+        from gantt_milestone_statistics mn
+        left join pre_project p on p.P_ID = mn.P_Id
+        left join sys_department d1 on d1.D_ID = mn.P_Competent_Department
+        left join sys_department d2 on d2.D_ID = mn.P_Department
+        left join (select r1.* from gantt_remark r1
+        where r1.Write_Time = (select max(r2.Write_Time) from gantt_remark r2
+        where r2.Gms_Id = r1.Gms_Id)) r on r.Gms_Id = mn.Id
+        <include refid="listQueryCriteria"/>
+    </select>
+
+    <sql id="listQueryCriteria">
+        ${authSql}
+        <if test="params.pName != null and params.pName.size() > 0">
+            and mn.P_Name in
+            <foreach item="item" index="index" collection="params.pName" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.gsName != null and params.gsName.size() > 0">
+            and mn.Gs_Name in
+            <foreach item="item" index="index" collection="params.gsName" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pCategory != null and params.pCategory.size() > 0">
+            and mn.P_Category in
+            <foreach item="item" index="index" collection="params.pCategory" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pCompetentDepartmentName != null and params.pCompetentDepartmentName.size() > 0">
+            and d1.D_Name in
+            <foreach item="item" index="index" collection="params.pCompetentDepartmentName" open="(" separator=","
+                     close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pDepartmentName != null and params.pDepartmentName.size() > 0">
+            and d2.D_Name in
+            <foreach item="item" index="index" collection="params.pDepartmentName" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pProjectStage != null and params.pProjectStage.size() > 0">
+            and mn.P_Project_Stage in
+            <foreach item="item" index="index" collection="params.pProjectStage" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pInvTotal != null and params.pInvTotal.size() > 0">
+            and mn.P_Inv_Total in
+            <foreach item="item" index="index" collection="params.pInvTotal" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.setTimeStatus != null and params.setTimeStatus.size() > 0">
+            and mn.Set_Time_Status in
+            <foreach item="item" index="index" collection="params.setTimeStatus" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.startTimeStatus != null and params.startTimeStatus.size() > 0">
+            and mn.Start_Time_Status in
+            <foreach item="item" index="index" collection="params.startTimeStatus" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.finishTimeStatus != null and params.finishTimeStatus.size() > 0">
+            and mn.Finish_Time_Status in
+            <foreach item="item" index="index" collection="params.finishTimeStatus" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.completeTimeStatus != null and params.completeTimeStatus.size() > 0">
+            and mn.Complete_Time_Status in
+            <foreach item="item" index="index" collection="params.completeTimeStatus" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.completeRecordsTimeStatus != null and params.completeRecordsTimeStatus.size() > 0">
+            and mn.Complete_Records_Time_Status in
+            <foreach item="item" index="index" collection="params.completeRecordsTimeStatus" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.pRemoveTimeStatus != null and params.pRemoveTimeStatus.size() > 0">
+            and mn.P_Remove_Time_Status in
+            <foreach item="item" index="index" collection="params.pRemoveTimeStatus" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.accountSubmitTimeStatus != null and params.accountSubmitTimeStatus.size() > 0">
+            and mn.Account_Submit_Time_Status in
+            <foreach item="item" index="index" collection="params.accountSubmitTimeStatus" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.accountReplyTimeStatus != null and params.accountReplyTimeStatus.size() > 0">
+            and mn.Account_Reply_Time_Status in
+            <foreach item="item" index="index" collection="params.accountReplyTimeStatus" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="params.delinquent != null">
+            <trim prefix="and (" suffix=")" prefixOverrides="or">
+                <if test="params.delinquent.contains('01')">
+                    or mn.Complete_Time_Status = '03'
+                </if>
+                <if test="params.delinquent.contains('02')">
+                    or mn.Complete_Records_Time_Status = '03'
+                </if>
+                <if test="params.delinquent.contains('03')">
+                    or mn.P_Remove_Time_Status = '03'
+                </if>
+                <if test="params.delinquent.contains('04')">
+                    or mn.Account_Submit_Time_Status = '03'
+                </if>
+            </trim>
+        </if>
+        <include refid="listFormatFilter"/>
+        <if test="ids != null and ids.size() > 0">
+            and mn.Id in
+            <foreach item="item" index="index" collection="ids" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </sql>
+
+    <sql id="listFormatFilter" databaseId="dm">
+        <if test="params.setTime != null">
+            and TRUNC(mn.Set_Time) = TRUNC(#{params.setTime})
+        </if>
+        <if test="params.startTime != null">
+            and TRUNC(mn.Start_Time) = TRUNC(#{params.startTime})
+        </if>
+        <if test="params.finishTime != null">
+            and TRUNC(mn.Finish_Time) = TRUNC(#{params.finishTime})
+        </if>
+        <if test="params.completeTime != null">
+            and TRUNC(mn.Complete_Time) = TRUNC(#{params.completeTime})
+        </if>
+        <if test="params.completeRecordsTime != null">
+            and TRUNC(mn.Complete_Records_Time) = TRUNC(#{params.completeRecordsTime})
+        </if>
+        <if test="params.pRemoveTime != null">
+            and TRUNC(mn.P_Remove_Time) = TRUNC(#{params.pRemoveTime})
+        </if>
+        <if test="params.accountSubmitTime != null">
+            and TRUNC(mn.Account_Submit_Time) = TRUNC(#{params.accountSubmitTime})
+        </if>
+        <if test="params.accountReplyTime != null">
+            and TRUNC(mn.Account_Reply_Time) = TRUNC(#{params.accountReplyTime})
+        </if>
+        <if test="params.remark != null and params.remark != ''">
+            and r.Remark like '%'||#{params.remark}||'%'
+        </if>
+        <if test="params.isPlan != null and params.isPlan != ''">
+            <if test="params.isPlan == '00'">
+                <if test="params.icmReportingYear != null and params.icmReportingYear != '' and params.icmReportingMonth != null and params.icmReportingMonth != '' and !isPlanMonth">
+                    and mn.Finish_Time_Finish is not null
+                    and (
+                    (mn.Complete_Time_Schedule is not null and TO_CHAR(LAST_DAY(mn.Complete_Time_Schedule), 'YYYY-MM-DD') = #{lastDayOfMonth})
+                    or
+                    (mn.Complete_Records_Time_Schedule is not null and TO_CHAR(LAST_DAY(mn.Complete_Records_Time_Schedule), 'YYYY-MM-DD') = #{lastDayOfMonth})
+                    or
+                    (mn.P_Remove_Time_Schedule is not null and TO_CHAR(LAST_DAY(mn.P_Remove_Time_Schedule), 'YYYY-MM-DD') = #{lastDayOfMonth})
+                    or
+                    (mn.Account_Reply_Time_Schedule is not null and TO_CHAR(LAST_DAY(mn.Account_Reply_Time_Schedule), 'YYYY-MM-DD') = #{lastDayOfMonth})
+                    )
+                </if>
+                <if test="params.icmReportingYear != null and params.icmReportingYear != '' and params.icmReportingMonth != null and params.icmReportingMonth != '' and isPlanMonth">
+                    and mn.Finish_Time_Finish is not null
+                    and (
+                    (mn.Complete_Time_Schedule is not null and TO_CHAR(mn.Complete_Time_Schedule, 'YYYY') = #{params.icmReportingYear})
+                    or
+                    (mn.Complete_Records_Time_Schedule is not null and TO_CHAR(mn.Complete_Records_Time_Schedule, 'YYYY') = #{params.icmReportingYear})
+                    or
+                    (mn.P_Remove_Time_Schedule is not null and TO_CHAR(mn.P_Remove_Time_Schedule, 'YYYY') = #{params.icmReportingYear})
+                    or
+                    (mn.Account_Reply_Time_Schedule is not null and TO_CHAR(mn.Account_Reply_Time_Schedule, 'YYYY') = #{params.icmReportingYear})
+                    )
+                </if>
+            </if>
+            <if test="params.isPlan == '01'">
+                <if test="params.icmReportingYear != null and params.icmReportingYear != '' and params.icmReportingMonth != null and params.icmReportingMonth != ''">
+                    and mn.Finish_Time_Finish is not null
+                    and (
+                    (mn.Complete_Time_Schedule is not null and TO_CHAR(mn.Complete_Time_Schedule, 'YYYY') > #{params.icmReportingYear}
+                    and TO_CHAR(LAST_DAY(mn.Complete_Time_Finish), 'YYYY-MM-DD') = #{lastDayOfMonth})
+                    or
+                    (mn.Complete_Records_Time_Schedule is not null and TO_CHAR(mn.Complete_Records_Time_Schedule, 'YYYY') > #{params.icmReportingYear}
+                    and TO_CHAR(LAST_DAY(mn.Complete_Records_Time_Finish), 'YYYY-MM-DD') = #{lastDayOfMonth})
+                    or
+                    (mn.P_Remove_Time_Schedule is not null and TO_CHAR(mn.P_Remove_Time_Schedule, 'YYYY') > #{params.icmReportingYear}
+                    and TO_CHAR(LAST_DAY(mn.P_Remove_Time_Finish), 'YYYY-MM-DD') = #{lastDayOfMonth})
+                    or
+                    (mn.Account_Reply_Time_Schedule is not null and TO_CHAR(mn.Account_Reply_Time_Schedule, 'YYYY') > #{params.icmReportingYear}
+                    and TO_CHAR(LAST_DAY(mn.Account_Reply_Time_Finish), 'YYYY-MM-DD') = #{lastDayOfMonth})
+                    )
+                </if>
+            </if>
+        </if>
+    </sql>
+
+    <sql id="listFormatFilter" databaseId="mysql">
+        <if test="params.setTime != null">
+            and DATE(mn.Set_Time) = DATE(#{params.setTime})
+        </if>
+        <if test="params.startTime != null">
+            and DATE(mn.Start_Time) = DATE(#{params.startTime})
+        </if>
+        <if test="params.finishTime != null">
+            and DATE(mn.Finish_Time) = DATE(#{params.finishTime})
+        </if>
+        <if test="params.completeTime != null">
+            and DATE(mn.Complete_Time) = DATE(#{params.completeTime})
+        </if>
+        <if test="params.completeRecordsTime != null">
+            and DATE(mn.Complete_Records_Time) = DATE(#{params.completeRecordsTime})
+        </if>
+        <if test="params.pRemoveTime != null">
+            and DATE(mn.P_Remove_Time) = DATE(#{params.pRemoveTime})
+        </if>
+        <if test="params.accountSubmitTime != null">
+            and DATE(mn.Account_Submit_Time) = DATE(#{params.accountSubmitTime})
+        </if>
+        <if test="params.accountReplyTime != null">
+            and DATE(mn.Account_Reply_Time) = DATE(#{params.accountReplyTime})
+        </if>
+        <if test="params.remark != null and params.remark != ''">
+            and r.Remark like CONCAT('%', #{params.remark}, '%')
+        </if>
+        <if test="params.isPlan != null and params.isPlan != ''">
+            <if test="params.isPlan == '00'">
+                <if test="params.icmReportingYear != null and params.icmReportingYear != '' and params.icmReportingMonth != null and params.icmReportingMonth != '' and !isPlanMonth">
+                    and mn.Finish_Time_Finish is not null
+                    and (
+                    (mn.Complete_Time_Schedule is not null and LAST_DAY(DATE_FORMAT(mn.Complete_Time_Schedule, '%Y-%m-%d')) = #{lastDayOfMonth})
+                    or
+                    (mn.Complete_Records_Time_Schedule is not null and LAST_DAY(DATE_FORMAT(mn.Complete_Records_Time_Schedule, '%Y-%m-%d')) = #{lastDayOfMonth})
+                    or
+                    (mn.P_Remove_Time_Schedule is not null and LAST_DAY(DATE_FORMAT(mn.P_Remove_Time_Schedule, '%Y-%m-%d')) = #{lastDayOfMonth})
+                    or
+                    (mn.Account_Reply_Time_Schedule is not null and LAST_DAY(DATE_FORMAT(mn.Account_Reply_Time_Schedule, '%Y-%m-%d')) = #{lastDayOfMonth})
+                    )
+                </if>
+                <if test="params.icmReportingYear != null and params.icmReportingYear != '' and params.icmReportingMonth != null and params.icmReportingMonth != '' and isPlanMonth">
+                    and mn.Finish_Time_Finish is not null
+                    and (
+                    (mn.Complete_Time_Schedule is not null and YEAR(mn.Complete_Time_Schedule) = #{params.icmReportingYear})
+                    or
+                    (mn.Complete_Records_Time_Schedule is not null and YEAR(mn.Complete_Records_Time_Schedule) = #{params.icmReportingYear})
+                    or
+                    (mn.P_Remove_Time_Schedule is not null and YEAR(mn.P_Remove_Time_Schedule) = #{params.icmReportingYear})
+                    or
+                    (mn.Account_Reply_Time_Schedule is not null and YEAR(mn.Account_Reply_Time_Schedule) = #{params.icmReportingYear})
+                    )
+                </if>
+            </if>
+            <if test="params.isPlan == '01'">
+                <if test="params.icmReportingYear != null and params.icmReportingYear != '' and params.icmReportingMonth != null and params.icmReportingMonth != ''">
+                    and mn.Finish_Time_Finish is not null
+                    and (
+                    (mn.Complete_Time_Schedule is not null and YEAR(mn.Complete_Time_Schedule) > #{params.icmReportingYear}
+                    and LAST_DAY(DATE_FORMAT(mn.Complete_Time_Finish, '%Y-%m-%d')) = #{lastDayOfMonth})
+                    or
+                    (mn.Complete_Records_Time_Schedule is not null and YEAR(mn.Complete_Records_Time_Schedule) > #{params.icmReportingYear}
+                    and LAST_DAY(DATE_FORMAT(mn.Complete_Records_Time_Finish, '%Y-%m-%d')) = #{lastDayOfMonth})
+                    or
+                    (mn.P_Remove_Time_Schedule is not null and YEAR(mn.P_Remove_Time_Schedule) > #{params.icmReportingYear}
+                    and LAST_DAY(DATE_FORMAT(mn.P_Remove_Time_Finish, '%Y-%m-%d')) = #{lastDayOfMonth})
+                    or
+                    (mn.Account_Reply_Time_Schedule is not null and YEAR(mn.Account_Reply_Time_Schedule) > #{params.icmReportingYear}
+                    and LAST_DAY(DATE_FORMAT(mn.Account_Reply_Time_Finish, '%Y-%m-%d')) = #{lastDayOfMonth})
+                    )
+                </if>
+            </if>
+        </if>
+    </sql>
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select distinct ${selectClause}
+        from gantt_milestone_statistics mn
+        left join pre_project p on p.P_ID = mn.P_Id
+        left join sys_department d1 on d1.D_ID = mn.P_Competent_Department
+        left join sys_department d2 on d2.D_ID = mn.P_Department
+        left join (select r1.* from gantt_remark r1
+        where r1.Write_Time = (select max(r2.Write_Time) from gantt_remark r2
+        where r2.Gms_Id = r1.Gms_Id)) r on r.Gms_Id = mn.Id
+        <include refid="listQueryCriteria"/>
+    </select>
+
+    <select id="getMonthlyReport" resultType="com.jpmsoft.projectProducer.pojo.vo.ganttPlan.MonthlyReportVO" databaseId="mysql">
+        SELECT
+        SUM(CASE WHEN mn.Complete_Time_Finish IS NOT NULL
+        AND MONTH(mn.Complete_Time_Finish) >= '1'
+        AND MONTH(mn.Complete_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Complete_Time_Finish) = #{request.year}
+        THEN 1 ELSE 0 END) AS completeFinishNum,
+        SUM(CASE WHEN (mn.Complete_Time_Status = '05' OR mn.Complete_Time_Status = '03')
+        AND MONTH(mn.Complete_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND YEAR(mn.Complete_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END) AS completeOutTimeNum,
+        SUM(
+        CASE WHEN mn.Complete_Time_Finish IS NOT NULL
+        AND MONTH(mn.Complete_Time_Finish) >= '1'
+        AND MONTH(mn.Complete_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Complete_Time_Finish) = #{request.year}
+        AND YEAR(mn.Complete_Time_Schedule) > YEAR(mn.Complete_Time_Finish)
+        THEN 1 ELSE 0 END
+        ) AS completeOutPlanNum,
+        SUM(
+        CASE WHEN mn.Complete_Time_Schedule IS NOT NULL
+        AND MONTH(mn.Complete_Time_Schedule) >= '1'
+        AND MONTH(mn.Complete_Time_Schedule) &lt;= #{request.month}
+        AND YEAR(mn.Complete_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END
+        ) AS completeNeedFinishNum,
+
+        SUM(CASE WHEN mn.Complete_Records_Time_Finish IS NOT NULL
+        AND MONTH(mn.Complete_Records_Time_Finish) >= '1'
+        AND MONTH(mn.Complete_Records_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Complete_Records_Time_Finish) = #{request.year}
+        THEN 1 ELSE 0 END) AS completeRecordsFinishNum,
+        SUM(CASE WHEN (mn.Complete_Records_Time_Status = '05' OR mn.Complete_Records_Time_Status = '03')
+        AND MONTH(mn.Complete_Records_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND YEAR(mn.Complete_Records_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END) AS completeRecordsOutTimeNum,
+        SUM(
+        CASE WHEN mn.Complete_Records_Time_Finish IS NOT NULL
+        AND MONTH(mn.Complete_Records_Time_Finish) >= '1'
+        AND MONTH(mn.Complete_Records_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Complete_Records_Time_Finish) = #{request.year}
+        AND YEAR(mn.Complete_Records_Time_Schedule) > YEAR(mn.Complete_Records_Time_Finish)
+        THEN 1 ELSE 0 END
+        ) AS completeRecordsOutPlanNum,
+        SUM(
+        CASE WHEN mn.Complete_Records_Time_Schedule IS NOT NULL
+        AND MONTH(mn.Complete_Records_Time_Schedule) >= '1'
+        AND MONTH(mn.Complete_Records_Time_Schedule) &lt;= #{request.month}
+        AND YEAR(mn.Complete_Records_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END
+        )AS completeRecordsNeedFinishNum,
+
+        SUM(CASE WHEN mn.P_Remove_Time_Finish IS NOT NULL
+        AND MONTH(mn.P_Remove_Time_Finish) >= '1'
+        AND MONTH(mn.P_Remove_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.P_Remove_Time_Finish) = #{request.year}
+        THEN 1 ELSE 0 END) AS pRemoveFinishNum,
+        SUM(CASE WHEN (mn.P_Remove_Time_Status = '05' OR mn.P_Remove_Time_Status = '03')
+        AND MONTH(mn.P_Remove_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND YEAR(mn.P_Remove_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END) AS pRemoveOutTimeNum,
+        SUM(
+        CASE WHEN mn.P_Remove_Time_Finish IS NOT NULL
+        AND MONTH(mn.P_Remove_Time_Finish) >= '1'
+        AND MONTH(mn.P_Remove_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.P_Remove_Time_Finish) = #{request.year}
+        AND YEAR(mn.P_Remove_Time_Schedule) > YEAR(mn.P_Remove_Time_Finish)
+        THEN 1 ELSE 0 END
+        ) AS pRemoveOutPlanNum,
+        SUM(
+        CASE WHEN mn.P_Remove_Time_Schedule IS NOT NULL
+        AND MONTH(mn.P_Remove_Time_Schedule) >= '1'
+        AND MONTH(mn.P_Remove_Time_Schedule) &lt;= #{request.month}
+        AND YEAR(mn.P_Remove_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END
+        ) AS pRemoveNeedFinishNum,
+
+        SUM(CASE WHEN mn.Account_Submit_Time_Finish IS NOT NULL
+        AND MONTH(mn.Account_Submit_Time_Finish) >= '1'
+        AND MONTH(mn.Account_Submit_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Account_Submit_Time_Finish) = #{request.year}
+        THEN 1 ELSE 0 END) AS accountSubmitFinishNum,
+        SUM(CASE WHEN (mn.Account_Submit_Time_Status = '05' OR mn.Account_Submit_Time_Status = '03')
+        AND MONTH(mn.Account_Submit_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND YEAR(mn.Account_Submit_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END) AS accountSubmitOutTimeNum,
+        SUM(
+        CASE WHEN mn.Account_Submit_Time_Finish IS NOT NULL
+        AND MONTH(mn.Account_Submit_Time_Finish) >= '1'
+        AND MONTH(mn.Account_Submit_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Account_Submit_Time_Finish) = #{request.year}
+        AND YEAR(mn.Account_Submit_Time_Schedule) > YEAR(mn.Account_Submit_Time_Finish)
+        THEN 1 ELSE 0 END
+        ) AS accountSubmitOutPlanNum,
+        SUM(
+        CASE WHEN mn.Account_Submit_Time_Schedule IS NOT NULL
+        AND MONTH(mn.Account_Submit_Time_Schedule) >= '1'
+        AND MONTH(mn.Account_Submit_Time_Schedule) &lt;= #{request.month}
+        AND YEAR(mn.Account_Submit_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END
+        ) AS accountSubmitNeedFinishNum
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        ${authSql}
+        <include refid="generalConditions"/>
+    </select>
+    <select id="getMonthlyReport" resultType="com.jpmsoft.projectProducer.pojo.vo.ganttPlan.MonthlyReportVO" databaseId="dm">
+        SELECT
+        SUM(CASE WHEN mn.Complete_Time_Finish IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.Complete_Time_Finish) >= 1
+        AND EXTRACT(MONTH FROM mn.Complete_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Complete_Time_Finish) = #{request.year}
+        THEN 1 ELSE 0 END) AS completeFinishNum,
+        SUM(CASE WHEN (mn.Complete_Time_Status = '05' OR mn.Complete_Time_Status = '03')
+        AND EXTRACT(YEAR FROM mn.Complete_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END) AS completeOutTimeNum,
+        SUM(
+        CASE WHEN mn.Complete_Time_Finish IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.Complete_Time_Finish) >= 1
+        AND EXTRACT(MONTH FROM mn.Complete_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Complete_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.Complete_Time_Schedule) > EXTRACT(YEAR FROM mn.Complete_Time_Finish)
+        THEN 1 ELSE 0 END
+        ) AS completeOutPlanNum,
+        SUM(
+        CASE WHEN mn.Complete_Time_Schedule IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.Complete_Time_Schedule) >= 1
+        AND EXTRACT(MONTH FROM mn.Complete_Time_Schedule) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Complete_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END
+        ) AS completeNeedFinishNum,
+
+        SUM(CASE WHEN mn.Complete_Records_Time_Finish IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.Complete_Records_Time_Finish) >= 1
+        AND EXTRACT(MONTH FROM mn.Complete_Records_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Complete_Records_Time_Finish) = #{request.year}
+        THEN 1 ELSE 0 END) AS completeRecordsFinishNum,
+        SUM(CASE WHEN (mn.Complete_Records_Time_Status = '05' OR mn.Complete_Records_Time_Status = '03')
+        AND EXTRACT(YEAR FROM mn.Complete_Records_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END) AS completeRecordsOutTimeNum,
+        SUM(
+        CASE WHEN mn.Complete_Records_Time_Finish IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.Complete_Records_Time_Finish) >= 1
+        AND EXTRACT(MONTH FROM mn.Complete_Records_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Complete_Records_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.Complete_Records_Time_Schedule) > EXTRACT(YEAR FROM mn.Complete_Records_Time_Finish)
+        THEN 1 ELSE 0 END
+        ) AS completeRecordsOutPlanNum,
+        SUM(
+        CASE WHEN mn.Complete_Records_Time_Schedule IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.Complete_Records_Time_Schedule) >= 1
+        AND EXTRACT(MONTH FROM mn.Complete_Records_Time_Schedule) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Complete_Records_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END
+        )AS completeRecordsNeedFinishNum,
+
+        SUM(CASE WHEN mn.P_Remove_Time_Finish IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.P_Remove_Time_Finish) >= 1
+        AND EXTRACT(MONTH FROM mn.P_Remove_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.P_Remove_Time_Finish) = #{request.year}
+        THEN 1 ELSE 0 END) AS pRemoveFinishNum,
+        SUM(CASE WHEN (mn.P_Remove_Time_Status = '05' OR mn.P_Remove_Time_Status = '03')
+        AND EXTRACT(YEAR FROM mn.P_Remove_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END) AS pRemoveOutTimeNum,
+        SUM(
+        CASE WHEN mn.P_Remove_Time_Finish IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.P_Remove_Time_Finish) >= 1
+        AND EXTRACT(MONTH FROM mn.P_Remove_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.P_Remove_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.P_Remove_Time_Schedule) > EXTRACT(YEAR FROM mn.P_Remove_Time_Finish)
+        THEN 1 ELSE 0 END
+        ) AS pRemoveOutPlanNum,
+        SUM(
+        CASE WHEN mn.P_Remove_Time_Schedule IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.P_Remove_Time_Schedule) >= 1
+        AND EXTRACT(MONTH FROM mn.P_Remove_Time_Schedule) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.P_Remove_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END
+        ) AS pRemoveNeedFinishNum,
+
+        SUM(CASE WHEN mn.Account_Submit_Time_Finish IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.Account_Submit_Time_Finish) >= 1
+        AND EXTRACT(MONTH FROM mn.Account_Submit_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Account_Submit_Time_Finish) = #{request.year}
+        THEN 1 ELSE 0 END) AS accountSubmitFinishNum,
+        SUM(CASE WHEN (mn.Account_Submit_Time_Status = '05' OR mn.Account_Submit_Time_Status = '03')
+        AND EXTRACT(YEAR FROM mn.Account_Submit_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END) AS accountSubmitOutTimeNum,
+        SUM(
+        CASE WHEN mn.Account_Submit_Time_Finish IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.Account_Submit_Time_Finish) >= 1
+        AND EXTRACT(MONTH FROM mn.Account_Submit_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Account_Submit_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.Account_Submit_Time_Schedule) > EXTRACT(YEAR FROM mn.Account_Submit_Time_Finish)
+        THEN 1 ELSE 0 END
+        ) AS accountSubmitOutPlanNum,
+        SUM(
+        CASE WHEN mn.Account_Submit_Time_Schedule IS NOT NULL
+        AND EXTRACT(MONTH FROM mn.Account_Submit_Time_Schedule) >= 1
+        AND EXTRACT(MONTH FROM mn.Account_Submit_Time_Schedule) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Account_Submit_Time_Schedule) = #{request.year}
+        THEN 1 ELSE 0 END
+        ) AS accountSubmitNeedFinishNum
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        ${authSql}
+        <include refid="generalConditions"/>
+    </select>
+
+    <select id="getYearPlan" resultType="com.jpmsoft.projectProducer.pojo.vo.ganttPlan.MonthlyReportVO" databaseId="mysql">
+        SELECT
+        SUM(CASE WHEN YEAR(mn.Complete_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END) AS completeNum,
+        SUM(CASE WHEN YEAR(mn.Complete_Records_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END) AS
+        completeRecordsNum,
+        SUM(CASE WHEN YEAR(mn.P_Remove_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END) AS pRemoveNum,
+        SUM(CASE WHEN YEAR(mn.Account_Submit_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END) AS accountSubmit,
+        SUM(
+        CASE WHEN YEAR(mn.Complete_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END +
+        CASE WHEN YEAR(mn.Complete_Records_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END +
+        CASE WHEN YEAR(mn.P_Remove_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END +
+        CASE WHEN YEAR(mn.Account_Submit_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END
+        ) AS nodeNum,
+        COUNT(mn.Plan_Id) AS projectNum
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        ${authSql}
+        <include refid="generalConditions"/>
+    </select>
+    <select id="getYearPlan" resultType="com.jpmsoft.projectProducer.pojo.vo.ganttPlan.MonthlyReportVO" databaseId="dm">
+        SELECT
+        SUM(CASE WHEN EXTRACT(YEAR FROM mn.Complete_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END) AS completeNum,
+        SUM(CASE WHEN EXTRACT(YEAR FROM mn.Complete_Records_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END) AS
+        completeRecordsNum,
+        SUM(CASE WHEN EXTRACT(YEAR FROM mn.P_Remove_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END) AS pRemoveNum,
+        SUM(CASE WHEN EXTRACT(YEAR FROM mn.Account_Submit_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END) AS
+        accountSubmit,
+        SUM(
+        CASE WHEN EXTRACT(YEAR FROM mn.Complete_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END +
+        CASE WHEN EXTRACT(YEAR FROM mn.Complete_Records_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END +
+        CASE WHEN EXTRACT(YEAR FROM mn.P_Remove_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END +
+        CASE WHEN EXTRACT(YEAR FROM mn.Account_Submit_Time_Schedule) = #{request.year} THEN 1 ELSE 0 END
+        ) AS nodeNum,
+        COUNT(mn.Plan_Id) AS projectNum
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        ${authSql}
+        <include refid="generalConditions"/>
+    </select>
+
+    <!-- 竣工验收逾期项目 -->
+    <select id="getCompleteOutTimeProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="mysql">
+        SELECT sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Complete_Time_Schedule AS planDate,
+        mn.Complete_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        left join SYS_Department sd on sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND YEAR(mn.Complete_Time_Schedule) = #{request.year}
+        AND MONTH(mn.Complete_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND (mn.Complete_Time_Status = '05' OR mn.Complete_Time_Status = '03')
+        <include refid="generalConditions"/>
+    </select>
+    <select id="getCompleteOutTimeProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="dm">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Complete_Time_Schedule AS planDate,
+        mn.Complete_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        LEFT JOIN SYS_Department sd ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND EXTRACT(YEAR FROM mn.Complete_Time_Schedule) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.Complete_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND (mn.Complete_Time_Status = '05' OR mn.Complete_Time_Status = '03')
+        <include refid="generalConditions"/>
+    </select>
+
+    <!-- 竣工备案逾期项目 -->
+    <select id="getRecordsOutTimeProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="mysql">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Complete_Records_Time_Schedule AS planDate,
+        mn.Complete_Records_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        left join SYS_Department sd on sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND YEAR(mn.Complete_Records_Time_Schedule) = #{request.year}
+        AND MONTH(mn.Complete_Records_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND (mn.Complete_Records_Time_Status = '05' OR mn.Complete_Records_Time_Status = '03')
+        <include refid="generalConditions"/>
+    </select>
+    <select id="getRecordsOutTimeProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="dm">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Complete_Records_Time_Schedule AS planDate,
+        mn.Complete_Records_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        LEFT JOIN SYS_Department sd ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND EXTRACT(YEAR FROM mn.Complete_Records_Time_Schedule) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.Complete_Records_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND (mn.Complete_Records_Time_Status = '05' OR mn.Complete_Records_Time_Status = '03')
+        <include refid="generalConditions"/>
+    </select>
+
+    <!-- 工程移交逾期项目 -->
+    <select id="getRemoveOutTimeProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="mysql">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.P_Remove_Time_Schedule AS planDate,
+        mn.P_Remove_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        left join SYS_Department sd on sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND YEAR(mn.P_Remove_Time_Schedule) = #{request.year}
+        AND MONTH(mn.P_Remove_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND (mn.P_Remove_Time_Status = '05' OR mn.P_Remove_Time_Status = '03')
+        <include refid="generalConditions"/>
+    </select>
+    <select id="getRemoveOutTimeProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="dm">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.P_Remove_Time_Schedule AS planDate,
+        mn.P_Remove_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        LEFT JOIN SYS_Department sd ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND EXTRACT(YEAR FROM mn.P_Remove_Time_Schedule) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.P_Remove_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND (mn.P_Remove_Time_Status = '05' OR mn.P_Remove_Time_Status = '03')
+        <include refid="generalConditions"/>
+    </select>
+
+    <!-- 决算上报逾期项目 -->
+    <select id="getAccountOutTimeProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="mysql">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Account_Submit_Time_Schedule AS planDate,
+        mn.Account_Submit_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        left join SYS_Department sd on sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND YEAR(mn.Account_Submit_Time_Schedule) = #{request.year}
+        AND MONTH(mn.Account_Submit_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND (mn.Account_Reply_Time_Status = '05' OR mn.Account_Reply_Time_Status = '03')
+        <include refid="generalConditions"/>
+    </select>
+    <select id="getAccountOutTimeProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="dm">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Account_Submit_Time_Schedule AS planDate,
+        mn.Account_Submit_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        LEFT JOIN SYS_Department sd ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND EXTRACT(YEAR FROM mn.Account_Submit_Time_Schedule) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.Account_Submit_Time_Schedule) BETWEEN 1 AND #{request.month}
+        AND (mn.Account_Reply_Time_Status = '05' OR mn.Account_Reply_Time_Status = '03')
+        <include refid="generalConditions"/>
+    </select>
+
+    <!-- 竣工验收计划外项目 -->
+    <select id="getCompleteOutOfPlanProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="mysql">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Complete_Time_Schedule AS planDate,
+        mn.Complete_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        left join SYS_Department sd on sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND MONTH(mn.Complete_Time_Finish) BETWEEN 1 AND #{request.month}
+        AND YEAR(mn.Complete_Time_Finish) = #{request.year}
+        AND YEAR(mn.Complete_Time_Schedule) > YEAR(mn.Complete_Time_Finish)
+        <include refid="generalConditions"/>
+    </select>
+    <select id="getCompleteOutOfPlanProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="dm">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Complete_Time_Schedule AS planDate,
+        mn.Complete_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        LEFT JOIN SYS_Department sd ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND EXTRACT(MONTH FROM mn.Complete_Time_Finish) BETWEEN 1 AND #{request.month}
+        AND EXTRACT(YEAR FROM mn.Complete_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.Complete_Time_Schedule) > EXTRACT(YEAR FROM mn.Complete_Time_Finish)
+        <include refid="generalConditions"/>
+    </select>
+
+    <!-- 竣工备案计划外项目 -->
+    <select id="getRecordsOutOfPlanProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="mysql">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Complete_Records_Time_Schedule AS planDate,
+        mn.Complete_Records_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        left join SYS_Department sd on sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND MONTH(mn.Complete_Records_Time_Finish) BETWEEN 1 AND #{request.month}
+        AND YEAR(mn.Complete_Records_Time_Finish) = #{request.year}
+        AND YEAR(mn.Complete_Records_Time_Schedule) > YEAR(mn.Complete_Records_Time_Finish)
+        <include refid="generalConditions"/>
+    </select>
+    <select id="getRecordsOutOfPlanProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="dm">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Complete_Records_Time_Schedule AS planDate,
+        mn.Complete_Records_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        LEFT JOIN SYS_Department sd ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND EXTRACT(MONTH FROM mn.Complete_Records_Time_Finish) BETWEEN 1 AND #{request.month}
+        AND EXTRACT(YEAR FROM mn.Complete_Records_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.Complete_Records_Time_Schedule) > EXTRACT(YEAR FROM mn.Complete_Records_Time_Finish)
+        <include refid="generalConditions"/>
+    </select>
+
+    <!-- 工程移交计划外项目 -->
+    <select id="getRemoveOutOfPlanProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="mysql">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.P_Remove_Time_Schedule AS planDate,
+        mn.P_Remove_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        left join SYS_Department sd on sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND MONTH(mn.P_Remove_Time_Finish) BETWEEN 1 AND #{request.month}
+        AND YEAR(mn.P_Remove_Time_Finish) = #{request.year}
+        AND YEAR(mn.P_Remove_Time_Schedule) > YEAR(mn.P_Remove_Time_Finish)
+        <include refid="generalConditions"/>
+    </select>
+    <select id="getRemoveOutOfPlanProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="dm">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.P_Remove_Time_Schedule AS planDate,
+        mn.P_Remove_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        LEFT JOIN SYS_Department sd ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND EXTRACT(MONTH FROM mn.P_Remove_Time_Finish) BETWEEN 1 AND #{request.month}
+        AND EXTRACT(YEAR FROM mn.P_Remove_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.P_Remove_Time_Schedule) > EXTRACT(YEAR FROM mn.P_Remove_Time_Finish)
+        <include refid="generalConditions"/>
+    </select>
+
+    <!-- 决算上报计划外项目 -->
+    <select id="getAccountOutOfPlanProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="mysql">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Account_Submit_Time_Schedule AS planDate,
+        mn.Account_Submit_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        left join SYS_Department sd on sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND MONTH(mn.Account_Submit_Time_Finish) BETWEEN 1 AND #{request.month}
+        AND YEAR(mn.Account_Submit_Time_Finish) = #{request.year}
+        AND YEAR(mn.Account_Submit_Time_Schedule) > YEAR(mn.Account_Submit_Time_Finish)
+        <include refid="generalConditions"/>
+    </select>
+    <select id="getAccountOutOfPlanProjects" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.OutProjectVo" databaseId="dm">
+        SELECT
+        sd.D_Name AS competentDepartmentName,
+        mn.P_Name AS projectName,
+        mn.Account_Submit_Time_Schedule AS planDate,
+        mn.Account_Submit_Time_Finish AS actualDate
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        LEFT JOIN SYS_Department sd ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        AND EXTRACT(MONTH FROM mn.Account_Submit_Time_Finish) BETWEEN 1 AND #{request.month}
+        AND EXTRACT(YEAR FROM mn.Account_Submit_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.Account_Submit_Time_Schedule) > EXTRACT(YEAR FROM mn.Account_Submit_Time_Finish)
+        <include refid="generalConditions"/>
+    </select>
+
+    <select id="getEndPlanInAnnex" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.EndPlanAnnex" databaseId="mysql">
+        SELECT sd.D_Name AS competentDepartmentName,
+        '年度计划' AS type,
+        SUM(CASE
+        WHEN YEAR(mn.Complete_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualCompleteNum,
+        SUM(CASE
+        WHEN YEAR(mn.Complete_Records_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualCompleteRecordsNum,
+        SUM(CASE
+        WHEN YEAR(mn.P_Remove_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualPRemoveNum,
+        SUM(CASE
+        WHEN YEAR(mn.Account_Submit_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualAccountSubmitNum,
+        SUM(CASE
+        WHEN YEAR(mn.Complete_Time_Finish) = #{request.year}
+        AND MONTH(mn.Complete_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Complete_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS completeNum,
+        SUM(CASE
+        WHEN YEAR(mn.Complete_Records_Time_Finish) = #{request.year}
+        AND MONTH(mn.Complete_Records_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Complete_Records_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS completeRecordsNum,
+        SUM(CASE
+        WHEN YEAR(mn.P_Remove_Time_Finish) = #{request.year}
+        AND MONTH(mn.P_Remove_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.P_Remove_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS pRemoveNum,
+        SUM(CASE
+        WHEN YEAR(mn.Account_Submit_Time_Finish) = #{request.year}
+        AND MONTH(mn.Account_Submit_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Account_Submit_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS accountSubmitNum
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        LEFT JOIN
+        sys_department sd
+        ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        and mn.Plan_Id IS NOT NULL
+        <include refid="generalConditions"/>
+        GROUP BY
+        sd.D_Name;
+    </select>
+    <select id="getEndPlanInAnnex" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.EndPlanAnnex" databaseId="dm">
+        SELECT sd.D_Name AS competentDepartmentName,
+        '年度计划' AS type,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Complete_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualCompleteNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Complete_Records_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualCompleteRecordsNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.P_Remove_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualPRemoveNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Account_Submit_Time_Schedule) = #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualAccountSubmitNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Complete_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.Complete_Time_Schedule) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.Complete_Time_Finish) &lt;= #{request.month}
+        THEN 1
+        ELSE 0
+        END) AS completeNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Complete_Records_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.Complete_Records_Time_Schedule) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.Complete_Records_Time_Finish) &lt;= #{request.month}
+        THEN 1
+        ELSE 0
+        END) AS completeRecordsNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.P_Remove_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.P_Remove_Time_Schedule) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.P_Remove_Time_Finish) &lt;= #{request.month}
+        THEN 1
+        ELSE 0
+        END) AS pRemoveNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Account_Submit_Time_Finish) = #{request.year}
+        AND EXTRACT(YEAR FROM mn.Account_Submit_Time_Schedule) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.Account_Submit_Time_Finish) &lt;= #{request.month}
+        THEN 1
+        ELSE 0
+        END) AS accountSubmitNum
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        LEFT JOIN
+        SYS_Department sd
+        ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        and mn.Plan_Id IS NOT NULL
+        <include refid="generalConditions"/>
+        GROUP BY
+        sd.D_Name;
+    </select>
+
+    <select id="getEndPlanOutAnnex" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.EndPlanAnnex" databaseId="mysql">
+        SELECT sd.D_Name AS competentDepartmentName,
+        '计划外完成' AS type,
+        SUM(IF(YEAR(mn.Complete_Time_Schedule) > #{request.year}, 1, 0)) AS annualCompleteNum,
+        SUM(IF(YEAR(mn.Complete_Records_Time_Schedule) > #{request.year}, 1, 0)) AS annualCompleteRecordsNum,
+        SUM(IF(YEAR(mn.P_Remove_Time_Schedule) > #{request.year}, 1, 0)) AS annualPRemoveNum,
+        SUM(IF(YEAR(mn.Account_Submit_Time_Schedule) > #{request.year}, 1, 0)) AS annualAccountSubmitNum,
+        SUM(IF(YEAR(mn.Complete_Time_Finish) = #{request.year}
+        AND MONTH(mn.Complete_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Complete_Time_Schedule) &gt; YEAR(mn.Complete_Time_Finish), 1,0))
+        AS completeNum,
+        SUM(IF(YEAR(mn.Complete_Records_Time_Finish) = #{request.year}
+        AND MONTH(mn.Complete_Records_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Complete_Records_Time_Schedule) &gt; YEAR(mn.Complete_Records_Time_Finish), 1, 0)
+        ) AS completeRecordsNum,
+        SUM(IF(YEAR(mn.P_Remove_Time_Finish) = #{request.year}
+        AND MONTH(mn.P_Remove_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.P_Remove_Time_Schedule) &gt; YEAR(mn.P_Remove_Time_Finish), 1, 0)
+        ) AS pRemoveNum,
+        SUM(IF(YEAR(mn.Account_Submit_Time_Finish) = #{request.year}
+        AND MONTH(mn.Account_Submit_Time_Finish) &lt;= #{request.month}
+        AND YEAR(mn.Account_Submit_Time_Schedule) &gt; YEAR(mn.Account_Submit_Time_Finish), 1, 0)
+        ) AS accountSubmitNum
+        FROM (SELECT *
+        FROM gantt_milestone_statistics mn
+        where mn.Complete_Time_Finish = (SELECT MAX(mn2.Complete_Time_Finish)
+        FROM gantt_milestone_statistics mn2
+        where mn2.p_id = mn.p_id)
+        ) mn
+        LEFT JOIN
+        sys_department sd
+        ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        and mn.Plan_Id IS NOT NULL
+        <include refid="generalConditions"/>
+        GROUP BY sd.D_Name;
+    </select>
+    <select id="getEndPlanOutAnnex" resultType="com.jpmsoft.projectProducer.pojo.entity.ganttPlan.EndPlanAnnex" databaseId="dm">
+        SELECT sd.D_Name AS competentDepartmentName,
+        '计划外完成' AS type,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Complete_Time_Schedule) > #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualCompleteNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Complete_Records_Time_Schedule) > #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualCompleteRecordsNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.P_Remove_Time_Schedule) > #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualPRemoveNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Account_Submit_Time_Schedule) > #{request.year}
+        THEN 1
+        ELSE 0
+        END) AS annualAccountSubmitNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Complete_Time_Finish) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.Complete_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Complete_Time_Schedule) > EXTRACT(YEAR FROM mn.Complete_Time_Finish)
+        THEN 1
+        ELSE 0
+        END) AS completeNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Complete_Records_Time_Finish) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.Complete_Records_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Complete_Records_Time_Schedule) > EXTRACT(YEAR FROM mn.Complete_Records_Time_Finish)
+        THEN 1
+        ELSE 0
+        END) AS completeRecordsNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.P_Remove_Time_Finish) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.P_Remove_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.P_Remove_Time_Schedule) > EXTRACT(YEAR FROM mn.P_Remove_Time_Finish)
+        THEN 1
+        ELSE 0
+        END) AS pRemoveNum,
+        SUM(CASE
+        WHEN EXTRACT(YEAR FROM mn.Account_Submit_Time_Finish) = #{request.year}
+        AND EXTRACT(MONTH FROM mn.Account_Submit_Time_Finish) &lt;= #{request.month}
+        AND EXTRACT(YEAR FROM mn.Account_Submit_Time_Schedule) > EXTRACT(YEAR FROM mn.Account_Submit_Time_Finish)
+        THEN 1
+        ELSE 0
+        END) AS accountSubmitNum
+        FROM (SELECT *
+        FROM (SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY mn.p_id ORDER BY mn.Complete_Time_Finish DESC) AS rn
+        FROM gantt_milestone_statistics mn) t
+        WHERE t.rn = 1) mn
+        LEFT JOIN
+        SYS_Department sd
+        ON sd.D_ID = mn.P_Competent_Department
+        ${authSql}
+        and mn.Plan_Id IS NOT NULL
+        <include refid="generalConditions"/>
+        GROUP BY sd.D_Name;
+    </select>
+
+    <sql id="generalConditions">
+        and mn.P_Category = '01'
+        and mn.Finish_Time_Finish is not null
+    </sql>
+</mapper>

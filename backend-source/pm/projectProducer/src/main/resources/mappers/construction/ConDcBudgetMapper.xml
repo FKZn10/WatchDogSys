@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.construction.ConDcBudgetMapper">
+
+    <select id="getConDcBudgetByDcbId" resultType="com.jpmsoft.common.model.response.DesignChange.ConDcBudgetResponse">
+        select
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        pro.P_Name as pName,
+        f.file_relation_id as fileRelationId,
+        dco.Dco_Major as dcoMajor,
+        dco.Dco_Name as dcoName,
+        dco.Dco_Code as dcoCode,
+        proc.C_Name as pConstructionUnitName,
+        proc.C_Abbreviation as pConsAbbName,
+        prod.D_Name as pCompetentDepartmentName,
+        c1.C_Name as dcbSupervisorName,
+        c2.C_Name as dcbContractorName,
+        mn.*
+        from  Con_Dc_Budget mn
+        left join Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on pro.P_Id=mn.P_Id
+        left join SYS_Company proc on proc.C_Id=pro.P_Construction_Unit
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join Sys_Company c1 on c1.C_Id=mn.Dcb_Supervisor_Id
+        left join Sys_Company c2 on c2.C_Id=mn.Dcb_Contractor_Id
+        left join Sys_File f on f.FileID=mn.Dcb_Id
+        where mn.Dcb_Id=#{dcbId}
+    </select>
+
+
+    <select id="getConDcBudgetList" resultType="com.jpmsoft.common.model.response.DesignChange.ConDcBudgetResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        dco.Dco_Major as dcoMajor,
+        dco.Dco_Name as dcoName,
+        dco.Dco_Code as dcoCode,
+        dco.Dco_Project_Name as dcoProjectName,
+        dco.Dco_Sub_Code as dcoSubCode,
+        c1.C_Name as dcbSupervisorName,
+        c2.C_Name as dcbContractorName,
+        mn.*
+        from  Con_Dc_Budget mn
+        left join  Con_Dco dco on dco.Dco_Id=mn.Dco_Id
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Sys_Company c1 on c1.C_Id=mn.Dcb_Supervisor_Id
+        left join Sys_Company c2 on c2.C_Id=mn.Dcb_Contractor_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id=#{params.pId}
+        </if>
+        <if test="params.dcbType!=null">
+            and mn.Dcb_Type=#{params.dcbType}
+        </if>
+        <if test="params.dcoMajor!=null">
+            and dco.Dco_Major like concat('%',#{params.dcoMajor},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},mn.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <if test="params.dcoName!=null">
+            and dco.Dco_Name like concat('%',#{params.dcoName},'%')
+        </if>
+        <if test="params.dcoCode!=null">
+            and dco.Dco_Code like concat('%',#{params.dcoCode},'%')
+        </if>
+        <if test="params.dcoProjectName!=null">
+            and dco.Dco_Project_Name like concat('%',#{params.dcoProjectName},'%')
+        </if>
+        <if test="params.dcoSubCode!=null">
+            and dco.Dco_Sub_Code like concat('%',#{params.dcoSubCode},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Dcb_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

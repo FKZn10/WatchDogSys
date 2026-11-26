@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaProjectReportMapper">
+
+    <!--************************************* 公用 *************************************-->
+    <select id="getLastProjectReportByPid"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProjectReportModel">
+        select pro.P_Name          as pName,
+               pro.P_Code          as pCode,
+               wr.Wr_Title         as wrTitle,
+               proc.C_Name         as pConsName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               mn.*
+        from OA_Project_Report mn
+                 left join OA_Work_Report wr on wr.Wr_Id = mn.Wr_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        where mn.P_Id = #{pId}  and mn.Pr_Type=#{prType} and wr.Wr_State=7
+        order by wr.Wr_State_Time desc limit 1
+    </select>
+
+    <select id="getOaProjectReportById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProjectReportModel">
+        select pro.P_Name          as pName,
+               pro.P_Code          as pCode,
+               wr.Wr_Title         as wrTitle,
+               proc.C_Name         as pConsName,
+               proc.C_Abbreviation as pConsAbbName,
+               prod.D_Name         as pCompetentDepartmentName,
+               mn.*
+        from OA_Project_Report mn
+                 left join OA_Work_Report wr on wr.Wr_Id = mn.Wr_Id
+                 left join Pre_Project pro on pro.P_Id = mn.P_Id
+                 left join SYS_Company proc on proc.C_Id = pro.P_Construction_Unit
+                 left join SYS_Department prod on prod.D_Id = pro.P_Competent_Department
+        where mn.Pr_Id = #{prId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.wrId!=null">
+            and mn.Wr_Id = #{params.wrId}
+        </if>
+        <if test="params.prType!=null">
+            and mn.Pr_Type = #{params.prType}
+        </if>
+        <if test="params.pId!=null">
+            and mn.P_Id = #{params.pId}
+        </if>
+        <if test="params.prWhetherLag!=null">
+            and mn.Pr_Whether_Lag = #{params.prWhetherLag}
+        </if>
+        <if test="params.prConstructionState!=null">
+            and mn.Pr_Construction_State = #{params.prConstructionState}
+        </if>
+        <if test="params.prInitiationPlan!=null">
+            and mn.Pr_Initiation_Plan = #{params.prInitiationPlan}
+        </if>
+        <if test="params.prIsBudget!=null">
+            and mn.Pr_Is_Budget = #{params.prIsBudget}
+        </if>
+        <if test="params.prAdjustmentType!=null">
+            and mn.Pr_Adjustment_Type = #{params.prAdjustmentType}
+        </if>
+        <if test="params.prIsStartWork!=null">
+            and mn.Pr_Is_Start_Work = #{params.prIsStartWork}
+        </if>
+        <if test="params.prIsFinish!=null">
+            and mn.Pr_Is_Finish = #{params.prIsFinish}
+        </if>
+        <if test="params.prResponsibleDep!=null">
+            and  INSTR(mn.Pr_Responsible_Dep,#{params.prResponsibleDep})
+        </if>
+        <if test="params.prResponsibleLeader!=null">
+            and  INSTR(mn.Pr_Responsible_Leader,#{params.prResponsibleLeader})
+        </if>
+        <if test="params.wrTitle!=null">
+            and wr.Wr_Title like concat('%',#{params.wrTitle},'%')
+        </if>
+        <if test="params.wrTitle!=null">
+            and wr.Wr_Title like concat('%',#{params.wrTitle},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_Id)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="getOaProReportInvSum"
+            resultType="com.jpmsoft.common.model.response.Oa.OaProReportInvSum">
+        select sum(Pr_Complete_Inv) as prCompleteInvSum,
+               sum(Pr_Year_Inv)     as prYearInvSum,
+               sum(Pr_Month_Inv)    as prMonthInvSum
+        from OA_Project_Report
+        where Wr_Id = #{wrId}
+    </select>
+
+    <select id="getOaProjectReportList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProjectReportModel">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        wr.Wr_Title as wrTitle,
+        mn.*
+        from OA_Project_Report mn
+        left join OA_Work_Report wr on wr.Wr_Id=mn.Wr_Id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        where 1=1 and
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Pr_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getOaProjectQuarterlReportByPidsAndYear" resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProjectReportModel">
+        select
+        wr.Wr_Quarter as wrQuarter,
+        mn.*
+        from OA_Project_Report mn
+        left join OA_Work_Report wr on wr.Wr_Id=mn.Wr_Id
+        where mn.Pr_Type='03' and wr.Wr_Year = #{year}
+        and wr.Wr_State=7 and mn.P_Id in
+        <foreach collection="pIds" separator="," open="(" close=")" item="pId">
+            #{pId}
+        </foreach>
+    </select>
+
+    <!--************************************* dm *************************************-->
+
+    <select id="getOaProjectReportByPidsAndYearMon" databaseId="dm"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProjectReportModel">
+        select
+        mn.*
+        from OA_Project_Report mn
+        left join OA_Work_Report wr on wr.Wr_Id=mn.Wr_Id
+        where mn.Pr_Type='02' and to_char(wr.Wr_Date,'yyyy-MM') = concat(#{year},'-',#{month})
+        and wr.Wr_State=7 and mn.P_Id in
+        <foreach collection="pIds" separator="," open="(" close=")" item="pId">
+            #{pId}
+        </foreach>
+    </select>
+
+    <select id="getOaProjectReportInvStatistics" databaseId="dm"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectInvStatisticsVo">
+        select sum(Pr_Done_Last_Year)     as ipvDoneLastYearTotal,
+               sum(Pr_Planned_Investment) as ipvPlannedInvTotal,
+               sum(Pr_Complete_Inv)       as prCompleteInvTotal,
+               sum(Pr_Year_Inv)           as prYearInvTotal,
+               sum(Pr_Month_Inv)          as prMonthInvTotal
+        from OA_Project_Report mn
+                 left join OA_Work_Report wr on wr.Wr_Id = mn.Wr_Id
+        where mn.Pr_Type = '02'
+          and to_char(wr.Wr_Date, 'yyyy-MM') = concat(#{params.year}, '-', #{params.month})
+          and wr.Wr_State = 7
+          and mn.P_Id in
+              (select pro.P_Id from Pre_Project pro
+                left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+                where pro.deleted = false and pro.State = 7
+                <if test="params.teId!=null">
+                    and pro.Te_Id=#{params.teId}
+                </if>
+                <if test="params.pId!=null">
+                    and pro.p_Id=#{params.pId}
+                </if>
+                <if test="params.pType!=null">
+                    and pro.P_Type=#{params.pType}
+                </if>
+                <if test="params.pName!=null">
+                    and INSTR(pro.P_Name,#{params.pName})
+                </if>
+                <if test="params.pCompetentDepartment!=null">
+                    and INSTR(prod.D_Name,#{pCompetentDepartment})
+                </if>
+              )
+    </select>
+
+
+    <!--************************************* mysql *************************************-->
+
+    <select id="getOaProjectReportByPidsAndYearMon" databaseId="mysql"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProjectReportModel">
+        select
+        mn.*
+        from OA_Project_Report mn
+        left join OA_Work_Report wr on wr.Wr_Id=mn.Wr_Id
+        where mn.Pr_Type='02' and date_format(wr.Wr_Date,'%Y-%m') = concat(#{year},'-',#{month})
+        and wr.Wr_State=7 and mn.P_Id in
+        <foreach collection="pIds" separator="," open="(" close=")" item="pId">
+            #{pId}
+        </foreach>
+    </select>
+
+    <select id="getOaProjectReportInvStatistics" databaseId="mysql"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectInvStatisticsVo">
+        select sum(Pr_Done_Last_Year)     as ipvDoneLastYearTotal,
+               sum(Pr_Planned_Investment) as ipvPlannedInvTotal,
+               sum(Pr_Complete_Inv)       as prCompleteInvTotal,
+               sum(Pr_Year_Inv)           as prYearInvTotal,
+               sum(Pr_Month_Inv)          as prMonthInvTotal
+        from OA_Project_Report mn
+                 left join OA_Work_Report wr on wr.Wr_Id = mn.Wr_Id
+        where mn.Pr_Type = '02'
+          and date_format(wr.Wr_Date, '%Y-%m') = concat(#{params.year}, '-', #{params.month})
+          and wr.Wr_State = 7
+          and mn.P_Id in
+                (select pro.P_Id from Pre_Project pro
+                left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+                where pro.deleted = false and pro.State = 7
+                <if test="params.teId!=null">
+                    and pro.Te_Id=#{params.teId}
+                </if>
+                <if test="params.pType!=null">
+                    and pro.P_Type=#{params.pType}
+                </if>
+                <if test="params.pName!=null">
+                    and INSTR(pro.P_Name,#{params.pName})
+                </if>
+                <if test="params.pCompetentDepartment!=null">
+                    and INSTR(prod.D_Name,#{pCompetentDepartment})
+                </if>
+                )
+    </select>
+    <!--************************************* postgre *************************************-->
+
+    <select id="getOaProjectReportByPidsAndYearMon" databaseId="postgre"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaProjectReportModel">
+        select
+        mn.*
+        from OA_Project_Report mn
+        left join OA_Work_Report wr on wr.Wr_Id=mn.Wr_Id
+        where mn.Pr_Type='02' and to_char(wr.Wr_Date,'yyyy-MM') = concat(#{year},'-',#{month})
+        and wr.Wr_State=7 and mn.P_Id in
+        <foreach collection="pIds" separator="," open="(" close=")" item="pId">
+            #{pId}
+        </foreach>
+    </select>
+
+    <select id="getOaProjectReportInvStatistics" databaseId="postgre"
+            resultType="com.jpmsoft.projectProducer.pojo.vo.project.ProjectInvStatisticsVo">
+        select sum(Pr_Done_Last_Year)     as ipvDoneLastYearTotal,
+        sum(Pr_Planned_Investment) as ipvPlannedInvTotal,
+        sum(Pr_Complete_Inv)       as prCompleteInvTotal,
+        sum(Pr_Year_Inv)           as prYearInvTotal,
+        sum(Pr_Month_Inv)          as prMonthInvTotal
+        from OA_Project_Report mn
+        left join OA_Work_Report wr on wr.Wr_Id = mn.Wr_Id
+        where mn.Pr_Type = '02'
+        and to_char(wr.Wr_Date, 'yyyy-MM') = concat(#{params.year}, '-', #{params.month})
+        and wr.Wr_State = 7
+        and mn.P_Id in
+        (select pro.P_Id from Pre_Project pro
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        where pro.deleted = false and pro.State = 7
+        <if test="params.teId!=null">
+            and pro.Te_Id=#{params.teId}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type=#{params.pType}
+        </if>
+        <if test="params.pName!=null">
+            and INSTR(pro.P_Name,#{params.pName})
+        </if>
+        <if test="params.pCompetentDepartment!=null">
+            and INSTR(prod.D_Name,#{pCompetentDepartment})
+        </if>
+        )
+    </select>
+</mapper>

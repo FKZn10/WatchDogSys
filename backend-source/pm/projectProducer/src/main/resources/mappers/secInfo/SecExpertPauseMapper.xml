@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecExpertPauseMapper">
+
+    <select id="getPauseDays" resultType="Integer">
+        select sum(Sep_Days)
+        from Sec_Expert_Pause mn
+        where mn.Ex_Id=#{exId} and mn.State=7
+        <include refid="sepTimeFormatYear"/>
+    </select>
+
+    <sql id="sepTimeFormatYear" databaseId="dm">
+        and to_date(mn.Sep_Time,'yyyy')=
+        #{year}
+    </sql>
+
+    <sql id="sepTimeFormatYear" databaseId="postgre">
+        and to_char(mn.Sep_Time,'yyyy')=
+        #{year}
+    </sql>
+
+    <sql id="sepTimeFormatYear" databaseId="mysql">
+        and date_format(mn.Sep_Time,'%Y') =
+        #{year}
+    </sql>
+
+    <select id="getSecExpertPauseById" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertPauseVO">
+        select ex.Ex_Name as exName,
+        ex.Ex_Id_Type as exIdType,
+        ex.Ex_Id_Number as exIdNumber,
+        ex.Ex_Plaintext_Num as exPlaintextNum,
+        ex.Ex_Age as exAge,
+        c1.C_Name as cName,
+        c1.C_Abbreviation as cAbbName,
+        c1.C_Name_History as cNameHistory,
+        mn.*
+        from Sec_Expert_Pause mn
+        left join Sec_Expert ex on mn.Ex_Id = ex.Ex_Id
+        left join Sys_Company c1 on c1.C_Id=ex.C_Id
+        where mn.id = #{id}
+    </select>
+
+    <select id="getSecExpertPauseList" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecExpertPauseVO">
+        select
+        ex.Ex_Name as exName,
+        ex.Ex_Id_Type as exIdType,
+        ex.Ex_Id_Number as exIdNumber,
+        ex.year as year,
+        mn.*
+        from Sec_Expert_Pause mn
+        left join Sec_Expert ex on mn.Ex_Id=ex.Ex_Id
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="listFilter">
+        ${params.authSql}
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.exId != null and params.exId != ''">
+            and mn.Ex_Id = #{params.exId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.createUname!=null">
+            and INSTR(mn.Create_Uname,#{params.createUname})
+        </if>
+        <if test="params.exName!=null">
+            and INSTR(ex.Ex_Name,#{params.exName})
+        </if>
+        <if test="params.exApplicantId != null and params.exApplicantId != ''">
+            and ex.Ex_Applicant_Id = #{params.exApplicantId}
+        </if>
+        <if test="params.year != null">
+            and ex.year = #{params.year}
+        </if>
+        <if test="params.sepDaysYear != null">
+            and mn.Sep_Days_Year = #{params.sepDaysYear}
+        </if>
+        <if test="params.states != null and params.states.size() > 0">
+            and mn.State in
+            <foreach collection="params.states" item="state" open="(" separator="," close=")">
+                #{state}
+            </foreach>
+        </if>
+        <if test="params.sepDaysYearStart != null and params.sepDaysYearStart != ''">
+            and mn.Sep_Days_Year &gt;= #{params.sepDaysYearStart}
+        </if>
+        <if test="params.sepDaysYearEnd != null and params.sepDaysYearEnd != ''">
+            and mn.Sep_Days_Year &lt;= #{params.sepDaysYearEnd}
+        </if>
+        <if test="params.sepStartTimeStart != null and params.sepStartTimeStart != ''">
+            and mn.Sep_Start_Time &gt;= #{params.sepStartTimeStart}
+        </if>
+        <if test="params.sepStartTimeEnd != null and params.sepStartTimeEnd != ''">
+            and mn.Sep_Start_Time &lt;= #{params.sepStartTimeEnd}
+        </if>
+        <if test="params.sepEndTimeStart != null and params.sepEndTimeStart != ''">
+            and mn.Sep_End_Time &gt;= #{params.sepEndTimeStart}
+        </if>
+        <if test="params.sepEndTimeEnd != null and params.sepEndTimeEnd != ''">
+            and mn.Sep_End_Time &lt;= #{params.sepEndTimeEnd}
+        </if>
+        <if test="params.createTimeStart != null and params.createTimeStart != ''">
+            and mn.Create_Time &gt;= #{params.createTimeStart}
+        </if>
+        <if test="params.createTimeEnd != null and params.createTimeEnd != ''">
+            and mn.Create_Time &lt;= #{params.createTimeEnd}
+        </if>
+        <if test="params.exNames != null and params.exNames.size() > 0">
+            and ex.Ex_Name in
+            <foreach collection="params.exNames" item="exName" open="(" separator="," close=")">
+                #{exName}
+            </foreach>
+        </if>
+        <if test="params.years != null and params.years.size() > 0">
+            and ex.year in
+            <foreach collection="params.years" item="year" open="(" separator="," close=")">
+                #{year}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="getAllValues" resultType="java.util.Map">
+        select distinct
+        ${selectClause}
+        from Sec_Expert_Pause mn
+        left join Sec_Expert ex on mn.Ex_Id=ex.Ex_Id
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getFileTemplateByFileCode" resultType="com.jpmsoft.common.model.response.FileTemplateTree">
+        select mn.*
+        from SYS_FileTemplate mn
+        where mn.T_Code = #{fileCode}
+    </select>
+</mapper>

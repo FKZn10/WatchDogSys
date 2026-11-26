@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.oa.OaAttendanceSupplementMapper">
+
+    <select id="getAttendanceSupplementById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceSupplementModel">
+        select
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  OA_Attendance_Supplement mn
+        left join  Sys_File f on f.FileID=mn.As_Id
+        where mn.As_Id=#{asId}
+    </select>
+
+
+    <select id="getAttendanceSupplementList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Oa.OaAttendanceSupplementModel">
+        select
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  OA_Attendance_Supplement mn
+        left join  Sys_File f on f.FileID=mn.As_Id
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.asAbnormalState!=null">
+            and mn.As_Abnormal_State = #{params.asAbnormalState}
+        </if>
+        <if test="params.asState!=null">
+            and mn.As_State = #{params.asState}
+        </if>
+        <if test="params.asUname!=null">
+            and mn.As_Uname like concat('%',#{params.asUname},'%')
+        </if>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.As_Create_Time desc
+            </otherwise>
+        </choose>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getAttendanceSupplementListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  OA_Attendance_Supplement mn
+        left join  Sys_File f on f.FileID=mn.As_Id
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.asAbnormalState!=null">
+            and mn.As_Abnormal_State = #{params.asAbnormalState}
+        </if>
+        <if test="params.asState!=null">
+            and mn.As_State = #{params.asState}
+        </if>
+        <if test="params.asUname!=null">
+            and mn.As_Uname like concat('%',#{params.asUname},'%')
+        </if>
+    </select>
+</mapper>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.subcontract.SubcontractorRecordMapper">
+
+    <select id="getSubcontractorRecordBySrId"
+            resultType="com.jpmsoft.common.model.response.Subcontract.SubcontractorRecordResponse">
+        select
+        c1.C_Name as srUnitIdName,
+        c1.C_Abbreviation as srUnitAbbName,
+        c1.C_CreditCode as srUnitCreditCode,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Subcontractor_Record mn
+        left join  SYS_Company c1 on mn.Sr_Unit=c1.C_Id
+        left join  Sys_File f on f.FileID=mn.Sr_Id
+        where mn.Sr_Id = #{srId}
+    </select>
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.srState!=null">
+            and mn.Sr_State = #{params.srState}
+        </if>
+        <if test="params.srUnit!=null">
+            and mn.Sr_Unit = #{params.srUnit}
+        </if>
+        <if test="params.srType!=null">
+            and mn.Sr_Type = #{params.srType}
+        </if>
+        <if test="params.srSpecialty!=null">
+            and mn.Sr_Specialty = #{params.srSpecialty}
+        </if>
+        <if test="params.srQualificationType!=null">
+            and mn.Sr_Qualification_type = #{params.srQualificationType}
+        </if>
+        <if test="params.srUnitType!=null">
+            and mn.Sr_Unit_Type = #{params.srUnitType}
+        </if>
+        <if test="params.srUnitIdName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likeCname(#{params.srUnitIdName},c1.C_Id)=true
+                </when>
+                <otherwise>
+                    and c1.C_Name like concat('%',#{params.srUnitIdName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.srUnitName!=null">
+            and mn.Sr_Unit_Name like concat('%',#{params.srUnitName},'%')
+        </if>
+        <if test="params.srCreditCode!=null">
+            and mn.Sr_Credit_Code like concat('%',#{params.srCreditCode},'%')
+        </if>
+        <if test="params.srTitle!=null">
+            and mn.Sr_Title like concat('%',#{params.srTitle},'%')
+        </if>
+        <if test="params.srRpName!=null">
+            and mn.Sr_Rp_Name like concat('%',#{params.srRpName},'%')
+        </if>
+        <if test="params.srRpTel!=null">
+            and mn.Sr_Rp_Tel like concat('%',#{params.srRpTel},'%')
+        </if>
+    </sql>
+
+    <select id="getSubcontractorRecordList"
+            resultType="com.jpmsoft.common.model.response.Subcontract.SubcontractorRecordResponse">
+        select
+        c1.C_Name as srUnitIdName,
+        c1.C_Name_History as srUnitNameHistory,
+        c1.C_CreditCode as srUnitCreditCode,
+        c1.C_Abbreviation as srUnitAbbName,
+        mn.*
+        from  Subcontractor_Record mn
+        left join  SYS_Company c1 on mn.Sr_Unit=c1.C_Id
+        where 1=1
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Sr_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

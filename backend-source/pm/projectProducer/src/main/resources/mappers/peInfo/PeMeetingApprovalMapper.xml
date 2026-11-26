@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.peInfo.PeMeetingApprovalMapper">
+
+    <sql id="listFilter">
+        1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State = #{params.state}
+        </if>
+        <if test="params.maAssessmentType!=null">
+            and mn.Ma_Assessment_Type = #{params.maAssessmentType}
+        </if>
+        <if test="params.maTitle!=null">
+            and mn.Ma_Title like concat('%',#{params.maTitle},'%')
+        </if>
+        <if test="params.maCreateUname!=null">
+            and mn.Ma_Create_Uname like concat('%',#{params.maCreateUname},'%')
+        </if>
+    </sql>
+
+    <select id="getPeMeetingApprovalList" resultType="com.jpmsoft.common.model.response.peInfo.PeMeetingApprovalRes">
+        select
+        mn.*
+        from Pe_Meeting_Approval mn
+        where
+        <include refid="listFilter"/>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getPeMeetingApprovalCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from Pe_Meeting_Approval mn
+        where
+        <include refid="listFilter"/>
+    </select>
+
+
+    <select id="getPeMeetingApprovalById" resultType="com.jpmsoft.common.model.response.peInfo.PeMeetingApprovalRes">
+        select
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from Pe_Meeting_Approval mn
+        left join Sys_File f on f.FileID=mn.Ma_Id
+        where mn.Ma_Id=#{maId}
+    </select>
+   <update id="updatePeStateByMaId" >
+       update  Pe_Info set Pe_State=#{params.peState} where  Pe_id in(select  Pe_Id from Pe_Meeting_Approval_List where  Ma_Id=#{params.maId});
+   </update>
+</mapper>

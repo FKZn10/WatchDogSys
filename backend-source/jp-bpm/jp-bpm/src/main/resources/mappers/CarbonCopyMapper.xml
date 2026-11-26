@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.jpbpm.mapper.CarbonCopyMapper">
+
+    <select id="getUserCarbonCopyList" resultType="com.jpmsoft.common.model.response.CarbonCopyResponse">
+        select
+        f.FileTitle as ccFileTitle,
+        fa.ActName as ccActName,
+        u.U_Name as ccCreateName,
+        u1.U_Name as ccUserName,
+        flow.FlowName as ccFlowName,
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        f.T_Code as tCode,
+        f.FileFlowStatus as fileflowstatus,
+        f.FileCreateUser  as  filecreateuser,
+        f.FileCreateUserName  as  filecreateusername,
+        <include refid="CarbonCopyEntity"/>
+        from  SYS_CarbonCopy cc
+        left join  SYS_FlowActivity fa on fa.ActID=cc.CC_ActID
+        left join  SYS_Flow flow on flow.FlowID=cc.CC_FlowID
+        left join  Sys_File f on f.FileID=cc.CC_FileID
+        left join  Sys_User u on u.U_Id=cc.CC_CreateUser
+        left join  Sys_User u1 on u1.U_Id=cc.CC_User
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        <where>
+            cc.CC_User=#{params.userId}
+            <if test="params.ccRead!=null">
+                and cc.CC_Read = #{params.ccRead}
+            </if>
+            <if test="params.ccSendStartTime!=null and params.ccSendEndTime!=null">
+                and cc.CC_Time between #{params.ccSendStartTime} and #{params.ccSendEndTime}
+            </if>
+            <if test="params.ccReadStartTime!=null and params.ccReadEndTime!=null">
+                and cc.CC_ReadTime between #{params.ccReadStartTime} and #{params.ccReadEndTime}
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.pName!=null">
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.ccCreateName!=null">
+                and u.U_Name like concat('%',#{params.ccCreateName},'%')
+            </if>
+            <if test="params.ccTitle!=null">
+                and cc.CC_Title like concat('%',#{params.ccTitle},'%')
+            </if>
+
+            <if test="params.ccTitles!=null">
+                and cc.CC_Title in
+                <foreach collection="params.ccTitles" open="(" close=")" separator="," item="ccTitle">
+                    #{ccTitle}
+                </foreach>
+            </if>
+            <if test="params.pNames!=null">
+                and pro.P_Name in
+                <foreach collection="params.pNames" open="(" close=")" separator="," item="ccTitle">
+                    #{ccTitle}
+                </foreach>
+            </if>
+            <if test="params.filecreateusernames!=null">
+                and f.FileCreateUserName in
+                <foreach collection="params.filecreateusernames" open="(" close=")" separator="," item="ccTitle">
+                    #{ccTitle}
+                </foreach>
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and cc.Te_Id = #{params.teId}
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by cc.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getUserCarbonCopyListCount" resultType="java.lang.Integer">
+        select
+          COUNT(1)
+        from  SYS_CarbonCopy cc
+        left join  Sys_File f on f.FileID=cc.CC_FileID
+        left join  Sys_User u on u.U_Id=cc.CC_CreateUser
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        <where>
+            cc.CC_User=#{params.userId}
+            <if test="params.ccRead!=null">
+                and cc.CC_Read = #{params.ccRead}
+            </if>
+            <if test="params.ccSendStartTime!=null and params.ccSendEndTime!=null">
+                and cc.CC_Time between #{params.ccSendStartTime} and #{params.ccSendEndTime}
+            </if>
+            <if test="params.ccReadStartTime!=null and params.ccReadEndTime!=null">
+                and cc.CC_ReadTime between #{params.ccReadStartTime} and #{params.ccReadEndTime}
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.pName!=null">
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.ccCreateName!=null">
+                and u.U_Name like concat('%',#{params.ccCreateName},'%')
+            </if>
+            <if test="params.ccTitle!=null">
+                and cc.CC_Title like concat('%',#{params.ccTitle},'%')
+            </if>
+            <if test="params.ccTitles!=null">
+                and cc.CC_Title in
+                <foreach collection="params.ccTitles" open="(" close=")" separator="," item="ccTitle">
+                    #{ccTitle}
+                </foreach>
+            </if>
+            <if test="params.pNames!=null">
+                and pro.P_Name in
+                <foreach collection="params.pNames" open="(" close=")" separator="," item="ccTitle">
+                    #{ccTitle}
+                </foreach>
+            </if>
+            <if test="params.filecreateusernames!=null">
+                and f.FileCreateUserName in
+                <foreach collection="params.filecreateusernames" open="(" close=")" separator="," item="ccTitle">
+                    #{ccTitle}
+                </foreach>
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and cc.Te_Id = #{params.teId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getUserCarbonCopyTitle" resultType="java.lang.String">
+        select
+        DISTINCT  ${key}
+        from SYS_CarbonCopy cc
+        left join SYS_FlowActivity fa on fa.ActID=cc.CC_ActID
+        left join SYS_Flow flow on flow.FlowID=cc.CC_FlowID
+        left join Sys_File f on f.FileID=cc.CC_FileID
+        left join Sys_User u on u.U_Id=cc.CC_CreateUser
+        left join Sys_User u1 on u1.U_Id=cc.CC_User
+        left join Pre_Project pro on pro.P_ID=f.FileProject
+        left join Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join Con_Contract con on con.Con_Id=f.FileContract
+        <where>
+            cc.CC_User=#{params.userId}
+            <if test="params.ccRead!=null">
+                and cc.CC_Read = #{params.ccRead}
+            </if>
+            <if test="params.ccSendStartTime!=null and params.ccSendEndTime!=null">
+                and cc.CC_Time between #{params.ccSendStartTime} and #{params.ccSendEndTime}
+            </if>
+            <if test="params.ccReadStartTime!=null and params.ccReadEndTime!=null">
+                and cc.CC_ReadTime between #{params.ccReadStartTime} and #{params.ccReadEndTime}
+            </if>
+            <choose>
+                <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                    <if test="params.pName!=null">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </if>
+                </when>
+                <otherwise>
+                    <if test="params.pName!=null">
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.ccCreateName!=null">
+                and u.U_Name like concat('%',#{params.ccCreateName},'%')
+            </if>
+            <if test="params.ccTitle!=null">
+                and cc.CC_Title like concat('%',#{params.ccTitle},'%')
+            </if>
+            <if test="params.ccTitles!=null">
+                and cc.CC_Title in
+                <foreach collection="params.ccTitles" open="(" close=")" separator="," item="ccTitle">
+                    #{ccTitle}
+                </foreach>
+            </if>
+            <if test="params.pNames!=null">
+                and pro.P_Name in
+                <foreach collection="params.pNames" open="(" close=")" separator="," item="ccTitle">
+                    #{ccTitle}
+                </foreach>
+            </if>
+            <if test="params.filecreateusernames!=null">
+                and f.FileCreateUserName in
+                <foreach collection="params.filecreateusernames" open="(" close=")" separator="," item="ccTitle">
+                    #{ccTitle}
+                </foreach>
+            </if>
+
+            <if test="params.teId!=null and params.teId!='All'">
+                and cc.Te_Id = #{params.teId}
+            </if>
+        </where>
+    </select>
+
+
+
+    <select id="getCarbonCopyList" resultType="com.jpmsoft.common.model.response.CarbonCopyResponse">
+        select
+        f.FileTitle as ccFileTitle,
+        fa.ActName as ccActName,
+        u.U_Name as ccCreateName,
+        flow.FlowName as ccFlowName,
+        pro.P_Name as pName,
+        sec.Sec_Name as secName,
+        con.Con_Name as conName,
+        u1.U_Name as ccUserName,
+        f.T_Code as tCode,
+        <include refid="CarbonCopyEntity"/>
+        from  SYS_CarbonCopy cc
+        left join  SYS_FlowActivity fa on fa.ActID=cc.CC_ActID
+        left join  SYS_Flow flow on flow.FlowID=cc.CC_FlowID
+        left join  Sys_File f on f.FileID=cc.CC_FileID
+        left join  Sys_User u on u.U_Id=cc.CC_CreateUser
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Sec_Info sec on sec.Sec_Id=f.FileSectionID
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        left join  Sys_User u1 on u1.U_Id=cc.CC_User
+        <where>
+            <if test="params.ccRead!=null">
+                and cc.CC_Read = #{params.ccRead}
+            </if>
+            <if test="params.ccSendStartTime!=null and params.ccSendEndTime!=null">
+                and cc.CC_Time between #{params.ccSendStartTime} and #{params.ccSendEndTime}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.ccCreateName!=null">
+                and u.U_Name like concat('%',#{params.ccCreateName},'%')
+            </if>
+            <if test="params.ccUserName!=null">
+                and u1.U_Name like concat('%',#{params.ccUserName},'%')
+            </if>
+            <if test="params.ccTitle!=null">
+                and cc.CC_Title like concat('%',#{params.ccTitle},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and cc.Te_Id = #{params.teId}
+            </if>
+        </where>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by cc.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+
+    <select id="getCarbonCopyListCount" resultType="java.lang.Integer">
+        select
+        COUNT(1)
+        from  SYS_CarbonCopy cc
+        left join  Sys_File f on f.FileID=cc.CC_FileID
+        left join  Sys_User u on u.U_Id=cc.CC_CreateUser
+        left join  Pre_Project pro on pro.P_ID=f.FileProject
+        left join  Con_Contract con on con.Con_Id=f.FileContract
+        left join  Sys_User u1 on u1.U_Id=cc.CC_User
+        <where>
+            <if test="params.ccRead!=null">
+                and cc.CC_Read = #{params.ccRead}
+            </if>
+            <if test="params.ccSendStartTime!=null and params.ccSendEndTime!=null">
+                and cc.CC_Time between #{params.ccSendStartTime} and #{params.ccSendEndTime}
+            </if>
+            <if test="params.pName!=null">
+                <choose>
+                    <when test="@com.jpmsoft.jpbpm.config.XmlConfig@hsEnable()">
+                        and likePname(#{params.pName},pro.P_Id)=true
+                    </when>
+                    <otherwise>
+                        and pro.P_Name like concat('%',#{params.pName},'%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.conName!=null">
+                and con.Con_Name like concat('%',#{params.conName},'%')
+            </if>
+            <if test="params.ccCreateName!=null">
+                and u.U_Name like concat('%',#{params.ccCreateName},'%')
+            </if>
+            <if test="params.ccUserName!=null">
+                and u1.U_Name like concat('%',#{params.ccUserName},'%')
+            </if>
+            <if test="params.ccTitle!=null">
+                and cc.CC_Title like concat('%',#{params.ccTitle},'%')
+            </if>
+            <if test="params.teId!=null and params.teId!='All'">
+                and cc.Te_Id = #{params.teId}
+            </if>
+        </where>
+    </select>
+
+
+    <sql id="CarbonCopyEntity">
+        cc.CC_Id as ccId,
+        cc.CC_ActID as ccActid,
+        cc.CC_User as ccUser,
+        cc.CC_FlowID as ccFlowid,
+        cc.CC_Time as ccTime,
+        cc.CC_CreateUser as ccCreateuser,
+        cc.CC_Read as ccRead,
+        cc.CC_ReadTime as ccReadtime,
+        cc.CC_Title as ccTitle,
+        cc.CC_FileID as ccFileid,
+        cc.CC_ProcessID as ccProcessid,
+        cc.CC_Explain as ccExplain,
+        cc.CC_ExplainTime as ccExplaintime,
+        cc.is_System as isSystem
+
+    </sql>
+
+    <select id="statisticsUserAgency" resultType="com.jpmsoft.jpbpm.pojo.vo.AgencyStatisticsVo">
+        select f.T_Code as tCode,
+        count(*)  as total
+        from SYS_CarbonCopy tk
+        left join Sys_File f on f.FileId=tk.CC_FileID
+        <where>
+            Cc_Read='未阅'
+            <if test="params.uId!=null and params.uId!=''">
+                and tk.CC_User=#{params.uId}
+            </if>
+             and  f.T_Code in
+            <foreach collection="params.tCodes" open="(" close=")" separator="," item="code">
+                #{code}
+            </foreach>
+            <if test="teId!=null and teId!='All'">
+                and f.Te_Id = #{teId}
+            </if>
+        </where>
+        group by f.T_Code
+    </select>
+
+    <select id="getDataToSql" resultType="Map">
+        ${sqlStr}
+    </select>
+
+    <select id="getSupervisionCarbonCopyUids" resultType="java.lang.String">
+        SELECT DISTINCT u.U_ID
+        FROM SYS_User u
+        LEFT JOIN SYS_Position_User_P pu ON u.U_ID = pu.U_ID
+        LEFT JOIN SYS_Position_P p ON pu.PP_ID = p.PP_ID
+        LEFT JOIN SYS_Department_P d ON d.PD_ID = p.PD_ID
+        LEFT JOIN SYS_Company c ON c.C_ID = u.C_ID
+        LEFT JOIN Pre_Project pro ON pro.P_Id = d.P_Id
+        WHERE pro.P_Id = #{pId}
+        AND d.PD_Type = '0'
+        AND u.C_ID IN
+        <foreach collection="unitIds" item="unitId" open="(" separator="," close=")">
+            #{unitId}
+        </foreach>
+        AND d.PD_Code IN
+        <foreach collection="depCodes" item="depCode" open="(" separator="," close=")">
+            #{depCode}
+        </foreach>
+        AND p.PP_Code IN
+        <foreach collection="positionCodes" item="posCode" open="(" separator="," close=")">
+            #{posCode}
+        </foreach>
+    </select>
+</mapper>

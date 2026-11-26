@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.userProducer.mapper.SysPositionUserPMapper">
+    <select id="getMaxPupSort" resultType="java.lang.Integer">
+        select max(pu.Pup_Sort)
+        from SYS_Position_User_P pu
+        left join SYS_Position_P p on pu.PP_ID=p.PP_ID
+        where p.PD_ID=#{pdId}
+    </select>
+
+    <select id="selectPositionPUser" resultType="com.jpmsoft.userProducer.pojo.dto.UserPositionPDTO">
+        select
+        pu.pup_id as pupId,
+        p.PP_ID as ppId,
+        p.pp_name as ppName,
+        p.pp_code as ppCode,
+        d.Pd_ID as pdId,
+        d.PD_Code as pdCode,
+        c1.C_Name as cName,
+        u.u_mtel as uMtel,
+        u.u_name as uName,
+        u.U_ID as uId,
+        d.PD_Name as pdName
+        from SYS_User u
+        left join SYS_Position_User_P pu on u.U_ID=pu.U_ID
+        left join SYS_Position_P p on pu.PP_ID=p.PP_ID
+        left join SYS_Department_P d on d.PD_ID=p.PD_ID
+        left join Sys_Company c1 on c1.C_ID=u.C_ID
+        where d.P_ID=#{pId}
+        and p.PP_Status = '1'
+        and d.PD_Status = '1'
+        and d.Pd_Code in
+        <foreach collection="pdCodes" item="pdCode" index="index" open="(" separator="," close=")">
+            #{pdCode}
+        </foreach>
+        order by d.PD_Sort, pu.pup_sort asc
+    </select>
+
+    <select id="selectPositionPOwner" resultType="com.jpmsoft.userProducer.pojo.dto.UserPositionPDTO">
+        select
+        pu.pup_id as pupId,
+        p.PP_ID as ppId,
+        p.pp_name as ppName,
+        p.pp_code as ppCode,
+        d.Pd_ID as pdId,
+        d.PD_Code as pdCode,
+        c1.C_Name as cName,
+        u.u_mtel as uMtel,
+        u.u_name as uName,
+        u.U_ID as uId,
+        d.owner_unit as ownerUnit,
+        c2.C_Name as ownerUnitName,
+        d.PD_Name as pdName
+        from SYS_User u
+        left join SYS_Position_User_P pu on u.U_ID=pu.U_ID
+        left join SYS_Position_P p on pu.PP_ID=p.PP_ID
+        left join SYS_Department_P d on d.PD_ID=p.PD_ID
+        left join Sys_Company c1 on c1.C_ID=u.C_ID
+        left join sys_company c2 on c2.C_ID=d.owner_unit
+        where d.P_ID=#{pId}
+        and p.PP_Status = '1'
+        and d.PD_Status = '1'
+        and (d.Pd_Code=#{yzdwoCode} or d.Pd_Code=#{yzdwtCode})
+        order by pu.pup_sort asc
+    </select>
+</mapper>

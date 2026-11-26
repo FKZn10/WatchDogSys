@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecBiddingPlanMapper">
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecBiddingPlanResponse"
+               id="getSecBiddingPlan">
+        <id column="Bp_Id" property="bpId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Bp_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecBiddingPlanResponse"
+               id="getSecBiddingPlanWithId">
+        <id column="Bp_Id" property="bpId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Bp_Id" select="getSecInfoProject">
+        </collection>
+        <collection property="secInfos" ofType="com.jpmsoft.common.model.response.SecInfo.SecInfoResponse"
+                    column="Bp_Id" select="getSecInfo">
+        </collection>
+    </resultMap>
+
+    <select id="getSecInfo" resultType="com.jpmsoft.common.model.response.SecInfo.SecInfoResponse">
+        select
+        c1.C_Name as tendereeName,
+        c1.C_Abbreviation as tendereeAbbName,
+        c2.C_Name as secAgencyName,
+        c2.C_Abbreviation as secAgencyAbbName,
+        dp.D_Name as secContractingDepartmentName,
+        (select count(*) from Sec_Bidding_Plan_Change bpc
+         left join Sec_Info_Change sc on sc.Bpc_Id=bpc.Bpc_Id
+         where sc.Sec_Id=sec.Sec_Id and sc.Sec_Change_Type='变更'
+         and bpc.State!=3 and bpc.State!=7)  as unalterable,
+        sec.*
+        from  Sec_Info sec
+        left join SYS_Company c1 on c1.C_ID=sec.Sec_Tenderee
+        left join SYS_Company c2 on c2.C_ID=sec.Sec_Agency
+        left join SYS_Department dp on dp.D_ID=sec.Sec_Contracting_Department
+        where sec.Bp_Id=#{bpId}
+    </select>
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        <include refid="com.jpmsoft.projectProducer.mapper.secInfo.SecProcurementPlanMapper.SecBiddingPlanFields"/>,
+        pro.State as state,
+        mn.*,
+        (<include refid="uuid"/>) as spId,
+        ifnull(c11.C_Name, pro.P_Use_Unit) as pUseUnitName
+        from   Sec_Bidding_Project mn
+        left join  Sec_Procurement_Plan spp on spp.pp_id= mn.pp_id
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Bidding_Plan sbp on sbp.Bp_Id=mn.Bp_Id
+        left join SYS_Company c11 on c11.C_Id=pro.P_Use_Unit
+        where mn.Bp_Id=#{bpId}
+    </select>
+
+    <sql id="uuid" databaseId="dm">
+        GUID()
+    </sql>
+
+    <sql id="uuid" databaseId="mysql">
+        uuid()
+    </sql>
+
+    <select id="getSecBiddingPlanById" resultMap="getSecBiddingPlanWithId">
+        select
+        f.file_relation_id as fileRelationId,
+        u1.U_Name as bpTendereeName,
+        c2.C_Name as bpCname,
+        mn.*,
+        u2.U_Name as responsibleLeaderName
+        from  Sec_Bidding_Plan mn
+        left join SYS_User u1 on u1.U_Id=mn.Bp_Tenderee
+        left join SYS_Company c2 on c2.C_Id=mn.Bp_Cid
+        left join  Sys_File f on f.FileID=mn.Bp_Id
+        left join SYS_User u2 on u2.U_Id=mn.Responsible_Leader
+        where mn.Bp_Id=#{bpId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.isNew != null and params.isNew == '1'.toString() ">
+            and mn.is_new = '1'
+        </if>
+        <if test="params.isNew == null or params.isNew == ''">
+            and (mn.is_new is null or mn.is_new = '')
+        </if>
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.state!=null">
+            and mn.State=#{params.state}
+        </if>
+        <if test="params.bpName!=null">
+            and mn.Bp_Name like concat('%',#{params.bpName},'%')
+        </if>
+        <if test="params.bpCreateUname!=null">
+            and mn.Bp_Create_Uname like concat('%',#{params.bpCreateUname},'%')
+        </if>
+        and mn.Bp_Id in
+        (select mn.Bp_Id
+        from Sec_Bidding_Project mn
+        left join Pre_Project pro on mn.P_Id=pro.P_Id
+        left join SYS_Department prod on prod.D_Id=pro.P_Competent_Department
+        left join SYS_Company c11 on c11.C_Id=pro.P_Use_Unit
+        ${params.authSql}
+        <if test="params.pBuildModel!=null">
+            and pro.P_Build_Model = #{params.pBuildModel}
+        </if>
+        <if test="params.pCategory != null and params.pCategory != ''">
+            and pro.P_Category = #{params.pCategory}
+        </if>
+        <if test="params.pBuildModelList!=null and params.pBuildModelList.size()>0 ">
+            <choose>
+                <when test="params.pBuildModelList.contains('空白数据')">
+                    and (pro.P_Build_Model is null or pro.P_Build_Model = '')
+                </when>
+                <otherwise>
+                    and pro.P_Build_Model in
+                    <foreach collection="params.pBuildModelList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pId!=null">
+            and pro.P_Id = #{params.pId}
+        </if>
+        <if test="params.pType!=null">
+            and pro.P_Type = #{params.pType}
+        </if>
+        <if test="params.pTypeList!=null and params.pTypeList.size()>0 ">
+            <choose>
+                <when test="params.pTypeList.contains('空白数据')">
+                    and (pro.P_Type is null or pro.P_Type = '')
+                </when>
+                <otherwise>
+                    and pro.P_Type in
+                    <foreach collection="params.pTypeList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pUseUnit!=null">
+            and (pro.P_Use_Unit like concat('%',#{params.pUseUnit},'%')
+            or c11.C_Name like concat('%',#{params.pUseUnit},'%'))
+        </if>
+        <if test="params.pUseUnitList!=null and params.pUseUnitList.size()>0 ">
+            <choose>
+                <when test="params.pUseUnitList.contains('空白数据')">
+                    and (pro.P_Use_Unit is null or pro.P_Use_Unit = '' or c11.C_Name is null or c11.C_Name = '')
+                </when>
+                <otherwise>
+                    and (pro.P_Use_Unit in
+                    <foreach collection="params.pUseUnitList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                    or
+                    c11.C_Name in
+                    <foreach collection="params.pUseUnitList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>)
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pImpCompany!=null">
+            and pro.P_Imp_Company like concat('%',#{params.pImpCompany},'%')
+        </if>
+        <if test="params.pImpCompanyList!=null and params.pImpCompanyList.size()>0 ">
+            <choose>
+                <when test="params.pImpCompanyList.contains('空白数据')">
+                    and (pro.P_Imp_Company is null or pro.P_Imp_Company = '')
+                </when>
+                <otherwise>
+                    and pro.P_Imp_Company in
+                    <foreach collection="params.pImpCompanyList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pName!=null">
+            and pro.P_Name like concat('%',#{params.pName},'%')
+        </if>
+        <if test="params.projectNameList!=null and params.projectNameList.size()>0 ">
+            <choose>
+                <when test="params.projectNameList.contains('空白数据')">
+                    and (pro.P_Name is null or pro.P_Name = '')
+                </when>
+                <otherwise>
+                    and pro.P_Name in
+                    <foreach collection="params.projectNameList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.pCompetentDepartmentName!=null">
+            and prod.D_Name like concat('%',#{params.pCompetentDepartmentName},'%')
+        </if>
+        <if test="params.pCompetentDepartmentNameList!=null and params.pCompetentDepartmentNameList.size()>0 ">
+            <choose>
+                <when test="params.pCompetentDepartmentNameList.contains('空白数据')">
+                    and (pro.D_Name is null or pro.D_Name = '')
+                </when>
+                <otherwise>
+                    and pro.D_Name in
+                    <foreach collection="params.pCompetentDepartmentNameList" open="(" close=")" separator="," item="item">
+                        #{item}
+                    </foreach>
+                </otherwise>
+            </choose>
+        </if>
+        )
+    </sql>
+
+    <select id="statisticsSecBiddingPlanList" resultType="com.jpmsoft.projectProducer.pojo.vo.secInfo.SecBiddingPlanStatisticsVO">
+        select
+        sum(si_agg.secMoneys) as secMoneySum,
+        sum(si_agg.secInfoTotal) as secInfoSum,
+        sum(si_agg.finishCount) as finishSum
+        from Sec_Bidding_Plan mn
+        left join SYS_Company c1 on c1.C_Id=mn.Bp_Tenderee
+        left join (
+        select
+        sec.Bp_Id,
+        sum(sec.Sec_Money) as secMoneys,
+        count(1) as secInfoTotal,
+        sum(
+        case when sec.Sec_Bidding_Type='05'
+        then (select count(*) from Sec_Price_Resultsf pr where pr.State=7 and pr.Sec_Id=sec.Sec_Id)
+        else
+        case when sec.Sec_Bidding_Type='03'
+        then (select count(*) from Sec_Entrust se where se.State=7 and se.Sec_Id=sec.Sec_Id)
+        else
+        (select count(*) from Sec_Win_Notice wn where wn.Wn_State=7 and wn.Sec_Id=sec.Sec_Id)
+        end
+        end
+        ) as finishCount
+        from Sec_Info sec
+        group by sec.Bp_Id
+        ) si_agg on si_agg.Bp_Id=mn.Bp_Id
+        where 1=1
+        <include refid="listFilter"/>
+    </select>
+
+    <select id="getSecBiddingPlanList" resultMap="getSecBiddingPlan">
+        select
+        si_agg.secMoneys,
+        si_agg.secInfoTotal,
+        si_agg.finishCount,
+        u1.U_Name as bpTendereeName,
+        c2.C_Name as bpCname,
+        case when sbpc.Bpc_Id is not null then 1 else 0 end as hasChange,
+        mn.*,
+        u2.U_Name as responsibleLeaderName,
+        u3.C_ID as bpCreateCid
+        from Sec_Bidding_Plan mn
+        left join SYS_User u1 on u1.U_Id=mn.Bp_Tenderee
+        left join SYS_User u2 on u2.U_Id=mn.Responsible_Leader
+        left join SYS_User u3 on u3.U_Id=mn.Bp_Create_Uid
+        left join SYS_Company c2 on c2.C_Id=mn.Bp_Cid
+        left join (
+        select sbpc.*
+        from Sec_Bidding_Plan_Change sbpc
+        where sbpc.State != 3
+        and sbpc.State != 7
+        ) sbpc on sbpc.Bp_Id=mn.Bp_Id
+        left join (
+        select
+        sec.Bp_Id,
+        sum(sec.Sec_Money) as secMoneys,
+        count(1) as secInfoTotal,
+        sum(
+        case when sec.Sec_Bidding_Type='05'
+        then (select count(*) from Sec_Price_Resultsf pr where pr.State=7 and pr.Sec_Id=sec.Sec_Id)
+        else
+        case when sec.Sec_Bidding_Type='03'
+        then (select count(*) from Sec_Entrust se where se.State=7 and se.Sec_Id=sec.Sec_Id)
+        else
+        (select count(*) from Sec_Win_Notice wn where wn.Wn_State=7 and wn.Sec_Id=sec.Sec_Id)
+        end
+        end
+        ) as finishCount
+        from Sec_Info sec
+        group by sec.Bp_Id
+        ) si_agg on si_agg.Bp_Id=mn.Bp_Id
+        ${params.mainAuthSql}
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Bp_Create_Time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <sql id="getSbpProjectListSql">
+        select
+        distinct
+        mn.P_Id,
+        mn.P_Code,
+        mn.P_Name,
+        mn.P_Create_Time,
+        sd.D_Name as pCompetentDepartmentName,
+        (select count(1) from Sec_Info where 1=1
+        <if test="params.secFlowState!=null">
+            and Sec_Flow_State = #{params.secFlowState}
+        </if>
+        and Bp_Id in (select Bp_Id from Sec_Bidding_Project where P_Id=mn.P_Id)) as secTotal,
+        (select sum(Sec_Money) from Sec_Info where 1=1
+        <if test="params.secFlowState!=null">
+            and Sec_Flow_State = #{params.secFlowState}
+        </if>
+        and Bp_Id in (select Bp_Id from Sec_Bidding_Project where P_Id=mn.P_Id)) as secMoneyTotal,
+        (select Sec_Create_Uname from Sec_Info where
+        1=1
+        <if test="params.secFlowState!=null">
+            and Sec_Flow_State = #{params.secFlowState}
+        </if>
+        and
+        Bp_Id in (select Bp_Id from Sec_Bidding_Project where P_Id=mn.P_Id) limit 1)
+        as secCreateUname
+        from Pre_Project mn
+        left join Sec_Bidding_Project sbp on mn.P_Id=sbp.P_Id
+        left join Sec_Bidding_Plan bp on sbp.Bp_Id=bp.Bp_Id
+        left join Sys_Department sd on sd.D_Id=mn.P_Competent_Department
+        left join Sec_Info sec on sec.Bp_Id=bp.Bp_Id
+        ${params.authSql}
+        and bp.Bp_Id is not null
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.secFlowState!=null">
+            and sec.Sec_Flow_State = #{params.secFlowState}
+        </if>
+        order by mn.P_Create_Time desc
+    </sql>
+
+    <select id="getSbpProjectList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.SecInfo.SecModularsGroupByProjectModel">
+        <include refid="getSbpProjectListSql"/>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSbpProjectListCount" resultType="java.lang.Integer">
+        select count(1)
+        from
+        (
+        <include refid="getSbpProjectListSql"/>
+        ) a
+    </select>
+
+    <select id="getSecBiddingPlanListByPids" resultMap="getSecBiddingPlan">
+        select
+        sbp.P_Id as pId,
+        u1.U_Name as bpTendereeName,
+        c2.C_Name as bpCname,
+        bp.*,
+        u2.U_Name as responsibleLeaderName
+        from Sec_Bidding_Plan bp
+        left join SYS_User u1 on u1.U_Id=bp.Bp_Tenderee
+        left join SYS_Company c2 on c2.C_Id=bp.Bp_Cid
+        left join Sec_Bidding_Project sbp on sbp.Bp_Id=bp.Bp_Id
+        left join Sec_Info sec on bp.Bp_Id=sec.Bp_Id
+        left join SYS_User u2 on u2.U_Id=mn.Responsible_Leader
+        where 1=1
+        <if test="params.secFlowState!=null">
+            and sec.Sec_Flow_State = #{params.secFlowState}
+        </if>
+        and sbp.P_Id in
+        <foreach collection="pIds" open="(" close=")" item="pId" separator=",">
+            #{pId}
+        </foreach>
+        <!--<if test="params.sortType!=null and params.sortFiled!=null">-->
+        <!--order by bp.${params.sortFiled} ${params.sortType}-->
+        <!--</if>-->
+    </select>
+
+    <select id="getValueByCodeWithPid"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecBiddingPlanTZRespose">
+        select *
+        from Sec_Bidding_Plan sbp
+        left join Sec_Bidding_Project sbproject on sbp.Bp_Id=sbproject.Bp_Id
+        left join Pre_Project pp on sbproject.P_Id=pp.P_Id
+        <where>
+            <if test="params.projectIds!=null and params.projectIds.size()>0 ">
+                and pp.P_Id in
+                <foreach collection="params.projectIds" item="projectId" index="index" open="(" separator="," close=")">
+                    #{projectId}
+                </foreach>
+            </if>
+            <if test="params.isNew != null and params.isNew == '1'.toString() ">
+                and sbp.is_new = '1'
+            </if>
+            <if test="params.isNew == null or params.isNew == ''">
+                and (sbp.is_new is null or sbp.is_new = '')
+            </if>
+        </where>
+    </select>
+
+    <select id="getSecBiddingPlanByPId"
+            resultType="com.jpmsoft.common.model.response.SecInfo.SecBiddingPlanResponse">
+        select sbp.* from Sec_Bidding_Plan sbp left join Sec_Bidding_Project sbproject  on sbp.Bp_Id=sbproject.Bp_Id
+        where sbp.state!=3 and sbproject.p_id = #{pId}
+    </select>
+
+    <select id="getSecBiddingPlanByPId2" resultMap="getSecBiddingPlanWithId">
+        select
+        f.file_relation_id as fileRelationId,
+        u1.U_Name as bpTendereeName,
+        c2.C_Name as bpCname,
+        mn.*,
+        u2.U_Name as responsibleLeaderName
+        from  Sec_Bidding_Plan mn
+        left join Sec_Bidding_Project sbproject  on mn.Bp_Id=sbproject.Bp_Id
+        left join SYS_User u1 on u1.U_Id=mn.Bp_Tenderee
+        left join SYS_Company c2 on c2.C_Id=mn.Bp_Cid
+        left join  Sys_File f on f.FileID=mn.Bp_Id
+        left join SYS_User u2 on u2.U_Id=mn.Responsible_Leader
+        where sbproject.p_id = #{pId}
+        order by mn.Bp_Create_Time desc
+        limit 1
+    </select>
+
+    <select id="getFileTemplateByTCodes" resultType="com.jpmsoft.common.model.response.FileTemplateTree">
+        select mn.*
+        from SYS_FileTemplate mn
+        where mn.T_Code in
+        <foreach collection="tCodes" item="tCode" index="index" open="(" separator="," close=")">
+            #{tCode}
+        </foreach>
+        and mn.T_Stats = 1
+    </select>
+
+    <select id="getSecPrecheckCount" resultType="java.lang.Integer">
+        select count(*)
+        from ${table}
+        where sec_id = #{secId}
+        and ${stateKey} = 7
+    </select>
+</mapper>

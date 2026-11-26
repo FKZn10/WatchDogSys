@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.contract.ConContactListMapper">
+
+    <select id="getContactLisByClId" resultType="com.jpmsoft.common.model.response.Contract.ConContactListResponse">
+        select
+        con.Con_Name as conName,
+        pro.P_Name as pName,
+        pro.P_Id as pId,
+        c1.C_Name as pConstructionUnitName,
+        d.D_Name as pCompetentDepartmentName,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Party_B_Id as conPartyBId,
+        c2.C_Name as conPartyBName,
+        c1.C_Abbreviation as pConsAbbName,
+        c2.C_Abbreviation as conPartyBAbbName,
+        mn.*
+        from  Con_Contact_List mn
+        left join  Con_Contract con on con.Con_Id=mn.Con_Id
+        left join  Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        left join  SYS_Company c1 on pro.P_Construction_Unit=c1.C_Id
+        left join  SYS_Department d on pro.P_Competent_Department=d.D_Id
+        left join  SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+        where mn.Cl_Id=#{clId}
+    </select>
+
+
+    <sql id="listFilter">
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.clNeedCost!=null">
+            and mn.Cl_Need_Cost=#{params.clNeedCost}
+        </if>
+        <if test="params.pId!=null">
+            and pro.P_ID=#{params.pId}
+        </if>
+        <if test="params.clState!=null">
+            and mn.Cl_State=#{params.clState}
+        </if>
+        <if test="params.clCode!=null">
+            and mn.Cl_Code like concat('%',#{params.clCode},'%')
+        </if>
+        <if test="params.clType!=null">
+            and mn.Cl_Type like concat('%',#{params.clType},'%')
+        </if>
+        <if test="params.clLocation!=null">
+            and mn.Cl_Location like concat('%',#{params.clLocation},'%')
+        </if>
+        <if test="params.clDrawingNo!=null">
+            and mn.Cl_Drawing_No like concat('%',#{params.clDrawingNo},'%')
+        </if>
+        <if test="params.clTitle!=null">
+            and mn.Cl_Title like concat('%',#{params.clTitle},'%')
+        </if>
+        <if test="params.clCreateUname!=null">
+            and mn.Cl_Create_Uname like concat('%',#{params.clCreateUname},'%')
+        </if>
+        <if test="params.pName!=null">
+            <choose>
+                <when test="@com.jpmsoft.projectProducer.config.XmlConfig@hsEnable()">
+                    and likePname(#{params.pName},pro.P_ID)=true
+                </when>
+                <otherwise>
+                    and pro.P_Name like concat('%',#{params.pName},'%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="params.conName!=null">
+            and con.Con_Name like concat('%',#{params.conName},'%')
+        </if>
+        <!--区间筛选-->
+        <if test="params.clCreateTimeStart!=null">
+            and mn.Cl_Create_Time > #{params.clCreateTimeStart}
+        </if>
+        <if test="params.clCreateTimeEnd!=null">
+            and mn.Cl_Create_Time &lt; #{params.clCreateTimeEnd}
+        </if>
+    </sql>
+
+    <select id="getConContactList" resultType="com.jpmsoft.common.model.response.Contract.ConContactListResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        con.Con_Name as conName,
+        con.Con_Project_Id as pId,
+        con.Con_Code as conCode,
+        con.Con_Money_Total as conMoneyTotal,
+        con.Con_Party_B_Id as conPartyBId,
+        c2.C_Name as conPartyBName,
+        c2.C_Name as conPartyBNameHistory,
+        c2.C_Abbreviation as conPartyBAbbName,
+        mn.*
+        from Con_Contact_List mn
+        left join Con_Contract con on con.Con_Id=mn.Con_Id
+        left join Pre_Project pro on con.Con_Project_Id=pro.P_ID
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonOtherProjectSelectLinks"/>
+        left join SYS_Company c2 on con.Con_Party_B_Id=c2.C_Id
+        <if test="params.authSql!=null">
+            ${params.authSql}
+        </if>
+        <if test="params.authSql==null">
+            where 1=1
+        </if>
+        <include refid="listFilter"/>
+        <choose>
+            <when test="params.sortType!=null and params.sortFiled!=null">
+                order by mn.${params.sortFiled} ${params.sortType}
+            </when>
+            <when test="params.sortType!=null and params.sortSideFiled!=null">
+                order by ${params.sortSideFiled} ${params.sortType}
+            </when>
+            <otherwise>
+                order by mn.Cl_Create_Time desc
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

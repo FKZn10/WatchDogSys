@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.secInfo.SecBidEvaluationExpertMapper">
+
+
+    <resultMap type="com.jpmsoft.common.model.response.SecInfo.SecBidEvaluationExpertResponse"
+               id="SecBidEvaluationExpert">
+        <id column="Bee_Id" property="beeId"/>
+        <collection property="secProjects" ofType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse"
+                    column="Bee_Id" select="getSecInfoProject">
+        </collection>
+    </resultMap>
+
+
+    <select id="getSecInfoProject" resultType="com.jpmsoft.common.model.response.SecInfo.SecProjectResponse">
+        select
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectFields"/>
+        mn.*
+        from   Sec_Project mn
+        <include refid="com.jpmsoft.projectProducer.mapper.project.PreProjectMapper.commonProjectSelectLinks"/>
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sec_Bid_Evaluation_Expert sd on sd.Sec_Id=sec.Sec_Id
+        where sd.Bee_Id=#{beeId}
+    </select>
+
+
+
+    <select id="getSecBidEvaluationExpertById" resultMap="SecBidEvaluationExpert">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        sec.Sec_Type as secType,
+        f.file_relation_id as fileRelationId,
+        mn.*
+        from  Sec_Bid_Evaluation_Expert mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        left join  Sys_File f on f.FileID=mn.Bee_Id
+        where mn.Bee_Id=#{beeId}
+    </select>
+
+
+    <select id="getSecBidEvaluationExpertList" resultMap="SecBidEvaluationExpert">
+        select
+        sec.Sec_Name as secName,
+        sec.Sec_Code as secCode,
+        mn.*
+        from  Sec_Bid_Evaluation_Expert mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.beeEvaluationMethod!=null">
+            and mn.Bee_Evaluation_Method = #{params.beeEvaluationMethod}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+        <if test="params.sortType!=null and params.sortFiled!=null">
+            order by mn.${params.sortFiled} ${params.sortType}
+        </if>
+        limit #{params.start},#{params.size}
+    </select>
+
+    <select id="getSecBidEvaluationExpertListCount" resultType="java.lang.Integer">
+        select
+        count(1)
+        from  Sec_Bid_Evaluation_Expert mn
+        left join  Sec_Info sec on sec.Sec_Id=mn.Sec_Id
+        where 1=1
+        <if test="params.teId!=null">
+            and mn.Te_Id = #{params.teId}
+        </if>
+        <if test="params.beeEvaluationMethod!=null">
+            and mn.Bee_Evaluation_Method = #{params.beeEvaluationMethod}
+        </if>
+        <if test="params.secId!=null">
+            and mn.Sec_Id = #{params.secId}
+        </if>
+        <if test="params.secName!=null">
+            and sec.Sec_Name like concat('%',#{params.secName},'%')
+        </if>
+    </select>
+</mapper>

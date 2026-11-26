@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.projectProducer.mapper.project.PreProjectSolutionInfoMapper">
+
+    <select id="getPreProjectSolutionInfoList"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectSolutionInfoModel">
+        select mn.*, pre.p_name as projectName,indicator.name as indicatorName,tc.type_name as infoTypeName
+        from pre_project_solution_info mn
+        left join pre_project pre on mn.project_id = pre.P_ID
+        left join znpj_indicator_info_type_config tc on mn.info_type = tc.type_code
+        left join znpj_indicator indicator on mn.indicator_id = indicator.id
+        and indicator.indicator_version_id = mn.indicator_version_id
+        and indicator.status = 1 and indicator.del_flag = 1
+        <where>
+            <if test="params.projectName != null and params.projectId != ''">
+                pre.p_name like concat('%',#{params.projectName},'%')
+            </if>
+            <if test="params.projectId != null and params.projectId != ''">
+                and mn.project_id = #{params.projectId}
+            </if>
+            <if test="params.infoType !=null and  params.infoType != ''">
+                and mn.type_code =#{params.infoType}
+            </if>
+            <if test="params.indicatorName != null and params.indicatorName != ''">
+                and indicator.name like concat('%',#{params.indicatorName},'%')
+            </if>
+            <if test="params.createUid != null and params.createUid !=''">
+                and mn.create_uid = #{params.createUid}
+            </if>
+        </where>
+    </select>
+
+    <select id="getPreProjectSolutionInfoById"
+            resultType="com.jpmsoft.common.model.requestAndResponse.Project.PreProjectSolutionInfoModel">
+        select mn.*, pre.p_name as projectName,indicator.name as indicatorName,tc.type_name as infoTypeName
+        from pre_project_solution_info mn
+        left join pre_project pre on mn.project_id = pre.P_ID
+        left join znpj_indicator_info_type_config tc on mn.info_type = tc.type_code
+        left join znpj_indicator indicator on mn.indicator_id = indicator.id
+        and indicator.indicator_version_id = mn.indicator_version_id
+        and indicator.status = 1 and indicator.del_flag=1
+        where mn.id = #{id}
+    </select>
+
+    <select id="selectLists" resultType="com.jpmsoft.projectProducer.pojo.entity.project.PreProjectSolutionInfo">
+        select mn.*
+        from pre_project_solution_info mn
+        where mn.info_type is not null and mn.info_type != ''
+        and mn.indicator_version_id is null and mn.indicator_id is null
+    </select>
+</mapper>

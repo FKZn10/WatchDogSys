@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.jpmsoft.gmgws.mapper.TaskMapper">
+
+
+
+    <select id="queryNodes" resultType="com.jpmsoft.gmgws.pojo.entity.Task">
+        select
+        t.TaskEntityID,
+        u.u_name as taskname
+        from SYS_Task t
+        left join SYS_User u on u.U_ID=t.TaskUser
+        <where>1=1
+            <if test="flowIds!=null and flowIds.size()>0 ">
+                and t.TaskEntityID in
+                <foreach collection="flowIds" open="(" close=")" separator="," item="ids">
+                    #{ids}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+
+
+</mapper>
